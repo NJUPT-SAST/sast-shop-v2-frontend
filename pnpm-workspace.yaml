@@ -1,0 +1,10 @@
+packages:
+  - docs
+
+onlyBuiltDependencies:
+  - "@biomejs/biome"
+  - "@parcel/watcher"
+  - "@swc/core"
+  - esbuild
+  - lefthook
+  - sharp

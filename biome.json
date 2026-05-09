@@ -1,0 +1,84 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "ignore": [
+      "**/.next",
+      "**/.source",
+      "**/out",
+      "**/coverage",
+      "**/playwright-report",
+      "**/test-results",
+      "**/node_modules",
+      "**/.agents",
+      "**/src-tauri",
+      "**/docs",
+      "**/public",
+      "i18n/messages/**",
+      "skills-lock.json",
+      "pnpm-lock.yaml"
+    ]
+  },
+  "organizeImports": {
+    "enabled": true
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "lineEnding": "lf"
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "asNeeded",
+      "trailingCommas": "es5",
+      "arrowParentheses": "always"
+    }
+  },
+  "json": {
+    "formatter": {
+      "indentWidth": 2
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "suspicious": {
+        "noExplicitAny": "warn"
+      },
+      "correctness": {
+        "useExhaustiveDependencies": "warn",
+        "useHookAtTopLevel": "error"
+      },
+      "a11y": {
+        "useKeyWithClickEvents": "off"
+      },
+      "performance": {
+        "noDelete": "off"
+      },
+      "style": {
+        "noNonNullAssertion": "warn"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "include": ["**/*.test.ts", "**/*.test.tsx", "vitest.setup.ts", "**/__mocks__/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    }
+  ]
+}
