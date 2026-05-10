@@ -1,8 +1,9 @@
 {
   "servers": {
-    "shadcn": {
+    "heroui-react": {
+      "type": "stdio",
       "command": "npx",
-      "args": ["shadcn@latest", "mcp"]
+      "args": ["-y", "@heroui/react-mcp@latest"]
     },
     "next-devtools": {
       "command": "npx",
