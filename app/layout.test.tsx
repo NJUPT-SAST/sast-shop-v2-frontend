@@ -10,9 +10,9 @@ import RootLayout, { metadata } from "./layout"
 describe("RootLayout", () => {
   it("exports metadata used by Next.js", () => {
     expect(metadata).toMatchObject({
-      title: "React HeroUI Quick Starter",
-      description: "Next.js 16 + Tauri 2 + HeroUI v3 starter",
+      title: "SAST Shop",
     })
+    expect(metadata.description).toMatch(/sast/i)
   })
 
   it("renders html/body with font variables and children", () => {

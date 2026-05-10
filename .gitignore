@@ -53,3 +53,5 @@ next-env.d.ts
 # docs workspace
 /docs/.next/
 /docs/.source/
+
+.playwright-mcp

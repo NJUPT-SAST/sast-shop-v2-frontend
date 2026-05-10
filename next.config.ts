@@ -18,6 +18,13 @@ const nextConfig: NextConfig = {
   },
   // Configure assetPrefix or else the server won't properly resolve your assets.
   assetPrefix: isProd ? undefined : `http://${internalHost}:3000`,
+  // Dev-only proxy: the frontend talks to /api/* and we forward to the Go backend
+  // running on :8080. In prod (static export), Nginx handles the same rewrite.
+  async rewrites() {
+    if (isProd) return []
+    const backend = process.env.NEXT_PUBLIC_API_PROXY_TARGET || "http://localhost:8080"
+    return [{ source: "/api/:path*", destination: `${backend}/api/:path*` }]
+  },
 }
 
 export default withNextIntl(nextConfig)

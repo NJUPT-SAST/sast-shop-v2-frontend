@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "React HeroUI Quick Starter",
-  description: "Next.js 16 + Tauri 2 + HeroUI v3 starter",
+  title: "SAST Shop",
+  description: "南邮 SAST 校园商城 — 二手 / 众筹 / 直售",
 }
 
 // Tauri uses `output: "export"`, so we cannot read request headers
@@ -33,7 +33,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang={DEFAULT_LOCALE} suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} bg-shop-bg-page text-shop-text-primary antialiased`}
+      >
         <ClientProviders lang={DEFAULT_LOCALE}>{children}</ClientProviders>
       </body>
     </html>

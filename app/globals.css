@@ -3,13 +3,362 @@
 /* HeroUI v3 styles must come after Tailwind */
 @import "@heroui/styles";
 
+/*
+ * SAST Shop design tokens — cool-blue palette (Flowbite-ish primary + mint secondary).
+ * Sourced from design/sast-shop.pen variables.
+ *
+ * Naming preserved (`--shop-*`) for back-compat. Old `*-light` aliases re-mapped
+ * to `*-soft` so existing components keep rendering during migration.
+ */
 @layer base {
   :root {
-    --accent: oklch(0.65 0.2 260);
-    --radius: 0.5rem;
+    /* === Brand (cool blue from design/sast-shop.pen) === */
+    --shop-primary: #1c64f2; /* blue 600 — CTA, active tab, price */
+    --shop-primary-hover: #1556d8; /* blue 700 */
+    --shop-primary-press: #1248b0; /* blue 800 — chip foreground (a11y) */
+    --shop-primary-soft: #d6e6ff; /* chip / badge bg */
+    --shop-primary-wash: #eaf1fe; /* sidebar active row, page accents */
+    --shop-primary-light: #e6f0ff; /* alias for legacy callers */
+
+    /* === Secondary (mint, kept from prior palette — .pen has no secondary) === */
+    --shop-secondary: #2ba471;
+    --shop-secondary-soft: #e8f8f0;
+
+    /* === Semantic (.pen exact values) === */
+    --shop-success: #2ba471;
+    --shop-success-soft: #e8f8f0;
+    --shop-success-light: #e8f8f0; /* legacy alias */
+    --shop-warning: #f29e3e;
+    --shop-warning-soft: #fef3e6;
+    --shop-warning-light: #fef3e6; /* legacy alias */
+    --shop-danger: #e6443e;
+    --shop-danger-soft: #fceded;
+    --shop-danger-light: #fceded; /* legacy alias */
+    --shop-info: #1c64f2; /* same hue as primary (.pen has no separate info) */
+
+    /* === Surface === */
+    --shop-bg-page: #f7f8fa; /* cool off-white */
+    --shop-bg-white: #ffffff; /* card surface */
+    --shop-bg-tinted: #f0f3f8; /* neutral cool panel (distinct from primary-wash) */
+    --shop-bg-overlay: rgba(28, 31, 35, 0.45); /* cool modal scrim */
+
+    /* === Text scale === */
+    --shop-text-primary: #1c1f23;
+    --shop-text-secondary: #868a93;
+    --shop-text-tertiary: #b0b4be;
+    --shop-text-disabled: #c8cdd6;
+    --shop-text-on-primary: #ffffff;
+    --shop-text-white: #ffffff; /* legacy alias */
+
+    /* === Border === */
+    --shop-border: #d1d5db;
+    --shop-border-light: #e8eaed;
+    --shop-border-strong: #b0b4be;
+
+    /* === Radius scale === */
+    --shop-radius-xs: 6px;
+    --shop-radius-sm: 10px;
+    --shop-radius-md: 14px; /* default card / button */
+    --shop-radius-lg: 18px; /* feature card / sheet top */
+    --shop-radius-xl: 24px; /* bottom sheet, FAB */
+    --shop-radius-pill: 999px;
+
+    /* === Shadow scale (soft, layered, cool-tinted) === */
+    --shop-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shop-shadow-md: 0 2px 8px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shop-shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+    --shop-shadow-xl: 0 16px 48px rgba(15, 23, 42, 0.12);
+    --shop-shadow-fab: 0 6px 16px rgba(28, 100, 242, 0.35);
+
+    /* === Spacing scale (4px base) === */
+    --shop-space-1: 4px;
+    --shop-space-2: 8px;
+    --shop-space-3: 12px;
+    --shop-space-4: 16px;
+    --shop-space-5: 20px;
+    --shop-space-6: 24px;
+    --shop-space-8: 32px;
+    --shop-space-10: 40px;
+
+    /* === Type scale === */
+    --shop-fs-xs: 12px;
+    --shop-lh-xs: 16px;
+    --shop-fs-sm: 13px;
+    --shop-lh-sm: 18px;
+    --shop-fs-base: 14px;
+    --shop-lh-base: 20px;
+    --shop-fs-md: 15px;
+    --shop-lh-md: 22px;
+    --shop-fs-lg: 17px;
+    --shop-lh-lg: 24px;
+    --shop-fs-xl: 20px;
+    --shop-lh-xl: 28px;
+    --shop-fs-2xl: 24px;
+    --shop-lh-2xl: 32px;
+    --shop-fs-display: 30px;
+    --shop-lh-display: 36px;
+
+    /* === HeroUI v3 hooks (cool blue; equivalent oklch ≈ #1C64F2) === */
+    --accent: oklch(0.55 0.21 260);
+    --accent-foreground: #ffffff;
+    --radius: 14px;
+
+    /* === Safe area (iOS notch + Tauri title bar) === */
+    --shop-safe-top: env(safe-area-inset-top, 0px);
+    --shop-safe-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   [data-theme="dark"] {
-    --accent: oklch(0.72 0.18 260);
+    /* Cool blue palette mapped to a slate-dark surface */
+    --shop-primary: #4f86f5; /* lightened so it stays visible on dark */
+    --shop-primary-hover: #6b9cff;
+    --shop-primary-press: #3a6fe0;
+    --shop-primary-soft: #1c2a4a;
+    --shop-primary-wash: #16203a;
+    --shop-primary-light: #1c2a4a;
+    --shop-secondary: #4fcb94;
+    --shop-secondary-soft: #173a2a;
+    --shop-success: #4fcb94;
+    --shop-success-soft: #173a2a;
+    --shop-success-light: #173a2a;
+    --shop-warning: #ffb85c;
+    --shop-warning-soft: #3a2d17;
+    --shop-warning-light: #3a2d17;
+    --shop-danger: #ff6b5d;
+    --shop-danger-soft: #3a1f1d;
+    --shop-danger-light: #3a1f1d;
+    --shop-info: #4f86f5;
+    --shop-bg-page: #0f1218;
+    --shop-bg-white: #1a1e27;
+    --shop-bg-tinted: #161b26;
+    --shop-bg-overlay: rgba(0, 0, 0, 0.6);
+    --shop-text-primary: #e8eaf0;
+    --shop-text-secondary: #a0a6b2;
+    --shop-text-tertiary: #6b7280;
+    --shop-text-disabled: #4b5360;
+    --shop-text-on-primary: #ffffff;
+    --shop-text-white: #ffffff;
+    --shop-border: #2a2f3a;
+    --shop-border-light: #1f2430;
+    --shop-border-strong: #3a4150;
+    --shop-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shop-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shop-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+    --shop-shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.7);
+    --shop-shadow-fab: 0 6px 16px rgba(79, 134, 245, 0.45);
+    --accent: oklch(0.62 0.18 260);
+  }
+
+  /* Global focus ring — coral, visible on warm bg */
+  :focus-visible {
+    outline: 2px solid var(--shop-primary);
+    outline-offset: 2px;
+    border-radius: var(--shop-radius-sm);
+  }
+
+  /* Honor reduced-motion preference for any non-framer-motion CSS transitions */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+
+  body {
+    background-color: var(--shop-bg-page);
+    color: var(--shop-text-primary);
+    font-feature-settings: "tnum" 0; /* tabular numerals only on price/count via class */
+  }
+}
+
+/*
+ * Tailwind v4 design-token map. Lets us write `bg-shop-primary text-shop-text-secondary`,
+ * `rounded-shop-lg`, `shadow-shop-md`.
+ */
+@theme inline {
+  /* colors */
+  --color-shop-primary: var(--shop-primary);
+  --color-shop-primary-hover: var(--shop-primary-hover);
+  --color-shop-primary-press: var(--shop-primary-press);
+  --color-shop-primary-soft: var(--shop-primary-soft);
+  --color-shop-primary-wash: var(--shop-primary-wash);
+  --color-shop-primary-light: var(--shop-primary-light);
+  --color-shop-secondary: var(--shop-secondary);
+  --color-shop-secondary-soft: var(--shop-secondary-soft);
+  --color-shop-success: var(--shop-success);
+  --color-shop-success-soft: var(--shop-success-soft);
+  --color-shop-success-light: var(--shop-success-light);
+  --color-shop-warning: var(--shop-warning);
+  --color-shop-warning-soft: var(--shop-warning-soft);
+  --color-shop-warning-light: var(--shop-warning-light);
+  --color-shop-danger: var(--shop-danger);
+  --color-shop-danger-soft: var(--shop-danger-soft);
+  --color-shop-danger-light: var(--shop-danger-light);
+  --color-shop-info: var(--shop-info);
+  --color-shop-bg-page: var(--shop-bg-page);
+  --color-shop-bg-white: var(--shop-bg-white);
+  --color-shop-bg-tinted: var(--shop-bg-tinted);
+  --color-shop-text-primary: var(--shop-text-primary);
+  --color-shop-text-secondary: var(--shop-text-secondary);
+  --color-shop-text-tertiary: var(--shop-text-tertiary);
+  --color-shop-text-disabled: var(--shop-text-disabled);
+  --color-shop-text-on-primary: var(--shop-text-on-primary);
+  --color-shop-text-white: var(--shop-text-white);
+  --color-shop-border: var(--shop-border);
+  --color-shop-border-light: var(--shop-border-light);
+  --color-shop-border-strong: var(--shop-border-strong);
+
+  /* radii */
+  --radius-shop-xs: var(--shop-radius-xs);
+  --radius-shop-sm: var(--shop-radius-sm);
+  --radius-shop-md: var(--shop-radius-md);
+  --radius-shop-lg: var(--shop-radius-lg);
+  --radius-shop-xl: var(--shop-radius-xl);
+  --radius-shop-pill: var(--shop-radius-pill);
+
+  /* shadows */
+  --shadow-shop-sm: var(--shop-shadow-sm);
+  --shadow-shop-md: var(--shop-shadow-md);
+  --shadow-shop-lg: var(--shop-shadow-lg);
+  --shadow-shop-xl: var(--shop-shadow-xl);
+  --shadow-shop-fab: var(--shop-shadow-fab);
+}
+
+/* Component-layer styles (BEM-ish hooks) — wrap HeroUI primitives, never replace them. */
+@layer components {
+  /* ===== Cards ===== */
+  .shop-card {
+    @apply overflow-hidden rounded-shop-lg bg-shop-bg-white shadow-shop-md transition-all duration-200;
+  }
+  .shop-card--interactive {
+    @apply cursor-pointer hover:-translate-y-0.5 hover:shadow-shop-lg active:translate-y-0
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shop-primary
+           focus-visible:ring-offset-2 focus-visible:ring-offset-shop-bg-page;
+  }
+  .shop-card__media {
+    @apply relative w-full bg-shop-border-light;
+    background-image: linear-gradient(
+      135deg,
+      var(--shop-primary-wash) 0%,
+      var(--shop-bg-tinted) 100%
+    );
+  }
+  .shop-card__media--square {
+    @apply aspect-square;
+  }
+  .shop-card__media--wide {
+    @apply aspect-[5/3];
+  }
+  .shop-card__media--portrait {
+    @apply aspect-[3/4];
+  }
+  .shop-card__body {
+    @apply flex flex-col gap-1.5 p-3;
+  }
+  .shop-card__title {
+    @apply line-clamp-2 text-[14px] leading-[20px] font-medium text-shop-text-primary;
+  }
+  .shop-card__meta {
+    @apply mt-1 flex items-baseline justify-between gap-2;
+  }
+  .shop-card__price {
+    @apply text-[17px] leading-none font-bold text-shop-primary tabular-nums;
+  }
+  .shop-card__price::before {
+    content: "¥";
+    @apply mr-0.5 text-[12px] font-semibold;
+  }
+  .shop-card__price-strike {
+    @apply text-[12px] text-shop-text-tertiary line-through tabular-nums;
+  }
+  .shop-card__seller {
+    @apply max-w-[60%] truncate text-[12px] text-shop-text-tertiary;
+  }
+  .shop-card__badge-tl {
+    @apply absolute left-2 top-2 z-10;
+  }
+  .shop-card__badge-tr {
+    @apply absolute right-2 top-2 z-10;
+  }
+
+  /* ===== Section card (publish forms etc.) ===== */
+  .shop-section {
+    @apply flex flex-col gap-3 rounded-shop-lg bg-shop-bg-white p-4 shadow-shop-sm md:p-5;
+  }
+  .shop-section__title {
+    @apply text-[15px] font-semibold text-shop-text-primary;
+  }
+  .shop-section__desc {
+    @apply text-[12px] text-shop-text-tertiary;
+  }
+
+  /* ===== List row (orders, profile shortcuts) ===== */
+  .shop-row {
+    @apply flex items-center gap-3 rounded-shop-md bg-shop-bg-white px-4 py-3
+           transition active:bg-shop-primary-wash;
+    min-height: 56px;
+  }
+  .shop-row__leading {
+    @apply flex size-10 items-center justify-center rounded-shop-sm
+           bg-shop-primary-soft text-shop-primary;
+  }
+  .shop-row__title {
+    @apply text-[15px] font-medium text-shop-text-primary;
+  }
+  .shop-row__sub {
+    @apply text-[12px] text-shop-text-tertiary;
+  }
+  .shop-row__chevron {
+    @apply ml-auto size-5 text-shop-text-tertiary;
+  }
+
+  /* ===== Sticky action bar (mobile detail pages) ===== */
+  .shop-action-bar {
+    @apply sticky bottom-0 z-20 flex items-center gap-3 border-t border-shop-border-light
+           bg-shop-bg-white/95 backdrop-blur-md px-4 py-3;
+    box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.06);
+    padding-bottom: calc(12px + var(--shop-safe-bottom));
+  }
+
+  /* ===== Icon button (44x44 touch target) ===== */
+  .shop-icon-btn {
+    @apply inline-flex size-11 items-center justify-center rounded-full
+           text-shop-text-primary transition active:scale-95
+           hover:bg-shop-bg-tinted active:bg-shop-primary-soft
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shop-primary;
+  }
+
+  /* ===== FAB (mobile center publish button) ===== */
+  .shop-fab {
+    @apply inline-flex size-14 items-center justify-center rounded-full
+           bg-shop-primary text-shop-text-on-primary transition
+           active:scale-95 hover:bg-shop-primary-hover;
+    box-shadow: var(--shop-shadow-fab);
+  }
+
+  /* ===== Bottom sheet ===== */
+  .shop-sheet {
+    @apply fixed inset-x-0 bottom-0 z-50 rounded-t-shop-xl bg-shop-bg-white;
+    box-shadow: var(--shop-shadow-xl);
+    padding-bottom: calc(16px + var(--shop-safe-bottom));
+  }
+  .shop-sheet__handle {
+    @apply mx-auto mt-2 h-1 w-10 rounded-full bg-shop-border-strong;
+  }
+
+  /* ===== Form input ergonomics on mobile ===== */
+  .shop-input-group input,
+  .shop-input-group textarea {
+    @apply min-h-[44px] text-[15px];
+  }
+
+  /* ===== Safe-area utilities (use sparingly; tab/header already inline-handle) ===== */
+  .shop-safe-top {
+    padding-top: var(--shop-safe-top);
+  }
+  .shop-safe-bottom {
+    padding-bottom: var(--shop-safe-bottom);
   }
 }

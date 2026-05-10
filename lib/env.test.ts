@@ -12,10 +12,10 @@ describe("getPublicEnv", () => {
     process.env = originalEnv
   })
 
-  it("returns appName when NEXT_PUBLIC_APP_NAME is set", () => {
+  it("defaults apiUrl to /api when NEXT_PUBLIC_API_URL is unset", () => {
     process.env.NEXT_PUBLIC_APP_NAME = "My App"
     delete process.env.NEXT_PUBLIC_API_URL
-    expect(getPublicEnv()).toEqual({ appName: "My App", apiUrl: undefined })
+    expect(getPublicEnv()).toEqual({ appName: "My App", apiUrl: "/api" })
   })
 
   it("includes apiUrl when NEXT_PUBLIC_API_URL is set", () => {

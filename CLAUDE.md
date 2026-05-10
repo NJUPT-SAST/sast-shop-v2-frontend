@@ -4,163 +4,126 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-React + Tauri desktop application starter: Next.js 16 (React 19) + Tauri 2.9 + TypeScript + Tailwind CSS v4 + **HeroUI v3** + Zustand + TanStack Query.
+**SAST Shop v2 frontend** — campus marketplace for 南邮 SAST: secondhand (`secondhand`), crowdfunding (`crowdfund`, with `vote_first` and `presale` modes), and official direct sale (`direct_sale`). Stack: Next.js 16 (App Router, React 19) + Tauri 2.9 wrapper + TypeScript strict + Tailwind v4 + **HeroUI v3** + TanStack Query + Zustand + Zod + react-hook-form. UI copy is Chinese (`zh-CN`) by default.
 
-**Dual Runtime Model:**
-
-- **Web mode** (`pnpm dev`): Next.js dev server at <http://localhost:3000>
-- **Desktop mode** (`pnpm tauri dev`): Tauri wraps Next.js in a native window
+**Dual runtime:** `pnpm dev` runs the Next.js dev server at <http://localhost:3000>; `pnpm tauri dev` wraps the same build in a native window. The `next.config.ts` is locked to `output: "export"` because Tauri loads the static `out/` directory — do not remove it, and do not introduce APIs that require a Node server (no `headers()`, no Route Handlers, no server actions in the main app).
 
 ## Development Commands
 
 ```bash
-# Frontend (main app — port 3000)
-pnpm dev              # Start Next.js dev server
-pnpm build            # Build for production (outputs to out/)
-pnpm lint             # Biome lint
-pnpm lint:fix         # Biome lint with --write
-pnpm format           # Biome format --write
-pnpm format:check     # Biome format (check only)
-pnpm check            # Biome check --write (lint + format + import sort)
-pnpm typecheck        # TypeScript --noEmit
-
-# Testing
-pnpm test             # Vitest run (single pass)
-pnpm test:watch       # Vitest watch mode
-pnpm test:coverage    # Vitest with coverage + JUnit reporter
-pnpm test:e2e         # Playwright E2E (auto-starts dev server)
+pnpm dev              # Next.js dev server (port 3000) — also auto-started by Tauri & Playwright
+pnpm build            # Static export to out/ (Tauri reads from here)
+pnpm check            # Biome: lint + format + organize imports (write)
+pnpm typecheck        # tsc --noEmit
+pnpm test             # Vitest single pass; pnpm test path/to/file.test.ts to scope
+pnpm test:watch       # Vitest watch
+pnpm test:coverage    # Vitest with v8 coverage + JUnit; thresholds enforced (lines 70 / fns 60 / branches 60)
+pnpm test:e2e         # Playwright (auto-starts dev server via webServer config)
 pnpm test:e2e:ui      # Playwright UI mode
-
-# Desktop (Tauri)
-pnpm tauri dev        # Dev mode with hot reload
+pnpm tauri dev        # Tauri shell (uses @tauri-apps/cli binary; pnpm resolves it)
 pnpm tauri build      # Build desktop installer
-pnpm tauri info       # Check Tauri environment
-
-# Docs site (pnpm workspace — port 3001)
-pnpm docs:dev         # Start Fumadocs dev server
-pnpm docs:build       # Build docs for production
-pnpm docs:start       # Start docs production server
+pnpm docs:dev         # Fumadocs site at port 3001 (separate workspace under docs/)
 ```
+
+The Go backend is expected at `localhost:8080`. `next.config.ts` rewrites `/api/*` there in dev — set `NEXT_PUBLIC_API_PROXY_TARGET` to override. In production (Tauri / Nginx), the same `/api` path is served externally; set `NEXT_PUBLIC_API_URL` to call a different host.
 
 ## Architecture
 
-### Workspace Structure
+### Route groups (`app/`)
 
-This is a **pnpm monorepo** with two packages:
+Three top-level destinations, each backed by a "shell" client component that owns the auth boundary and chrome:
 
-| Package  | Path       | Port | Purpose                                          |
-| -------- | ---------- | ---- | ------------------------------------------------ |
-| Main app | `/` (root) | 3000 | Next.js + Tauri desktop app (`output: "export"`) |
-| Docs     | `docs/`    | 3001 | Fumadocs documentation site (full server mode)   |
+| Path                | Layout                       | Shell file                 | `AuthGuard` mode | Purpose                              |
+| ------------------- | ---------------------------- | -------------------------- | ---------------- | ------------------------------------ |
+| `app/(shop)/...`    | `app/(shop)/layout.tsx`      | `shop-shell.tsx`           | `anonymous-ok`   | Buyer storefront (browse / order)    |
+| `app/admin/...`     | `app/admin/layout.tsx`       | `admin-shell.tsx`          | `admin`          | Admin console (reviews / listings)   |
+| `app/auth/callback` | (none)                       | inline                     | —                | Feishu OAuth landing → invalidate `authMe` → `router.replace(redirect)` |
 
-Root `pnpm-lock.yaml` is the single lockfile for all packages. Run `pnpm install` from the repo root.
+Both shells render `PCSidebar` + `MobileTabBar` (responsive split) and gate children through `AuthGuard`. The `(shop)` route group is required because `app/(shop)/page.tsx` is the literal `/` route — never move it to a top-level `app/page.tsx`.
 
-### Frontend Structure (main app)
+### Data layer (`lib/api/`)
 
-- `app/` - Next.js App Router (`layout.tsx`, `page.tsx`, `providers.tsx`, `globals.css`)
-- `components/` - Application components (HeroUI is consumed directly from `@heroui/react`; no `components/ui/` mirror)
-- `hooks/` - Shared hooks (e.g., `use-mobile.ts`)
-- `lib/tauri.ts` - Type-safe wrapper around Tauri `invoke`
-- `lib/env.ts` - `NEXT_PUBLIC_*` env-var validator
-- `e2e/` - Playwright specs
+Strict pipeline. Components must not call `fetch` directly; **only `lib/api/queries.ts` calls `lib/api/client.ts`**, and only `client.ts` calls `fetch`. Order:
 
-### Docs Structure (`docs/`)
+1. `endpoints.ts` — every URL string lives here (`endpoints.orders.pay(id)` etc.); makes API-doc verification a single grep.
+2. `client.ts` — `request<T>()` wrapper. Owns: base-URL selection, `credentials: "include"` cookies, JSON serialization, `Idempotency-Key` (only when `idempotent: true` — currently `useCreateOrder`), 401 → `onUnauthorized` callback, error normalization into `ApiError`.
+3. `queries.ts` — TanStack Query hooks. Owns query keys (`queryKeys.*`), invalidation strategy, optimistic updates, and the order-detail polling loop (5s while `pending_payment` / `pending_confirm` / `awaiting_payment`).
+4. `types.ts` — domain types + `as const` enum arrays so unions can be both compile-time types and runtime iterables (used by filter dropdowns).
 
-- `docs/app/` - Next.js App Router for the docs site
-  - `docs/app/layout.tsx` - Root layout with `RootProvider` (from `fumadocs-ui/provider/next`)
-  - `docs/app/docs/layout.tsx` - `DocsLayout` with sidebar
-  - `docs/app/docs/[[...slug]]/page.tsx` - Dynamic MDX page
-  - `docs/app/api/search/route.ts` - Orama full-text search
-- `docs/lib/source.ts` - Fumadocs loader (imports from `collections/server`)
-- `docs/source.config.ts` - Content collection definition
-- `docs/content/docs/` - MDX content files and `meta.json` sidebar config
-- `docs/.source/` - **Auto-generated** by fumadocs-mdx at dev/build time (gitignored)
+`providers.tsx` registers the unauthorized handler exactly once: a 401 redirects the browser to `/api/auth/feishu/login?redirect=<here>`. Inside Tauri, the same URL is opened externally via `openExternal` (currently a clipboard fallback — see `lib/tauri.ts`).
 
-**Docs-specific import conventions:**
+### State stores (`lib/stores/`, Zustand)
 
-- Source loader: `import { source } from "@/lib/source"` (NOT `@/app/source`)
-- Collection output: `import { docs } from "collections/server"` (tsconfig alias → `.source/`)
-- Provider: `fumadocs-ui/provider/next` (NOT `fumadocs-ui/provider`)
+- `auth-store.ts` — synchronous read mirror of `useAuthMe`. The writer is `AuthGuard` (the only place that calls `setUser`); everywhere else uses `useAuthStore` selectors. Helpers: `selectIsAuthenticated`, `selectIsAdmin`.
+- `upload-store.ts` — in-flight image uploads keyed by id, used by `ImageUpload` + listing forms to gate submit until all PUTs succeed.
 
-### HeroUI v3 Usage
+### Order state machine (`lib/utils/order-state.ts`)
 
-All components import directly from `@heroui/react` (no per-component file in this repo):
+Order pages are dumb; this module derives the 13 `OrderViewKey`s from the `(status, shipping_mode, shipping_status, payment_mode)` tuple. When changing order behavior, **edit this module and its tests** — never sprinkle new conditions into components. Provides:
 
-```tsx
-import { Button, Card, Modal, Toast, toast } from "@heroui/react"
-```
+- `getOrderViewKey(order)` / `getOrderLabel(order)` — current view + badge/label
+- `getOrderProgressSteps(order)` — 5-step indicator
+- `getBuyerActions(order)` / `getSellerActions(order)` — what buttons to render
 
-**v3 conventions you must follow:**
+The variable-shipping-fee branch (`shipping_fee_pending` / `paying` / `paid`) only applies between `paid` and `shipped`; everything else falls back to the main flow.
 
-- **No `<HeroUIProvider>`** — v3 removed the provider. Locale-aware components (Calendar, DatePicker) use `<I18nProvider locale="zh-CN">`, mounted in `app/providers.tsx`.
-- **Compound components** — `Card.Header`, `Card.Body`, `Card.Footer`, `Toast.Provider`, etc. Don't flatten props.
-- **`onPress`, not `onClick`** — Buttons fire `onPress` so React Aria handles keyboard + touch correctly.
-- **Variants are semantic** — `primary` / `secondary` / `tertiary` / `outline` / `ghost` / `danger`. Don't pass raw color tokens.
-- **BEM class overrides** — extend in `globals.css` under `@layer components` (e.g., `.button--primary { @apply font-semibold; }`).
-- **Toast is built in** — `import { toast } from "@heroui/react"`. `<Toast.Provider />` is already mounted in `app/providers.tsx`. No `sonner`.
-- **Icons** — use `@iconify/react` (`<Icon icon="mdi:github" />`). HeroUI does not bundle a specific icon set.
+### Schemas (`lib/schemas/`)
 
-### Tauri Integration
+Zod. `listing.ts` is a discriminated union over `type` (`secondhand` | `crowdfund` | `direct_sale`). `crowdfund` is further split by `cf_mode` (`vote_first` | `presale`); since Zod doesn't support nested discriminated unions on a single field, the four schemas (`secondhand`, `voteFirst`, `presale`, `directSale`) are exposed flat and the form is responsible for setting both `type` and `cf_mode`.
 
-- `src-tauri/` - Rust backend
-  - `tauri.conf.json` - Config pointing `frontendDist` to `../out`
-  - `beforeDevCommand`: runs `pnpm dev`
-  - `beforeBuildCommand`: runs `pnpm build`
+### Image upload flow
 
-### Styling System
+`components/image-upload.tsx`:
 
-- **Tailwind v4** via PostCSS (`@tailwindcss/postcss`)
-- `@import "tailwindcss"` followed by `@import "@heroui/styles"` — order matters
-- CSS variables for theme colors (oklch color space)
-- Dark mode: HeroUI reads `data-theme="dark"` on `<html>`
+1. `browser-image-compression` → max 2 MB / 1920px
+2. `usePresign({ purpose })` returns `{ upload_url, method, headers, public_url }`
+3. PUT/POST the blob to `upload_url` directly (not through `client.ts`)
+4. Push `public_url` into the listing-form draft
 
-### Path Aliases
+Valid `purpose` values are listed in `PRESIGN_PURPOSES` (`listing_image`, `qr_code`, `shipping_qr`, `avatar`).
 
-`@/components`, `@/lib`, `@/hooks`, `@/i18n` — all configured in tsconfig.json.
+### HeroUI v3 conventions (project-specific subset)
+
+Components are imported directly from `@heroui/react` — there is no `components/ui/` mirror. v3 differs from v2 in ways that matter here:
+
+- **No `<HeroUIProvider>`**. Locale-aware components use `<I18nProvider locale="zh-CN">`, mounted in `app/providers.tsx`.
+- **Compound components** — `Card.Header`, `Card.Body`, `Toast.Provider`, `Radio.Control` / `Radio.Indicator` / `Radio.Content`. See `components/listing-form/shared.tsx` for the `Radio` shape.
+- **`onPress`, not `onClick`** on Buttons (React Aria handles keyboard + touch).
+- **Semantic variants** — `primary` / `secondary` / `tertiary` / `outline` / `ghost` / `danger`. No raw color tokens.
+- **Toast** — `import { toast } from "@heroui/react"`. `<Toast.Provider />` is mounted globally; do not add `sonner`.
+- **Icons** — `@iconify/react` (`<Icon icon="material-symbols:..." />`). HeroUI doesn't bundle icons.
+
+When in doubt about a v3 component, use the `heroui-react` MCP (`mcp__heroui-react__list_components`, `get_component_docs`) — the API is still beta and training data drifts.
+
+### Styling: `shop-*` design tokens
+
+`app/globals.css` defines two parallel color systems:
+
+1. **HeroUI tokens** (`--accent`, oklch space) — drive HeroUI components.
+2. **`shop-*` tokens** (hex, with `[data-theme="dark"]` overrides) — drive everything else through Tailwind v4's `@theme inline` block, exposing classes like `bg-shop-bg-page`, `text-shop-text-primary`, `text-shop-warning`, `bg-shop-primary-light`. Source of truth is `design/sast-shop.pen` (open in Pencil to view).
+
+Order matters: `@import "tailwindcss"` first, `@import "@heroui/styles"` second.
+
+### Tauri integration
+
+- `src-tauri/tauri.conf.json` — `frontendDist: "../out"`, `beforeDevCommand: pnpm dev`, `beforeBuildCommand: pnpm build`. The Tauri production CSP lives in this file; if you call a new external origin from the browser, add it to `connect-src` or the request will be blocked.
+- `lib/tauri.ts` is the **only** caller of `invoke()`. Add new Rust commands as named exports here; gate UI calls with `isTauri()` so they're no-ops in web mode.
+- `openExternal(url)` currently writes to clipboard inside Tauri (the shell plugin isn't wired). Replace with `@tauri-apps/plugin-shell` when adding it.
 
 ### Tooling
 
-- **Lint + format**: Biome (single tool — `biome.json`)
-- **Tests**: Vitest (`vitest.config.ts`, `vitest.setup.ts`) + Playwright E2E (`playwright.config.ts`)
-- **Git hooks**: lefthook (`lefthook.yml`) — pre-commit runs Biome + tsc, pre-push runs Vitest, commit-msg runs commitlint
-- **Package manager**: pnpm 10 (`packageManager` pinned)
+- **Lint + format**: Biome (`biome.json`). `pnpm check` is the catch-all.
+- **Tests**: Vitest (jsdom, coverage thresholds enforced; excludes `e2e/`, `src-tauri/`, `out/`) + Playwright. `vitest.config.ts` excludes `app/**/page.tsx` and `app/**/layout.tsx` from coverage on purpose — those are entry points covered by E2E.
+- **Git hooks** (`lefthook.yml`): pre-commit runs Biome `check --write` + `pnpm typecheck`; commit-msg runs commitlint (Conventional Commits); pre-push runs `pnpm test`. Don't `--no-verify` past these — fix the underlying issue.
 
-## Code Patterns
+## Critical notes
 
-```tsx
-// HeroUI button — onPress + semantic variant
-import { Button } from "@heroui/react"
-
-<Button variant="primary" onPress={() => doThing()}>
-  Click me
-</Button>
-```
-
-```tsx
-// Compound layout
-import { Card } from "@heroui/react"
-
-<Card>
-  <Card.Header>
-    <Card.Title>Title</Card.Title>
-  </Card.Header>
-  <Card.Body>Body content</Card.Body>
-</Card>
-```
-
-```tsx
-// Calling Rust from the frontend (Tauri only) — see lib/tauri.ts
-import { greet, isTauri } from "@/lib/tauri"
-if (isTauri()) {
-  greet("World").then((msg) => console.log(msg))
-}
-```
-
-## Critical Notes
-
-- **Always use pnpm** (lockfile present); run `pnpm install` from repo root to install all workspaces
-- **Tauri production builds require static export**: `next.config.ts` (main app) has `output: "export"` — do not remove it
-- **Docs does NOT use static export**: `docs/next.config.ts` is full server mode — keep them separate
-- **Rust toolchain**: Requires v1.77.2+ for Tauri builds
-- **Docs `.source/` is generated**: run `pnpm docs:dev` or `pnpm docs:build` once before TypeScript resolves `collections/server`
-- **No `headers()` in `app/layout.tsx`**: Tauri's static export means request headers aren't available at render time. Locale defaults to `zh-CN`; switch via a client hook if you add a language toggle.
+- **Single fetch owner**: never call `fetch`, `axios`, or `useQuery` outside `lib/api/queries.ts`. Components consume hooks; hooks consume `api.*` from `client.ts`.
+- **Static export constraints**: no `headers()`, no Route Handlers, no server actions, no dynamic `generateMetadata` based on request. Locale is hard-coded to `zh-CN` in `app/layout.tsx` for this reason.
+- **OAuth redirect target**: 401s only redirect *once per session* (`redirected` flag in `providers.tsx`) to avoid loops if the backend is down.
+- **Order detail polls** (`useOrder`) — 5s while waiting for backend confirmation. If you add a new "waiting" status, update the `refetchInterval` predicate too.
+- **Order creation is idempotent** — `useCreateOrder` sets `idempotent: true` so `client.ts` injects `Idempotency-Key`. Don't strip it; the backend dedupes on retry.
+- **`lib/api/types.ts` mirrors the API doc** (Feishu wiki `DMvtwCoxtiRKOiksCQRc2S2Dnte` §8 + DB schema). When the contract changes, update the `as const` arrays *and* the form schemas in `lib/schemas/` together.
+- **`design/sast-shop.pen` is encrypted** — never `Read`/`Grep` it; use the `pencil` MCP (`mcp__pencil__*`).
+- **Docs subworkspace** lives in `docs/` (Fumadocs, full server mode). It does NOT inherit `output: "export"`. Run `pnpm docs:dev` (or `:build`) once before TypeScript can resolve `collections/server`. Docs is not loaded by the main app build.
+- **Rust toolchain** ≥ 1.77.2 for Tauri builds.
