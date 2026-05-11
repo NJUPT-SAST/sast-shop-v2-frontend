@@ -1,7 +1,6 @@
 "use client"
 
-import { Button } from "@heroui/react"
-import { Icon } from "@iconify/react"
+import { Button, CloseButton } from "@heroui/react"
 import { AnimatePresence, m } from "motion/react"
 import type { ReactNode } from "react"
 
@@ -26,14 +25,7 @@ export function BulkActionBar({ count, onClear, children, label }: Props) {
           initial={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.18 }}
         >
-          <button
-            aria-label="清空选择"
-            className="shop-icon-btn !size-8"
-            onClick={onClear}
-            type="button"
-          >
-            <Icon className="size-4" icon="material-symbols:close-rounded" />
-          </button>
+          <CloseButton aria-label="清空选择" onPress={onClear} />
           <span className="text-[14px] font-medium text-shop-text-primary">
             {label ?? `已选 ${count} 项`}
           </span>

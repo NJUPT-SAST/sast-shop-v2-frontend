@@ -20,6 +20,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { Button } from "@heroui/react"
 import { Icon } from "@iconify/react"
 import imageCompression from "browser-image-compression"
 import { useEffect, useId, useRef, useState } from "react"
@@ -417,14 +418,16 @@ function Thumb({
           {coverLabel}
         </span>
       ) : null}
-      <button
+      <Button
         aria-label="移除"
-        className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
-        onClick={onRemove}
-        type="button"
+        className="absolute right-1 top-1 !size-6 !min-w-0 !rounded-full !bg-black/60 !text-white hover:!bg-black/80"
+        isIconOnly
+        onPress={onRemove}
+        size="sm"
+        variant="primary"
       >
         <Icon className="size-4" icon="material-symbols:close-rounded" />
-      </button>
+      </Button>
     </div>
   )
 }
@@ -474,14 +477,15 @@ function PendingThumb({
           <>
             <Icon className="size-6 text-shop-danger" icon="material-symbols:error-outline" />
             <span className="line-clamp-2 text-[10px] text-shop-danger">{item.error}</span>
-            <button
+            <Button
               aria-label="重试上传"
-              className="mt-0.5 rounded-shop-sm bg-shop-danger px-2 py-0.5 text-[11px] font-medium text-white"
-              onClick={onRetry}
-              type="button"
+              className="mt-0.5 !h-auto !min-h-0 !min-w-0 !px-2 !py-0.5 text-[11px]"
+              onPress={onRetry}
+              size="sm"
+              variant="danger"
             >
               重试
-            </button>
+            </Button>
           </>
         ) : (
           <>
@@ -493,14 +497,16 @@ function PendingThumb({
           </>
         )}
       </div>
-      <button
+      <Button
         aria-label="取消"
-        className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white"
-        onClick={onCancel}
-        type="button"
+        className="absolute right-1 top-1 !size-6 !min-w-0 !rounded-full !bg-black/60 !text-white hover:!bg-black/80"
+        isIconOnly
+        onPress={onCancel}
+        size="sm"
+        variant="primary"
       >
         <Icon className="size-4" icon="material-symbols:close-rounded" />
-      </button>
+      </Button>
     </div>
   )
 }

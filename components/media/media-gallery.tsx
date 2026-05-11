@@ -1,5 +1,6 @@
 "use client"
 
+import { Button } from "@heroui/react"
 import { Icon } from "@iconify/react"
 import useEmblaCarousel from "embla-carousel-react"
 import { useCallback, useEffect, useState } from "react"
@@ -63,11 +64,11 @@ export function MediaGallery({
         <div className="flex">
           {images.map((src, i) => (
             <div className="relative w-full shrink-0 grow-0 basis-full" key={src}>
-              <button
+              <Button
                 aria-label="查看大图"
-                className={`block w-full bg-shop-bg-tinted ${ASPECT_CLASS[aspect]}`}
-                onClick={() => setLightboxOpen(true)}
-                type="button"
+                className={`!h-auto !min-h-0 !min-w-0 !w-full !rounded-none !bg-shop-bg-tinted !p-0 ${ASPECT_CLASS[aspect]}`}
+                onPress={() => setLightboxOpen(true)}
+                variant="ghost"
               >
                 <img
                   alt={`${alt} ${i + 1}`}
@@ -75,7 +76,7 @@ export function MediaGallery({
                   loading={i === 0 ? "eager" : "lazy"}
                   src={src}
                 />
-              </button>
+              </Button>
             </div>
           ))}
         </div>
@@ -84,44 +85,45 @@ export function MediaGallery({
         withThumbnails ? (
           <div className="mt-2 flex gap-2 overflow-x-auto">
             {images.map((src, i) => (
-              <button
+              <Button
                 aria-label={`第 ${i + 1} 张`}
-                className={`size-16 shrink-0 overflow-hidden rounded-shop-sm border-2 transition ${
-                  selected === i ? "border-shop-primary" : "border-transparent"
+                className={`!size-16 shrink-0 !min-w-0 overflow-hidden !rounded-shop-sm !border-2 !p-0 transition ${
+                  selected === i ? "!border-shop-primary" : "!border-transparent"
                 }`}
                 key={src}
-                onClick={() => scrollTo(i)}
-                type="button"
+                onPress={() => scrollTo(i)}
+                variant="ghost"
               >
                 <img alt="" className="size-full object-cover" src={src} />
-              </button>
+              </Button>
             ))}
           </div>
         ) : (
           <div className="mt-2 flex justify-center gap-1">
             {images.map((src, i) => (
-              <button
+              <Button
                 aria-label={`第 ${i + 1} 张`}
-                className={`size-1.5 rounded-full transition ${
-                  selected === i ? "w-6 bg-shop-primary" : "bg-shop-border-strong"
+                className={`!h-1.5 !min-h-0 !min-w-0 !rounded-full !p-0 transition ${
+                  selected === i ? "!w-6 !bg-shop-primary" : "!w-1.5 !bg-shop-border-strong"
                 }`}
                 key={src}
-                onClick={() => scrollTo(i)}
-                type="button"
+                onPress={() => scrollTo(i)}
+                variant="ghost"
               />
             ))}
           </div>
         )
       ) : null}
-      <button
+      <Button
         aria-label="放大查看"
-        className="mt-2 inline-flex items-center gap-1 text-[12px] text-shop-text-tertiary transition hover:text-shop-primary"
-        onClick={() => setLightboxOpen(true)}
-        type="button"
+        className="mt-2 !h-auto !min-h-0 !min-w-0 !gap-1 self-start !p-0 text-[12px] text-shop-text-tertiary hover:!text-shop-primary"
+        onPress={() => setLightboxOpen(true)}
+        size="sm"
+        variant="ghost"
       >
         <Icon className="size-4" icon="material-symbols:zoom-out-map-rounded" />
         放大查看
-      </button>
+      </Button>
       <MediaLightbox
         images={images}
         initialIndex={selected}

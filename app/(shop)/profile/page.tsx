@@ -6,7 +6,7 @@ import { useAuthMe, useLogout, useOrders } from "@/lib/api/queries"
 import { useAddressStore } from "@/lib/stores/address-store"
 import { usePreferenceStore } from "@/lib/stores/preference-store"
 import { isTauri, openExternal } from "@/lib/tauri"
-import { Button, Skeleton, Switch } from "@heroui/react"
+import { Avatar, Button, Skeleton, Switch } from "@heroui/react"
 import { Icon } from "@iconify/react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -51,13 +51,16 @@ export default function ProfilePage() {
           <Skeleton className="h-32 w-full rounded-shop-lg" />
         ) : me ? (
           <section className="shop-section flex !flex-row items-center gap-4">
-            <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-shop-primary to-shop-primary-hover text-shop-text-on-primary shadow-shop-md">
-              {me.avatar_url ? (
-                <img alt={me.name} className="size-full object-cover" src={me.avatar_url} />
-              ) : (
-                <span className="text-[18px] font-semibold">{me.name.slice(0, 1)}</span>
-              )}
-            </div>
+            <Avatar
+              className="size-14 shrink-0 shadow-shop-md bg-gradient-to-br from-shop-primary to-shop-primary-hover"
+              color="accent"
+              size="lg"
+            >
+              {me.avatar_url ? <Avatar.Image alt={me.name} src={me.avatar_url} /> : null}
+              <Avatar.Fallback className="text-[18px] font-semibold text-shop-text-on-primary">
+                {me.name.slice(0, 1)}
+              </Avatar.Fallback>
+            </Avatar>
             <div className="flex flex-1 flex-col">
               <span className="text-[16px] font-semibold text-shop-text-primary">{me.name}</span>
               <span className="text-[12px] text-shop-text-tertiary">
@@ -104,17 +107,17 @@ export default function ProfilePage() {
             icon="material-symbols:add-circle-rounded"
             title="发布商品"
           />
-          <button
-            className="shop-row !rounded-shop-md"
-            onClick={() => setPickerOpen(true)}
-            type="button"
+          <Button
+            className="shop-row !rounded-shop-md w-full"
+            onPress={() => setPickerOpen(true)}
+            variant="ghost"
           >
             <div className="shop-row__leading">
               <Icon className="size-5" icon="material-symbols:home-pin-rounded" />
             </div>
             <span className="shop-row__title text-left">收货地址簿</span>
             <Icon className="shop-row__chevron" icon="material-symbols:chevron-right-rounded" />
-          </button>
+          </Button>
           {me?.is_admin ? (
             <ShortcutCard
               href="/admin"

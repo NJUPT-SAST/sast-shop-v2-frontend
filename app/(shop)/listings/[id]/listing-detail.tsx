@@ -15,9 +15,8 @@ import type { Listing } from "@/lib/api/types"
 import { useCountdown } from "@/lib/hooks/use-countdown"
 import { formatDateTime, formatPrice } from "@/lib/utils/format"
 import { notify } from "@/lib/utils/toast"
-import { Button, ProgressBar } from "@heroui/react"
+import { Alert, Avatar, Button, Chip, ProgressBar } from "@heroui/react"
 import { Icon } from "@iconify/react"
-import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 
 function priceDigits(amount: string | number | null | undefined): string {
@@ -121,13 +120,13 @@ function Header({ listing }: { listing: Listing }) {
             运费 {formatPrice(listing.shipping_fee)}
           </span>
         ) : listing.shipping_mode === "free" ? (
-          <span className="rounded-shop-xs bg-shop-success-soft px-1.5 py-0.5 text-[12px] font-medium text-shop-success">
-            包邮
-          </span>
+          <Chip color="success" size="sm" variant="soft">
+            <Chip.Label>包邮</Chip.Label>
+          </Chip>
         ) : (
-          <span className="rounded-shop-xs bg-shop-warning-soft px-1.5 py-0.5 text-[12px] font-medium text-shop-warning">
-            运费另议
-          </span>
+          <Chip color="warning" size="sm" variant="soft">
+            <Chip.Label>运费另议</Chip.Label>
+          </Chip>
         )}
       </div>
     </header>
@@ -190,25 +189,23 @@ function PresaleProgress({ listing }: { listing: Listing }) {
         <div className="mt-1 flex items-center gap-2">
           <div className="flex -space-x-2">
             {Array.from({ length: Math.min(5, supporters) }).map((_, i) => (
-              <div
-                className="size-7 rounded-full border-2 border-shop-bg-white bg-shop-primary-soft text-shop-primary flex items-center justify-center text-[10px] font-semibold"
-                // biome-ignore lint/suspicious/noArrayIndexKey: anonymized stack
-                key={i}
-              >
-                <Icon className="size-3.5" icon="material-symbols:person-rounded" />
-              </div>
+              // biome-ignore lint/suspicious/noArrayIndexKey: anonymized stack
+              <Avatar className="border-2 border-shop-bg-white" color="accent" key={i} size="sm">
+                <Avatar.Fallback>
+                  <Icon className="size-3.5" icon="material-symbols:person-rounded" />
+                </Avatar.Fallback>
+              </Avatar>
             ))}
           </div>
           <span className="text-[12px] text-shop-text-tertiary">已有 {supporters} 位同学支持</span>
         </div>
       ) : null}
-      <p className="mt-1 rounded-shop-sm bg-shop-bg-tinted px-3 py-2 text-[12px] text-shop-text-secondary">
-        <Icon
-          className="mr-1 inline size-3.5 align-text-bottom text-shop-info"
-          icon="material-symbols:info-rounded"
-        />
-        预售商品采用子商户支付，未达标自动退款。
-      </p>
+      <Alert className="mt-1" status="default">
+        <Alert.Indicator />
+        <Alert.Content>
+          <Alert.Description>预售商品采用子商户支付，未达标自动退款。</Alert.Description>
+        </Alert.Content>
+      </Alert>
     </section>
   )
 }
@@ -232,13 +229,14 @@ function VoteSection({ listing }: { listing: Listing }) {
         </p>
       </header>
       {!listing.show_vote_count ? (
-        <div className="rounded-shop-sm bg-shop-bg-tinted px-3 py-2 text-[12px] text-shop-text-secondary">
-          <Icon
-            className="mr-1 inline size-3.5 align-text-bottom text-shop-info"
-            icon="material-symbols:visibility-off-rounded"
-          />
-          为保证投票公正，本项目实时票数不公开，将在投票结束后揭晓。
-        </div>
+        <Alert status="default">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Description>
+              为保证投票公正，本项目实时票数不公开，将在投票结束后揭晓。
+            </Alert.Description>
+          </Alert.Content>
+        </Alert>
       ) : null}
       <VotePanel isClosed={isClosed} listing={listing} />
     </section>
@@ -246,31 +244,30 @@ function VoteSection({ listing }: { listing: Listing }) {
 }
 
 function SellerCard({ listing }: { listing: Listing }) {
+  const router = useRouter()
   return (
     <section className="shop-section flex !flex-row items-center gap-3">
-      <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-shop-primary-soft text-shop-primary">
+      <Avatar className="size-12 shrink-0" color="accent">
         {listing.seller.avatar_url ? (
-          <img
-            alt={listing.seller.name}
-            className="size-full object-cover"
-            src={listing.seller.avatar_url}
-          />
-        ) : (
+          <Avatar.Image alt={listing.seller.name} src={listing.seller.avatar_url} />
+        ) : null}
+        <Avatar.Fallback>
           <Icon className="size-6" icon="material-symbols:person-rounded" />
-        )}
-      </div>
+        </Avatar.Fallback>
+      </Avatar>
       <div className="flex flex-1 flex-col">
         <span className="text-[15px] font-medium text-shop-text-primary">
           {listing.seller.name}
         </span>
         <span className="text-[12px] text-shop-text-tertiary">卖家</span>
       </div>
-      <Link
-        className="rounded-shop-pill border border-shop-border bg-shop-bg-white px-3 py-1.5 text-[12px] text-shop-text-secondary transition hover:border-shop-primary hover:text-shop-primary"
-        href={`/secondhand?seller_id=${listing.seller.id}`}
+      <Button
+        onPress={() => router.push(`/secondhand?seller_id=${listing.seller.id}`)}
+        size="sm"
+        variant="outline"
       >
         Ta 的其他商品
-      </Link>
+      </Button>
     </section>
   )
 }
@@ -295,14 +292,14 @@ function FloatingActionBar({ listing }: { listing: Listing }) {
 
   return (
     <StickyActionBar>
-      <button
+      <Button
         aria-label="联系卖家（敬请期待）"
-        className="shop-icon-btn"
-        onClick={() => notify({ title: "站内消息功能即将上线", color: "default" })}
-        type="button"
+        isIconOnly
+        onPress={() => notify({ title: "站内消息功能即将上线", color: "default" })}
+        variant="ghost"
       >
         <Icon className="size-6" icon="material-symbols:chat-bubble-outline-rounded" />
-      </button>
+      </Button>
       <Button className="flex-1" isDisabled={!canBuy} onPress={handleBuy} variant="primary">
         {canBuy ? "立即购买" : "暂不可购买"}
       </Button>

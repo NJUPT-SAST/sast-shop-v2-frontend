@@ -10,6 +10,7 @@ import { useInfiniteListings } from "@/lib/api/infinite-queries"
 import { useListings } from "@/lib/api/queries"
 import type { CfMode, ListingStatus } from "@/lib/api/types"
 import { diffCountdown } from "@/lib/utils/format"
+import { Button, Card } from "@heroui/react"
 import { Icon } from "@iconify/react"
 import Link from "next/link"
 import { useState } from "react"
@@ -65,47 +66,38 @@ export default function CrowdfundPage() {
 
         <div className="flex gap-2 overflow-x-auto pb-1">
           {MODE_FILTERS.map((f) => (
-            <button
-              className={`inline-flex shrink-0 items-center gap-1.5 rounded-shop-pill border px-3 py-1.5 text-[13px] transition ${
-                mode === f.key
-                  ? "border-shop-primary bg-shop-primary text-shop-text-on-primary"
-                  : "border-shop-border bg-shop-bg-white text-shop-text-secondary hover:border-shop-primary"
-              }`}
+            <Button
+              className="shrink-0 rounded-shop-pill"
               key={f.key}
-              onClick={() => setMode(f.key)}
-              type="button"
+              onPress={() => setMode(f.key)}
+              size="sm"
+              variant={mode === f.key ? "primary" : "outline"}
             >
               <Icon className="size-4" icon={f.icon} />
               {f.label}
-            </button>
+            </Button>
           ))}
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-1">
-          <button
-            className={`shrink-0 rounded-shop-pill border px-3 py-1 text-[12px] transition ${
-              status === null
-                ? "border-shop-text-primary bg-shop-text-primary text-shop-bg-white"
-                : "border-shop-border-light bg-shop-bg-white text-shop-text-tertiary"
-            }`}
-            onClick={() => setStatus(null)}
-            type="button"
+          <Button
+            className="shrink-0 rounded-shop-pill"
+            onPress={() => setStatus(null)}
+            size="sm"
+            variant={status === null ? "primary" : "outline"}
           >
             全部状态
-          </button>
+          </Button>
           {STATUS_FILTERS.map((f) => (
-            <button
-              className={`shrink-0 rounded-shop-pill border px-3 py-1 text-[12px] transition ${
-                status === f.key
-                  ? "border-shop-text-primary bg-shop-text-primary text-shop-bg-white"
-                  : "border-shop-border-light bg-shop-bg-white text-shop-text-tertiary"
-              }`}
+            <Button
+              className="shrink-0 rounded-shop-pill"
               key={f.key}
-              onClick={() => setStatus(f.key)}
-              type="button"
+              onPress={() => setStatus(f.key)}
+              size="sm"
+              variant={status === f.key ? "primary" : "outline"}
             >
               {f.label}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -121,28 +113,30 @@ export default function CrowdfundPage() {
             <div className="flex gap-3 overflow-x-auto pb-2">
               {endingSoon.map((l) => (
                 <Link
-                  className="shop-card shop-card--interactive flex w-60 shrink-0 flex-col gap-2 p-3"
+                  className="block w-60 shrink-0 focus:outline-none"
                   href={`/listings/${l.id}`}
                   key={l.id}
                 >
-                  <div className="aspect-[5/3] overflow-hidden rounded-shop-sm bg-shop-bg-tinted">
-                    {l.image_urls[0] ? (
-                      <img
-                        alt={l.title}
-                        className="size-full object-cover"
-                        loading="lazy"
-                        src={l.image_urls[0]}
-                      />
-                    ) : null}
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="line-clamp-1 text-[13px] font-medium text-shop-text-primary">
-                      {l.title}
-                    </span>
-                    <span className="text-[12px] text-shop-warning tabular-nums">
-                      {diffCountdown(l.deadline).text}
-                    </span>
-                  </div>
+                  <Card className="cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-shop-lg active:translate-y-0 focus-within:ring-2 focus-within:ring-shop-primary focus-within:ring-offset-2">
+                    <div className="aspect-[5/3] overflow-hidden rounded-t-shop-sm bg-shop-bg-tinted">
+                      {l.image_urls[0] ? (
+                        <img
+                          alt={l.title}
+                          className="size-full object-cover"
+                          loading="lazy"
+                          src={l.image_urls[0]}
+                        />
+                      ) : null}
+                    </div>
+                    <Card.Content className="flex flex-col gap-1 p-3">
+                      <span className="line-clamp-1 text-[13px] font-medium text-shop-text-primary">
+                        {l.title}
+                      </span>
+                      <span className="text-[12px] text-shop-warning tabular-nums">
+                        {diffCountdown(l.deadline).text}
+                      </span>
+                    </Card.Content>
+                  </Card>
                 </Link>
               ))}
             </div>

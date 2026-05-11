@@ -1,7 +1,7 @@
 "use client"
 
 import { ErrorState } from "@/components/states/error-state"
-import { Spinner } from "@heroui/react"
+import { Button, Spinner } from "@heroui/react"
 import { type ReactNode, useEffect, useRef } from "react"
 
 type InfiniteState<T> = {
@@ -81,13 +81,9 @@ export function InfiniteList<T>({
           <Spinner aria-label="加载更多" />
         ) : query.hasNextPage ? (
           hideManualLoadMore ? null : (
-            <button
-              className="rounded-shop-pill border border-shop-border bg-shop-bg-white px-4 py-1.5 text-[13px] text-shop-text-secondary transition hover:bg-shop-bg-tinted"
-              onClick={() => query.fetchNextPage()}
-              type="button"
-            >
+            <Button onPress={() => query.fetchNextPage()} size="sm" variant="outline">
               加载更多
-            </button>
+            </Button>
           )
         ) : (
           <span className="text-[12px] text-shop-text-tertiary">— 已经到底啦 —</span>

@@ -1,5 +1,6 @@
 "use client"
 
+import { Label } from "@heroui/react"
 import { type ReactElement, type ReactNode, cloneElement, isValidElement } from "react"
 import { useFormContext } from "react-hook-form"
 
@@ -67,6 +68,8 @@ export function FormField({ name, label, hint, required, maxLength, className, c
       const childProps = (children as ReactElement<Record<string, unknown>>).props ?? {}
       return cloneElement(children as ReactElement<Record<string, unknown>>, {
         ...childProps,
+        // Link <label htmlFor={name}> to the actual input element.
+        id: (childProps.id as string | undefined) ?? name,
         // biome-ignore lint/suspicious/noExplicitAny: passes through to HeroUI input
         value: value ?? (childProps.value as any) ?? "",
         onChange: (next: unknown) => {
@@ -100,7 +103,7 @@ export function FormField({ name, label, hint, required, maxLength, className, c
   return (
     <div className={`flex flex-col gap-1.5 ${className ?? ""}`}>
       {label ? (
-        <label
+        <Label
           className="flex items-center gap-1 text-[13px] font-medium text-shop-text-secondary"
           htmlFor={name}
         >
@@ -110,9 +113,9 @@ export function FormField({ name, label, hint, required, maxLength, className, c
               *
             </span>
           ) : null}
-        </label>
+        </Label>
       ) : null}
-      <div className="shop-input-group">{renderChildren()}</div>
+      <div className="shop-input-group [&>*]:w-full">{renderChildren()}</div>
       <div className="flex min-h-[16px] items-start justify-between gap-3 text-[12px]">
         <div className="flex-1">
           {error ? (

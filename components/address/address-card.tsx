@@ -1,6 +1,7 @@
 "use client"
 
 import type { Address } from "@/lib/stores/address-store"
+import { Button } from "@heroui/react"
 import { Icon } from "@iconify/react"
 
 type Props = {
@@ -31,18 +32,19 @@ export function AddressCard({
       }`}
     >
       {interactive && onSelect ? (
-        <button
-          aria-checked={selected}
-          aria-label="选择此地址"
-          className={`mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full border ${selected ? "border-shop-primary bg-shop-primary text-shop-text-on-primary" : "border-shop-border bg-shop-bg-white text-transparent"}`}
-          onClick={onSelect}
-          role="radio"
-          type="button"
+        <Button
+          aria-label={selected ? "已选择此地址" : "选择此地址"}
+          aria-pressed={selected}
+          className={`!size-5 !min-w-0 !rounded-full !p-0 ${selected ? "!bg-shop-primary !text-shop-text-on-primary" : ""}`}
+          isIconOnly
+          onPress={onSelect}
+          size="sm"
+          variant={selected ? "primary" : "outline"}
         >
           {selected ? (
             <Icon className="size-3" icon="material-symbols:check-small-rounded" />
           ) : null}
-        </button>
+        </Button>
       ) : null}
       <div className="flex flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-baseline gap-2">
@@ -61,33 +63,21 @@ export function AddressCard({
           {address.detail}
         </p>
         {interactive ? (
-          <div className="mt-1 flex gap-3 text-[12px]">
+          <div className="mt-1 flex flex-wrap gap-2">
             {!address.isDefault && onSetDefault ? (
-              <button
-                className="text-shop-text-tertiary transition hover:text-shop-primary"
-                onClick={onSetDefault}
-                type="button"
-              >
+              <Button onPress={onSetDefault} size="sm" variant="ghost">
                 设为默认
-              </button>
+              </Button>
             ) : null}
             {onEdit ? (
-              <button
-                className="text-shop-text-tertiary transition hover:text-shop-primary"
-                onClick={onEdit}
-                type="button"
-              >
+              <Button onPress={onEdit} size="sm" variant="ghost">
                 编辑
-              </button>
+              </Button>
             ) : null}
             {onRemove ? (
-              <button
-                className="text-shop-text-tertiary transition hover:text-shop-danger"
-                onClick={onRemove}
-                type="button"
-              >
+              <Button onPress={onRemove} size="sm" variant="ghost">
                 删除
-              </button>
+              </Button>
             ) : null}
           </div>
         ) : null}

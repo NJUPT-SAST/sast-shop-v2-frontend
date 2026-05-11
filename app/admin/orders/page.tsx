@@ -130,29 +130,27 @@ export default function AdminOrdersPage() {
         <div className="flex items-center gap-2">
           <div className="flex flex-1 gap-2 overflow-x-auto">
             {STATUS_OPTIONS.map((opt) => (
-              <button
-                className={`shrink-0 rounded-shop-pill border px-3 py-1 text-[12px] transition ${
-                  status === opt.v
-                    ? "border-shop-primary bg-shop-primary text-shop-text-on-primary"
-                    : "border-shop-border bg-shop-bg-white text-shop-text-secondary hover:border-shop-primary"
-                }`}
+              <Button
+                className="shrink-0 rounded-shop-pill"
                 key={opt.label}
-                onClick={() => setStatus(opt.v)}
-                type="button"
+                onPress={() => setStatus(opt.v)}
+                size="sm"
+                variant={status === opt.v ? "primary" : "outline"}
               >
                 {opt.label}
-              </button>
+              </Button>
             ))}
           </div>
-          <button
+          <Button
             aria-label="导出 CSV"
-            className="shop-icon-btn md:hidden"
-            disabled={items.length === 0}
-            onClick={() => downloadCsv(items)}
-            type="button"
+            className="md:hidden"
+            isDisabled={items.length === 0}
+            isIconOnly
+            onPress={() => downloadCsv(items)}
+            variant="ghost"
           >
             <Icon className="size-5" icon="material-symbols:file-download-rounded" />
-          </button>
+          </Button>
         </div>
 
         <InfiniteList

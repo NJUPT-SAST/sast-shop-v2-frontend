@@ -1,5 +1,6 @@
 "use client"
 
+import { Button, CloseButton } from "@heroui/react"
 import { Icon } from "@iconify/react"
 import { AnimatePresence, m } from "motion/react"
 import { useEffect, useRef, useState } from "react"
@@ -109,14 +110,7 @@ export function MediaLightbox({ open, images, initialIndex = 0, onClose }: Props
             <span className="text-[13px] tabular-nums">
               {index + 1} / {images.length}
             </span>
-            <button
-              aria-label="关闭"
-              className="shop-icon-btn !text-white"
-              onClick={onClose}
-              type="button"
-            >
-              <Icon className="size-6" icon="material-symbols:close-rounded" />
-            </button>
+            <CloseButton aria-label="关闭" className="!text-white" onPress={onClose} />
           </header>
           <div
             className="relative flex flex-1 select-none items-center justify-center overflow-hidden touch-none"
@@ -142,46 +136,48 @@ export function MediaLightbox({ open, images, initialIndex = 0, onClose }: Props
               />
             ) : null}
             {index > 0 ? (
-              <button
+              <Button
                 aria-label="上一张"
-                className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white backdrop-blur transition hover:bg-white/20"
-                onClick={() => {
+                className="absolute left-2 top-1/2 -translate-y-1/2 !rounded-full !bg-white/10 !text-white backdrop-blur hover:!bg-white/20"
+                isIconOnly
+                onPress={() => {
                   setIndex(index - 1)
                   reset()
                 }}
-                type="button"
+                variant="ghost"
               >
                 <Icon className="size-6" icon="material-symbols:chevron-left-rounded" />
-              </button>
+              </Button>
             ) : null}
             {index < images.length - 1 ? (
-              <button
+              <Button
                 aria-label="下一张"
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white backdrop-blur transition hover:bg-white/20"
-                onClick={() => {
+                className="absolute right-2 top-1/2 -translate-y-1/2 !rounded-full !bg-white/10 !text-white backdrop-blur hover:!bg-white/20"
+                isIconOnly
+                onPress={() => {
                   setIndex(index + 1)
                   reset()
                 }}
-                type="button"
+                variant="ghost"
               >
                 <Icon className="size-6" icon="material-symbols:chevron-right-rounded" />
-              </button>
+              </Button>
             ) : null}
           </div>
           {images.length > 1 ? (
             <footer className="flex justify-center gap-1 p-3">
               {images.map((src, i) => (
-                <button
+                <Button
                   aria-label={`查看第 ${i + 1} 张`}
-                  className={`size-1.5 rounded-full transition ${
-                    i === index ? "w-6 bg-white" : "bg-white/40"
+                  className={`!h-1.5 !min-h-0 !min-w-0 !rounded-full !p-0 transition ${
+                    i === index ? "!w-6 !bg-white" : "!w-1.5 !bg-white/40"
                   }`}
                   key={src}
-                  onClick={() => {
+                  onPress={() => {
                     setIndex(i)
                     reset()
                   }}
-                  type="button"
+                  variant="ghost"
                 />
               ))}
             </footer>

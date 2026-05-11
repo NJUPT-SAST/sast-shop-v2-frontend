@@ -93,7 +93,11 @@ Components are imported directly from `@heroui/react` — there is no `component
 - **Toast** — `import { toast } from "@heroui/react"`. `<Toast.Provider />` is mounted globally; do not add `sonner`.
 - **Icons** — `@iconify/react` (`<Icon icon="material-symbols:..." />`). HeroUI doesn't bundle icons.
 
-When in doubt about a v3 component, use the `heroui-react` MCP (`mcp__heroui-react__list_components`, `get_component_docs`) — the API is still beta and training data drifts.
+**Available v3 components** (v3.0.4, 71 total — import all from `@heroui/react`):
+
+Accordion, Alert, AlertDialog, Autocomplete, Avatar, Badge, Breadcrumbs, Button, ButtonGroup, Calendar, Card, Checkbox, CheckboxGroup, Chip, CloseButton, ColorArea, ColorField, ColorPicker, ColorSlider, ColorSwatch, ColorSwatchPicker, ComboBox, DateField, DatePicker, DateRangePicker, Description, Disclosure, DisclosureGroup, Drawer, Dropdown, ErrorMessage, FieldError, Fieldset, Form, Input, InputGroup, InputOTP, Kbd, Label, Link, ListBox, Meter, Modal, NumberField, Pagination, Popover, ProgressBar, ProgressCircle, RadioGroup, RangeCalendar, ScrollShadow, SearchField, Select, Separator, Skeleton, Slider, Spinner, Surface, Switch, Table, Tabs, TagGroup, Text, TextArea, TextField, TimeField, Toast, ToggleButton, ToggleButtonGroup, Toolbar, Tooltip
+
+If a component you need is not in this list, it does not exist in v3 yet. For detailed API, use `mcp__heroui-react__get_component_docs`.
 
 ### Styling: `shop-*` design tokens
 

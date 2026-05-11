@@ -73,24 +73,18 @@ export default function MyListingsPage() {
           aria-label="状态筛选"
           className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0"
         >
-          {FILTERS.map((f) => {
-            const active = filter === f.key
-            return (
-              <button
-                aria-pressed={active}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] transition ${
-                  active
-                    ? "bg-shop-primary text-shop-text-on-primary shadow-shop-sm"
-                    : "bg-shop-bg-white text-shop-text-secondary hover:bg-shop-bg-tinted"
-                }`}
-                key={f.key}
-                onClick={() => setFilter(f.key)}
-                type="button"
-              >
-                {f.label}
-              </button>
-            )
-          })}
+          {FILTERS.map((f) => (
+            <Button
+              aria-pressed={filter === f.key}
+              className="shrink-0 rounded-full"
+              key={f.key}
+              onPress={() => setFilter(f.key)}
+              size="sm"
+              variant={filter === f.key ? "primary" : "ghost"}
+            >
+              {f.label}
+            </Button>
+          ))}
         </nav>
 
         {isPending ? <SkeletonList count={5} /> : null}
@@ -98,13 +92,10 @@ export default function MyListingsPage() {
         {!isPending && !isError && items.length === 0 ? (
           <EmptyState
             action={
-              <Link
-                className="inline-flex items-center gap-1 rounded-shop-pill bg-shop-primary px-4 py-2 text-[13px] font-medium text-shop-text-on-primary hover:bg-shop-primary-hover"
-                href="/publish"
-              >
+              <Button onPress={() => router.push("/publish")} variant="primary">
                 <Icon className="size-4" icon="material-symbols:add-rounded" />
                 去发布
-              </Link>
+              </Button>
             }
             description={filter === "all" ? "你还没有上架过商品" : "当前筛选下没有商品"}
             icon="material-symbols:storefront-outline-rounded"

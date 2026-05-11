@@ -16,7 +16,7 @@ import type { Listing } from "@/lib/api/types"
 import { useRowSelection } from "@/lib/hooks/use-row-selection"
 import { formatDateTime, formatPrice } from "@/lib/utils/format"
 import { notify } from "@/lib/utils/toast"
-import { Button } from "@heroui/react"
+import { Button, Input } from "@heroui/react"
 import { Icon } from "@iconify/react"
 import type { ColumnDef } from "@tanstack/react-table"
 import Link from "next/link"
@@ -158,11 +158,11 @@ export default function AdminListingsPage() {
             <p>
               将下架已选 <strong>{selection.selectedCount}</strong> 个商品，操作不可撤销。
             </p>
-            <input
-              className="rounded-shop-sm border border-shop-border bg-shop-bg-white px-3 py-2 text-[14px] focus:border-shop-primary focus:outline-none"
+            <Input
               onChange={(e) => setReason(e.target.value)}
               placeholder="下架原因（可选，会通知卖家）"
               value={reason}
+              variant="secondary"
             />
           </div>
         }

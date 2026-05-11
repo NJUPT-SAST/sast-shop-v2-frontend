@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/states/empty-state"
 import { SkeletonGrid } from "@/components/states/skeleton-grid"
 import { useInfiniteListings } from "@/lib/api/infinite-queries"
 import { type Category, listingMatchesCategory } from "@/lib/categories"
+import { Alert, Button } from "@heroui/react"
 import { Icon } from "@iconify/react"
 import { useMemo, useState } from "react"
 
@@ -49,30 +50,28 @@ export default function SecondhandPage() {
         <CategoryChips onChange={setCategory} value={category} />
 
         {category ? (
-          <div className="rounded-shop-md border border-shop-warning-soft bg-shop-warning-soft/40 px-3 py-2 text-[12px] text-shop-text-secondary">
-            <Icon
-              className="mr-1 inline size-3.5 align-text-bottom text-shop-warning"
-              icon="material-symbols:info-rounded"
-            />
-            分类筛选目前为前端本地匹配（标题/描述关键词），后端将于后续版本提供更精准的分类支持。
-          </div>
+          <Alert status="warning">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Description>
+                分类筛选目前为前端本地匹配（标题/描述关键词），后端将于后续版本提供更精准的分类支持。
+              </Alert.Description>
+            </Alert.Content>
+          </Alert>
         ) : null}
 
         <div className="flex gap-2 overflow-x-auto">
           {SORT_OPTIONS.map((opt) => (
-            <button
-              className={`inline-flex shrink-0 items-center gap-1 rounded-shop-pill border px-3 py-1.5 text-[12px] transition ${
-                sort === opt.v
-                  ? "border-shop-primary bg-shop-primary text-shop-text-on-primary"
-                  : "border-shop-border bg-shop-bg-white text-shop-text-secondary hover:border-shop-primary"
-              }`}
+            <Button
+              className="shrink-0 rounded-shop-pill"
               key={opt.v}
-              onClick={() => setSort(opt.v)}
-              type="button"
+              onPress={() => setSort(opt.v)}
+              size="sm"
+              variant={sort === opt.v ? "primary" : "outline"}
             >
               <Icon className="size-3.5" icon={opt.icon} />
               {opt.label}
-            </button>
+            </Button>
           ))}
         </div>
 

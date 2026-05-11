@@ -1,6 +1,7 @@
 "use client"
 
 import { CATEGORIES, CATEGORY_ICONS, CATEGORY_LABELS, type Category } from "@/lib/categories"
+import { ToggleButton, ToggleButtonGroup } from "@heroui/react"
 import { Icon } from "@iconify/react"
 
 type Props = {
@@ -9,57 +10,39 @@ type Props = {
   className?: string
 }
 
-export function CategoryChips({ value, onChange, className }: Props) {
-  return (
-    <div
-      aria-label="商品分类"
-      className={`scrollbar-thin -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 ${className ?? ""}`}
-      role="radiogroup"
-    >
-      <Chip
-        active={value === null}
-        icon="material-symbols:apps-rounded"
-        label="全部"
-        onPress={() => onChange(null)}
-      />
-      {CATEGORIES.map((c) => (
-        <Chip
-          active={value === c}
-          icon={CATEGORY_ICONS[c]}
-          key={c}
-          label={CATEGORY_LABELS[c]}
-          onPress={() => onChange(c)}
-        />
-      ))}
-    </div>
-  )
-}
+const ALL_KEY = "__all__"
 
-function Chip({
-  active,
-  icon,
-  label,
-  onPress,
-}: {
-  active: boolean
-  icon: string
-  label: string
-  onPress: () => void
-}) {
+export function CategoryChips({ value, onChange, className }: Props) {
+  const selectedKey = value ?? ALL_KEY
   return (
-    <button
-      aria-checked={active}
-      className={`inline-flex shrink-0 items-center gap-1.5 rounded-shop-pill border px-3 py-1.5 text-[13px] transition active:scale-95 ${
-        active
-          ? "border-shop-primary bg-shop-primary text-shop-text-on-primary"
-          : "border-shop-border bg-shop-bg-white text-shop-text-secondary hover:border-shop-primary hover:text-shop-primary"
-      }`}
-      onClick={onPress}
-      role="radio"
-      type="button"
-    >
-      <Icon className="size-4" icon={icon} />
-      <span>{label}</span>
-    </button>
+    <div aria-label="商品分类" className={`-mx-4 overflow-x-auto px-4 pb-1 ${className ?? ""}`}>
+      <ToggleButtonGroup
+        aria-label="商品分类"
+        disallowEmptySelection
+        isDetached
+        onSelectionChange={(keys) => {
+          const first = Array.from(keys)[0] as string | undefined
+          if (!first || first === ALL_KEY) {
+            onChange(null)
+          } else {
+            onChange(first as Category)
+          }
+        }}
+        selectedKeys={new Set([selectedKey])}
+        selectionMode="single"
+        size="sm"
+      >
+        <ToggleButton id={ALL_KEY}>
+          <Icon className="size-4" icon="material-symbols:apps-rounded" />
+          全部
+        </ToggleButton>
+        {CATEGORIES.map((c) => (
+          <ToggleButton id={c} key={c}>
+            <Icon className="size-4" icon={CATEGORY_ICONS[c]} />
+            {CATEGORY_LABELS[c]}
+          </ToggleButton>
+        ))}
+      </ToggleButtonGroup>
+    </div>
   )
 }

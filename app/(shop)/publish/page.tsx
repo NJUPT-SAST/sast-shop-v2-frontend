@@ -2,6 +2,7 @@
 
 import { MobileHeader } from "@/components/layout/mobile-header"
 import { useDraftStore } from "@/lib/stores/draft-store"
+import { Card, Chip } from "@heroui/react"
 import { Icon } from "@iconify/react"
 import Link from "next/link"
 
@@ -49,29 +50,27 @@ export default function PublishHubPage() {
           {ENTRIES.map((e) => {
             const draft = drafts[e.slot]
             return (
-              <Link
-                className="shop-card shop-card--interactive flex flex-col gap-3 p-4"
-                href={e.href}
-                key={e.href}
-              >
-                <div
-                  className={`flex size-12 items-center justify-center rounded-shop-md bg-gradient-to-br ${e.accent} text-shop-text-on-primary shadow-shop-md`}
-                >
-                  <Icon className="size-6" icon={e.icon} />
-                </div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-[16px] font-semibold text-shop-text-primary">{e.title}</h2>
-                  {draft ? (
-                    <span className="rounded-shop-xs bg-shop-warning-soft px-1.5 py-0.5 text-[11px] font-medium text-shop-warning">
-                      草稿
-                    </span>
-                  ) : null}
-                </div>
-                <p className="text-[13px] text-shop-text-secondary">{e.desc}</p>
-                <div className="mt-auto flex items-center gap-1 text-[11px] text-shop-text-tertiary">
-                  <Icon className="size-3.5" icon="material-symbols:info-outline-rounded" />
-                  {e.eligibility}
-                </div>
+              <Link className="block focus:outline-none" href={e.href} key={e.href}>
+                <Card className="cursor-pointer flex flex-col gap-3 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-shop-lg active:translate-y-0 focus-within:ring-2 focus-within:ring-shop-primary focus-within:ring-offset-2 h-full">
+                  <div
+                    className={`flex size-12 items-center justify-center rounded-shop-md bg-gradient-to-br ${e.accent} text-shop-text-on-primary shadow-shop-md`}
+                  >
+                    <Icon className="size-6" icon={e.icon} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-[16px] font-semibold text-shop-text-primary">{e.title}</h2>
+                    {draft ? (
+                      <Chip color="warning" size="sm" variant="soft">
+                        <Chip.Label>草稿</Chip.Label>
+                      </Chip>
+                    ) : null}
+                  </div>
+                  <p className="text-[13px] text-shop-text-secondary">{e.desc}</p>
+                  <div className="mt-auto flex items-center gap-1 text-[11px] text-shop-text-tertiary">
+                    <Icon className="size-3.5" icon="material-symbols:info-outline-rounded" />
+                    {e.eligibility}
+                  </div>
+                </Card>
               </Link>
             )
           })}

@@ -4,8 +4,16 @@ import { FormField } from "@/components/forms/form-field"
 import { useFormContext } from "@/components/forms/typed-form"
 import { ImageUpload, type ImageUploadVariant } from "@/components/image-upload"
 import type { CreateListingInput, DeliveryMode, PaymentMode, ShippingMode } from "@/lib/api/types"
-import { Input, NumberField, Radio, RadioGroup, Switch, TextArea } from "@heroui/react"
-import { Icon } from "@iconify/react"
+import {
+  Alert,
+  Input,
+  InputGroup,
+  NumberField,
+  Radio,
+  RadioGroup,
+  Switch,
+  TextArea,
+} from "@heroui/react"
 import type { ReactNode } from "react"
 
 // Inline radio helper (HeroUI v3 compound parts).
@@ -117,17 +125,35 @@ export function InfoFields({ showStock = true }: { showStock?: boolean }) {
       </FormField>
       <div className="grid grid-cols-2 gap-3">
         <FormField label="价格 (元)" name="price" required>
-          <Input inputMode="decimal" placeholder="29.90" variant="secondary" />
+          {({ value, onChange, invalid, describedBy }) => (
+            <InputGroup fullWidth variant="secondary">
+              <InputGroup.Prefix>¥</InputGroup.Prefix>
+              <InputGroup.Input
+                aria-describedby={describedBy}
+                aria-invalid={invalid || undefined}
+                inputMode="decimal"
+                onChange={(e) => onChange(e.target.value)}
+                placeholder="29.90"
+                value={(value as string) ?? ""}
+              />
+            </InputGroup>
+          )}
         </FormField>
         {showStock ? (
           <FormField label="库存" name="stock">
             {({ value, onChange }) => (
               <NumberField
+                fullWidth
                 minValue={1}
-                onChange={(n: number) => onChange(n)}
+                onChange={(n) => onChange(n ?? 1)}
                 value={(value as number) ?? 1}
+                variant="secondary"
               >
-                <Input variant="secondary" />
+                <NumberField.Group>
+                  <NumberField.DecrementButton />
+                  <NumberField.Input />
+                  <NumberField.IncrementButton />
+                </NumberField.Group>
               </NumberField>
             )}
           </FormField>
@@ -187,7 +213,19 @@ export function ShippingPaymentFields({
           {shippingMode === "fixed" ? (
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <FormField label="固定运费 (元)" name="shipping_fee">
-                <Input inputMode="decimal" placeholder="例如 8.00" variant="secondary" />
+                {({ value, onChange, invalid, describedBy }) => (
+                  <InputGroup fullWidth variant="secondary">
+                    <InputGroup.Prefix>¥</InputGroup.Prefix>
+                    <InputGroup.Input
+                      aria-describedby={describedBy}
+                      aria-invalid={invalid || undefined}
+                      inputMode="decimal"
+                      onChange={(e) => onChange(e.target.value)}
+                      placeholder="8.00"
+                      value={(value as string) ?? ""}
+                    />
+                  </InputGroup>
+                )}
               </FormField>
               <div className="col-span-1 sm:col-span-2">
                 <FormField
@@ -212,10 +250,14 @@ export function ShippingPaymentFields({
 
       <Section title="支付方式">
         {lockedPaymentMode ? (
-          <div className="flex items-center gap-2 rounded-shop-sm bg-shop-info/10 px-3 py-2 text-[12px] text-shop-info">
-            <Icon className="size-4" icon="material-symbols:lock-rounded" />
-            <span>预售必须使用「子商户」支付，未达标自动原路退款。</span>
-          </div>
+          <Alert status="accent">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Description>
+                预售必须使用「子商户」支付，未达标自动原路退款。
+              </Alert.Description>
+            </Alert.Content>
+          </Alert>
         ) : null}
         <RadioGroup
           isDisabled={Boolean(lockedPaymentMode)}

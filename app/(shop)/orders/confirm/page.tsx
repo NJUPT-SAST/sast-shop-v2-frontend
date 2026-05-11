@@ -15,7 +15,7 @@ import { type CreateOrderFormInput, createOrderSchema } from "@/lib/schemas/orde
 import { type Address, formatAddress, useAddressStore } from "@/lib/stores/address-store"
 import { formatPrice, sumPrice } from "@/lib/utils/format"
 import { notify } from "@/lib/utils/toast"
-import { Button, TextArea } from "@heroui/react"
+import { Alert, Button, TextArea } from "@heroui/react"
 import { Icon } from "@iconify/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
@@ -63,7 +63,6 @@ function ConfirmOrderInner() {
   }, [listingId, form])
 
   const quantity = form.watch("quantity") ?? 1
-  const remark = form.watch("remark") ?? ""
 
   if (isPending) {
     return (
@@ -142,26 +141,24 @@ function ConfirmOrderInner() {
               {selectedAddress ? (
                 <AddressCard address={selectedAddress} variant="readonly" />
               ) : (
-                <button
-                  className="rounded-shop-md border border-dashed border-shop-border-strong bg-shop-bg-tinted px-4 py-3 text-left text-[13px] text-shop-text-secondary transition hover:border-shop-primary hover:text-shop-primary"
-                  onClick={() => setPickerOpen(true)}
-                  type="button"
+                <Button
+                  className="w-full justify-start border-dashed"
+                  onPress={() => setPickerOpen(true)}
+                  variant="outline"
                 >
-                  <Icon
-                    className="mr-1 inline size-4 align-text-bottom"
-                    icon="material-symbols:add-location-rounded"
-                  />
+                  <Icon className="size-4" icon="material-symbols:add-location-rounded" />
                   选择 / 新建收货地址
-                </button>
+                </Button>
               )}
               {selectedAddress ? (
-                <button
-                  className="self-end text-[12px] text-shop-primary transition hover:opacity-80"
-                  onClick={() => setPickerOpen(true)}
-                  type="button"
+                <Button
+                  className="self-end"
+                  onPress={() => setPickerOpen(true)}
+                  size="sm"
+                  variant="ghost"
                 >
                   更换地址
-                </button>
+                </Button>
               ) : null}
             </section>
           ) : null}
@@ -170,13 +167,8 @@ function ConfirmOrderInner() {
             <h2 className="shop-section__title">订单备注</h2>
             <FormField hint="选填，留言给卖家" maxLength={500} name="remark">
               <TextArea
-                className="shop-input-group"
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                  form.setValue("remark", e.target.value)
-                }
                 placeholder="例如：希望发顺丰、备注盲盒款式…"
                 rows={3}
-                value={remark}
                 variant="secondary"
               />
             </FormField>
@@ -200,10 +192,12 @@ function ConfirmOrderInner() {
               </span>
             </div>
             {listing.shipping_mode === "variable" ? (
-              <div className="flex items-start gap-2 rounded-shop-sm bg-shop-warning-soft px-3 py-2 text-[12px] text-shop-warning">
-                <Icon className="size-4 shrink-0 mt-0.5" icon="material-symbols:warning-rounded" />
-                <span>运费另议 — 卖家会在确认收款后通知你支付运费</span>
-              </div>
+              <Alert status="warning">
+                <Alert.Indicator />
+                <Alert.Content>
+                  <Alert.Description>运费另议 — 卖家会在确认收款后通知你支付运费</Alert.Description>
+                </Alert.Content>
+              </Alert>
             ) : null}
           </section>
 
@@ -282,27 +276,29 @@ function ListingSummary({
           {Number(listing.price).toFixed(2)}
         </span>
         <div className="mt-1 flex items-center gap-2 text-[12px] text-shop-text-secondary">
-          <button
+          <Button
             aria-label="减少"
-            className="flex size-8 items-center justify-center rounded-shop-sm border border-shop-border bg-shop-bg-white transition active:scale-95 disabled:opacity-50"
-            disabled={quantity <= 1}
-            onClick={() => onChange(Math.max(1, quantity - 1))}
-            type="button"
+            isDisabled={quantity <= 1}
+            isIconOnly
+            onPress={() => onChange(Math.max(1, quantity - 1))}
+            size="sm"
+            variant="outline"
           >
             <Icon className="size-4" icon="material-symbols:remove-rounded" />
-          </button>
+          </Button>
           <span className="min-w-[2ch] text-center text-[14px] tabular-nums text-shop-text-primary">
             {quantity}
           </span>
-          <button
+          <Button
             aria-label="增加"
-            className="flex size-8 items-center justify-center rounded-shop-sm border border-shop-border bg-shop-bg-white transition active:scale-95 disabled:opacity-50"
-            disabled={quantity >= max}
-            onClick={() => onChange(Math.min(max, quantity + 1))}
-            type="button"
+            isDisabled={quantity >= max}
+            isIconOnly
+            onPress={() => onChange(Math.min(max, quantity + 1))}
+            size="sm"
+            variant="outline"
           >
             <Icon className="size-4" icon="material-symbols:add-rounded" />
-          </button>
+          </Button>
           <span>库存 {listing.stock}</span>
         </div>
       </div>

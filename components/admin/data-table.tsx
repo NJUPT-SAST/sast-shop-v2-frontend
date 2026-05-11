@@ -3,6 +3,7 @@
 import { RowSelectCheckbox } from "@/components/admin/row-select-checkbox"
 import { ErrorState } from "@/components/states/error-state"
 import { SkeletonTable } from "@/components/states/skeleton-table"
+import { Button } from "@heroui/react"
 import { Icon } from "@iconify/react"
 import {
   type ColumnDef,
@@ -102,10 +103,11 @@ export function DataTable<T extends { id: string }>({
                   style={{ width: h.getSize() }}
                 >
                   {h.isPlaceholder ? null : h.column.getCanSort() ? (
-                    <button
-                      className="inline-flex items-center gap-1 transition hover:text-shop-text-primary"
-                      onClick={h.column.getToggleSortingHandler()}
-                      type="button"
+                    <Button
+                      className="!h-auto !min-h-0 !min-w-0 gap-1 !px-1 !py-0.5 font-medium text-shop-text-secondary hover:!text-shop-text-primary"
+                      onPress={() => h.column.toggleSorting(h.column.getIsSorted() === "asc")}
+                      size="sm"
+                      variant="ghost"
                     >
                       {flexRender(h.column.columnDef.header, h.getContext())}
                       <Icon
@@ -118,7 +120,7 @@ export function DataTable<T extends { id: string }>({
                               : "material-symbols:unfold-more-rounded"
                         }
                       />
-                    </button>
+                    </Button>
                   ) : (
                     flexRender(h.column.columnDef.header, h.getContext())
                   )}

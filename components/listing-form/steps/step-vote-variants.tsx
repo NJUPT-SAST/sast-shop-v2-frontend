@@ -3,7 +3,7 @@
 import { FormField } from "@/components/forms/form-field"
 import { ImageUpload } from "@/components/image-upload"
 import type { VoteFirstListingInput } from "@/lib/schemas/listing"
-import { Button, Input, NumberField } from "@heroui/react"
+import { Button, Input, NumberField, Switch } from "@heroui/react"
 import { Icon } from "@iconify/react"
 import { useFieldArray, useFormContext } from "react-hook-form"
 import { Section } from "../shared"
@@ -32,11 +32,17 @@ function VoteSettingsSection() {
         <FormField label="目标票数" name="target_votes" required>
           {({ value, onChange }) => (
             <NumberField
+              fullWidth
               minValue={1}
-              onChange={(n: number) => onChange(n)}
+              onChange={(n) => onChange(n ?? 1)}
               value={(value as number) ?? 50}
+              variant="secondary"
             >
-              <Input variant="secondary" />
+              <NumberField.Group>
+                <NumberField.DecrementButton />
+                <NumberField.Input />
+                <NumberField.IncrementButton />
+              </NumberField.Group>
             </NumberField>
           )}
         </FormField>
@@ -44,15 +50,13 @@ function VoteSettingsSection() {
           <Input placeholder="2026-06-01T00:00" type="datetime-local" variant="secondary" />
         </FormField>
       </div>
-      <label className="flex items-center justify-between gap-2 rounded-shop-sm border border-shop-border-light bg-shop-bg-tinted px-3 py-2 text-[13px]">
+      <div className="flex items-center justify-between gap-2 rounded-shop-sm border border-shop-border-light bg-shop-bg-tinted px-3 py-2 text-[13px]">
         <span className="text-shop-text-primary">公开实时票数</span>
-        <input
-          checked={enabled}
-          className="size-4 accent-shop-primary"
-          onChange={(e) => setValue("show_vote_count", e.target.checked, { shouldDirty: true })}
-          type="checkbox"
+        <Switch
+          isSelected={enabled}
+          onChange={(next) => setValue("show_vote_count", next, { shouldDirty: true })}
         />
-      </label>
+      </div>
     </Section>
   )
 }
@@ -96,11 +100,17 @@ function VariantEditor({ index, onRemove }: { index: number; onRemove: () => voi
         <FormField label="每人可投" name={`variants.${index}.max_votes_per_user`}>
           {({ value, onChange }) => (
             <NumberField
+              fullWidth
               minValue={1}
-              onChange={(n: number) => onChange(n)}
+              onChange={(n) => onChange(n ?? 1)}
               value={(value as number) ?? 1}
+              variant="secondary"
             >
-              <Input variant="secondary" />
+              <NumberField.Group>
+                <NumberField.DecrementButton />
+                <NumberField.Input />
+                <NumberField.IncrementButton />
+              </NumberField.Group>
             </NumberField>
           )}
         </FormField>

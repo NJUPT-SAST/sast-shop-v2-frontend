@@ -1,6 +1,7 @@
 "use client"
 
 import { notify } from "@/lib/utils/toast"
+import { Button, Tooltip } from "@heroui/react"
 import { Icon } from "@iconify/react"
 
 type Props = {
@@ -29,13 +30,19 @@ export function ShareButton({ title, text, url, className }: Props) {
   }
 
   return (
-    <button
-      aria-label="分享"
-      className={`shop-icon-btn ${className ?? ""}`}
-      onClick={handleShare}
-      type="button"
-    >
-      <Icon className="size-5" icon="material-symbols:share-rounded" />
-    </button>
+    <Tooltip>
+      <Tooltip.Trigger>
+        <Button
+          aria-label="分享"
+          className={`!size-11 !rounded-full ${className ?? ""}`}
+          isIconOnly
+          onPress={handleShare}
+          variant="ghost"
+        >
+          <Icon className="size-5" icon="material-symbols:share-rounded" />
+        </Button>
+      </Tooltip.Trigger>
+      <Tooltip.Content>分享</Tooltip.Content>
+    </Tooltip>
   )
 }

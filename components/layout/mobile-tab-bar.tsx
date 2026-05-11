@@ -1,5 +1,6 @@
 "use client"
 
+import { Button } from "@heroui/react"
 import { Icon } from "@iconify/react"
 import { m } from "motion/react"
 import Link from "next/link"
@@ -42,15 +43,16 @@ export function MobileTabBar() {
 
       {/* Center FAB. Reserves a 64px slot so the bar layout stays balanced. */}
       <div className="relative flex w-16 shrink-0 items-start justify-center">
-        <button
+        <Button
           aria-current={publishActive ? "page" : undefined}
           aria-label="发布商品"
-          className={`shop-fab absolute -top-5 ${publishActive ? "ring-2 ring-shop-primary-soft" : ""}`}
-          onClick={() => router.push("/publish")}
-          type="button"
+          className={`absolute -top-5 !size-14 !rounded-full shadow-shop-fab ${publishActive ? "ring-2 ring-shop-primary-soft" : ""}`}
+          isIconOnly
+          onPress={() => router.push("/publish")}
+          variant="primary"
         >
           <Icon className="size-7" icon="material-symbols:add-rounded" />
-        </button>
+        </Button>
       </div>
 
       {right.map((tab) => (

@@ -24,7 +24,7 @@ import { useAuthStore } from "@/lib/stores/auth-store"
 import { formatDateTime, formatPrice, sumPrice } from "@/lib/utils/format"
 import { getOrderLabel, getOrderViewKey } from "@/lib/utils/order-state"
 import { notify } from "@/lib/utils/toast"
-import { Button, Input, TextArea } from "@heroui/react"
+import { Alert, Button, Input, InputGroup, InputOTP, Label, TextArea } from "@heroui/react"
 import { Icon } from "@iconify/react"
 import { useParams, useRouter } from "next/navigation"
 import { useId, useState } from "react"
@@ -81,26 +81,24 @@ export default function OrderDetailView() {
   )
 }
 
+const alertStatusMap = {
+  warning: "warning",
+  primary: "accent",
+  success: "success",
+  danger: "danger",
+  default: "default",
+} as const
+
 function StatusBanner({ order }: { order: Order }) {
   const label = getOrderLabel(order)
-  const colorMap = {
-    warning: "bg-shop-warning-soft text-shop-warning border-shop-warning/30",
-    primary: "bg-shop-primary-wash text-shop-primary border-shop-primary/30",
-    success: "bg-shop-success-soft text-shop-success border-shop-success/30",
-    danger: "bg-shop-danger-soft text-shop-danger border-shop-danger/30",
-    default: "bg-shop-bg-tinted text-shop-text-secondary border-shop-border-light",
-  } as const
   return (
-    <div
-      className={`flex items-center gap-3 rounded-shop-lg border p-4 ${colorMap[label.badge]}`}
-      role="status"
-    >
-      <Icon className="size-6 shrink-0" icon="material-symbols:info-outline-rounded" />
-      <div className="flex flex-1 flex-col">
-        <span className="text-[16px] font-semibold">{label.text}</span>
-        {label.hint ? <span className="text-[12px]">{label.hint}</span> : null}
-      </div>
-    </div>
+    <Alert status={alertStatusMap[label.badge]}>
+      <Alert.Indicator />
+      <Alert.Content>
+        <Alert.Title>{label.text}</Alert.Title>
+        {label.hint ? <Alert.Description>{label.hint}</Alert.Description> : null}
+      </Alert.Content>
+    </Alert>
   )
 }
 
@@ -118,20 +116,20 @@ function RefundBanner({ order }: { order: Order }) {
   } as const
   const info = labelMap[order.status as keyof typeof labelMap]
   return (
-    <section className="flex flex-col gap-2 rounded-shop-lg border border-shop-warning-soft bg-shop-warning-soft/40 p-4">
-      <div className="flex items-center gap-2">
-        <Icon className="size-5 text-shop-warning" icon="material-symbols:gavel-rounded" />
-        <h2 className="text-[15px] font-semibold text-shop-text-primary">{info.title}</h2>
-      </div>
-      <p className="text-[13px] text-shop-text-secondary">{info.desc}</p>
-      <button
-        className="self-end rounded-shop-pill border border-shop-border bg-shop-bg-white px-3 py-1.5 text-[12px] text-shop-text-secondary transition hover:border-shop-primary hover:text-shop-primary"
-        onClick={() => notify({ title: "请通过飞书联系 SAST Shop 管理员", color: "default" })}
-        type="button"
+    <Alert status="warning">
+      <Alert.Indicator />
+      <Alert.Content>
+        <Alert.Title>{info.title}</Alert.Title>
+        <Alert.Description>{info.desc}</Alert.Description>
+      </Alert.Content>
+      <Button
+        onPress={() => notify({ title: "请通过飞书联系 SAST Shop 管理员", color: "default" })}
+        size="sm"
+        variant="outline"
       >
         联系管理员
-      </button>
-    </section>
+      </Button>
+    </Alert>
   )
 }
 
@@ -335,13 +333,22 @@ function BuyerPay({ order }: { order: Order }) {
       </p>
       <FormProvider {...form}>
         <form className="flex flex-col gap-3" onSubmit={form.handleSubmit(onSubmit)}>
-          <FormField label="4 位备注码" maxLength={4} name="payment_code">
-            <Input
-              inputMode="numeric"
-              maxLength={4}
-              placeholder={order.payment_code ?? ""}
-              variant="secondary"
-            />
+          <FormField label="4 位备注码" name="payment_code">
+            {({ value, onChange }) => (
+              <InputOTP
+                maxLength={4}
+                onChange={(v) => onChange(v)}
+                value={(value as string) ?? ""}
+                variant="secondary"
+              >
+                <InputOTP.Group>
+                  <InputOTP.Slot index={0} />
+                  <InputOTP.Slot index={1} />
+                  <InputOTP.Slot index={2} />
+                  <InputOTP.Slot index={3} />
+                </InputOTP.Group>
+              </InputOTP>
+            )}
           </FormField>
           <FormField
             hint="若未填备注码，请提供平台流水号"
@@ -402,13 +409,22 @@ function BuyerPayShipping({ order }: { order: Order }) {
       </p>
       <FormProvider {...form}>
         <form className="flex flex-col gap-3" onSubmit={form.handleSubmit(onSubmit)}>
-          <FormField label="4 位备注码" maxLength={4} name="payment_code">
-            <Input
-              inputMode="numeric"
-              maxLength={4}
-              placeholder="付款备注的 4 位数字"
-              variant="secondary"
-            />
+          <FormField label="4 位备注码" name="payment_code">
+            {({ value, onChange }) => (
+              <InputOTP
+                maxLength={4}
+                onChange={(v) => onChange(v)}
+                value={(value as string) ?? ""}
+                variant="secondary"
+              >
+                <InputOTP.Group>
+                  <InputOTP.Slot index={0} />
+                  <InputOTP.Slot index={1} />
+                  <InputOTP.Slot index={2} />
+                  <InputOTP.Slot index={3} />
+                </InputOTP.Group>
+              </InputOTP>
+            )}
           </FormField>
           <FormField label="交易流水号（可选）" name="payment_trade_no">
             <Input placeholder="若未填备注码，请提供" variant="secondary" />
@@ -448,21 +464,23 @@ function SellerConfirmPayment({ order }: { order: Order }) {
         请核对买家提交的备注码（{order.payment_code ?? "—"}）是否与你的收款记录匹配。
       </p>
       {isVariable ? (
-        <div className="flex flex-col gap-1">
-          <label
+        <div className="flex flex-col gap-1.5">
+          <Label
             className="text-[13px] font-medium text-shop-text-secondary"
             htmlFor="shipping-fee"
           >
             实际运费 (可选)
-          </label>
-          <Input
-            id="shipping-fee"
-            inputMode="decimal"
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setShippingFee(e.target.value)}
-            placeholder="留空则进入二次确认流程"
-            value={shippingFee}
-            variant="secondary"
-          />
+          </Label>
+          <InputGroup fullWidth variant="secondary">
+            <InputGroup.Prefix>¥</InputGroup.Prefix>
+            <InputGroup.Input
+              id="shipping-fee"
+              inputMode="decimal"
+              onChange={(e) => setShippingFee(e.target.value)}
+              placeholder="留空则进入二次确认流程"
+              value={shippingFee}
+            />
+          </InputGroup>
         </div>
       ) : null}
       <Button isPending={confirm.isPending} onPress={submit} variant="primary">
@@ -492,7 +510,19 @@ function SellerSetShippingFee({ order }: { order: Order }) {
       <FormProvider {...form}>
         <form className="flex flex-col gap-3" onSubmit={form.handleSubmit(onSubmit)}>
           <FormField label="实际运费 (元)" name="shipping_fee" required>
-            <Input inputMode="decimal" placeholder="例如 12.50" variant="secondary" />
+            {({ value, onChange, invalid, describedBy }) => (
+              <InputGroup fullWidth variant="secondary">
+                <InputGroup.Prefix>¥</InputGroup.Prefix>
+                <InputGroup.Input
+                  aria-describedby={describedBy}
+                  aria-invalid={invalid || undefined}
+                  inputMode="decimal"
+                  onChange={(e) => onChange(e.target.value)}
+                  placeholder="12.50"
+                  value={(value as string) ?? ""}
+                />
+              </InputGroup>
+            )}
           </FormField>
           <FormField
             hint="支持运费金额的二维码图片"

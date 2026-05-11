@@ -1,5 +1,6 @@
 "use client"
 
+import { Button } from "@heroui/react"
 import { Icon } from "@iconify/react"
 
 export type StepDescriptor = {
@@ -44,18 +45,14 @@ export function Stepper({
             }
             key={s.key}
           >
-            <button
+            <Button
               aria-current={status === "current" ? "step" : undefined}
-              className={`group flex w-full items-center gap-3 rounded-shop-md px-3 py-2 text-left transition ${
-                status === "current"
-                  ? "bg-shop-primary-wash"
-                  : reachable
-                    ? "hover:bg-shop-bg-tinted"
-                    : "opacity-60"
+              className={`!h-auto !min-h-0 w-full !justify-start gap-3 !rounded-shop-md !px-3 !py-2 text-left ${
+                status === "current" ? "!bg-shop-primary-wash" : ""
               }`}
-              disabled={!reachable || !onStepClick}
-              onClick={() => reachable && onStepClick?.(i)}
-              type="button"
+              isDisabled={!reachable || !onStepClick}
+              onPress={() => reachable && onStepClick?.(i)}
+              variant="ghost"
             >
               <span
                 aria-hidden
@@ -87,7 +84,7 @@ export function Stepper({
                   </span>
                 ) : null}
               </span>
-            </button>
+            </Button>
           </li>
         )
       })}

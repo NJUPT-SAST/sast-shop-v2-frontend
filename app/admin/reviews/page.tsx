@@ -21,7 +21,7 @@ import type { ReviewRequest, ReviewStatus } from "@/lib/api/types"
 import { useRowSelection } from "@/lib/hooks/use-row-selection"
 import { formatDateTime } from "@/lib/utils/format"
 import { notify } from "@/lib/utils/toast"
-import { Button, Input } from "@heroui/react"
+import { Alert, Button, Chip, Input } from "@heroui/react"
 import { Icon } from "@iconify/react"
 import Link from "next/link"
 import { useMemo, useState } from "react"
@@ -108,26 +108,23 @@ export default function AdminReviewsPage() {
         </header>
         <div className="flex gap-2 overflow-x-auto pb-1">
           {TABS.map((t) => (
-            <button
-              className={`inline-flex items-center gap-1 rounded-shop-pill border px-3 py-1.5 text-[13px] transition ${
-                tab === t.v
-                  ? "border-shop-primary bg-shop-primary text-shop-text-on-primary"
-                  : "border-shop-border bg-shop-bg-white text-shop-text-secondary hover:border-shop-primary"
-              }`}
+            <Button
+              className="rounded-shop-pill"
               key={t.v}
-              onClick={() => {
+              onPress={() => {
                 setTab(t.v)
                 selection.clear()
               }}
-              type="button"
+              size="sm"
+              variant={tab === t.v ? "primary" : "outline"}
             >
               {t.label}
               {tab === t.v && data ? (
-                <span className="rounded-shop-pill bg-shop-text-on-primary/20 px-1.5 text-[11px] tabular-nums">
-                  {data.total}
-                </span>
+                <Chip size="sm" variant="soft">
+                  <Chip.Label className="tabular-nums">{data.total}</Chip.Label>
+                </Chip>
               ) : null}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -272,9 +269,12 @@ function ReviewRow({
           卖家 {review.seller.name} · 提交于 {formatDateTime(review.created_at)}
         </span>
         {review.reject_reason ? (
-          <span className="rounded-shop-xs bg-shop-danger-soft px-2 py-1 text-[12px] text-shop-danger">
-            拒绝原因：{review.reject_reason}
-          </span>
+          <Alert status="danger">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Description>拒绝原因：{review.reject_reason}</Alert.Description>
+            </Alert.Content>
+          </Alert>
         ) : null}
       </div>
       {review.status === "pending" ? (

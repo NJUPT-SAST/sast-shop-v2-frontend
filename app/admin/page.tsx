@@ -12,7 +12,7 @@ import {
   useApproveReview,
 } from "@/lib/api/queries"
 import { notify } from "@/lib/utils/toast"
-import { Button, Skeleton } from "@heroui/react"
+import { Button, Card, Skeleton } from "@heroui/react"
 import { Icon } from "@iconify/react"
 import Link from "next/link"
 
@@ -140,22 +140,26 @@ function StatCard({
   accent: string
 }) {
   return (
-    <Link className="shop-card shop-card--interactive flex items-center gap-3 p-4" href={href}>
-      <div
-        className={`flex size-12 shrink-0 items-center justify-center rounded-shop-md bg-gradient-to-br ${accent} text-shop-text-on-primary shadow-shop-md`}
-      >
-        <Icon className="size-6" icon={icon} />
-      </div>
-      <div className="flex flex-col">
-        <span className="text-[12px] text-shop-text-tertiary">{title}</span>
-        {isPending ? (
-          <Skeleton className="h-7 w-16 rounded" />
-        ) : (
-          <span className="text-[24px] font-bold tabular-nums text-shop-text-primary">
-            <CountUp to={value ?? 0} />
-          </span>
-        )}
-      </div>
+    <Link className="block focus:outline-none" href={href}>
+      <Card className="cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-shop-lg active:translate-y-0 focus-within:ring-2 focus-within:ring-shop-primary focus-within:ring-offset-2">
+        <Card.Content className="flex items-center gap-3 p-4">
+          <div
+            className={`flex size-12 shrink-0 items-center justify-center rounded-shop-md bg-gradient-to-br ${accent} text-shop-text-on-primary shadow-shop-md`}
+          >
+            <Icon className="size-6" icon={icon} />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[12px] text-shop-text-tertiary">{title}</span>
+            {isPending ? (
+              <Skeleton className="h-7 w-16 rounded" />
+            ) : (
+              <span className="text-[24px] font-bold tabular-nums text-shop-text-primary">
+                <CountUp to={value ?? 0} />
+              </span>
+            )}
+          </div>
+        </Card.Content>
+      </Card>
     </Link>
   )
 }

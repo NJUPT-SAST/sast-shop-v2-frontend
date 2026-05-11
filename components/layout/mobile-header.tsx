@@ -2,6 +2,7 @@
 
 import { useScrollElevation } from "@/lib/hooks/use-scroll-elevation"
 import { isTauri } from "@/lib/tauri"
+import { Button } from "@heroui/react"
 import { Icon } from "@iconify/react"
 import { useRouter } from "next/navigation"
 
@@ -28,14 +29,15 @@ export function MobileHeader({
       style={{ paddingTop: "var(--shop-safe-top)" }}
     >
       {showBack ? (
-        <button
+        <Button
           aria-label="返回"
-          className="shop-icon-btn"
-          onClick={() => router.back()}
-          type="button"
+          className="!size-11 !rounded-full"
+          isIconOnly
+          onPress={() => router.back()}
+          variant="ghost"
         >
           <Icon className="size-6" icon="material-symbols:arrow-back-rounded" />
-        </button>
+        </Button>
       ) : (
         <div aria-hidden className="size-11" />
       )}

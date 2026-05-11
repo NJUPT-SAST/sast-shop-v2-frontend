@@ -8,7 +8,7 @@ import { useUnvote, useVote } from "@/lib/api/queries"
 import type { Listing, ListingVariant, VoteSelection } from "@/lib/api/types"
 import { formatPercent } from "@/lib/utils/format"
 import { notify } from "@/lib/utils/toast"
-import { Button, ProgressBar } from "@heroui/react"
+import { Button, ProgressBar, ToggleButton } from "@heroui/react"
 import { Icon } from "@iconify/react"
 import { useState } from "react"
 
@@ -167,15 +167,16 @@ function VariantBlock({
               : 0
           return (
             <PressShell key={design.id}>
-              <button
-                aria-pressed={selected}
-                className={`flex w-full flex-col gap-2 overflow-hidden rounded-shop-md border bg-shop-bg-white p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shop-primary ${
+              <ToggleButton
+                aria-label={design.name}
+                className={`!h-auto !min-h-0 !w-full !flex-col !items-stretch !gap-2 overflow-hidden !rounded-shop-md !border !bg-shop-bg-white !p-3 text-left ${
                   selected
-                    ? "border-shop-primary ring-2 ring-shop-primary"
-                    : "border-shop-border-light hover:border-shop-primary"
+                    ? "!border-shop-primary ring-2 ring-shop-primary"
+                    : "!border-shop-border-light hover:!border-shop-primary"
                 }`}
-                onClick={() => onToggle(variant.id, design.id, variant.max_votes_per_user)}
-                type="button"
+                isSelected={selected}
+                onChange={() => onToggle(variant.id, design.id, variant.max_votes_per_user)}
+                variant="ghost"
               >
                 <div className="relative aspect-square overflow-hidden rounded-shop-sm bg-shop-bg-tinted">
                   {design.image_url ? (
@@ -216,7 +217,7 @@ function VariantBlock({
                     value={design.current_votes}
                   />
                 ) : null}
-              </button>
+              </ToggleButton>
             </PressShell>
           )
         })}

@@ -11,6 +11,7 @@ import type { Order, OrderStatus } from "@/lib/api/types"
 import { usePreferenceStore } from "@/lib/stores/preference-store"
 import { formatDateTime, formatPrice } from "@/lib/utils/format"
 import { getBuyerActions, getSellerActions } from "@/lib/utils/order-state"
+import { Button, Card, Chip } from "@heroui/react"
 import { Icon } from "@iconify/react"
 import Link from "next/link"
 import { useState } from "react"
@@ -44,36 +45,30 @@ export default function OrdersPage() {
 
         <div className="flex gap-2 self-start rounded-shop-pill bg-shop-bg-white p-1 shadow-shop-sm">
           {ROLE_TABS.map((tab) => (
-            <button
-              className={`inline-flex items-center gap-1.5 rounded-shop-pill px-4 py-1.5 text-[13px] transition ${
-                role === tab.v
-                  ? "bg-shop-primary text-shop-text-on-primary shadow-shop-sm"
-                  : "text-shop-text-secondary hover:text-shop-text-primary"
-              }`}
+            <Button
+              className="rounded-shop-pill"
               key={tab.v}
-              onClick={() => setRole(tab.v)}
-              type="button"
+              onPress={() => setRole(tab.v)}
+              size="sm"
+              variant={role === tab.v ? "primary" : "ghost"}
             >
               <Icon className="size-4" icon={tab.icon} />
               {tab.label}
-            </button>
+            </Button>
           ))}
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-1">
           {STATUS_TABS.map((tab) => (
-            <button
-              className={`shrink-0 rounded-shop-pill border px-3 py-1 text-[12px] transition ${
-                status === tab.v
-                  ? "border-shop-primary bg-shop-primary text-shop-text-on-primary"
-                  : "border-shop-border bg-shop-bg-white text-shop-text-secondary hover:border-shop-primary"
-              }`}
+            <Button
+              className="shrink-0 rounded-shop-pill"
               key={tab.label}
-              onClick={() => setStatus(tab.v)}
-              type="button"
+              onPress={() => setStatus(tab.v)}
+              size="sm"
+              variant={status === tab.v ? "primary" : "outline"}
             >
               {tab.label}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -124,44 +119,45 @@ function OrderRow({ order, role }: { order: Order; role: "buyer" | "seller" }) {
       ? buyerActionLabel(getBuyerActions(order))
       : sellerActionLabel(getSellerActions(order))
   return (
-    <Link
-      className="shop-card shop-card--interactive flex flex-col gap-3 p-4 md:p-5"
-      href={`/orders/${order.id}`}
-    >
-      <header className="flex items-baseline justify-between">
-        <span className="text-[12px] text-shop-text-tertiary">
-          {formatDateTime(order.created_at)}
-        </span>
-        <OrderStatusBadge status={order.status} />
-      </header>
-      <div className="flex gap-3">
-        <div className="size-16 shrink-0 overflow-hidden rounded-shop-sm bg-shop-bg-tinted">
-          {order.listing.image_url ? (
-            <img alt="" className="size-full object-cover" src={order.listing.image_url} />
-          ) : (
-            <div className="flex size-full items-center justify-center text-shop-text-tertiary">
-              <Icon className="size-6" icon="material-symbols:image-rounded" />
+    <Link className="block focus:outline-none" href={`/orders/${order.id}`}>
+      <Card className="cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-shop-lg active:translate-y-0 focus-within:ring-2 focus-within:ring-shop-primary focus-within:ring-offset-2">
+        <Card.Content className="flex flex-col gap-3 p-4 md:p-5">
+          <header className="flex items-baseline justify-between">
+            <span className="text-[12px] text-shop-text-tertiary">
+              {formatDateTime(order.created_at)}
+            </span>
+            <OrderStatusBadge status={order.status} />
+          </header>
+          <div className="flex gap-3">
+            <div className="size-16 shrink-0 overflow-hidden rounded-shop-sm bg-shop-bg-tinted">
+              {order.listing.image_url ? (
+                <img alt="" className="size-full object-cover" src={order.listing.image_url} />
+              ) : (
+                <div className="flex size-full items-center justify-center text-shop-text-tertiary">
+                  <Icon className="size-6" icon="material-symbols:image-rounded" />
+                </div>
+              )}
             </div>
-          )}
-        </div>
-        <div className="flex flex-1 flex-col gap-1">
-          <span className="line-clamp-1 text-[14px] font-medium text-shop-text-primary">
-            {order.listing.title}
-          </span>
-          <span className="text-[12px] text-shop-text-tertiary">
-            数量 ×{order.quantity} · {role === "buyer" ? "卖家" : "买家"}：{counterpart.name}
-          </span>
-          <span className="text-[16px] font-bold tabular-nums text-shop-primary">
-            <span className="text-[12px]">¥</span>
-            {Number(order.amount).toFixed(2)}
-          </span>
-        </div>
-        {cta ? (
-          <span className="self-end rounded-shop-pill bg-shop-primary-soft px-3 py-1 text-[12px] font-medium text-shop-primary-press">
-            {cta}
-          </span>
-        ) : null}
-      </div>
+            <div className="flex flex-1 flex-col gap-1">
+              <span className="line-clamp-1 text-[14px] font-medium text-shop-text-primary">
+                {order.listing.title}
+              </span>
+              <span className="text-[12px] text-shop-text-tertiary">
+                数量 ×{order.quantity} · {role === "buyer" ? "卖家" : "买家"}：{counterpart.name}
+              </span>
+              <span className="text-[16px] font-bold tabular-nums text-shop-primary">
+                <span className="text-[12px]">¥</span>
+                {Number(order.amount).toFixed(2)}
+              </span>
+            </div>
+            {cta ? (
+              <Chip className="self-end" color="accent" size="sm" variant="soft">
+                <Chip.Label>{cta}</Chip.Label>
+              </Chip>
+            ) : null}
+          </div>
+        </Card.Content>
+      </Card>
     </Link>
   )
 }

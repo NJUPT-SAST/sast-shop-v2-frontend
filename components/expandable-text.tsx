@@ -1,5 +1,6 @@
 "use client"
 
+import { Button } from "@heroui/react"
 import { useState } from "react"
 
 type Props = {
@@ -20,13 +21,14 @@ export function ExpandableText({ text, collapseAfter = 200, className }: Props) 
         {display}
       </p>
       {isLong ? (
-        <button
-          className="self-start text-[12px] text-shop-primary transition active:opacity-70"
-          onClick={() => setExpanded(!expanded)}
-          type="button"
+        <Button
+          className="self-start !h-auto !min-h-0 !min-w-0 !p-0 text-[12px] text-shop-primary"
+          onPress={() => setExpanded(!expanded)}
+          size="sm"
+          variant="ghost"
         >
           {expanded ? "收起" : "展开全部"}
-        </button>
+        </Button>
       ) : null}
     </div>
   )

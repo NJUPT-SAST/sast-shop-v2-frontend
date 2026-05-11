@@ -2,6 +2,7 @@
 
 import { useAuthStore } from "@/lib/stores/auth-store"
 import { usePreferenceStore } from "@/lib/stores/preference-store"
+import { Avatar, Button } from "@heroui/react"
 import { Icon } from "@iconify/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -64,7 +65,7 @@ export function PCSidebar() {
   return (
     <aside
       aria-label="主导航"
-      className={`hidden shrink-0 border-r border-shop-border-light bg-shop-bg-white transition-[width] md:flex md:flex-col ${collapsed ? "w-16" : "w-60"}`}
+      className={`sticky top-0 hidden h-[100svh] shrink-0 self-start overflow-hidden border-r border-shop-border-light bg-shop-bg-white transition-[width] md:flex md:flex-col ${collapsed ? "w-16" : "w-60"}`}
     >
       <div className={`flex items-center gap-2 px-4 py-4 ${collapsed ? "justify-center" : ""}`}>
         <Link
@@ -80,28 +81,32 @@ export function PCSidebar() {
           </span>
         ) : null}
         {!collapsed ? (
-          <button
+          <Button
             aria-label="折叠侧边栏"
-            className="shop-icon-btn ml-auto !size-8"
-            onClick={toggleSidebar}
-            type="button"
+            className="ml-auto"
+            isIconOnly
+            onPress={toggleSidebar}
+            size="sm"
+            variant="ghost"
           >
             <Icon className="size-4" icon="material-symbols:dock-to-right-rounded" />
-          </button>
+          </Button>
         ) : null}
       </div>
       {collapsed ? (
-        <button
+        <Button
           aria-label="展开侧边栏"
-          className="shop-icon-btn mx-auto !size-8"
-          onClick={toggleSidebar}
-          type="button"
+          className="mx-auto"
+          isIconOnly
+          onPress={toggleSidebar}
+          size="sm"
+          variant="ghost"
         >
           <Icon className="size-4" icon="material-symbols:dock-to-left-rounded" />
-        </button>
+        </Button>
       ) : null}
       <hr className="border-shop-border-light" />
-      <nav className="flex flex-1 flex-col gap-1 p-2">
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
         {SHOP_NAV.map((item) => (
           <NavLink
             active={isItemActive(pathname, item)}
@@ -137,13 +142,10 @@ export function PCSidebar() {
             className={`flex items-center gap-2 ${collapsed ? "" : "w-full"}`}
             href="/profile"
           >
-            <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-shop-primary text-shop-text-on-primary shadow-shop-sm">
-              {user.avatar_url ? (
-                <img alt="" className="size-full object-cover" src={user.avatar_url} />
-              ) : (
-                <span className="text-[13px] font-semibold">{user.name.slice(0, 1)}</span>
-              )}
-            </div>
+            <Avatar className="shrink-0" color="accent" size="sm">
+              {user.avatar_url ? <Avatar.Image alt="" src={user.avatar_url} /> : null}
+              <Avatar.Fallback>{user.name.slice(0, 1)}</Avatar.Fallback>
+            </Avatar>
             {!collapsed ? (
               <div className="flex min-w-0 flex-col">
                 <span className="truncate text-[13px] font-medium text-shop-text-primary">

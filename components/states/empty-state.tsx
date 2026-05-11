@@ -1,3 +1,4 @@
+import { Card } from "@heroui/react"
 import { Icon } from "@iconify/react"
 
 type Props = {
@@ -16,8 +17,8 @@ export function EmptyState({
   className,
 }: Props) {
   return (
-    <div
-      className={`flex flex-col items-center justify-center gap-3 rounded-shop-lg bg-shop-bg-white px-6 py-12 text-center ${className ?? ""}`}
+    <Card
+      className={`flex flex-col items-center justify-center gap-3 px-6 py-12 text-center ${className ?? ""}`}
       role="status"
     >
       <div className="flex size-16 items-center justify-center rounded-full bg-shop-primary-wash text-shop-primary">
@@ -28,6 +29,6 @@ export function EmptyState({
         <p className="max-w-xs text-[13px] text-shop-text-tertiary">{description}</p>
       ) : null}
       {action ? <div className="pt-1">{action}</div> : null}
-    </div>
+    </Card>
   )
 }
