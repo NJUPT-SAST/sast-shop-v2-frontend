@@ -146,6 +146,7 @@ packages:
   - "packages/*"
 
 allowBuilds:
+  esbuild: true
   protobufjs: true
   sharp: true
   unrs-resolver: true
