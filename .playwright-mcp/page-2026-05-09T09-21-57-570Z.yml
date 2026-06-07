@@ -1,0 +1,83 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e6]: v0.1.0 · Tauri-ready starter template
+        - heading "React HeroUI Quick Starter" [level=1] [ref=e7]:
+          - text: React HeroUI
+          - text: Quick Starter
+        - paragraph [ref=e8]: "A production-ready monorepo: Next.js 16 + React 19, wrapped by Tauri 2 for native desktop, styled with HeroUI v3 on Tailwind CSS v4. Vitest, Playwright, and Biome preconfigured."
+        - generic [ref=e9]:
+          - link "Quick Start" [ref=e10] [cursor=pointer]:
+            - /url: https://heroui.com/docs/react/getting-started/quick-start
+            - text: Quick Start
+          - link "View on GitHub" [ref=e11] [cursor=pointer]:
+            - /url: https://github.com/heroui-inc/heroui
+            - text: View on GitHub
+        - generic [ref=e12]:
+          - generic [ref=e14]: Next.js 16
+          - generic [ref=e16]: React 19
+          - generic [ref=e18]: Tauri 2
+          - generic [ref=e20]: TypeScript 5
+          - generic [ref=e22]: HeroUI v3
+          - generic [ref=e24]: Tailwind v4
+          - generic [ref=e26]: Vitest
+          - generic [ref=e28]: Biome
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - paragraph [ref=e31]: Built-in Components
+          - heading "Real HeroUI v3 components, live" [level=2] [ref=e32]
+        - generic [ref=e33]:
+          - generic [ref=e34]:
+            - generic [ref=e35]:
+              - heading "Buttons" [level=3] [ref=e36]: Buttons
+              - paragraph [ref=e37]:
+                - text: Semantic variants.
+                - code [ref=e38]: onPress
+                - text: over
+                - code [ref=e39]: onClick
+                - text: .
+            - generic [ref=e40]:
+              - button "Primary" [ref=e41] [cursor=pointer]
+              - button "Secondary" [ref=e42] [cursor=pointer]
+              - button "Outline" [ref=e43] [cursor=pointer]
+              - button "Ghost" [ref=e44] [cursor=pointer]
+              - button "Danger" [ref=e45] [cursor=pointer]
+          - generic [ref=e46]:
+            - generic [ref=e47]:
+              - heading "Statuses" [level=3] [ref=e48]: Statuses
+              - paragraph [ref=e49]:
+                - text: Compose with
+                - code [ref=e50]: Chip
+                - text: + Iconify icons.
+            - generic [ref=e51]:
+              - generic [ref=e53]: New
+              - generic [ref=e55]: Active
+              - generic [ref=e57]: Pending
+              - generic [ref=e59]: Failed
+              - generic [ref=e61]: Beta
+          - generic [ref=e62]:
+            - generic [ref=e63]:
+              - heading "Form" [level=3] [ref=e64]: Form
+              - paragraph [ref=e65]: React Aria validation, no extra libs.
+            - generic [ref=e66]:
+              - generic [ref=e67]:
+                - generic [ref=e68]: Email
+                - textbox "Email" [ref=e69]:
+                  - /placeholder: you@example.com
+              - button "Subscribe" [ref=e70] [cursor=pointer]
+      - generic [ref=e72]:
+        - paragraph [ref=e73]: Native Bridge
+        - heading "Talk to Rust from React" [level=2] [ref=e74]
+        - paragraph [ref=e75]:
+          - text: When launched with
+          - code [ref=e76]: pnpm tauri dev
+          - text: ", the button below calls a Rust command via"
+          - code [ref=e77]: lib/tauri.ts
+          - text: .
+      - generic [ref=e79]:
+        - generic [ref=e80]: Edit
+        - code [ref=e81]: app/page.tsx
+        - generic [ref=e82]: to make it yours
+  - button "Open Next.js Dev Tools" [ref=e88] [cursor=pointer]:
+    - img [ref=e89]
