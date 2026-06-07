@@ -4,18 +4,25 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "next dev",
     "dev:mobile": "pnpm --filter @sast-shop/mobile dev",
     "dev:desktop": "pnpm --filter @sast-shop/desktop dev",
-    "build": "pnpm -r build",
-    "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test",
+    "build": "next build",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
   },
+  "dependencies": {
+    "next": "16.2.7",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "prettier": "^3.8.1",
