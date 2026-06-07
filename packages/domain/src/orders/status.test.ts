@@ -1,26 +1,30 @@
 import { describe, expect, it } from "vitest";
 
-import { getOrderStatusMeta, OrderStatus } from "./status";
+import { getOrderStatusMeta } from "./status";
 
 describe("getOrderStatusMeta", () => {
   it("returns display metadata for every order status", () => {
-    expect(getOrderStatusMeta(OrderStatus.PendingPayment)).toEqual({
-      label: "待付款",
-      tone: "warning"
+    expect(getOrderStatusMeta("pending_payment")).toEqual({
+      label: "待支付",
+      tone: "orange"
     });
-    expect(getOrderStatusMeta(OrderStatus.PendingShipment)).toEqual({
-      label: "待发货",
-      tone: "info"
+    expect(getOrderStatusMeta("pending_confirm")).toEqual({
+      label: "待确认",
+      tone: "amber"
     });
-    expect(getOrderStatusMeta(OrderStatus.Shipped)).toEqual({
-      label: "已发货",
-      tone: "info"
+    expect(getOrderStatusMeta("paid")).toEqual({
+      label: "已支付",
+      tone: "blue"
     });
-    expect(getOrderStatusMeta(OrderStatus.Completed)).toEqual({
+    expect(getOrderStatusMeta("processing")).toEqual({
+      label: "处理中",
+      tone: "blue"
+    });
+    expect(getOrderStatusMeta("complete")).toEqual({
       label: "已完成",
-      tone: "success"
+      tone: "emerald"
     });
-    expect(getOrderStatusMeta(OrderStatus.Cancelled)).toEqual({
+    expect(getOrderStatusMeta("cancelled")).toEqual({
       label: "已取消",
       tone: "muted"
     });

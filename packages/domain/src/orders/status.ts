@@ -1,12 +1,12 @@
-export enum OrderStatus {
-  PendingPayment = "pending_payment",
-  PendingShipment = "pending_shipment",
-  Shipped = "shipped",
-  Completed = "completed",
-  Cancelled = "cancelled"
-}
+export type OrderStatus =
+  | "pending_payment"
+  | "pending_confirm"
+  | "paid"
+  | "processing"
+  | "complete"
+  | "cancelled";
 
-export type StatusTone = "warning" | "info" | "success" | "muted";
+export type StatusTone = "orange" | "blue" | "amber" | "emerald" | "muted";
 
 export const ORDER_STATUS_META: Record<
   OrderStatus,
@@ -15,28 +15,35 @@ export const ORDER_STATUS_META: Record<
     tone: StatusTone;
   }
 > = {
-  [OrderStatus.PendingPayment]: {
-    label: "待付款",
-    tone: "warning"
+  pending_payment: {
+    label: "待支付",
+    tone: "orange"
   },
-  [OrderStatus.PendingShipment]: {
-    label: "待发货",
-    tone: "info"
+  pending_confirm: {
+    label: "待确认",
+    tone: "amber"
   },
-  [OrderStatus.Shipped]: {
-    label: "已发货",
-    tone: "info"
+  paid: {
+    label: "已支付",
+    tone: "blue"
   },
-  [OrderStatus.Completed]: {
+  processing: {
+    label: "处理中",
+    tone: "blue"
+  },
+  complete: {
     label: "已完成",
-    tone: "success"
+    tone: "emerald"
   },
-  [OrderStatus.Cancelled]: {
+  cancelled: {
     label: "已取消",
     tone: "muted"
   }
 };
 
-export function getOrderStatusMeta(status: OrderStatus): (typeof ORDER_STATUS_META)[OrderStatus] {
+export function getOrderStatusMeta(status: OrderStatus): {
+  label: string;
+  tone: StatusTone;
+} {
   return ORDER_STATUS_META[status];
 }

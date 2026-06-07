@@ -1,18 +1,18 @@
-export enum PaymentPlatform {
-  WechatPay = "wechat_pay",
-  Alipay = "alipay"
-}
+export type PaymentPlatform = "wechat" | "alipay";
 
 export const PAYMENT_PLATFORM_META: Record<
   PaymentPlatform,
   {
     label: string;
+    colorClassName: string;
   }
 > = {
-  [PaymentPlatform.WechatPay]: {
-    label: "微信支付"
+  wechat: {
+    label: "微信支付",
+    colorClassName: "bg-green-500"
   },
-  [PaymentPlatform.Alipay]: {
-    label: "支付宝"
+  alipay: {
+    label: "支付宝",
+    colorClassName: "bg-blue-500"
   }
 };

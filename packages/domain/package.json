@@ -4,14 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "exports": {
-    ".": "./src/index.ts",
-    "./money/format-price": "./src/money/format-price.ts",
-    "./orders/status": "./src/orders/status.ts",
-    "./payments/platforms": "./src/payments/platforms.ts"
+    ".": "./src/index.ts"
   },
   "devDependencies": {
     "typescript": "^5",
