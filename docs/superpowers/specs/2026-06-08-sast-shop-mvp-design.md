@@ -22,6 +22,7 @@ Admin or operations back office is out of scope for this phase.
 - Support `mock`, `local`, and `remote` data sources through environment variables.
 - Keep login, user profile, address book, and payment QR codes mockable until the real backend is available.
 - Preserve the functional behavior of `frontend-v2`, while allowing mobile UI/UX adjustments.
+- Use local or system fonts only. Do not use Google Fonts or any build-time remote font fetching.
 
 ## Non-Goals
 
@@ -140,6 +141,14 @@ NEXT_PUBLIC_APP_ORIGIN=https://m.sast-shop.example.com
 - `remote`: services call the deployed backend.
 
 When a local or remote backend feature is not implemented, the API layer should throw `FeatureUnavailableError` instead of silently falling back to mock data.
+
+## Font Policy
+
+Both apps and the shared UI package must use local or system font stacks. The codebase must not import from `next/font/google`, reference Google Fonts stylesheets, or depend on remote font fetching during build. The default sans stack is:
+
+```css
+ui-sans-serif, -apple-system, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif
+```
 
 ## API Boundary
 

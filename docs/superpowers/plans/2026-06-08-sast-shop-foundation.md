@@ -6,13 +6,15 @@
 
 **Architecture:** The root becomes a plain pnpm workspace. `apps/mobile` and `apps/desktop` are separate Next.js apps that do not share page code. `packages/ui`, `packages/domain`, `packages/api`, and `packages/mocks` hold reusable components, business logic, data source selection, and mock fixtures.
 
-**Tech Stack:** Next.js 16, React 19, TypeScript, Tailwind CSS v4, shadcn-style workspace UI package, pnpm workspaces, Vitest for package-level tests, Caddy for deployment routing.
+**Tech Stack:** Next.js 16, React 19, TypeScript, Tailwind CSS v4, shadcn-style workspace UI package, local/system font stacks, pnpm workspaces, Vitest for package-level tests, Caddy for deployment routing.
 
 ---
 
 ## Scope Check
 
 The full MVP spec covers multiple subsystems: auth, profile, catalog, spot, errand, orders, payments, mobile UI, desktop UI, and deployment. This plan intentionally implements only the foundation milestone. It produces a working, testable monorepo with app shells and data-source plumbing so subsequent feature plans can build vertical business flows without reshaping the repository again.
+
+All app shells and shared styles must use local or system fonts only. Do not import from `next/font/google`, do not reference Google Fonts stylesheets, and do not introduce build-time remote font fetching.
 
 ## File Structure
 
@@ -469,9 +471,10 @@ Run:
 
 ```bash
 pnpm --filter @workspace/ui typecheck
+rg "next/font/google|fonts.googleapis.com" packages/ui apps || true
 ```
 
-Expected: TypeScript exits with code 0.
+Expected: TypeScript exits with code 0. The `rg` command prints no matches.
 
 - [ ] **Step 9: Commit UI package**
 
@@ -1199,10 +1202,11 @@ Run:
 
 ```bash
 pnpm --filter @sast-shop/mobile typecheck
+rg "next/font/google|fonts.googleapis.com" apps/mobile packages || true
 pnpm --filter @sast-shop/mobile build
 ```
 
-Expected: both commands exit with code 0.
+Expected: `typecheck` and `build` exit with code 0. The `rg` command prints no matches.
 
 - [ ] **Step 10: Commit mobile shell**
 
@@ -1422,10 +1426,11 @@ Run:
 
 ```bash
 pnpm --filter @sast-shop/desktop typecheck
+rg "next/font/google|fonts.googleapis.com" apps/desktop packages || true
 pnpm --filter @sast-shop/desktop build
 ```
 
-Expected: both commands exit with code 0.
+Expected: `typecheck` and `build` exit with code 0. The `rg` command prints no matches.
 
 - [ ] **Step 10: Commit desktop shell**
 
@@ -1508,6 +1513,7 @@ pnpm typecheck
 pnpm test
 pnpm build
 pnpm lint
+rg "next/font/google|fonts.googleapis.com" apps packages || true
 ```
 
 Expected:
@@ -1516,6 +1522,7 @@ Expected:
 - Vitest succeeds for `packages/domain` and `packages/api`.
 - Both Next apps build.
 - ESLint reports no errors.
+- The font search prints no matches.
 
 Then run the apps manually:
 
