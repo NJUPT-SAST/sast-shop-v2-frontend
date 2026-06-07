@@ -60,6 +60,7 @@ packages/domain/src/index.ts
 packages/domain/src/money/format-price.ts
 packages/domain/src/orders/status.ts
 packages/domain/src/payments/platforms.ts
+packages/domain/src/payments/platforms.test.ts
 packages/domain/src/money/format-price.test.ts
 packages/domain/src/orders/status.test.ts
 
@@ -661,20 +662,42 @@ export type PaymentPlatform = "wechat" | "alipay"
 
 export const PAYMENT_PLATFORM_META: Record<
   PaymentPlatform,
-  { label: string; colorClassName: string }
+  { label: string; tone: PaymentPlatform }
 > = {
   wechat: {
     label: "微信支付",
-    colorClassName: "bg-green-500",
+    tone: "wechat",
   },
   alipay: {
     label: "支付宝",
-    colorClassName: "bg-blue-500",
+    tone: "alipay",
   },
 }
 ```
 
-- [ ] **Step 9: Export domain API**
+- [ ] **Step 9: Add payment platform metadata test**
+
+Create `packages/domain/src/payments/platforms.test.ts`:
+
+```ts
+import { describe, expect, it } from "vitest"
+import { PAYMENT_PLATFORM_META } from "./platforms"
+
+describe("PAYMENT_PLATFORM_META", () => {
+  it("returns semantic payment platform metadata", () => {
+    expect(PAYMENT_PLATFORM_META.wechat).toEqual({
+      label: "微信支付",
+      tone: "wechat",
+    })
+    expect(PAYMENT_PLATFORM_META.alipay).toEqual({
+      label: "支付宝",
+      tone: "alipay",
+    })
+  })
+})
+```
+
+- [ ] **Step 10: Export domain API**
 
 Create `packages/domain/src/index.ts`:
 
@@ -684,7 +707,7 @@ export { getOrderStatusMeta, type OrderStatus, type StatusTone } from "./orders/
 export { PAYMENT_PLATFORM_META, type PaymentPlatform } from "./payments/platforms"
 ```
 
-- [ ] **Step 10: Verify domain package**
+- [ ] **Step 11: Verify domain package**
 
 Run:
 
@@ -695,7 +718,7 @@ pnpm --filter @sast-shop/domain typecheck
 
 Expected: both commands exit with code 0.
 
-- [ ] **Step 11: Commit domain package**
+- [ ] **Step 12: Commit domain package**
 
 Run:
 
