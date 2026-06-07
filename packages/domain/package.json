@@ -1,0 +1,20 @@
+{
+  "name": "@sast-shop/domain",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./money/format-price": "./src/money/format-price.ts",
+    "./orders/status": "./src/orders/status.ts",
+    "./payments/platforms": "./src/payments/platforms.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "vitest": "^3.2.4"
+  }
+}
