@@ -4,15 +4,15 @@ export const PAYMENT_PLATFORM_META: Record<
   PaymentPlatform,
   {
     label: string;
-    colorClassName: string;
+    tone: PaymentPlatform;
   }
 > = {
   wechat: {
     label: "微信支付",
-    colorClassName: "bg-green-500"
+    tone: "wechat"
   },
   alipay: {
     label: "支付宝",
-    colorClassName: "bg-blue-500"
+    tone: "alipay"
   }
 };
