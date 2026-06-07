@@ -114,18 +114,26 @@ Replace `package.json` with:
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "next dev",
     "dev:mobile": "pnpm --filter @sast-shop/mobile dev",
     "dev:desktop": "pnpm --filter @sast-shop/desktop dev",
-    "build": "pnpm -r build",
-    "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test",
+    "build": "next build",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
+  },
+  "dependencies": {
+    "next": "16.2.7",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "prettier": "^3.8.1",
@@ -185,19 +193,12 @@ Create `tsconfig.base.json`:
 Replace `eslint.config.mjs` with:
 
 ```js
-import { dirname } from "node:path"
-import { fileURLToPath } from "node:url"
-import { FlatCompat } from "@eslint/eslintrc"
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-})
+import nextVitals from "eslint-config-next/core-web-vitals"
+import nextTypescript from "eslint-config-next/typescript"
 
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...nextVitals,
+  ...nextTypescript,
   {
     ignores: [
       "node_modules/**",
@@ -224,12 +225,27 @@ pnpm install
 
 Expected: pnpm updates `pnpm-lock.yaml` without dependency resolution errors.
 
-- [ ] **Step 6: Commit workspace configuration**
+- [ ] **Step 6: Verify root checks are real**
 
 Run:
 
 ```bash
-git add package.json pnpm-workspace.yaml tsconfig.base.json eslint.config.mjs pnpm-lock.yaml
+pnpm exec eslint app/layout.tsx app/page.tsx
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+rg "next/font/google|fonts.googleapis.com|Geist|font-geist" app README.md package.json pnpm-lock.yaml
+```
+
+Expected: ESLint, lint, typecheck, test, and build exit with code 0. The font search prints no matches. At this intermediate stage the root Next app still exists, so these scripts validate the root app directly instead of using recursive workspace scripts.
+
+- [ ] **Step 7: Commit workspace configuration**
+
+Run:
+
+```bash
+git add package.json pnpm-workspace.yaml tsconfig.base.json eslint.config.mjs pnpm-lock.yaml app/globals.css app/layout.tsx README.md
 git commit -m "chore: configure pnpm workspace"
 ```
 
@@ -1447,6 +1463,7 @@ git commit -m "feat: add desktop app shell"
 ### Task 8: Caddy Routing and Root Template Cleanup
 
 **Files:**
+- Modify: `package.json`
 - Create: `infra/caddy/Caddyfile`
 - Remove: `app/`
 - Remove: `public/`
@@ -1482,7 +1499,50 @@ git rm -r app public next.config.ts tsconfig.json next-env.d.ts
 
 Expected: Git stages removal of the root template app. Root `package.json` remains as workspace metadata.
 
-- [ ] **Step 3: Verify all packages**
+- [ ] **Step 3: Convert root package scripts to final workspace mode**
+
+Replace `package.json` with:
+
+```json
+{
+  "name": "sast-shop-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:mobile": "pnpm --filter @sast-shop/mobile dev",
+    "dev:desktop": "pnpm --filter @sast-shop/desktop dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.7",
+    "prettier": "^3.8.1",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^3.2.4"
+  }
+}
+```
+
+- [ ] **Step 4: Refresh lockfile**
+
+Run:
+
+```bash
+pnpm install --config.confirmModulesPurge=false
+```
+
+Expected: pnpm updates `pnpm-lock.yaml` without dependency resolution errors.
+
+- [ ] **Step 5: Verify all packages**
 
 Run:
 
@@ -1494,12 +1554,12 @@ pnpm build
 
 Expected: all three commands exit with code 0.
 
-- [ ] **Step 4: Commit routing and cleanup**
+- [ ] **Step 6: Commit routing and cleanup**
 
 Run:
 
 ```bash
-git add infra/caddy/Caddyfile
+git add package.json pnpm-lock.yaml infra/caddy/Caddyfile
 git commit -m "chore: add caddy routing and remove root template"
 ```
 
