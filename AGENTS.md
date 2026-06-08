@@ -2,7 +2,7 @@
 
 这是一个面向飞书网页应用的在线商城前端 monorepo。当前已经拆分为 `apps/mobile` 移动端商城、`apps/desktop` 桌面端界面，以及 `packages/api`、`packages/domain`、`packages/mocks`、`packages/ui` 共享包。已经落地的技术栈包括 Next.js 16 App Router、React 19、TypeScript strict、Tailwind CSS v4、ESLint 9、Vitest 和 pnpm workspace。
 
-已落地 shadcn-style workspace UI 包、ConnectRPC Web v2、Buf/Protobuf-ES v2 代码生成、fauxrpc mock tooling、Docker/GitHub Actions 部署工作流和 `DESIGN.md` 设计规范。`remixicon` 尚未接入；需要图标时先补依赖并保持风格统一。`fauxrpc` 仍是外部 CLI，仓库不提交 CLI 二进制。
+已落地 shadcn-style workspace UI 包、`@remixicon/react` 图标、ConnectRPC Web v2、Buf/Protobuf-ES v2 代码生成、fauxrpc mock tooling、Docker/GitHub Actions 部署工作流和 `DESIGN.md` 设计规范。`fauxrpc` 仍是外部 CLI，仓库不提交 CLI 二进制。
 
 # 常用命令
 
@@ -35,11 +35,13 @@ pnpm mock:generate:user
 - `apps/mobile/app/`：移动端商城 App Router 入口。
 - `apps/desktop/app/`：桌面端 App Router 入口。
 - `apps/mobile/next.config.ts`、`apps/desktop/next.config.ts`：子应用 Next 配置入口。
-- `packages/api/src/`：前端 API facade，维护 `mock`、`local`、`remote` 数据源边界；当前 `mock` 走 `packages/mocks`，`local` 已接 Auth/User ConnectRPC smoke path，`remote` 仍明确未接入。
+- `packages/api/src/`：前端 API facade，维护 `mock`、`local`、`remote` 数据源边界；当前 Auth/User/Profile/Address/Payment QR Code 已有 mock/local 闭环，`remote` 仍明确未接入。
 - `packages/api/src/gen/`：Buf/Protobuf-ES v2 生成物；不要手写或手改生成文件。
 - `packages/domain/src/`：领域逻辑与纯函数。
 - `packages/mocks/src/`：fixture 和 mock 数据。
 - `packages/ui/src/`：共享 UI 组件、样式和工具函数。
+- `apps/mobile/app/profile/`、`apps/desktop/app/profile/`：个人资料、地址簿与收款码页面；页面只调用 `@sast-shop/api` facade。
+- `packages/ui/src/components/dialog.tsx`、`packages/ui/src/components/drawer.tsx`：shadcn overlay 基础组件；桌面 profile 用 Dialog，移动端 profile 用 Drawer。
 - `buf.gen.yaml`：Connect Web 官方推荐的本地生成配置。
 - `mock/fauxrpc/`：fauxrpc stub 与说明；schema 输出在 `.mock/`，不提交。
 - `eslint.config.mjs`：Next core-web-vitals 与 TypeScript ESLint 配置。
