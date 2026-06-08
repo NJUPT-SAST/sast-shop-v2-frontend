@@ -24,6 +24,9 @@ export default async function Home() {
   const samplePrice = formatPrice(1299)
   const displayName = user?.name ?? "同学"
   const department = user?.department ?? "SAST"
+  const sourceStatus = mobileAppConfig.dataSourceFallback
+    ? `配置值 ${mobileAppConfig.dataSourceFallback.providedValue} 已回退到 ${mobileAppConfig.dataSourceFallback.fallbackValue}`
+    : `NEXT_PUBLIC_DATA_SOURCE=${mobileAppConfig.dataSource}`
 
   return (
     <div className="flex flex-col gap-4">
@@ -63,9 +66,7 @@ export default async function Home() {
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm text-muted-foreground">数据源</p>
-              <p className="truncate font-medium">
-                NEXT_PUBLIC_DATA_SOURCE={mobileAppConfig.dataSource}
-              </p>
+              <p className="truncate font-medium">{sourceStatus}</p>
             </div>
             <Button type="button" size="lg" className="min-h-11 shrink-0 px-6">
               加入
