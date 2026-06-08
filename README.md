@@ -63,7 +63,7 @@ NEXT_PUBLIC_APP_ORIGIN=http://localhost:3001
 
 `NEXT_PUBLIC_APP_ORIGIN` 用于声明当前应用访问源，例如本地开发地址或线上子域名。
 
-Next.js 会把 `NEXT_PUBLIC_*` 变量内联到静态渲染和客户端 bundle 中；部署镜像构建时必须提供目标环境的值。当前 GitHub Actions deploy workflow 在 Docker build 阶段传入 `NEXT_PUBLIC_DATA_SOURCE=remote` 和对应应用的 `NEXT_PUBLIC_APP_ORIGIN`。docker-compose 示例仍保留运行时环境变量，方便服务端配置可见，但不能替代构建时注入。
+Next.js 会把 `NEXT_PUBLIC_*` 变量内联到静态渲染和客户端 bundle 中；当前页面是静态预渲染，部署镜像构建时必须提供目标环境的值。docker-compose 示例仍保留运行时环境变量，方便服务端配置可见，但不能替代构建时注入。
 
 ## API Wiring
 
@@ -110,6 +110,8 @@ MOBILE_APP_ORIGIN=https://shop.example.com
 DESKTOP_APP_ORIGIN=https://shop-admin.example.com
 ```
 
+`NEXT_PUBLIC_DATA_SOURCE` 也是 Docker build 阶段变量。当前 CI/CD 部署默认使用 `mock`，这样真实后端接入前登录和当前用户资料仍可用。接入 ConnectRPC 真实后端后，可将 Repository Variable `NEXT_PUBLIC_DATA_SOURCE=remote`；fauxrpc/staging 环境可设为 `local`，然后重新 build/deploy。
+
 ### 服务器目录
 
 ```text
@@ -127,7 +129,7 @@ services:
     image: sast/sast-shop-mobile:current
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_DATA_SOURCE: remote
+      NEXT_PUBLIC_DATA_SOURCE: mock
       NEXT_PUBLIC_APP_ORIGIN: https://shop.example.com
       PORT: 3001
     ports:
@@ -142,7 +144,7 @@ services:
     image: sast/sast-shop-desktop:current
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_DATA_SOURCE: remote
+      NEXT_PUBLIC_DATA_SOURCE: mock
       NEXT_PUBLIC_APP_ORIGIN: https://shop-admin.example.com
       PORT: 3002
     ports:

@@ -64,6 +64,18 @@ jobs:
           test -n "$APP_ORIGIN"
           echo "value=${APP_ORIGIN}" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve data source
+        id: data-source
+        env:
+          DATA_SOURCE: ${{ vars.NEXT_PUBLIC_DATA_SOURCE }}
+        run: |
+          value="${DATA_SOURCE:-mock}"
+          case "$value" in
+            mock|local|remote) ;;
+            *) echo "Invalid NEXT_PUBLIC_DATA_SOURCE: $value" >&2; exit 1 ;;
+          esac
+          echo "value=${value}" >> "$GITHUB_OUTPUT"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -74,7 +86,7 @@ jobs:
           file: ./Dockerfile
           build-args: |
             APP_FILTER=${{ matrix.app_filter }}
-            NEXT_PUBLIC_DATA_SOURCE=remote
+            NEXT_PUBLIC_DATA_SOURCE=${{ steps.data-source.outputs.value }}
             NEXT_PUBLIC_APP_ORIGIN=${{ steps.app-origin.outputs.value }}
           tags: |
             ${{ matrix.image }}:${{ steps.meta.outputs.short_sha }}
