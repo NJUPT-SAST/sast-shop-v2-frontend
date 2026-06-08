@@ -5,6 +5,20 @@ export class FeatureUnavailableError extends Error {
   }
 }
 
+export class ApiRequestError extends Error {
+  constructor(feature: string, cause?: unknown) {
+    super(`${feature} request failed`, { cause })
+    this.name = "ApiRequestError"
+  }
+}
+
+export class ApiConfigurationError extends Error {
+  constructor(key: string) {
+    super(`${key} must be configured`)
+    this.name = "ApiConfigurationError"
+  }
+}
+
 export class AuthRequiredError extends Error {
   constructor() {
     super("Authentication is required")

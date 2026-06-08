@@ -1,11 +1,22 @@
+import { createClient } from "@connectrpc/connect"
+import { createConnectTransport } from "@connectrpc/connect-web"
+import { timestampDate } from "@bufbuild/protobuf/wkt"
 import { getMockCurrentUser, loginWithMockCode } from "@sast-shop/mocks"
-import { resolveDataSource, type ServiceOptions } from "../data-source"
-import { FeatureUnavailableError } from "../errors"
+import { AuthService } from "../gen/sast/sastshopv2/user/v1/auth_service_pb"
+import type { UserInfo } from "../gen/sast/sastshopv2/user/v1/user_info_pb"
+import { UserService } from "../gen/sast/sastshopv2/user/v1/user_service_pb"
+import {
+  resolveConnectBaseUrl,
+  resolveDataSource,
+  type ServiceOptions,
+} from "../data-source"
+import { ApiRequestError, FeatureUnavailableError } from "../errors"
+
+const LOCAL_SMOKE_USER_ID = 10001n
 
 export interface CurrentUser {
   id: string
   name: string
-  department: string
   avatarUrl: string
 }
 
@@ -24,9 +35,21 @@ export async function getCurrentUser(options: ServiceOptions = {}): Promise<Curr
     return {
       id: user.id,
       name: user.name,
-      department: user.department,
       avatarUrl: user.avatarUrl,
     }
+  }
+
+  if (dataSource === "local") {
+    const client = createClient(UserService, createLocalTransport(options))
+    const response = await requestLocal("getCurrentUser", () =>
+      client.getUserInfo({ userId: LOCAL_SMOKE_USER_ID })
+    )
+
+    if (!response.userInfo) {
+      throw new FeatureUnavailableError("getCurrentUser")
+    }
+
+    return mapUserInfo(response.userInfo)
   }
 
   throw new FeatureUnavailableError("getCurrentUser")
@@ -47,11 +70,50 @@ export async function loginWithLarkCode(
       user: {
         id: session.user.id,
         name: session.user.name,
-        department: session.user.department,
         avatarUrl: session.user.avatarUrl,
       },
     }
   }
 
+  if (dataSource === "local") {
+    const client = createClient(AuthService, createLocalTransport(options))
+    const response = await requestLocal("loginWithLarkCode", () =>
+      client.login({ code })
+    )
+
+    if (!response.userInfo || !response.expiresAt) {
+      throw new FeatureUnavailableError("loginWithLarkCode")
+    }
+
+    return {
+      sessionToken: response.sessionToken,
+      expiresAt: timestampDate(response.expiresAt).toISOString(),
+      user: mapUserInfo(response.userInfo),
+    }
+  }
+
   throw new FeatureUnavailableError("loginWithLarkCode")
+}
+
+function createLocalTransport(options: ServiceOptions = {}) {
+  return createConnectTransport({ baseUrl: resolveConnectBaseUrl(options) })
+}
+
+async function requestLocal<T>(
+  feature: string,
+  request: () => Promise<T>
+): Promise<T> {
+  try {
+    return await request()
+  } catch (error) {
+    throw new ApiRequestError(feature, error)
+  }
+}
+
+function mapUserInfo(userInfo: UserInfo): CurrentUser {
+  return {
+    id: userInfo.id.toString(),
+    name: userInfo.name,
+    avatarUrl: userInfo.avatarUrl,
+  }
 }

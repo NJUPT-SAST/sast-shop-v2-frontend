@@ -2,6 +2,7 @@ import type { DataSource } from "@sast-shop/api"
 
 const supportedMobileDataSources = new Set<DataSource>(["mock", "local", "remote"])
 const dataSourceEnv = process.env.NEXT_PUBLIC_DATA_SOURCE
+const connectBaseUrlEnv = process.env.NEXT_PUBLIC_CONNECT_BASE_URL
 
 function isMobileDataSource(value: string | undefined): value is DataSource {
   return value !== undefined && supportedMobileDataSources.has(value as DataSource)
@@ -25,4 +26,5 @@ export const mobileAppConfig = {
     : null,
   appOrigin:
     process.env.NEXT_PUBLIC_APP_ORIGIN ?? "https://m.sast-shop.example.com",
+  connectBaseUrl: connectBaseUrlEnv,
 }

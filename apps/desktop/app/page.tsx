@@ -14,7 +14,10 @@ import { desktopAppConfig } from "@/lib/app-config"
 async function loadCurrentUser() {
   try {
     return {
-      user: await getCurrentUser({ dataSource: desktopAppConfig.dataSource }),
+      user: await getCurrentUser({
+        dataSource: desktopAppConfig.dataSource,
+        connectBaseUrl: desktopAppConfig.connectBaseUrl,
+      }),
       error: null,
     }
   } catch (error) {
@@ -45,7 +48,6 @@ export default async function Home() {
   const pendingPaymentMeta = getOrderStatusMeta("pending_payment")
   const user = currentUserResult.user
   const displayName = user?.name ?? "运营同学"
-  const department = user?.department ?? "SAST"
   const sourceStatus = desktopAppConfig.dataSourceFallback
     ? `配置值 ${desktopAppConfig.dataSourceFallback.providedValue} 已回退到 ${desktopAppConfig.dataSourceFallback.fallbackValue}`
     : `NEXT_PUBLIC_DATA_SOURCE=${desktopAppConfig.dataSource}`
@@ -62,7 +64,7 @@ export default async function Home() {
             你好，{displayName}
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-            这里是 {department} 的商城桌面工作台，用于查看团购、现货、订单与发布状态。
+            这里是 SAST 商城桌面工作台，用于查看团购、现货、订单与发布状态。
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">

@@ -13,7 +13,10 @@ import { mobileAppConfig } from "@/lib/app-config"
 
 async function loadCurrentUser() {
   try {
-    return await getCurrentUser({ dataSource: mobileAppConfig.dataSource })
+    return await getCurrentUser({
+      dataSource: mobileAppConfig.dataSource,
+      connectBaseUrl: mobileAppConfig.connectBaseUrl,
+    })
   } catch {
     return null
   }
@@ -23,7 +26,6 @@ export default async function Home() {
   const user = await loadCurrentUser()
   const samplePrice = formatPrice(1299)
   const displayName = user?.name ?? "同学"
-  const department = user?.department ?? "SAST"
   const sourceStatus = mobileAppConfig.dataSourceFallback
     ? `配置值 ${mobileAppConfig.dataSourceFallback.providedValue} 已回退到 ${mobileAppConfig.dataSourceFallback.fallbackValue}`
     : `NEXT_PUBLIC_DATA_SOURCE=${mobileAppConfig.dataSource}`
@@ -51,7 +53,7 @@ export default async function Home() {
             <Badge>进行中</Badge>
           </div>
           <CardDescription>
-            {department} 专属示例商品，当前价格 {samplePrice}
+            SAST 专属示例商品，当前价格 {samplePrice}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">

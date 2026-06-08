@@ -12,11 +12,14 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "proto:generate": "buf generate --template buf.gen.yaml",
     "mock:schema": "mkdir -p .mock/fauxrpc && buf build buf.build/sast/sast-shop-v2 -o .mock/fauxrpc/sast-shop-v2.binpb",
     "mock:fauxrpc": "pnpm mock:schema && fauxrpc run --schema=.mock/fauxrpc/sast-shop-v2.binpb --stubs=mock/fauxrpc/stubs --addr 127.0.0.1:6660 --dashboard",
     "mock:generate:user": "pnpm mock:schema && fauxrpc generate --schema=.mock/fauxrpc/sast-shop-v2.binpb --target=sast.sastshopv2.user.v1.UserInfo --stubs=mock/fauxrpc/stubs --seed=1"
   },
   "devDependencies": {
+    "@bufbuild/buf": "^1.70.0",
+    "@bufbuild/protoc-gen-es": "^2.12.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

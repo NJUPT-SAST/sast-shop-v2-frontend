@@ -12,10 +12,13 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@bufbuild/protobuf": "^2.12.0",
+    "@connectrpc/connect": "^2.1.1",
+    "@connectrpc/connect-web": "^2.1.1",
     "@sast-shop/mocks": "workspace:*"
   },
   "devDependencies": {
-    "vitest": "^3.2.4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   }
 }

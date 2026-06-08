@@ -39,12 +39,15 @@ pnpm format
 fauxrpc 工具：
 
 ```bash
+pnpm proto:generate
 pnpm mock:schema
 pnpm mock:fauxrpc
 pnpm mock:generate:user
 ```
 
-运行 fauxrpc mock 需要本机已有 `buf` 和 `fauxrpc` CLI。当前它们作为外部工具使用，尚未作为 workspace 依赖安装。
+运行 fauxrpc mock 需要本机已有 `fauxrpc` CLI。`buf` 与 Protobuf-ES 生成插件已作为 workspace devDependencies 安装。
+
+`proto:generate` 会按 Connect Web 官方推荐的本地生成方式，使用 `@bufbuild/buf` 与 `@bufbuild/protoc-gen-es` 从 `buf.build/sast/sast-shop-v2` 生成 Protobuf-ES v2 TypeScript 产物到 `packages/api/src/gen`。生成物提交到仓库，CI 会重新运行该命令并检查生成物是否漂移。
 
 `mock:schema` 会从 `buf.build/sast/sast-shop-v2` 拉取 proto schema 并生成本地 binpb；`mock:fauxrpc` 会在 `127.0.0.1:6660` 启动 fauxrpc mock backend 和 dashboard。
 
@@ -53,23 +56,40 @@ pnpm mock:generate:user
 ```bash
 NEXT_PUBLIC_DATA_SOURCE=mock
 NEXT_PUBLIC_APP_ORIGIN=http://localhost:3001
+NEXT_PUBLIC_CONNECT_BASE_URL=http://127.0.0.1:6660
 ```
 
 `NEXT_PUBLIC_DATA_SOURCE` 可选值：
 
 - `mock`：使用 package fixtures/mock，是当前已接入的默认方向。
-- `local`：预留给本地 ConnectRPC/fauxrpc backend。
+- `local`：使用 ConnectRPC 访问本地 fauxrpc backend。mock server URL 放在各 app 的 `.env.local` 中，字段为 `NEXT_PUBLIC_CONNECT_BASE_URL`。
 - `remote`：预留给真实后端环境。
 
 `NEXT_PUBLIC_APP_ORIGIN` 用于声明当前应用访问源，例如本地开发地址或线上子域名。
+
+`NEXT_PUBLIC_CONNECT_BASE_URL` 用于 `local` 数据源。每个 app 都提交 `.env.example` 作为模板，实际使用时复制成目标环境文件：
+
+```bash
+cp apps/mobile/.env.example apps/mobile/.env.local
+cp apps/desktop/.env.example apps/desktop/.env.local
+```
+
+生产环境则复制为 `.env` 并写入生产值：
+
+```bash
+cp apps/mobile/.env.example apps/mobile/.env
+cp apps/desktop/.env.example apps/desktop/.env
+```
+
+`.env.local` 与 `.env` 不提交。本地 fauxrpc URL 应写在 `.env.local` 的 `NEXT_PUBLIC_CONNECT_BASE_URL` 中。
 
 Next.js 会把 `NEXT_PUBLIC_*` 变量内联到静态渲染和客户端 bundle 中；当前页面是静态预渲染，部署镜像构建时必须提供目标环境的值。docker-compose 示例仍保留运行时环境变量，方便服务端配置可见，但不能替代构建时注入。
 
 ## API Wiring
 
-当前 runtime API client 尚未接入 ConnectRPC；项目现在是 `packages/api` facade + `packages/mocks` package mock + fauxrpc mock backend/tooling。
+当前 runtime API client 已接入 Auth/User 的 `local` ConnectRPC smoke path；项目现在是 `packages/api` facade + `packages/mocks` package mock + Protobuf-ES 生成物 + fauxrpc mock backend/tooling。
 
-后续接入 Connect Web 时，应使用 Buf 生成的 service definition，并通过 `@connectrpc/connect` 的 `createClient` 与 `@connectrpc/connect-web` 的 `createConnectTransport({ baseUrl })` 创建 web client。
+Connect Web 使用 Buf 生成的 service definition，并通过 `@connectrpc/connect` 的 `createClient` 与 `@connectrpc/connect-web` 的 `createConnectTransport({ baseUrl })` 创建 web client。当前 `mock` 仍走 package fixtures，`local` 只接 `AuthService/Login` 与 `UserService/GetUserInfo`，`remote` 仍保留为真实后端接入入口。`local` 的 `getCurrentUser` 是 smoke path，会读取 fauxrpc stub 中的 `10001` 用户；真实 session-aware 当前用户逻辑留到后端鉴权接入阶段。
 
 Next App Router 默认使用 Server Components。若 proto message 只在服务端使用，不涉及 client serialization；若要跨 Server Component/Client Component 边界传递，需要注意 JSON/React serializability，必要时使用 `@bufbuild/protobuf` 的 `toJson`/`fromJson` 在边界处转换。
 
@@ -108,6 +128,7 @@ DESKTOP_SSH_PRIVATE_KEY
 ```text
 MOBILE_APP_ORIGIN=https://shop.example.com
 DESKTOP_APP_ORIGIN=https://shop-admin.example.com
+NEXT_PUBLIC_CONNECT_BASE_URL=https://api.example.com
 ```
 
 `NEXT_PUBLIC_DATA_SOURCE` 也是 Docker build 阶段变量。当前 CI/CD 部署默认使用 `mock`，这样真实后端接入前登录和当前用户资料仍可用。接入 ConnectRPC 真实后端后，可将 Repository Variable `NEXT_PUBLIC_DATA_SOURCE=remote`；fauxrpc/staging 环境可设为 `local`，然后重新 build/deploy。

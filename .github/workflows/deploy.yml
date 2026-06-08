@@ -76,6 +76,13 @@ jobs:
           esac
           echo "value=${value}" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve Connect base URL
+        id: connect-base-url
+        env:
+          CONNECT_BASE_URL: ${{ vars.NEXT_PUBLIC_CONNECT_BASE_URL }}
+        run: |
+          echo "value=${CONNECT_BASE_URL}" >> "$GITHUB_OUTPUT"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -88,6 +95,7 @@ jobs:
             APP_FILTER=${{ matrix.app_filter }}
             NEXT_PUBLIC_DATA_SOURCE=${{ steps.data-source.outputs.value }}
             NEXT_PUBLIC_APP_ORIGIN=${{ steps.app-origin.outputs.value }}
+            NEXT_PUBLIC_CONNECT_BASE_URL=${{ steps.connect-base-url.outputs.value }}
           tags: |
             ${{ matrix.image }}:${{ steps.meta.outputs.short_sha }}
             ${{ matrix.image }}:latest

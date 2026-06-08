@@ -6,6 +6,7 @@ const supportedDesktopDataSources = new Set<DataSource>([
   "remote",
 ])
 const dataSourceEnv = process.env.NEXT_PUBLIC_DATA_SOURCE
+const connectBaseUrlEnv = process.env.NEXT_PUBLIC_CONNECT_BASE_URL
 
 function isDesktopDataSource(value: string | undefined): value is DataSource {
   return value !== undefined && supportedDesktopDataSources.has(value as DataSource)
@@ -29,4 +30,5 @@ export const desktopAppConfig = {
     : null,
   appOrigin:
     process.env.NEXT_PUBLIC_APP_ORIGIN ?? "https://shop.sast-shop.example.com",
+  connectBaseUrl: connectBaseUrlEnv,
 }

@@ -33,6 +33,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check generated proto
+        run: |
+          pnpm proto:generate
+          status="$(git status --porcelain -- buf.gen.yaml packages/api/src/gen)"
+          test -z "$status" || { echo "$status"; exit 1; }
+
       - name: Lint
         run: pnpm lint
 
