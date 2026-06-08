@@ -15,7 +15,7 @@ node_modules/
 /coverage
 
 # local mock artifacts
-.mock/
+/.mock/
 
 # next.js
 /.next/

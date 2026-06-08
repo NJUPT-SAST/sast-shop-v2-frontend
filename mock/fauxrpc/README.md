@@ -23,4 +23,4 @@ pnpm mock:fauxrpc
 - 协议：按 FauxRPC 能力提供 gRPC、gRPC-Web 和 Connect
 - Dashboard：随 `--dashboard` 启用
 
-当前应用仍使用包内 mock 数据；后续接入 API client 时，可将本地数据源指向这个 FauxRPC 服务。
+当前应用仍使用包内 mock 数据，尚未接入 runtime API client。后续按 ConnectRPC 官方方式生成 service 定义后，可用 `@connectrpc/connect` 的 `createClient` 和 `@connectrpc/connect-web` 的 `createConnectTransport({ baseUrl })`，将本地 `baseUrl` 指向 `http://127.0.0.1:6660`。

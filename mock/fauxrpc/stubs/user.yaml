@@ -3,7 +3,7 @@ stubs:
     target: sast.sastshopv2.user.v1.AuthService/Login
     content:
       sessionToken: mock-session-token-sast-shop
-      expiresAt: "2026-12-31T23:59:59Z"
+      expiresAt: "2099-12-31T23:59:59Z"
       userInfo:
         id: "10001"
         name: 南邮同学
