@@ -32,3 +32,24 @@ export {
   getProfileOverview,
   type ProfileOverview,
 } from "./services/profile"
+export { listStores, type Store } from "./services/catalog"
+export {
+  createSpotGoods,
+  getSpotGoods,
+  listSpotGoods,
+  type CreateSpotGoodsInput,
+  type SpotGoods,
+  type SpotProductTemplate,
+} from "./services/spot-goods"
+export {
+  createSpotOrders,
+  listSpotOrders,
+  type CreateSpotOrderInput,
+  type SpotOrder,
+  type SpotOrderPerspective,
+  type SpotOrderStatusValue,
+} from "./services/spot-orders"
+export {
+  listProductTemplates,
+  type ProductTemplate,
+} from "./services/product-templates"

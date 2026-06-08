@@ -1,5 +1,4 @@
 import type { ProfileOverview } from "@sast-shop/api"
-import { Badge } from "@workspace/ui/components/badge"
 import {
   Card,
   CardContent,
@@ -7,8 +6,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
-import { mobileAppConfig } from "@/lib/app-config"
 import { loadProfileOverview } from "@/lib/profile-overview"
+import { ProfileManagement } from "@/components/profile-management"
 
 async function getProfilePageOverview(): Promise<{
   overview: ProfileOverview | null
@@ -30,21 +29,10 @@ async function getProfilePageOverview(): Promise<{
 export default async function ProfilePage() {
   const result = await getProfilePageOverview()
   const overview = result.overview
-  const defaultAddress = overview?.defaultAddress ?? null
 
   return (
-    <div className="flex flex-col gap-4">
-      <section className="flex items-start justify-between gap-3 py-2">
-        <div className="min-w-0">
-          <p className="text-sm text-muted-foreground">我的</p>
-          <h1 className="mt-1 text-3xl font-semibold leading-tight">
-            个人资料
-          </h1>
-        </div>
-        <Badge variant="muted" className="shrink-0">
-          {mobileAppConfig.dataSource}
-        </Badge>
-      </section>
+    <div className="flex flex-1 flex-col gap-6 py-6">
+      <h1 className="text-xl font-semibold md:text-2xl">我的</h1>
 
       {result.error ? (
         <Card className="rounded-lg">
@@ -56,81 +44,25 @@ export default async function ProfilePage() {
       ) : null}
 
       {overview ? (
-        <>
-          <Card className="rounded-lg">
-            <CardHeader>
+        <Card className="rounded-lg">
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-foreground">
+              {overview.user.name.slice(0, 1)}
+            </div>
+            <div className="min-w-0">
               <CardDescription>当前用户</CardDescription>
-              <CardTitle className="break-words text-xl leading-7">
+              <CardTitle className="mt-1 break-words text-xl leading-7">
                 {overview.user.name}
               </CardTitle>
-            </CardHeader>
-            <CardContent>
               <p className="break-all text-sm leading-6 text-muted-foreground">
                 用户 ID：{overview.user.id}
               </p>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-lg">
-            <CardHeader>
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <CardTitle className="text-lg leading-6">
-                    默认地址
-                  </CardTitle>
-                  <CardDescription className="mt-1 break-words">
-                    {defaultAddress
-                      ? `${defaultAddress.recipientName} ${defaultAddress.recipientPhone}`
-                      : "还没有默认地址"}
-                  </CardDescription>
-                </div>
-                {defaultAddress ? (
-                  <Badge className="shrink-0">默认</Badge>
-                ) : null}
-              </div>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              <p className="break-words text-sm leading-6 text-muted-foreground">
-                {defaultAddress
-                  ? formatAddress(defaultAddress)
-                  : "添加常用地址后，下单时会更顺手。"}
-              </p>
-              <p className="rounded-lg bg-muted px-3 py-2 text-sm leading-6 text-muted-foreground">
-                可通过底部地址簿入口查看完整地址列表。
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-lg">
-            <CardHeader>
-              <CardTitle className="text-lg leading-6">收款码</CardTitle>
-              <CardDescription>
-                已配置 {overview.paymentQrCodes.length} 个渠道
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              <div className="flex flex-wrap gap-2">
-                {overview.paymentQrCodes.length > 0 ? (
-                  overview.paymentQrCodes.map((qrCode) => (
-                    <Badge key={qrCode.id} variant="outline">
-                      {qrCode.channel === "wechat" ? "微信支付" : "支付宝"}
-                    </Badge>
-                  ))
-                ) : (
-                  <Badge variant="muted">暂无渠道</Badge>
-                )}
-              </div>
-              <p className="text-sm leading-6 text-muted-foreground">
-                使用底部全局入口管理地址簿和快捷收款码。当前页面只展示资料概览。
-              </p>
-            </CardContent>
-          </Card>
-        </>
+            </div>
+          </CardContent>
+        </Card>
       ) : null}
+
+      <ProfileManagement />
     </div>
   )
-}
-
-function formatAddress(address: NonNullable<ProfileOverview["defaultAddress"]>) {
-  return `${address.province}${address.city}${address.district}${address.detailAddress}`
 }

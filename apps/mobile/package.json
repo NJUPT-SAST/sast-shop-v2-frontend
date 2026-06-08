@@ -12,6 +12,7 @@
     "test": "tsc --noEmit"
   },
   "dependencies": {
+    "@remixicon/react": "^4.9.0",
     "@sast-shop/api": "workspace:*",
     "@sast-shop/domain": "workspace:*",
     "@workspace/ui": "workspace:*",

@@ -1,231 +1,65 @@
 "use client"
 
-import { useState } from "react"
-import type { ProfileOverview } from "@sast-shop/api"
-import { Badge } from "@workspace/ui/components/badge"
+import { RiArrowRightSLine, RiMapPinLine, RiQrCodeLine } from "@remixicon/react"
 import { Button } from "@workspace/ui/components/button"
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from "@workspace/ui/components/drawer"
+import { cn } from "@workspace/ui/lib/utils"
+import { useProfileDialogs } from "./profile-dialogs-provider"
 
-type ActivePanel = "addresses" | "qr-codes" | null
-
-interface ProfileManagementClientProps {
-  dataSource: string
-  overview: ProfileOverview | null
-  error: string | null
-}
-
-export function ProfileManagementClient({
-  dataSource,
-  overview,
-  error,
-}: ProfileManagementClientProps) {
-  const [activePanel, setActivePanel] = useState<ActivePanel>(null)
-  const title = activePanel === "addresses" ? "地址簿" : "快捷收款码"
-
-  function closePanel() {
-    setActivePanel(null)
-  }
+export function ProfileManagementClient() {
+  const { openAddressDialog, openQrCodeDialog } = useProfileDialogs()
 
   return (
-    <>
-      <div className="border-t border-border/80 bg-card/95 px-4 py-3 shadow-sm backdrop-blur-xl">
-        <div className="mx-auto grid w-full max-w-md grid-cols-2 gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="min-h-11"
-            onClick={() => setActivePanel("addresses")}
-          >
-            地址簿
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="min-h-11"
-            onClick={() => setActivePanel("qr-codes")}
-          >
-            收款码
-          </Button>
-        </div>
-      </div>
-
-      <Drawer
-        open={activePanel !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            closePanel()
-          }
-        }}
-      >
-        <DrawerContent className="max-h-[82dvh] overflow-y-auto bg-background px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-foreground">
-          {activePanel ? (
-            <div className="mx-auto flex w-full max-w-md flex-col gap-4 pb-4">
-              <DrawerHeader className="flex-row items-start justify-between gap-3 px-0 text-left">
-                <div className="min-w-0">
-                  <DrawerTitle className="text-lg font-semibold leading-6">
-                    {title}
-                  </DrawerTitle>
-                  <DrawerDescription className="mt-1 break-words">
-                    {error ?? `数据源：${dataSource}`}
-                  </DrawerDescription>
-                </div>
-                <DrawerClose asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="min-h-11 shrink-0 px-4"
-                  >
-                    关闭
-                  </Button>
-                </DrawerClose>
-              </DrawerHeader>
-
-              {error ? (
-                <p className="rounded-lg border border-border bg-muted p-3 text-sm leading-6 text-muted-foreground">
-                  {error}
-                </p>
-              ) : null}
-
-              {!error && activePanel === "addresses" ? (
-                <AddressPanel overview={overview} />
-              ) : null}
-
-              {!error && activePanel === "qr-codes" ? (
-                <QrCodePanel overview={overview} />
-              ) : null}
-            </div>
-          ) : null}
-        </DrawerContent>
-      </Drawer>
-    </>
-  )
-}
-
-function AddressPanel({ overview }: { overview: ProfileOverview | null }) {
-  const addresses = overview?.addresses ?? []
-
-  return (
-    <div className="grid gap-3">
-      {addresses.length > 0 ? (
-        addresses.map((address) => (
-          <article
-            key={address.id}
-            className="rounded-lg border border-border bg-card p-3"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="break-words font-medium">
-                  {address.recipientName}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {address.recipientPhone}
-                </p>
-              </div>
-              {address.isDefault ? (
-                <Badge className="shrink-0">默认</Badge>
-              ) : null}
-            </div>
-            <p className="mt-3 break-words text-sm leading-6 text-muted-foreground">
-              {formatAddress(address)}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled
-                aria-label="编辑地址暂未开放"
-                title="编辑地址暂未开放"
-              >
-                编辑待开放
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled
-                aria-label="删除地址暂未开放"
-                title="删除地址暂未开放"
-              >
-                删除待开放
-              </Button>
-            </div>
-          </article>
-        ))
-      ) : (
-        <p className="rounded-lg border border-border bg-muted p-3 text-sm leading-6 text-muted-foreground">
-          暂无地址。新增地址能力接入后，可在这里维护常用收货信息。
-        </p>
-      )}
-
-      <Button
-        type="button"
-        size="lg"
-        className="min-h-11"
-        disabled
-        aria-label="新增地址暂未开放"
-        title="新增地址暂未开放"
-      >
-        新增地址待开放
-      </Button>
+    <div className="overflow-hidden rounded-xl border bg-card">
+      <ProfileMenuButton
+        title="地址簿"
+        icon={<RiMapPinLine className="size-4" />}
+        onClick={openAddressDialog}
+        border
+        first
+      />
+      <ProfileMenuButton
+        title="快捷收款码"
+        icon={<RiQrCodeLine className="size-4" />}
+        onClick={openQrCodeDialog}
+        last
+      />
     </div>
   )
 }
 
-function QrCodePanel({ overview }: { overview: ProfileOverview | null }) {
-  const qrCodes = overview?.paymentQrCodes ?? []
-
+function ProfileMenuButton({
+  title,
+  icon,
+  onClick,
+  border = false,
+  first = false,
+  last = false,
+}: {
+  title: string
+  icon: React.ReactNode
+  onClick: () => void
+  border?: boolean
+  first?: boolean
+  last?: boolean
+}) {
   return (
-    <div className="grid gap-3">
-      {qrCodes.length > 0 ? (
-        qrCodes.map((qrCode) => (
-          <article
-            key={qrCode.id}
-            className="rounded-lg border border-border bg-card p-3"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <p className="min-w-0 break-words font-medium">
-                {qrCode.channel === "wechat" ? "微信支付" : "支付宝"}
-              </p>
-              <Badge variant="outline" className="shrink-0">
-                已配置
-              </Badge>
-            </div>
-            <p className="mt-3 break-all text-sm leading-6 text-muted-foreground">
-              {qrCode.content}
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              disabled
-              aria-label="修改收款码暂未开放"
-              title="修改收款码暂未开放"
-            >
-              修改待开放
-            </Button>
-          </article>
-        ))
-      ) : (
-        <p className="rounded-lg border border-border bg-muted p-3 text-sm leading-6 text-muted-foreground">
-          暂无收款码。修改能力接入后，可在这里维护微信支付和支付宝内容。
-        </p>
+    <Button
+      type="button"
+      variant="ghost"
+      size="lg"
+      className={cn(
+        "h-auto min-h-16 w-full justify-start gap-4 px-4 py-3.5",
+        first && "rounded-t-xl rounded-b-none",
+        last && "rounded-t-none rounded-b-xl",
+        border && "border-b"
       )}
-    </div>
+      onClick={onClick}
+    >
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        {icon}
+      </span>
+      <span className="flex-1 text-left font-medium">{title}</span>
+      <RiArrowRightSLine className="size-5 text-muted-foreground" />
+    </Button>
   )
-}
-
-function formatAddress(address: ProfileOverview["addresses"][number]) {
-  return `${address.province}${address.city}${address.district}${address.detailAddress}`
 }

@@ -9,7 +9,7 @@ function isMobileDataSource(value: string | undefined): value is DataSource {
 }
 
 export function resolveMobileDataSource(value: string | undefined): DataSource {
-  return isMobileDataSource(value) ? value : "mock"
+  return isMobileDataSource(value) ? value : "local"
 }
 
 const isDataSourceFallback =
@@ -21,10 +21,10 @@ export const mobileAppConfig = {
   dataSourceFallback: isDataSourceFallback
     ? {
         providedValue: dataSourceEnv,
-        fallbackValue: "mock" satisfies DataSource,
+        fallbackValue: "local" satisfies DataSource,
       }
     : null,
   appOrigin:
     process.env.NEXT_PUBLIC_APP_ORIGIN ?? "https://m.sast-shop.example.com",
-  connectBaseUrl: connectBaseUrlEnv,
+  connectBaseUrl: connectBaseUrlEnv ?? "http://127.0.0.1:6660",
 }

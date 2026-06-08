@@ -1,13 +1,24 @@
 @import "@workspace/ui/globals.css";
 
 html {
-  min-height: 100%;
+  height: 100%;
   background: var(--background);
+  overflow: hidden;
 }
 
 body {
-  min-height: 100%;
-  overflow-x: hidden;
+  height: 100%;
+  overflow: hidden;
+}
+
+@utility app-scrollbar {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+    height: 0;
+    width: 0;
+  }
 }
 
 button,

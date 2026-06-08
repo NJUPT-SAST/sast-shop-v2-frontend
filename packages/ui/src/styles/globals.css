@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@source "../components";
+@source "../lib";
 
 :root {
   --background: #f5f5f7;
@@ -60,4 +62,41 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(0.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(0.35rem);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 160ms ease-out both;
+}
+
+.animate-slide-down {
+  animation: slide-down 160ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-up,
+  .animate-slide-down {
+    animation: none;
+  }
 }
