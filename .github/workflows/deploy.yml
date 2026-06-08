@@ -1,0 +1,101 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy ${{ matrix.service }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: sast-shop-mobile
+            app_filter: "@sast-shop/mobile"
+            image: sast/sast-shop-mobile
+            data_dir: /data/sast-shop-mobile
+            port: 3001
+            server_user_secret: MOBILE_SERVER_USER
+            ssh_key_secret: MOBILE_SSH_PRIVATE_KEY
+          - service: sast-shop-desktop
+            app_filter: "@sast-shop/desktop"
+            image: sast/sast-shop-desktop
+            data_dir: /data/sast-shop-desktop
+            port: 3002
+            server_user_secret: DESKTOP_SERVER_USER
+            ssh_key_secret: DESKTOP_SSH_PRIVATE_KEY
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set image metadata
+        id: meta
+        run: |
+          short_sha="${GITHUB_SHA::12}"
+          tar_name="${{ matrix.service }}-${short_sha}.tar"
+          echo "short_sha=${short_sha}" >> "$GITHUB_OUTPUT"
+          echo "tar_name=${tar_name}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image tar
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: |
+            APP_FILTER=${{ matrix.app_filter }}
+          tags: |
+            ${{ matrix.image }}:${{ steps.meta.outputs.short_sha }}
+            ${{ matrix.image }}:latest
+          outputs: type=docker,dest=/tmp/${{ steps.meta.outputs.tar_name }}
+
+      - name: Upload image tar
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets[matrix.server_user_secret] }}
+          key: ${{ secrets[matrix.ssh_key_secret] }}
+          source: /tmp/${{ steps.meta.outputs.tar_name }}
+          target: /tmp
+          strip_components: 1
+
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v1.2.2
+        env:
+          IMAGE: ${{ matrix.image }}
+          SHORT_SHA: ${{ steps.meta.outputs.short_sha }}
+          TAR_NAME: ${{ steps.meta.outputs.tar_name }}
+          DATA_DIR: ${{ matrix.data_dir }}
+          SERVICE_PORT: ${{ matrix.port }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets[matrix.server_user_secret] }}
+          key: ${{ secrets[matrix.ssh_key_secret] }}
+          envs: IMAGE,SHORT_SHA,TAR_NAME,DATA_DIR,SERVICE_PORT
+          script: |
+            set -euo pipefail
+
+            cd "$DATA_DIR"
+            test -f docker-compose.yml
+
+            if docker image inspect "$IMAGE:current" >/dev/null 2>&1; then
+              docker image tag "$IMAGE:current" "$IMAGE:backup"
+            fi
+
+            docker load -i "/tmp/$TAR_NAME"
+            docker image tag "$IMAGE:$SHORT_SHA" "$IMAGE:current"
+            docker compose up -d --remove-orphans
+
+            rm -f "/tmp/$TAR_NAME"
+            if docker image inspect "$IMAGE:latest" >/dev/null 2>&1; then
+              docker image rm "$IMAGE:latest" >/dev/null 2>&1 || true
+            fi
+            docker image prune -f
