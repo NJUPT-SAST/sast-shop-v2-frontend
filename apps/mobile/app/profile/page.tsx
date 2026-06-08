@@ -1,6 +1,5 @@
-import { getProfileOverview, type ProfileOverview } from "@sast-shop/api"
+import type { ProfileOverview } from "@sast-shop/api"
 import { Badge } from "@workspace/ui/components/badge"
-import { Button } from "@workspace/ui/components/button"
 import {
   Card,
   CardContent,
@@ -9,17 +8,15 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card"
 import { mobileAppConfig } from "@/lib/app-config"
+import { loadProfileOverview } from "@/lib/profile-overview"
 
-async function loadProfileOverview(): Promise<{
+async function getProfilePageOverview(): Promise<{
   overview: ProfileOverview | null
   error: string | null
 }> {
   try {
     return {
-      overview: await getProfileOverview({
-        dataSource: mobileAppConfig.dataSource,
-        connectBaseUrl: mobileAppConfig.connectBaseUrl,
-      }),
+      overview: await loadProfileOverview(),
       error: null,
     }
   } catch {
@@ -31,7 +28,7 @@ async function loadProfileOverview(): Promise<{
 }
 
 export default async function ProfilePage() {
-  const result = await loadProfileOverview()
+  const result = await getProfilePageOverview()
   const overview = result.overview
   const defaultAddress = overview?.defaultAddress ?? null
 
@@ -98,17 +95,9 @@ export default async function ProfilePage() {
                   ? formatAddress(defaultAddress)
                   : "添加常用地址后，下单时会更顺手。"}
               </p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="min-h-11 self-start"
-                disabled
-                aria-label="请使用底部地址簿入口查看地址"
-                title="请使用底部地址簿入口查看地址"
-              >
-                底部地址簿可查看
-              </Button>
+              <p className="rounded-lg bg-muted px-3 py-2 text-sm leading-6 text-muted-foreground">
+                可通过底部地址簿入口查看完整地址列表。
+              </p>
             </CardContent>
           </Card>
 

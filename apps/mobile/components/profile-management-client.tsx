@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { ProfileOverview } from "@sast-shop/api"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
@@ -19,11 +19,38 @@ export function ProfileManagementClient({
   error,
 }: ProfileManagementClientProps) {
   const [activePanel, setActivePanel] = useState<ActivePanel>(null)
+  const dialogRef = useRef<HTMLDialogElement>(null)
   const title = activePanel === "addresses" ? "地址簿" : "快捷收款码"
   const titleId =
     activePanel === "addresses"
       ? "profile-addresses-title"
       : "profile-qr-codes-title"
+
+  useEffect(() => {
+    const dialog = dialogRef.current
+
+    if (!dialog) {
+      return
+    }
+
+    if (activePanel) {
+      if (!dialog.open) {
+        dialog.showModal()
+      }
+      dialog
+        .querySelector<HTMLButtonElement>("[data-dialog-close]")
+        ?.focus()
+      return
+    }
+
+    if (dialog.open) {
+      dialog.close()
+    }
+  }, [activePanel])
+
+  function closePanel() {
+    setActivePanel(null)
+  }
 
   return (
     <>
@@ -50,14 +77,30 @@ export function ProfileManagementClient({
         </div>
       </div>
 
-      {activePanel ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40">
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={titleId}
-            className="max-h-[82dvh] w-full overflow-y-auto rounded-t-lg bg-background px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 shadow-lg"
-          >
+      <dialog
+        ref={dialogRef}
+        aria-labelledby={titleId}
+        className="fixed inset-x-0 bottom-0 top-auto z-50 m-0 max-h-[82dvh] w-full max-w-none overflow-y-auto rounded-t-lg border-0 bg-background px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 text-foreground shadow-lg backdrop:bg-black/40 sm:mx-auto sm:max-w-md"
+        onCancel={(event) => {
+          event.preventDefault()
+          closePanel()
+        }}
+        onClose={closePanel}
+        onClick={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect()
+          const isInsideDialog =
+            event.clientX >= rect.left &&
+            event.clientX <= rect.right &&
+            event.clientY >= rect.top &&
+            event.clientY <= rect.bottom
+
+          if (!isInsideDialog) {
+            closePanel()
+          }
+        }}
+      >
+        {activePanel ? (
+          <>
             <div className="mx-auto flex w-full max-w-md flex-col gap-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -69,11 +112,12 @@ export function ProfileManagementClient({
                   </p>
                 </div>
                 <Button
+                  data-dialog-close
                   type="button"
                   variant="ghost"
                   size="sm"
                   className="min-h-11 shrink-0 px-4"
-                  onClick={() => setActivePanel(null)}
+                  onClick={closePanel}
                 >
                   关闭
                 </Button>
@@ -93,9 +137,9 @@ export function ProfileManagementClient({
                 <QrCodePanel overview={overview} />
               ) : null}
             </div>
-          </section>
-        </div>
-      ) : null}
+          </>
+        ) : null}
+      </dialog>
     </>
   )
 }
@@ -187,7 +231,7 @@ function QrCodePanel({ overview }: { overview: ProfileOverview | null }) {
                 {qrCode.channel === "wechat" ? "微信支付" : "支付宝"}
               </p>
               <Badge variant="outline" className="shrink-0">
-                只能修改
+                已配置
               </Badge>
             </div>
             <p className="mt-3 break-all text-sm leading-6 text-muted-foreground">

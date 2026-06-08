@@ -1,17 +1,11 @@
-import { getProfileOverview, type ProfileOverview } from "@sast-shop/api"
 import { mobileAppConfig } from "@/lib/app-config"
+import { loadProfileOverview } from "@/lib/profile-overview"
 import { ProfileManagementClient } from "./profile-management-client"
 
-async function loadProfileOverview(): Promise<{
-  overview: ProfileOverview | null
-  error: string | null
-}> {
+async function getProfileManagementOverview() {
   try {
     return {
-      overview: await getProfileOverview({
-        dataSource: mobileAppConfig.dataSource,
-        connectBaseUrl: mobileAppConfig.connectBaseUrl,
-      }),
+      overview: await loadProfileOverview(),
       error: null,
     }
   } catch {
@@ -23,7 +17,7 @@ async function loadProfileOverview(): Promise<{
 }
 
 export async function ProfileManagement() {
-  const result = await loadProfileOverview()
+  const result = await getProfileManagementOverview()
 
   return (
     <ProfileManagementClient
