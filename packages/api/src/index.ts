@@ -21,3 +21,10 @@ export {
   type ShippingAddress,
   type ShippingAddressInput,
 } from "./services/addresses"
+export {
+  listPaymentQrCodes,
+  updatePaymentQrCode,
+  type PaymentQrChannel,
+  type PaymentQrCode,
+  type PaymentQrCodeInput,
+} from "./services/payment-qr-codes"
