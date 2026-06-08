@@ -2,7 +2,7 @@
 
 这是一个面向飞书网页应用的在线商城前端 monorepo。当前已经拆分为 `apps/mobile` 移动端商城、`apps/desktop` 桌面端界面，以及 `packages/api`、`packages/domain`、`packages/mocks`、`packages/ui` 共享包。已经落地的技术栈包括 Next.js 16 App Router、React 19、TypeScript strict、Tailwind CSS v4、ESLint 9、Vitest 和 pnpm workspace。
 
-规划中的实现约束包括 shadcn/ui、remixicon、ConnectRPC、buf.build 代码生成和 fauxrpc mock。当前 root `package.json` 已提供 Prettier 与 fauxrpc 编排脚本，但尚未安装 shadcn/ui、remixicon、ConnectRPC、buf CLI 或 fauxrpc；接入前先补依赖与脚本，不要假设它们已经可用。
+已落地 shadcn-style workspace UI 包、ConnectRPC Web v2、Buf/Protobuf-ES v2 代码生成、fauxrpc mock tooling、Docker/GitHub Actions 部署工作流和 `DESIGN.md` 设计规范。`remixicon` 尚未接入；需要图标时先补依赖并保持风格统一。`fauxrpc` 仍是外部 CLI，仓库不提交 CLI 二进制。
 
 # 常用命令
 
@@ -16,23 +16,32 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
+pnpm format
+pnpm proto:generate
+pnpm mock:schema
 pnpm mock:fauxrpc
+pnpm mock:generate:user
 ```
 
 - `pnpm dev:mobile` 启动 `apps/mobile`，默认端口为 `3001`。
 - `pnpm dev:desktop` 启动 `apps/desktop`，默认端口为 `3002`。
-- `pnpm mock:fauxrpc` 会先生成 schema，再在 `127.0.0.1:6660` 启动 fauxrpc mock backend。
+- `pnpm proto:generate` 使用 `buf.gen.yaml` 从 `buf.build/sast/sast-shop-v2` 生成 Protobuf-ES v2 TypeScript 到 `packages/api/src/gen`，生成物提交入库。
+- `pnpm mock:schema` 生成 `.mock/fauxrpc/sast-shop-v2.binpb`；`pnpm mock:fauxrpc` 再在 `127.0.0.1:6660` 启动 fauxrpc mock backend。
 - 交付前至少运行 `pnpm lint`；涉及路由、构建配置、服务端代码或依赖变更时同时运行 `pnpm build`。
+- `pnpm build` 在沙箱内可能因 Turbopack 端口权限失败；审批模式下可通过。
 
 # 当前目录入口
 
 - `apps/mobile/app/`：移动端商城 App Router 入口。
 - `apps/desktop/app/`：桌面端 App Router 入口。
 - `apps/mobile/next.config.ts`、`apps/desktop/next.config.ts`：子应用 Next 配置入口。
-- `packages/api/src/`：前端 API facade，当前连接 package mock。
+- `packages/api/src/`：前端 API facade，维护 `mock`、`local`、`remote` 数据源边界；当前 `mock` 走 `packages/mocks`，`local` 已接 Auth/User ConnectRPC smoke path，`remote` 仍明确未接入。
+- `packages/api/src/gen/`：Buf/Protobuf-ES v2 生成物；不要手写或手改生成文件。
 - `packages/domain/src/`：领域逻辑与纯函数。
 - `packages/mocks/src/`：fixture 和 mock 数据。
 - `packages/ui/src/`：共享 UI 组件、样式和工具函数。
+- `buf.gen.yaml`：Connect Web 官方推荐的本地生成配置。
+- `mock/fauxrpc/`：fauxrpc stub 与说明；schema 输出在 `.mock/`，不提交。
 - `eslint.config.mjs`：Next core-web-vitals 与 TypeScript ESLint 配置。
 - 各 workspace package 的 `tsconfig.json`：开启 `strict` 并配置对应 package 的编译边界。
 - `pnpm-workspace.yaml`：pnpm 构建依赖白名单；变更 native/build 依赖时注意同步。
@@ -45,6 +54,14 @@ pnpm mock:fauxrpc
 - 后端数据库设计：https://njupt-sast.feishu.cn/wiki/QBzywhf7XiavnjkMeYJcj2w7ntd
 - proto 接口：https://buf.build/sast/sast-shop-v2
 
+# 环境变量
+
+- 每个 app 提交 `.env.example`；本地开发复制为 `.env.local`，生产环境复制为 `.env`。
+- `.env.local` 与 `.env` 不提交。
+- `NEXT_PUBLIC_DATA_SOURCE` 支持 `mock`、`local`、`remote`；当前默认 `mock`。
+- `NEXT_PUBLIC_CONNECT_BASE_URL` 只用于 `local` 数据源，本地 fauxrpc URL 写在各 app 的 `.env.local` 中，默认 `http://127.0.0.1:6660`。
+- Next.js 会内联 `NEXT_PUBLIC_*`；部署镜像构建阶段必须注入目标环境值。
+
 # 开发规范
 
 - 界面语言使用中文，不需要 i18n。
@@ -54,8 +71,10 @@ pnpm mock:fauxrpc
 - 飞书开放平台、Lark SDK、密钥和服务端凭据只能放在服务端边界内，不能泄露到 Client Component 或公开环境变量。
 - 接入 shadcn/ui 时使用 shadcn skill/CLI，并保持组件风格与本项目中文移动端商城场景一致。
 - 图标按计划使用 remixicon；接入前先安装依赖。若临时使用其他图标库，需要保持风格统一并在依赖中体现。
-- 网络请求按计划使用 ConnectRPC 与 buf.build 生成代码；不要手写与 proto 不一致的临时类型。生成产物目录落地后，在本文档补充准确路径和生成命令。
-- mock 数据当前分为 package fixtures 和 fauxrpc tooling。`buf`、`fauxrpc` 仍是外部 CLI，使用前确认本机可用。
+- 网络请求使用 ConnectRPC 与 Buf 生成代码；页面只调用 `@sast-shop/api` facade，不直接 import proto 生成文件。
+- 使用 Connect-ES v2 官方方向：`createClient` + `createConnectTransport({ baseUrl })` + Buf 生成的 service definitions；不要引入过时的 `protoc-gen-connect-es`。
+- Server Component 可以直接 await facade；proto message 不跨 Server/Client 边界。若未来需要跨边界传递，使用 `toJson/fromJson` 显式处理序列化。
+- `mock`、`local`、`remote` 不要静默互相 fallback；未接入能力应抛 `FeatureUnavailableError` 或展示明确降级状态。
 
 # 前端体验要求
 
@@ -70,6 +89,7 @@ pnpm mock:fauxrpc
 - 前端代码变更：运行 `pnpm lint`，必要时运行 `pnpm build`。
 - 视觉/交互变更：按影响范围启动 `pnpm dev:mobile` 或 `pnpm dev:desktop`，在移动端和桌面端视口检查关键流程。
 - 接入数据、鉴权、飞书接口或服务端逻辑：额外关注 secrets、权限边界、错误处理和降级状态。
+- 接入数据层、生成物或 proto 配置时，运行 `pnpm proto:generate` 并确认 `buf.gen.yaml`、`packages/api/src/gen` 无 drift。
 
 # Agent Orchestration
 
