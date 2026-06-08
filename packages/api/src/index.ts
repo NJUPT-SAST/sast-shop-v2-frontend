@@ -28,3 +28,7 @@ export {
   type PaymentQrCode,
   type PaymentQrCodeInput,
 } from "./services/payment-qr-codes"
+export {
+  getProfileOverview,
+  type ProfileOverview,
+} from "./services/profile"
