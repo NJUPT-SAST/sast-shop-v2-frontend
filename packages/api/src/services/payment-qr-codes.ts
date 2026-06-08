@@ -76,9 +76,17 @@ export async function updatePaymentQrCode(
 }
 
 function validatePaymentQrCodeInput(input: PaymentQrCodeInput) {
+  if (!isPaymentQrChannel(input.channel)) {
+    throw new ValidationError("收款码渠道不正确")
+  }
+
   if (!input.content.trim()) {
     throw new ValidationError("收款码内容不能为空")
   }
+}
+
+function isPaymentQrChannel(channel: unknown): channel is PaymentQrChannel {
+  return channel === "wechat" || channel === "alipay"
 }
 
 function mapMockQrCode(qrCode: PaymentQrCode): PaymentQrCode {
@@ -114,5 +122,9 @@ function mapPaymentQrChannelToProto(channel: PaymentQrChannel): Channel {
     return Channel.WECHAT
   }
 
-  return Channel.ALIPAY
+  if (channel === "alipay") {
+    return Channel.ALIPAY
+  }
+
+  throw new ValidationError("收款码渠道不正确")
 }

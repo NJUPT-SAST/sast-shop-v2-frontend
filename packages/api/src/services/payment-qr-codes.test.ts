@@ -51,6 +51,24 @@ describe("payment QR code service", () => {
     ).rejects.toBeInstanceOf(ValidationError)
   })
 
+  it("rejects invalid runtime payment QR channels before submitting update requests", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    const invalidInput: PaymentQrCodeInput = {
+      channel: "bank" as PaymentQrCodeInput["channel"],
+      content: "https://example.test/pay/bank",
+    }
+
+    await expect(updatePaymentQrCode(invalidInput, localOptions)).rejects.toThrow(
+      "收款码渠道不正确"
+    )
+    await expect(
+      updatePaymentQrCode(invalidInput, { dataSource: "mock" })
+    ).rejects.toBeInstanceOf(ValidationError)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it("lists payment QR codes from the local Connect backend", async () => {
     const fetchMock = vi.fn(async () =>
       stubJsonResponse({
