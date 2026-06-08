@@ -73,13 +73,13 @@ SAST Shop 一期 PRD 要求 MVP 优先保证团购和支付上线，同时现货
 
 ### 公共支付弹层
 
-支付弹层抽出为现货链路可复用的公共组件，移动端表现为 Drawer，桌面端表现为 Dialog。组件由业务调用方传入金额、收款码、付款标识码和默认支付方式。
+支付弹层抽出为现货链路可复用的公共组件，移动端表现为 Drawer，桌面端表现为 Dialog。组件由业务调用方传入金额、按平台拆分的收款码、付款标识码和默认支付方式。
 
 公共组件 API 设计：
 
 - `amountCents`：应付金额，必传。
 - `verifyCode`：付款标识码，必传。
-- `qrCodeUrl`：收款码图片 URL，必传。
+- `qrCodes`：按平台提供收款码图片 URL，结构为 `{ wechat?: string; alipay?: string }`。
 - `defaultPlatform`：默认支付方式，支持微信支付和支付宝。
 - `onPay`：用户点击“支付”后的回调。
 - `onCancelPayment`：用户点击“取消支付”后的回调。
@@ -88,10 +88,12 @@ SAST Shop 一期 PRD 要求 MVP 优先保证团购和支付上线，同时现货
 支付弹层只展示 PRD 要求的支付核对信息：
 
 - 支付平台 Tabs：微信支付、支付宝，初始值来自 `defaultPlatform`。
-- 收款码区域。
+- 收款码区域，随当前支付平台切换。
 - 金额。
 - 付款标识码。
 - 操作按钮：支付、取消支付、保存收款码、打开微信/支付宝扫一扫。
+
+如果当前平台没有收款码，收款码区域展示明确缺失状态，并禁用“保存收款码”“打开微信/支付宝扫一扫”和“支付”。不使用商品图或占位图伪装成收款码。
 
 跳转到微信/支付宝扫一扫必须执行真实跳转。实现计划阶段需要基于可用的移动端 URL scheme 或 JSAPI 能力确认最终跳转方式；如果当前环境阻止跳转，需要 toast 告知用户，并保留收款码展示与保存入口。
 
@@ -139,11 +141,12 @@ SAST Shop 一期 PRD 要求 MVP 优先保证团购和支付上线，同时现货
 ## Data Flow
 
 - `ShopPage` server side 调用 `listSpotGoods`，将数据传给 `SpotMarketplace`。
-- `SpotMarketplace` client side 负责本地搜索、商品详情、数量选择和 `createSpotOrders`。
+- `SpotMarketplace` client side 负责本地搜索、商品详情、数量选择、按售卖人读取收款码和 `createSpotOrders`。
 - `PublishSpotPage` server side 调用 `listProductTemplates`，将数据传给 `PublishSpotForm`。
 - `PublishSpotForm` client side 负责条码匹配、模板选择、表单校验和 `createSpotGoods`。
 - 公共支付弹层不直接调用 API，只通过 props 回调通知调用方。
 - 默认支付方式通过本地存储读取和写入，不经过 `@sast-shop/api`。
+- `@sast-shop/api` 的现货商品 facade 需要暴露 `sellerId`；支付 QR facade 需要支持按 `ownerId` 读取售卖人的收款码。
 - `mock`、`local`、`remote` 不互相 fallback；未接入能力保持明确降级。
 
 ## Component Changes
@@ -154,6 +157,8 @@ Planned shared UI additions:
 - `packages/ui/src/components/input-group.tsx`
 - `packages/ui/src/components/sonner.tsx`
 - `apps/mobile/components/payment-dialog.tsx`
+- `packages/api/src/services/spot-goods.ts`
+- `packages/api/src/services/payment-qr-codes.ts`
 
 Planned dependency additions:
 
@@ -197,7 +202,7 @@ Manual mobile smoke check:
 
 - 上架现货：空条码、无模板、多模板候选、非法价格、非法库存、成功 toast、失败 toast。
 - 现货商城：搜索有结果、搜索无结果、商品详情 Drawer、数量加减、支付平台 Tabs、支付 toast、取消支付。
-- 公共支付弹层：传入金额、默认支付方式、保存收款码、打开微信/支付宝扫一扫、跳转失败 toast。
+- 公共支付弹层：传入金额、默认支付方式、按平台传入收款码、保存收款码、打开微信/支付宝扫一扫、跳转失败 toast、缺失收款码禁用状态。
 - 支付设置：修改默认支付方式后，重新打开支付弹层时默认平台更新；刷新页面后本地设置仍保留。
 - Drawer 底部操作与底部导航、安全区不互相遮挡。
 
