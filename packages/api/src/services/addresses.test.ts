@@ -80,6 +80,15 @@ describe("address service", () => {
     ).rejects.toBeInstanceOf(ValidationError)
   })
 
+  it("validates address input before submitting update requests", async () => {
+    await expect(
+      updateAddress("1001", { ...validInput, recipientPhone: "12345" }, localOptions)
+    ).rejects.toBeInstanceOf(ValidationError)
+    await expect(
+      updateAddress("1001", { ...validInput, detailAddress: " " }, localOptions)
+    ).rejects.toBeInstanceOf(ValidationError)
+  })
+
   it("lists addresses from the local Connect backend", async () => {
     const fetchMock = vi.fn(async () =>
       stubJsonResponse({
@@ -113,6 +122,11 @@ describe("address service", () => {
       stubJsonResponse({
         shippingAddresses: [
           {
+            id: "1001",
+            ...validInput,
+            recipientPhone: "13800000001",
+          },
+          {
             id: "1002",
             ...validInput,
             recipientPhone: "13800000002",
@@ -133,6 +147,37 @@ describe("address service", () => {
       path: "/sast.sastshopv2.user.v1.AddressService/GetAddress",
       body: { addressId: "1002" },
     })
+  })
+
+  it("throws when the local get response does not include the requested address", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        shippingAddresses: [
+          {
+            id: "1001",
+            ...validInput,
+          },
+        ],
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    await expect(getAddress("1002", localOptions)).rejects.toBeInstanceOf(
+      FeatureUnavailableError
+    )
+
+    expect(fetchMock).toHaveBeenCalledOnce()
+  })
+
+  it("validates address ids before local get requests", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    await expect(getAddress("abc", localOptions)).rejects.toBeInstanceOf(
+      ValidationError
+    )
+
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it("creates an address through the local Connect backend", async () => {
@@ -187,6 +232,17 @@ describe("address service", () => {
     })
   })
 
+  it("validates address ids before local update requests", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    await expect(updateAddress("0", validInput, localOptions)).rejects.toBeInstanceOf(
+      ValidationError
+    )
+
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it("deletes an address through the local Connect backend", async () => {
     const fetchMock = vi.fn(async () => stubJsonResponse({}))
     vi.stubGlobal("fetch", fetchMock)
@@ -198,6 +254,17 @@ describe("address service", () => {
       path: "/sast.sastshopv2.user.v1.AddressService/DeleteAddress",
       body: { addressId: "1001" },
     })
+  })
+
+  it("validates address ids before local delete requests", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    await expect(deleteAddress("-1", localOptions)).rejects.toBeInstanceOf(
+      ValidationError
+    )
+
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it("requires a configured Connect base URL for local mode", async () => {

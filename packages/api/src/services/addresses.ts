@@ -53,6 +53,7 @@ export async function getAddress(
   const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock") {
+    parseAddressId(id)
     const address = getMockAddress(id)
 
     if (!address) {
@@ -63,11 +64,14 @@ export async function getAddress(
   }
 
   if (dataSource === "local") {
+    const addressId = parseAddressId(id)
     const client = createClient(AddressService, createLocalTransport(options))
     const response = await requestLocal("getAddress", () =>
-      client.getAddress({ addressId: BigInt(id) })
+      client.getAddress({ addressId })
     )
-    const [address] = response.shippingAddresses
+    const address = response.shippingAddresses.find(
+      (address) => address.id.toString() === id
+    )
 
     if (!address) {
       throw new FeatureUnavailableError("getAddress")
@@ -117,13 +121,15 @@ export async function updateAddress(
   const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock") {
+    parseAddressId(id)
     return mapMockAddress(updateMockAddress(id, input))
   }
 
   if (dataSource === "local") {
+    const addressId = parseAddressId(id)
     const client = createClient(AddressService, createLocalTransport(options))
     const response = await requestLocal("updateAddress", () =>
-      client.updateAddress({ addressId: BigInt(id), ...input })
+      client.updateAddress({ addressId, ...input })
     )
 
     if (!response.shippingAddresses) {
@@ -143,19 +149,29 @@ export async function deleteAddress(
   const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock") {
+    parseAddressId(id)
     deleteMockAddress(id)
     return
   }
 
   if (dataSource === "local") {
+    const addressId = parseAddressId(id)
     const client = createClient(AddressService, createLocalTransport(options))
     await requestLocal("deleteAddress", () =>
-      client.deleteAddress({ addressId: BigInt(id) })
+      client.deleteAddress({ addressId })
     )
     return
   }
 
   throw new FeatureUnavailableError("deleteAddress")
+}
+
+function parseAddressId(id: string): bigint {
+  if (!/^[1-9]\d*$/.test(id)) {
+    throw new ValidationError("地址 ID 不正确")
+  }
+
+  return BigInt(id)
 }
 
 function validateAddressInput(input: ShippingAddressInput) {
