@@ -12,3 +12,12 @@ export {
   type AuthSession,
   type CurrentUser,
 } from "./services/auth"
+export {
+  createAddress,
+  deleteAddress,
+  getAddress,
+  listAddresses,
+  updateAddress,
+  type ShippingAddress,
+  type ShippingAddressInput,
+} from "./services/addresses"
