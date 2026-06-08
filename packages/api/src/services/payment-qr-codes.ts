@@ -24,7 +24,7 @@ export interface PaymentQrCodeInput {
 }
 
 export async function listPaymentQrCodes(
-  options: ServiceOptions = {}
+  options: ServiceOptions & { ownerId?: string } = {}
 ): Promise<PaymentQrCode[]> {
   const dataSource = resolveDataSource(options)
 
@@ -34,8 +34,12 @@ export async function listPaymentQrCodes(
 
   if (dataSource === "local") {
     const client = createClient(QrCodeService, createLocalTransport(options))
+    const ownerId =
+      options.ownerId !== undefined
+        ? parseInt64(options.ownerId, "收款码用户 ID 不正确")
+        : undefined
     const response = await requestLocal("listPaymentQrCodes", () =>
-      client.getQrCode({})
+      client.getQrCode({ ownerId })
     )
 
     return response.qrCodes.map(mapProtoQrCode)
@@ -83,6 +87,14 @@ function validatePaymentQrCodeInput(input: PaymentQrCodeInput) {
   if (!input.content.trim()) {
     throw new ValidationError("收款码内容不能为空")
   }
+}
+
+function parseInt64(value: string, message: string): bigint {
+  if (!/^[1-9]\d*$/.test(value)) {
+    throw new ValidationError(message)
+  }
+
+  return BigInt(value)
 }
 
 function isPaymentQrChannel(channel: unknown): channel is PaymentQrChannel {

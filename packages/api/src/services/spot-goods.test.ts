@@ -71,6 +71,7 @@ describe("spot goods service", () => {
       id: "2001",
       salePriceCents: 1299,
       stock: 8,
+      sellerId: "42",
       sellerName: "南邮同学",
       product: {
         id: "1001",

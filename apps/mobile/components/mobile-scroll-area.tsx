@@ -23,7 +23,13 @@ const SCROLLBAR_TRACK_INSET = 8
 const PULL_REFRESH_THRESHOLD = 52
 const MAX_PULL_DISTANCE = 72
 
-export function MobileScrollArea({ children }: { children: ReactNode }) {
+export function MobileScrollArea({
+  children,
+  hasBottomNav,
+}: {
+  children: ReactNode
+  hasBottomNav: boolean
+}) {
   const pathname = usePathname()
   const viewportRef = useRef<HTMLElement>(null)
   const touchStartYRef = useRef<number | null>(null)
@@ -162,7 +168,12 @@ export function MobileScrollArea({ children }: { children: ReactNode }) {
   const showRefreshIndicator = isRefreshing || pullDistance > 0
 
   return (
-    <div className="relative mx-auto mb-[calc(4rem+env(safe-area-inset-bottom))] flex min-h-0 w-full max-w-5xl flex-1">
+    <div
+      className={cn(
+        "relative mx-auto flex min-h-0 w-full max-w-5xl flex-1",
+        hasBottomNav && "mb-[calc(4rem+env(safe-area-inset-bottom))]"
+      )}
+    >
       {showRefreshIndicator ? (
         <div
           aria-hidden="true"

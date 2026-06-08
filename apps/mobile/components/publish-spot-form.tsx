@@ -1,12 +1,20 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, type ReactNode } from "react"
+import Link from "next/link"
+import { zodResolver } from "@hookform/resolvers/zod"
 import {
+  RiAddLine,
+  RiArrowRightSLine,
   RiBarcodeLine,
   RiCheckboxCircleLine,
-  RiQuestionLine,
   RiQrScan2Line,
+  RiStoreLine,
+  RiSubtractLine,
 } from "@remixicon/react"
+import { Controller, useForm, useWatch } from "react-hook-form"
+import { toast } from "sonner"
+import * as z from "zod"
 import {
   createSpotGoods,
   type DataSource,
@@ -16,12 +24,47 @@ import {
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card"
-import { Input } from "@workspace/ui/components/input"
+  ButtonGroup,
+  ButtonGroupText,
+} from "@workspace/ui/components/button-group"
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@workspace/ui/components/field"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+  InputGroupText,
+} from "@workspace/ui/components/input-group"
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemTitle,
+} from "@workspace/ui/components/item"
+
+const formSchema = z.object({
+  barcode: z
+    .string()
+    .trim()
+    .min(1, "请输入商品条码")
+    .regex(/^\d+$/, "商品条码只能包含数字"),
+  price: z.coerce
+    .number<number>()
+    .min(0.01, "售价至少为 0.01 元")
+    .multipleOf(0.01, "售价最多保留两位小数"),
+  stock: z.coerce
+    .number<number>()
+    .int("库存必须是整数")
+    .positive("库存必须大于 0"),
+})
+
+type FormValues = z.infer<typeof formSchema>
 
 type Template = {
   barcode: string
@@ -44,19 +87,39 @@ export function PublishSpotForm({
   error: string | null
 }) {
   const serviceOptions: ServiceOptions = { dataSource, connectBaseUrl }
-  const [barcode, setBarcode] = useState("")
-  const [queried, setQueried] = useState(false)
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      barcode: "",
+      price: 0.01,
+      stock: 1,
+    },
+  })
+  const barcode = useWatch({
+    control: form.control,
+    name: "barcode",
+  })
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
     null
   )
-  const [price, setPrice] = useState("")
-  const [stock, setStock] = useState("1")
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submissionError, setSubmissionError] = useState<string | null>(null)
+  const barcodeLengths = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          templates
+            .map((template) => template.barcode.trim().length)
+            .filter((length) => length > 0)
+        )
+      ),
+    [templates]
+  )
+  const barcodeReady = isBarcodeReady(barcode, barcodeLengths)
   const candidates = useMemo(
     () =>
-      queried && barcode.trim()
+      barcodeReady
         ? templates
             .filter((template) => template.barcode === barcode.trim())
             .map((template) => ({
@@ -68,12 +131,29 @@ export function PublishSpotForm({
               updatedAt: template.updatedAt,
             }))
         : [],
-    [barcode, queried, templates]
+    [barcode, barcodeReady, templates]
   )
-  const canSubmit = selectedTemplate && price.trim() && Number(stock) > 0
 
-  async function submitSpotGoods() {
-    if (!selectedTemplate) return
+  function handleBarcodeChange(value: string) {
+    form.clearErrors("barcode")
+    setSelectedTemplate(null)
+    setSubmitted(false)
+    setSubmissionError(null)
+
+    const nextBarcode = value.trim()
+
+    if (!isBarcodeReady(nextBarcode, barcodeLengths)) {
+      return
+    }
+
+    form.clearErrors("barcode")
+  }
+
+  async function submitSpotGoods(values: FormValues) {
+    if (!selectedTemplate) {
+      toast.error("请先选择商品模板")
+      return
+    }
 
     setSubmitting(true)
     setSubmissionError(null)
@@ -82,15 +162,18 @@ export function PublishSpotForm({
       await createSpotGoods(
         {
           productTemplateId: selectedTemplate.id,
-          salePriceCents: Math.round(Number(price) * 100),
-          stockTotal: Number(stock),
+          salePriceCents: Math.round(values.price * 100),
+          stockTotal: values.stock,
           productTemplateUpdatedAt: selectedTemplate.updatedAt,
         },
         serviceOptions
       )
       setSubmitted(true)
+      toast.success("已提交上架")
     } catch {
-      setSubmissionError("上架失败，请稍后再试")
+      const message = "上架失败，请稍后再试"
+      setSubmissionError(message)
+      toast.error(message)
     } finally {
       setSubmitting(false)
     }
@@ -101,140 +184,190 @@ export function PublishSpotForm({
       <section className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-xl font-semibold md:text-2xl">上架现货</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {error ?? "输入条码后选择商品模板，再设置售价和库存。"}
-          </p>
+          {error ? (
+            <p className="mt-1 text-sm text-muted-foreground">{error}</p>
+          ) : null}
         </div>
-        <Badge variant={submitted ? "default" : "outline"}>
-          {submitted ? "已提交" : "草稿"}
-        </Badge>
+        {submitted ? <Badge>已提交</Badge> : null}
       </section>
 
       <section className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <label htmlFor="barcode" className="text-sm font-medium">
-            商品条码编号
-          </label>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <RiBarcodeLine className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="barcode"
-                value={barcode}
-                className="pl-9"
-                placeholder="输入或扫描条码"
-                onChange={(event) => {
-                  setBarcode(event.target.value)
-                  setQueried(false)
-                  setSelectedTemplate(null)
-                  setSubmitted(false)
-                }}
-              />
-            </div>
-            <Button type="button" variant="outline" size="icon-lg">
-              <RiQrScan2Line />
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                setQueried(true)
-                setSelectedTemplate(null)
-                setSubmitted(false)
-              }}
-            >
-              查询
-            </Button>
-          </div>
-          <div className="flex items-start gap-2 rounded-lg bg-muted p-3 text-xs leading-5 text-muted-foreground">
-            <RiQuestionLine className="mt-0.5 size-4 shrink-0" />
-            <span>条码加店铺唯一确定商品模板；没有模板时需先维护模板。</span>
-          </div>
-        </div>
+        <FieldGroup>
+          <Controller
+            name="barcode"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={field.name}>商品条码编号</FieldLabel>
+                <InputGroup>
+                  <InputGroupAddon>
+                    <RiBarcodeLine />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id={field.name}
+                    name={field.name}
+                    value={field.value}
+                    placeholder="输入或扫描条码"
+                    aria-invalid={fieldState.invalid}
+                    onBlur={field.onBlur}
+                    onChange={(event) => {
+                      field.onChange(event)
+                      handleBarcodeChange(event.target.value)
+                    }}
+                    ref={field.ref}
+                  />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupButton
+                      size="icon-xs"
+                      aria-label="扫描条码"
+                      title="扫描条码"
+                      onClick={() => {
+                        toast.message("扫码能力暂未接入，请先手动输入条码")
+                      }}
+                    >
+                      <RiQrScan2Line />
+                    </InputGroupButton>
+                  </InputGroupAddon>
+                </InputGroup>
+                {fieldState.invalid ? (
+                  <FieldError errors={[fieldState.error]} />
+                ) : null}
+              </Field>
+            )}
+          />
+        </FieldGroup>
 
-        {queried && barcode.trim() && candidates.length === 0 ? (
-          <Card className="rounded-lg">
-            <CardHeader>
-              <CardTitle className="text-sm">未找到商品模板</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                当前能力只展示查询结果，新增模板入口后再补录入流程。
-              </p>
-            </CardHeader>
-          </Card>
+        {barcodeReady && candidates.length === 0 ? (
+          <TemplateActionItem
+            title="添加商品模板"
+            description="没有找到这个条码对应的商品，先维护商品模板后再上架。"
+            icon={<RiAddLine />}
+            href="/group"
+          />
         ) : null}
 
         {candidates.map((template) => (
-          <Button
-            key={template.barcode}
-            type="button"
-            variant="ghost"
-            size="lg"
-            className="h-auto w-full justify-start p-0 text-left"
+          <Item
+            key={template.id}
+            variant="outline"
+            role="button"
+            tabIndex={0}
+            className="cursor-pointer hover:bg-muted/30"
             onClick={() => setSelectedTemplate(template)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault()
+                setSelectedTemplate(template)
+              }
+            }}
           >
-            <Card className="rounded-lg transition-colors hover:bg-muted/30">
-              <CardHeader>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <CardTitle className="text-base leading-6">
-                      {template.title}
-                    </CardTitle>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {template.description}
-                    </p>
-                  </div>
-                  {selectedTemplate?.barcode === template.barcode ? (
-                    <Badge>已选择</Badge>
-                  ) : null}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  店铺：{template.store}
-                </p>
-              </CardContent>
-            </Card>
-          </Button>
+            <ItemContent>
+              <ItemTitle>{template.title}</ItemTitle>
+              <ItemDescription>{template.description}</ItemDescription>
+              <ItemDescription>店铺：{template.store}</ItemDescription>
+            </ItemContent>
+            {selectedTemplate?.id === template.id ? (
+              <ItemActions>
+                <Badge>已选择</Badge>
+              </ItemActions>
+            ) : null}
+          </Item>
         ))}
+
+        {barcodeReady && candidates.length > 0 ? (
+          <TemplateActionItem
+            title="添加店铺"
+            description="商品已匹配，但没有你要上架的店铺时，先新增店铺。"
+            icon={<RiStoreLine />}
+            href="/group"
+          />
+        ) : null}
       </section>
 
-      <section className="grid grid-cols-2 gap-4">
-        <div className="flex flex-col gap-2">
-          <label htmlFor="spot-price" className="text-sm font-medium">
-            售卖单价
-          </label>
-          <Input
-            id="spot-price"
-            value={price}
-            type="number"
-            min={0}
-            step={0.01}
-            placeholder="0.00"
-            disabled={!selectedTemplate}
-            onChange={(event) => setPrice(event.target.value)}
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label htmlFor="spot-stock" className="text-sm font-medium">
-            初始库存
-          </label>
-          <Input
-            id="spot-stock"
-            value={stock}
-            type="number"
-            min={1}
-            disabled={!selectedTemplate}
-            onChange={(event) => setStock(event.target.value)}
-          />
-        </div>
-      </section>
+      <FieldGroup className="grid grid-cols-2 gap-4">
+        <Controller
+          name="price"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>售卖单价</FieldLabel>
+              <InputGroup>
+                <InputGroupAddon>
+                  <InputGroupText>¥</InputGroupText>
+                </InputGroupAddon>
+                <InputGroupInput
+                  id={field.name}
+                  name={field.name}
+                  value={field.value}
+                  type="number"
+                  min={0.01}
+                  step={0.01}
+                  placeholder="0.00"
+                  aria-invalid={fieldState.invalid}
+                  onBlur={field.onBlur}
+                  onChange={field.onChange}
+                  ref={field.ref}
+                />
+              </InputGroup>
+              {fieldState.invalid ? (
+                <FieldError errors={[fieldState.error]} />
+              ) : null}
+            </Field>
+          )}
+        />
+        <Controller
+          name="stock"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>初始库存</FieldLabel>
+              <ButtonGroup
+                aria-invalid={fieldState.invalid}
+                aria-label="调整初始库存"
+                className="w-full"
+              >
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="减少库存"
+                  title="减少库存"
+                  disabled={Number(field.value) <= 1}
+                  onClick={() => {
+                    field.onChange(Math.max(1, Number(field.value) - 1))
+                  }}
+                >
+                  <RiSubtractLine />
+                </Button>
+                <ButtonGroupText className="flex-1">
+                  {field.value}
+                </ButtonGroupText>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="增加库存"
+                  title="增加库存"
+                  onClick={() => {
+                    field.onChange(Number(field.value) + 1)
+                  }}
+                >
+                  <RiAddLine />
+                </Button>
+              </ButtonGroup>
+              {fieldState.invalid ? (
+                <FieldError errors={[fieldState.error]} />
+              ) : null}
+            </Field>
+          )}
+        />
+      </FieldGroup>
 
       <Button
         type="button"
         size="lg"
-        disabled={!canSubmit || submitted || submitting}
-        onClick={() => {
-          void submitSpotGoods()
-        }}
+        disabled={submitted || submitting}
+        onClick={form.handleSubmit(submitSpotGoods)}
       >
         <RiCheckboxCircleLine data-icon="inline-start" />
         {submitting ? "提交中" : submitted ? "已提交上架" : "上架商品"}
@@ -244,6 +377,42 @@ export function PublishSpotForm({
           {submissionError}
         </p>
       ) : null}
+
     </div>
   )
+}
+
+function TemplateActionItem({
+  title,
+  description,
+  icon,
+  href,
+}: {
+  title: string
+  description: string
+  icon: ReactNode
+  href: string
+}) {
+  return (
+    <Item variant="outline" asChild>
+      <Link href={href}>
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-primary">
+          {icon}
+        </span>
+        <ItemContent>
+          <ItemTitle>{title}</ItemTitle>
+          <ItemDescription>{description}</ItemDescription>
+        </ItemContent>
+        <ItemActions>
+          <RiArrowRightSLine />
+        </ItemActions>
+      </Link>
+    </Item>
+  )
+}
+
+function isBarcodeReady(value: string, barcodeLengths: number[]) {
+  const barcode = value.trim()
+
+  return /^\d+$/.test(barcode) && barcodeLengths.includes(barcode.length)
 }

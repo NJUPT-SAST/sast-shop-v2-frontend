@@ -99,6 +99,53 @@ describe("payment QR code service", () => {
     })
   })
 
+  it("passes owner id when listing another user's payment QR codes", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        qrCodes: [
+          {
+            id: "3001",
+            channel: "CHANNEL_WECHAT",
+            content: "https://example.test/pay/wechat/seller",
+          },
+        ],
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    const qrCodes = await listPaymentQrCodes({
+      ...localOptions,
+      ownerId: "42",
+    })
+
+    expect(qrCodes[0]?.content).toBe("https://example.test/pay/wechat/seller")
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.payment.v1.QrCodeService/GetQrCode",
+      body: {
+        ownerId: "42",
+      },
+    })
+  })
+
+  it("validates owner id before listing another user's payment QR codes", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    await expect(
+      listPaymentQrCodes({
+        ...localOptions,
+        ownerId: "",
+      })
+    ).rejects.toThrow("收款码用户 ID 不正确")
+    await expect(
+      listPaymentQrCodes({
+        ...localOptions,
+        ownerId: "",
+      })
+    ).rejects.toBeInstanceOf(ValidationError)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it("updates a payment QR code through the local Connect backend", async () => {
     const fetchMock = vi.fn(async () =>
       stubJsonResponse({

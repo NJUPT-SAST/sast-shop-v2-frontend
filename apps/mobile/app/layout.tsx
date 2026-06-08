@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
+import { Toaster } from "@workspace/ui/components/sonner"
 import { MobileShell } from "@/components/mobile-shell"
 import { ProfileDialogsProvider } from "@/components/profile-dialogs-provider"
 import { mobileAppConfig } from "@/lib/app-config"
@@ -43,6 +44,7 @@ export default async function RootLayout({
         >
           <MobileShell>{children}</MobileShell>
         </ProfileDialogsProvider>
+        <Toaster position="top-center" richColors />
       </body>
     </html>
   )

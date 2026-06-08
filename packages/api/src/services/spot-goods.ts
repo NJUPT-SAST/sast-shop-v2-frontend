@@ -31,6 +31,7 @@ export interface SpotGoods {
   product: SpotProductTemplate
   salePriceCents: number
   stock: number | null
+  sellerId: string | null
   sellerName: string | null
   updatedAt: string | null
 }
@@ -148,6 +149,7 @@ function mapSpotGoodsBrief(goods: ProtoSpotGoodsBrief): SpotGoods {
     product: mapTemplate(goods.productTemplate),
     salePriceCents: goods.salePriceCents,
     stock: null,
+    sellerId: null,
     sellerName: null,
     updatedAt: formatTimestamp(goods.updatedAt),
   }
@@ -159,6 +161,7 @@ function mapSpotGoodsDetail(goods: ProtoSpotGoodsDetail): SpotGoods {
     product: mapTemplate(goods.productTemplate),
     salePriceCents: goods.salePriceCents,
     stock: goods.stock,
+    sellerId: goods.seller?.id.toString() ?? null,
     sellerName: goods.seller?.name ?? null,
     updatedAt: formatTimestamp(goods.updatedAt),
   }

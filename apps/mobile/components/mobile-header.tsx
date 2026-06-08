@@ -30,6 +30,7 @@ export function MobileHeader() {
           type="button"
           variant="ghost"
           size="icon-lg"
+          className="border-0 bg-transparent shadow-none"
           aria-label="返回上一页"
           onClick={() => router.back()}
         >
@@ -49,9 +50,7 @@ export function MobileHeader() {
               {titleText}
             </span>
           ) : (
-            <span className="block truncate text-[15px] font-semibold leading-5">
-              SAST 商城
-            </span>
+            <span className="block h-5" aria-hidden="true" />
           )}
         </div>
         <span className="size-11" aria-hidden="true" />

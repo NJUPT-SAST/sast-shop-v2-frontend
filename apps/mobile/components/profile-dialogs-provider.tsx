@@ -3,11 +3,13 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useRef,
   useState,
   type ChangeEvent,
   type ReactNode,
 } from "react"
+import { toast } from "sonner"
 import {
   RiAddLine,
   RiAlipayLine,
@@ -45,6 +47,12 @@ import {
 } from "@workspace/ui/components/responsive-dialog"
 import { Switch } from "@workspace/ui/components/switch"
 import { Textarea } from "@workspace/ui/components/textarea"
+import {
+  DEFAULT_PAYMENT_PLATFORM,
+  readDefaultPaymentPlatform,
+  writeDefaultPaymentPlatform,
+  type PaymentPlatform,
+} from "@/lib/payment-preferences"
 import { ManagedImage } from "./managed-image"
 
 type Address = ProfileOverview["addresses"][number]
@@ -53,6 +61,7 @@ type PaymentQrCode = ProfileOverview["paymentQrCodes"][number]
 
 interface ProfileDialogsContextValue {
   openAddressDialog: () => void
+  openPaymentPreferenceDialog: () => void
   openQrCodeDialog: () => void
 }
 
@@ -91,6 +100,9 @@ export function ProfileDialogsProvider({
   )
   const [addressOpen, setAddressOpen] = useState(false)
   const [qrOpen, setQrOpen] = useState(false)
+  const [paymentPreferenceOpen, setPaymentPreferenceOpen] = useState(false)
+  const [defaultPaymentPlatform, setDefaultPaymentPlatform] =
+    useState<PaymentPlatform>(DEFAULT_PAYMENT_PLATFORM)
   const [addressForm, setAddressForm] = useState<{
     open: boolean
     mode: "add" | "edit"
@@ -103,6 +115,20 @@ export function ProfileDialogsProvider({
   const [mutationError, setMutationError] = useState<string | null>(null)
   const [pendingAction, setPendingAction] = useState<string | null>(null)
   const serviceOptions: ServiceOptions = { dataSource, connectBaseUrl }
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDefaultPaymentPlatform(readDefaultPaymentPlatform())
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [])
+
+  function saveDefaultPaymentPlatform(platform: PaymentPlatform) {
+    writeDefaultPaymentPlatform(platform)
+    setDefaultPaymentPlatform(platform)
+    toast.success("默认支付方式已更新")
+  }
 
   async function runMutation(
     action: string,
@@ -217,6 +243,7 @@ export function ProfileDialogsProvider({
     <ProfileDialogsContext.Provider
       value={{
         openAddressDialog: () => setAddressOpen(true),
+        openPaymentPreferenceDialog: () => setPaymentPreferenceOpen(true),
         openQrCodeDialog: () => setQrOpen(true),
       }}
     >
@@ -346,6 +373,30 @@ export function ProfileDialogsProvider({
               pendingAction={pendingAction}
               qrCodes={qrCodes}
               onUpsert={upsertQrCode}
+            />
+          </div>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
+
+      <ResponsiveDialog
+        forceDrawer
+        open={paymentPreferenceOpen}
+        onOpenChange={setPaymentPreferenceOpen}
+      >
+        <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-md">
+          <div className="mx-auto flex w-full max-w-md flex-col gap-4">
+            <ResponsiveDialogHeader className="px-0 text-left">
+              <ResponsiveDialogTitle className="text-lg">
+                默认支付方式
+              </ResponsiveDialogTitle>
+              <ResponsiveDialogDescription className="leading-6">
+                选择后，付款时会优先打开对应的扫码方式。
+              </ResponsiveDialogDescription>
+            </ResponsiveDialogHeader>
+
+            <PaymentPreferenceChoices
+              defaultPaymentPlatform={defaultPaymentPlatform}
+              onSelect={saveDefaultPaymentPlatform}
             />
           </div>
         </ResponsiveDialogContent>
@@ -715,6 +766,51 @@ function QrCodeItem({
         <RiUploadLine data-icon="inline-start" />
         {pending ? "保存中" : qrCode ? "修改" : "上传"}
       </Button>
+    </div>
+  )
+}
+
+function PaymentPreferenceChoices({
+  defaultPaymentPlatform,
+  onSelect,
+}: {
+  defaultPaymentPlatform: PaymentPlatform
+  onSelect: (platform: PaymentPlatform) => void
+}) {
+  const platforms: Array<{
+    platform: PaymentPlatform
+    label: string
+    icon: typeof RiWechatPayLine
+  }> = [
+    { platform: "wechat", label: "微信支付", icon: RiWechatPayLine },
+    { platform: "alipay", label: "支付宝", icon: RiAlipayLine },
+  ]
+
+  return (
+    <div className="flex flex-col gap-3">
+      {platforms.map(({ platform, label, icon: Icon }) => {
+        const selected = platform === defaultPaymentPlatform
+
+        return (
+          <Button
+            key={platform}
+            type="button"
+            variant={selected ? "default" : "outline"}
+            size="lg"
+            className="h-auto min-h-14 justify-start gap-3 px-4 py-3"
+            aria-pressed={selected}
+            onClick={() => onSelect(platform)}
+          >
+            <Icon data-icon="inline-start" />
+            <span className="flex-1 text-left">{label}</span>
+            {selected ? (
+              <Badge variant="secondary" className="shrink-0">
+                当前
+              </Badge>
+            ) : null}
+          </Button>
+        )
+      })}
     </div>
   )
 }

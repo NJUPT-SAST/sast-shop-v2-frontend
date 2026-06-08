@@ -1,12 +1,22 @@
 "use client"
 
-import { RiArrowRightSLine, RiMapPinLine, RiQrCodeLine } from "@remixicon/react"
+import type { ReactNode } from "react"
+import {
+  RiArrowRightSLine,
+  RiMapPinLine,
+  RiQrCodeLine,
+  RiWallet3Line,
+} from "@remixicon/react"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 import { useProfileDialogs } from "./profile-dialogs-provider"
 
 export function ProfileManagementClient() {
-  const { openAddressDialog, openQrCodeDialog } = useProfileDialogs()
+  const {
+    openAddressDialog,
+    openPaymentPreferenceDialog,
+    openQrCodeDialog,
+  } = useProfileDialogs()
 
   return (
     <div className="overflow-hidden rounded-xl border bg-card">
@@ -21,6 +31,12 @@ export function ProfileManagementClient() {
         title="快捷收款码"
         icon={<RiQrCodeLine className="size-4" />}
         onClick={openQrCodeDialog}
+        border
+      />
+      <ProfileMenuButton
+        title="默认支付方式"
+        icon={<RiWallet3Line className="size-4" />}
+        onClick={openPaymentPreferenceDialog}
         last
       />
     </div>
@@ -36,7 +52,7 @@ function ProfileMenuButton({
   last = false,
 }: {
   title: string
-  icon: React.ReactNode
+  icon: ReactNode
   onClick: () => void
   border?: boolean
   first?: boolean

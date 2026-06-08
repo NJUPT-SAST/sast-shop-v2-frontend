@@ -1,16 +1,13 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
-  RiAlipayLine,
   RiCheckboxCircleLine,
-  RiKey2Line,
   RiStore2Line,
-  RiWallet3Line,
-  RiWechatPayLine,
 } from "@remixicon/react"
 import {
   createSpotOrders,
+  listPaymentQrCodes,
   type DataSource,
   type ServiceOptions,
   type SpotGoods,
@@ -24,6 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
+import { Input } from "@workspace/ui/components/input"
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -32,15 +30,14 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "@workspace/ui/components/responsive-dialog"
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "@workspace/ui/components/tabs"
-import { cn } from "@workspace/ui/lib/utils"
-import { ManagedImage } from "./managed-image"
+import { toast } from "sonner"
 
-type PaymentPlatform = "wechat" | "alipay"
+import {
+  readDefaultPaymentPlatform,
+  type PaymentPlatform,
+} from "@/lib/payment-preferences"
+import { ManagedImage } from "./managed-image"
+import { PaymentDialog } from "./payment-dialog"
 
 type SpotProduct = {
   id: string
@@ -49,6 +46,7 @@ type SpotProduct = {
   price: number
   originalPrice: number
   stock: number | null
+  sellerId: string | null
   seller: string
   barcode: string
   imageUrl: string
@@ -76,6 +74,7 @@ export function SpotMarketplace({
         price: goods.salePriceCents,
         originalPrice: goods.product.priceCents,
         stock: goods.stock,
+        sellerId: goods.sellerId,
         seller: goods.sellerName ?? "发布者",
         barcode: goods.product.barcode,
         imageUrl: goods.product.mainImageUrl,
@@ -91,41 +90,103 @@ export function SpotMarketplace({
     quantity: number
   } | null>(null)
   const [quantity, setQuantity] = useState(1)
-  const [platform, setPlatform] = useState<PaymentPlatform>("wechat")
+  const [query, setQuery] = useState("")
+  const [defaultPlatform, setDefaultPlatform] =
+    useState<PaymentPlatform>("wechat")
+  const [paymentQrCodes, setPaymentQrCodes] = useState<
+    Partial<Record<PaymentPlatform, string>>
+  >({})
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [submissionError, setSubmissionError] = useState<string | null>(null)
-  const [createdOrderNo, setCreatedOrderNo] = useState<string | null>(null)
   const availableProducts = useMemo(
     () => spotGoods.filter((product) => product.stock === null || product.stock > 0),
     [spotGoods]
   )
+  const filteredProducts = useMemo(() => {
+    const keyword = query.trim().toLocaleLowerCase()
+
+    if (!keyword) {
+      return availableProducts
+    }
+
+    return availableProducts.filter((product) =>
+      [
+        product.title,
+        product.description,
+        product.seller,
+        product.barcode,
+      ].some((value) => value.toLocaleLowerCase().includes(keyword))
+    )
+  }, [availableProducts, query])
 
   const maxQuantity = selectedProduct?.stock ?? 99
   const isOutOfStock = selectedProduct?.stock === 0
+
+  useEffect(() => {
+    let isMounted = true
+
+    void Promise.resolve().then(() => {
+      if (isMounted) {
+        setDefaultPlatform(readDefaultPaymentPlatform())
+      }
+    })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   function closeDetail() {
     setSelectedProduct(null)
     setQuantity(1)
   }
 
-  function startCheckout() {
+  async function startCheckout() {
     if (!selectedProduct) return
-    setCheckoutDraft({ product: selectedProduct, quantity })
-    setSelectedProduct(null)
-    setSubmitted(false)
-    setSubmissionError(null)
-    setCreatedOrderNo(null)
+
+    if (!selectedProduct.sellerId) {
+      toast.error("发布者收款信息暂不可用")
+      return
+    }
+
+    setSubmitting(true)
+
+    try {
+      const currentDefaultPlatform = readDefaultPaymentPlatform()
+      setDefaultPlatform(currentDefaultPlatform)
+      setPaymentQrCodes({})
+
+      const qrCodes = await listPaymentQrCodes({
+        ...serviceOptions,
+        ownerId: selectedProduct.sellerId,
+      })
+
+      setPaymentQrCodes(
+        qrCodes.reduce<Partial<Record<PaymentPlatform, string>>>(
+          (mappedQrCodes, qrCode) => ({
+            ...mappedQrCodes,
+            [qrCode.channel]: qrCode.content,
+          }),
+          {}
+        )
+      )
+      setCheckoutDraft({ product: selectedProduct, quantity })
+      setSelectedProduct(null)
+      setSubmitted(false)
+    } catch {
+      toast.error("收款码暂不可用，请稍后再试")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   async function submitOrder() {
-    if (!checkoutDraft) return
+    if (!checkoutDraft || submitting || submitted) return
 
     setSubmitting(true)
-    setSubmissionError(null)
 
     try {
-      const orders = await createSpotOrders(
+      await createSpotOrders(
         [
           {
             spotGoodsId: checkoutDraft.product.id,
@@ -135,10 +196,10 @@ export function SpotMarketplace({
         ],
         serviceOptions
       )
-      setCreatedOrderNo(orders[0]?.orderNo ?? null)
       setSubmitted(true)
+      toast.success("订单已提交，等待收款确认")
     } catch {
-      setSubmissionError("订单提交失败，请稍后再试")
+      toast.error("订单提交失败，请稍后再试")
     } finally {
       setSubmitting(false)
     }
@@ -150,7 +211,6 @@ export function SpotMarketplace({
   const verifyCode = checkoutDraft
     ? String((4821 + Number(checkoutDraft.product.id || 0)) % 10000).padStart(4, "0")
     : "4821"
-  const PlatformIcon = platform === "wechat" ? RiWechatPayLine : RiAlipayLine
 
   return (
     <div className="flex flex-1 flex-col gap-6 py-6">
@@ -169,8 +229,14 @@ export function SpotMarketplace({
         </div>
       </section>
 
+      <Input
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder="搜索商品、规格、卖家或条码"
+      />
+
       <section className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-        {availableProducts.map((product) => (
+        {filteredProducts.map((product) => (
           <button
             key={product.id}
             type="button"
@@ -212,6 +278,14 @@ export function SpotMarketplace({
           </button>
         ))}
       </section>
+
+      {filteredProducts.length === 0 ? (
+        <Card>
+          <CardContent className="px-4 py-8 text-center text-sm text-muted-foreground">
+            暂无匹配的在售现货，请换个关键词试试。
+          </CardContent>
+        </Card>
+      ) : null}
 
       <ResponsiveDialog
         open={selectedProduct !== null}
@@ -283,119 +357,39 @@ export function SpotMarketplace({
               <Button type="button" variant="outline" onClick={closeDetail}>
                 取消
               </Button>
-              <Button type="button" disabled={isOutOfStock} onClick={startCheckout}>
+              <Button
+                type="button"
+                disabled={isOutOfStock || submitting}
+                onClick={() => {
+                  void startCheckout()
+                }}
+              >
                 <RiCheckboxCircleLine data-icon="inline-start" />
-                立即购买
+                {submitting ? "获取收款码" : "立即购买"}
               </Button>
             </ResponsiveDialogFooter>
           </ResponsiveDialogContent>
         ) : null}
       </ResponsiveDialog>
 
-      <ResponsiveDialog
+      <PaymentDialog
         open={checkoutDraft !== null}
         onOpenChange={(open) => {
           if (!open) setCheckoutDraft(null)
         }}
-      >
-        {checkoutDraft ? (
-          <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-            <ResponsiveDialogHeader className="px-0 text-left">
-              <ResponsiveDialogTitle>{submitted ? "待确认收款" : "支付"}</ResponsiveDialogTitle>
-              <ResponsiveDialogDescription>
-                请核对金额、平台和付款标识码后再付款。
-              </ResponsiveDialogDescription>
-            </ResponsiveDialogHeader>
-
-            <div className="flex flex-col gap-4">
-              <Tabs
-                value={platform}
-                onValueChange={(value) => setPlatform(value as PaymentPlatform)}
-              >
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="wechat">
-                    <RiWechatPayLine data-icon="inline-start" />
-                    微信支付
-                  </TabsTrigger>
-                  <TabsTrigger value="alipay">
-                    <RiAlipayLine data-icon="inline-start" />
-                    支付宝
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-
-              <div className="flex justify-center rounded-lg bg-muted p-5">
-                <div className="grid size-36 grid-cols-5 gap-1 rounded-md bg-card p-3">
-                  {Array.from({ length: 25 }, (_, index) => (
-                    <span
-                      key={index}
-                      className={
-                        index % 3 === 0 || index % 7 === 0
-                          ? "rounded-sm bg-foreground"
-                          : "rounded-sm bg-muted"
-                      }
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <RiWallet3Line className="size-5 text-primary" />
-                  <span className="text-sm text-muted-foreground">金额</span>
-                </div>
-                <span className="text-xl font-semibold text-primary">
-                  {formatPrice(amount)}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <RiKey2Line className="size-5 text-primary" />
-                  <span className="text-sm text-muted-foreground">标识码</span>
-                </div>
-                <span className="font-mono text-2xl font-semibold tracking-[0.2em]">
-                  {verifyCode}
-                </span>
-              </div>
-
-              {submitted ? (
-                <div className="rounded-lg border p-3 text-sm leading-6 text-muted-foreground">
-                  {createdOrderNo
-                    ? `订单 ${createdOrderNo} 已创建，请等待后续支付确认。`
-                    : "订单已创建，请等待后续支付确认。"}
-                </div>
-              ) : null}
-              {submissionError ? (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm leading-6 text-destructive">
-                  {submissionError}
-                </div>
-              ) : null}
-            </div>
-
-            <ResponsiveDialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setCheckoutDraft(null)}
-              >
-                关闭
-              </Button>
-              <Button
-                type="button"
-                className={cn(platform === "wechat" && "bg-green-600 hover:bg-green-700")}
-                disabled={submitted || submitting}
-                onClick={() => {
-                  void submitOrder()
-                }}
-              >
-                <PlatformIcon data-icon="inline-start" />
-                {submitting ? "提交中" : submitted ? "已提交" : "提交订单"}
-              </Button>
-            </ResponsiveDialogFooter>
-          </ResponsiveDialogContent>
-        ) : null}
-      </ResponsiveDialog>
+        amountCents={amount}
+        verifyCode={verifyCode}
+        qrCodes={paymentQrCodes}
+        defaultPlatform={defaultPlatform}
+        submitting={submitting || submitted}
+        onCancelPayment={() => {
+          setCheckoutDraft(null)
+          toast.message("已取消支付")
+        }}
+        onPay={() => {
+          void submitOrder()
+        }}
+      />
     </div>
   )
 }
