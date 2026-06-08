@@ -2,14 +2,22 @@ name: Deploy
 
 on:
   workflow_dispatch:
-  push:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
     branches:
       - main
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
     name: Deploy ${{ matrix.service }}
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
 
     strategy:
       fail-fast: false
@@ -20,6 +28,7 @@ jobs:
             image: sast/sast-shop-mobile
             data_dir: /data/sast-shop-mobile
             port: 3001
+            app_origin_var: MOBILE_APP_ORIGIN
             server_user_secret: MOBILE_SERVER_USER
             ssh_key_secret: MOBILE_SSH_PRIVATE_KEY
           - service: sast-shop-desktop
@@ -27,20 +36,33 @@ jobs:
             image: sast/sast-shop-desktop
             data_dir: /data/sast-shop-desktop
             port: 3002
+            app_origin_var: DESKTOP_APP_ORIGIN
             server_user_secret: DESKTOP_SERVER_USER
             ssh_key_secret: DESKTOP_SSH_PRIVATE_KEY
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Set image metadata
         id: meta
+        env:
+          DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
         run: |
-          short_sha="${GITHUB_SHA::12}"
+          short_sha="${DEPLOY_SHA::12}"
           tar_name="${{ matrix.service }}-${short_sha}.tar"
           echo "short_sha=${short_sha}" >> "$GITHUB_OUTPUT"
           echo "tar_name=${tar_name}" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve app origin
+        id: app-origin
+        env:
+          APP_ORIGIN: ${{ vars[matrix.app_origin_var] }}
+        run: |
+          test -n "$APP_ORIGIN"
+          echo "value=${APP_ORIGIN}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -52,6 +74,8 @@ jobs:
           file: ./Dockerfile
           build-args: |
             APP_FILTER=${{ matrix.app_filter }}
+            NEXT_PUBLIC_DATA_SOURCE=remote
+            NEXT_PUBLIC_APP_ORIGIN=${{ steps.app-origin.outputs.value }}
           tags: |
             ${{ matrix.image }}:${{ steps.meta.outputs.short_sha }}
             ${{ matrix.image }}:latest
@@ -70,8 +94,8 @@ jobs:
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.2.2
         env:
-          IMAGE: ${{ matrix.image }}
-          SHORT_SHA: ${{ steps.meta.outputs.short_sha }}
+          IMAGE_NAME: ${{ matrix.image }}
+          NEW_VERSION_TAG: ${{ steps.meta.outputs.short_sha }}
           TAR_NAME: ${{ steps.meta.outputs.tar_name }}
           DATA_DIR: ${{ matrix.data_dir }}
           SERVICE_PORT: ${{ matrix.port }}
@@ -79,23 +103,20 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets[matrix.server_user_secret] }}
           key: ${{ secrets[matrix.ssh_key_secret] }}
-          envs: IMAGE,SHORT_SHA,TAR_NAME,DATA_DIR,SERVICE_PORT
+          envs: IMAGE_NAME,NEW_VERSION_TAG,TAR_NAME,DATA_DIR,SERVICE_PORT
           script: |
             set -euo pipefail
 
             cd "$DATA_DIR"
             test -f docker-compose.yml
 
-            if docker image inspect "$IMAGE:current" >/dev/null 2>&1; then
-              docker image tag "$IMAGE:current" "$IMAGE:backup"
+            if docker image inspect "$IMAGE_NAME:current" >/dev/null 2>&1; then
+              docker image tag "$IMAGE_NAME:current" "$IMAGE_NAME:backup"
             fi
 
             docker load -i "/tmp/$TAR_NAME"
-            docker image tag "$IMAGE:$SHORT_SHA" "$IMAGE:current"
+            docker image tag "$IMAGE_NAME:$NEW_VERSION_TAG" "$IMAGE_NAME:current"
             docker compose up -d --remove-orphans
 
             rm -f "/tmp/$TAR_NAME"
-            if docker image inspect "$IMAGE:latest" >/dev/null 2>&1; then
-              docker image rm "$IMAGE:latest" >/dev/null 2>&1 || true
-            fi
-            docker image prune -f
+            docker rmi "$IMAGE_NAME:latest" "$IMAGE_NAME:$NEW_VERSION_TAG" || true

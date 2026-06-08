@@ -44,6 +44,8 @@ pnpm mock:fauxrpc
 pnpm mock:generate:user
 ```
 
+运行 fauxrpc mock 需要本机已有 `buf` 和 `fauxrpc` CLI。当前它们作为外部工具使用，尚未作为 workspace 依赖安装。
+
 `mock:schema` 会从 `buf.build/sast/sast-shop-v2` 拉取 proto schema 并生成本地 binpb；`mock:fauxrpc` 会在 `127.0.0.1:6660` 启动 fauxrpc mock backend 和 dashboard。
 
 ## 环境变量
@@ -60,6 +62,8 @@ NEXT_PUBLIC_APP_ORIGIN=http://localhost:3001
 - `remote`：预留给真实后端环境。
 
 `NEXT_PUBLIC_APP_ORIGIN` 用于声明当前应用访问源，例如本地开发地址或线上子域名。
+
+Next.js 会把 `NEXT_PUBLIC_*` 变量内联到静态渲染和客户端 bundle 中；部署镜像构建时必须提供目标环境的值。当前 GitHub Actions deploy workflow 在 Docker build 阶段传入 `NEXT_PUBLIC_DATA_SOURCE=remote` 和对应应用的 `NEXT_PUBLIC_APP_ORIGIN`。docker-compose 示例仍保留运行时环境变量，方便服务端配置可见，但不能替代构建时注入。
 
 ## API Wiring
 
@@ -83,6 +87,8 @@ Next App Router 默认使用 Server Components。若 proto message 只在服务�
 
 GitHub Actions 使用 commit short hash 作为 Docker tag，并导出 Docker image tar 上传到服务器；不依赖外部镜像仓库。服务器侧只需要低权限 Linux 用户、服务目录和 `docker-compose.yml`。
 
+自动部署由 `CI` workflow 成功完成后触发；手动部署可通过 `workflow_dispatch` 触发。
+
 ### GitHub Secrets
 
 仓库需要配置以下 Secrets：
@@ -96,6 +102,13 @@ DESKTOP_SSH_PRIVATE_KEY
 ```
 
 推荐为 mobile 和 desktop 分别创建低权限 Linux 用户，只允许操作对应服务目录。
+
+仓库还需要配置以下 Repository Variables，用于 Docker build 阶段注入 `NEXT_PUBLIC_APP_ORIGIN`：
+
+```text
+MOBILE_APP_ORIGIN=https://shop.example.com
+DESKTOP_APP_ORIGIN=https://shop-admin.example.com
+```
 
 ### 服务器目录
 
