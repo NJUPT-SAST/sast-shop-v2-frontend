@@ -4,6 +4,7 @@ export {
   ApiRequestError,
   AuthRequiredError,
   FeatureUnavailableError,
+  ValidationError,
 } from "./errors"
 export {
   getCurrentUser,

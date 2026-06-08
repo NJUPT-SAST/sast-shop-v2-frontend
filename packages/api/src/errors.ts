@@ -25,3 +25,10 @@ export class AuthRequiredError extends Error {
     this.name = "AuthRequiredError"
   }
 }
+
+export class ValidationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = "ValidationError"
+  }
+}
