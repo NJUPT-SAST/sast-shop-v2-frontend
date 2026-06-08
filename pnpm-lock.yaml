@@ -49,6 +49,37 @@ importers:
         specifier: ^3.2.4
         version: 3.2.6(@types/node@20.19.42)(jiti@2.7.0)(lightningcss@1.32.0)
 
+  apps/desktop:
+    dependencies:
+      '@sast-shop/api':
+        specifier: workspace:*
+        version: link:../../packages/api
+      '@sast-shop/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+      '@workspace/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      next:
+        specifier: 16.2.7
+        version: 16.2.7(@babel/core@7.29.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      react:
+        specifier: 19.2.4
+        version: 19.2.4
+      react-dom:
+        specifier: 19.2.4
+        version: 19.2.4(react@19.2.4)
+    devDependencies:
+      '@types/react':
+        specifier: ^19
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.2.3(@types/react@19.2.17)
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+
   apps/mobile:
     dependencies:
       '@sast-shop/api':
