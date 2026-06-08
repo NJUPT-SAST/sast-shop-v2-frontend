@@ -22,13 +22,10 @@ async function loadProfileOverview(): Promise<{
       }),
       error: null,
     }
-  } catch (error) {
+  } catch {
     return {
       overview: null,
-      error:
-        error instanceof Error
-          ? error.message
-          : "个人资料暂不可用，请稍后再试",
+      error: "个人资料暂不可用，请确认数据源或稍后再试",
     }
   }
 }
