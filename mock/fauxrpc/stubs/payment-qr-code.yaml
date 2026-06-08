@@ -1,0 +1,18 @@
+stubs:
+  - id: qr-code-get-qr-code
+    target: sast.sastshopv2.payment.v1.QrCodeService/GetQrCode
+    content:
+      qrCodes:
+        - id: "2001"
+          channel: CHANNEL_WECHAT
+          content: https://example.test/pay/wechat/sast
+        - id: "2002"
+          channel: CHANNEL_ALIPAY
+          content: https://example.test/pay/alipay/sast
+  - id: qr-code-update-qr-code
+    target: sast.sastshopv2.payment.v1.QrCodeService/UpdateQrCode
+    content:
+      qrCode:
+        id: "2002"
+        channel: CHANNEL_ALIPAY
+        content: https://example.test/pay/alipay/new

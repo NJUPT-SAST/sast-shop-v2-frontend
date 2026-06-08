@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { Button } from "@workspace/ui/components/button"
-
-const navItems = ["团购", "现货", "订单", "发布", "我的"] as const
+import { MobileBottomNav } from "./mobile-bottom-nav"
+import { ProfileManagement } from "./profile-management"
 
 export function MobileShell({ children }: { children: ReactNode }) {
   return (
@@ -24,25 +24,15 @@ export function MobileShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-md px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-4">
+      <main className="mx-auto w-full max-w-md px-4 pb-[calc(10rem+env(safe-area-inset-bottom))] pt-4">
         {children}
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border/80 bg-card/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
-        <div className="mx-auto grid min-h-16 w-full max-w-md grid-cols-5 gap-1 px-2 py-2">
-          {navItems.map((item, index) => (
-            <Button
-              key={item}
-              type="button"
-              variant={index === 0 ? "default" : "ghost"}
-              size="sm"
-              className="min-h-11 min-w-0 rounded-full px-2 text-[13px]"
-            >
-              <span className="truncate">{item}</span>
-            </Button>
-          ))}
-        </div>
-      </nav>
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 mx-auto w-full max-w-md">
+        <ProfileManagement />
+      </div>
+
+      <MobileBottomNav />
     </div>
   )
 }

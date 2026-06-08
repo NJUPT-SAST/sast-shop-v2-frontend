@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { Button } from "@workspace/ui/components/button"
-
-const navItems = ["工作台", "团购", "现货", "订单", "发布", "我的"] as const
+import { DesktopNav } from "./desktop-nav"
+import { ProfileManagement } from "./profile-management"
 
 export function DesktopShell({ children }: { children: ReactNode }) {
   return (
@@ -15,19 +15,7 @@ export function DesktopShell({ children }: { children: ReactNode }) {
             <p className="truncate text-sm text-muted-foreground">PC 工作台</p>
           </div>
 
-          <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
-            {navItems.map((item, index) => (
-              <Button
-                key={item}
-                type="button"
-                variant={index === 0 ? "default" : "ghost"}
-                size="lg"
-                className="min-h-11 w-full justify-start px-4"
-              >
-                <span className="truncate">{item}</span>
-              </Button>
-            ))}
-          </nav>
+          <DesktopNav />
 
           <div className="border-t border-border px-4 py-4">
             <Button
@@ -54,6 +42,7 @@ export function DesktopShell({ children }: { children: ReactNode }) {
               </div>
 
               <div className="flex shrink-0 items-center gap-2">
+                <ProfileManagement />
                 <Button type="button" variant="ghost" size="sm">
                   消息
                 </Button>

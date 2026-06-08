@@ -1,16 +1,12 @@
 import { createClient } from "@connectrpc/connect"
-import { createConnectTransport } from "@connectrpc/connect-web"
 import { timestampDate } from "@bufbuild/protobuf/wkt"
 import { getMockCurrentUser, loginWithMockCode } from "@sast-shop/mocks"
 import { AuthService } from "../gen/sast/sastshopv2/user/v1/auth_service_pb"
 import type { UserInfo } from "../gen/sast/sastshopv2/user/v1/user_info_pb"
 import { UserService } from "../gen/sast/sastshopv2/user/v1/user_service_pb"
-import {
-  resolveConnectBaseUrl,
-  resolveDataSource,
-  type ServiceOptions,
-} from "../data-source"
-import { ApiRequestError, FeatureUnavailableError } from "../errors"
+import { resolveDataSource, type ServiceOptions } from "../data-source"
+import { FeatureUnavailableError } from "../errors"
+import { createLocalTransport, requestLocal } from "../local-connect"
 
 const LOCAL_SMOKE_USER_ID = 10001n
 
@@ -93,21 +89,6 @@ export async function loginWithLarkCode(
   }
 
   throw new FeatureUnavailableError("loginWithLarkCode")
-}
-
-function createLocalTransport(options: ServiceOptions = {}) {
-  return createConnectTransport({ baseUrl: resolveConnectBaseUrl(options) })
-}
-
-async function requestLocal<T>(
-  feature: string,
-  request: () => Promise<T>
-): Promise<T> {
-  try {
-    return await request()
-  } catch (error) {
-    throw new ApiRequestError(feature, error)
-  }
 }
 
 function mapUserInfo(userInfo: UserInfo): CurrentUser {

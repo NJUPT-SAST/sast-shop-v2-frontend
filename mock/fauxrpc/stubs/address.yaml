@@ -1,0 +1,48 @@
+stubs:
+  - id: address-get-address
+    target: sast.sastshopv2.user.v1.AddressService/GetAddress
+    content:
+      shippingAddresses:
+        - id: "1001"
+          recipientName: 南邮同学
+          recipientPhone: "13800000001"
+          province: 江苏省
+          city: 南京市
+          district: 栖霞区
+          detailAddress: 南京邮电大学仙林校区 SAST 活动室
+          isDefault: true
+        - id: "1002"
+          recipientName: 值班同学
+          recipientPhone: "13800000002"
+          province: 江苏省
+          city: 南京市
+          district: 鼓楼区
+          detailAddress: 南京邮电大学三牌楼校区收发室
+          isDefault: false
+  - id: address-create-address
+    target: sast.sastshopv2.user.v1.AddressService/CreateAddress
+    content:
+      shippingAddresses:
+        id: "1003"
+        recipientName: 南邮同学
+        recipientPhone: "13800000001"
+        province: 江苏省
+        city: 南京市
+        district: 栖霞区
+        detailAddress: 南京邮电大学仙林校区 SAST 活动室
+        isDefault: true
+  - id: address-update-address
+    target: sast.sastshopv2.user.v1.AddressService/UpdateAddress
+    content:
+      shippingAddresses:
+        id: "1001"
+        recipientName: 南邮同学
+        recipientPhone: "13800000001"
+        province: 江苏省
+        city: 南京市
+        district: 栖霞区
+        detailAddress: 更新后的地址
+        isDefault: true
+  - id: address-delete-address
+    target: sast.sastshopv2.user.v1.AddressService/DeleteAddress
+    content: {}
