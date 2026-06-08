@@ -10,15 +10,25 @@
   },
   "exports": {
     "./globals.css": "./src/styles/globals.css",
+    "./components/*": "./src/components/*.tsx",
     "./components/button": "./src/components/button.tsx",
     "./components/badge": "./src/components/badge.tsx",
     "./components/card": "./src/components/card.tsx",
+    "./lib/*": "./src/lib/*.ts",
     "./lib/utils": "./src/lib/utils.ts"
   },
+  "imports": {
+    "#components/*": "./src/components/*.tsx",
+    "#hooks/*": "./src/hooks/*.ts",
+    "#lib/*": "./src/lib/*.ts"
+  },
   "dependencies": {
+    "@remixicon/react": "^4.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "tailwind-merge": "^3.6.0"
+    "radix-ui": "^1.5.0",
+    "tailwind-merge": "^3.6.0",
+    "vaul": "^1.1.2"
   },
   "peerDependencies": {
     "react": "^19.2.4",
