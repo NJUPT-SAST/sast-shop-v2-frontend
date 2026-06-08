@@ -4,13 +4,13 @@
 
 下一阶段优先建设用户资料、地址簿和收款码闭环。目标是把后续现货下单和离线支付确认会依赖的基础资料先纳入 `@sast-shop/api` facade，并继续保持 `mock`、`local`、`remote` 数据源边界清晰。
 
-成功标准：mobile/desktop 都能通过页面级 facade 读取当前用户、地址簿和微信/支付宝收款码；`mock` 使用 package fixtures；`local` 使用 ConnectRPC/fauxrpc；`remote` 在真实后端未接入前继续明确不可用。
+PRD 明确要求地址簿和快捷收款码通过菜单项打开弹窗，且两个弹窗需要在任何界面都能被唤起。成功标准：mobile/desktop 都能通过 facade 读取当前用户、地址簿和微信/支付宝收款码；`mock` 使用 package fixtures；`local` 使用 ConnectRPC/fauxrpc；`remote` 在真实后端未接入前继续明确不可用。
 
 ## Goals
 
 - 扩展用户资料域的 API facade，但页面仍只 import `@sast-shop/api`。
 - 增加地址簿和收款码的 mock fixtures 与 local fauxrpc stubs。
-- 在 mobile 和 desktop 各自实现独立的 `/profile` 信息架构设计范围。
+- 在 mobile 和 desktop 各自实现独立的个人资料入口，并提供全局可唤起的地址簿和快捷收款码管理弹窗。
 - 保持 DTO 为普通前端对象，不让 proto message 跨 Server Component / Client Component 边界。
 - 为后续现货下单、订单支付和收款确认提供稳定数据基础。
 
@@ -18,6 +18,7 @@
 
 - 不接入真实 remote 后端。
 - 不实现商品、订单或账单业务闭环。
+- 不提供快捷收款码删除能力；PRD 要求收款码上传后只能修改。
 - 不引入 Connect-Query、TanStack Query 或新的数据请求框架。
 - 不复用 mobile/desktop 页面代码。
 - 不引入 Google Fonts 或远程字体。
@@ -89,22 +90,22 @@ DTO 中的 id 使用 string，金额和渠道使用前端领域类型，时间�
 
 ## Mobile Scope
 
-mobile 新增或补齐 `/profile`，作为飞书内移动端个人中心：
+mobile 新增或补齐 `/profile`，作为飞书内移动端个人中心概览，同时在移动端 shell 提供全局可唤起的地址簿和快捷收款码入口：
 
 - 当前用户资料区：头像、姓名、数据源状态。
 - 默认地址摘要：无地址时展示空状态，有地址时展示收件人和地址。
-- 地址簿入口：单列列表，新增和编辑使用移动端二级页面，删除使用确认弹层。
-- 收款码入口：展示微信/支付宝配置状态，编辑使用移动端二级页面。
+- 地址簿入口：打开移动端 Drawer，展示单列地址列表；新增和编辑在 Drawer 内完成，删除使用二次确认。
+- 收款码入口：打开移动端 Drawer，展示微信/支付宝配置状态；每个渠道只能修改，不能删除。
 
 移动端布局使用单列、底部安全区操作、自然中文文案。必要交互不能依赖 hover。
 
 ## Desktop Scope
 
-desktop 新增或补齐 `/profile`，作为 PC 工作台里的资料管理页：
+desktop 新增或补齐 `/profile`，作为 PC 工作台里的资料管理概览，同时在桌面 shell 提供全局可唤起的地址簿和快捷收款码入口：
 
 - 左侧或顶部展示当前用户资料和数据源状态。
-- 地址簿使用表格或密集列表，便于扫描默认地址、联系人和手机号。
-- 收款码使用分栏或列表，展示渠道、配置状态和编辑操作。
+- 地址簿使用 Dialog 内的表格或密集列表，便于扫描默认地址、联系人和手机号。
+- 收款码使用 Dialog 内的分栏或列表，展示渠道、配置状态和编辑操作；不展示删除按钮。
 - 页面结构与 mobile 独立实现，但复用 `@sast-shop/api` DTO、domain helpers 和基础 UI。
 
 ## Error Handling
@@ -137,8 +138,10 @@ desktop 新增或补齐 `/profile`，作为 PC 工作台里的资料管理页：
 
 ## Acceptance
 
-- `NEXT_PUBLIC_DATA_SOURCE=mock` 时，mobile/desktop `/profile` 能展示当前用户、地址簿和微信/支付宝收款码。
-- `NEXT_PUBLIC_DATA_SOURCE=local` 且 fauxrpc 启动时，`/profile` 能从 fauxrpc stubs 读取地址和收款码。
+- `NEXT_PUBLIC_DATA_SOURCE=mock` 时，mobile/desktop `/profile` 能展示当前用户、地址簿和微信/支付宝收款码概览。
+- 任意主界面都能打开地址簿和快捷收款码管理入口；mobile 使用 Drawer，desktop 使用 Dialog。
+- 快捷收款码每个用户每个渠道一个，只能修改，不能删除。
+- `NEXT_PUBLIC_DATA_SOURCE=local` 且 fauxrpc 启动时，`/profile` 与全局管理弹窗能从 fauxrpc stubs 读取地址和收款码。
 - `NEXT_PUBLIC_DATA_SOURCE=remote` 时，页面展示真实后端未接入的明确降级状态。
 - 页面代码不直接 import `packages/api/src/gen`。
 - proto 生成物无手工修改，`pnpm proto:generate` 后无 drift。
