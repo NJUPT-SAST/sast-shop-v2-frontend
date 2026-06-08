@@ -41,7 +41,7 @@ stubs:
         province: 江苏省
         city: 南京市
         district: 栖霞区
-        detailAddress: 南京邮电大学仙林校区 SAST 活动室
+        detailAddress: 更新后的地址
         isDefault: true
   - id: address-delete-address
     target: sast.sastshopv2.user.v1.AddressService/DeleteAddress
