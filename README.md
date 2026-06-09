@@ -9,9 +9,8 @@ apps/
   mobile/        移动端商城 Next.js 应用，默认端口 3001
   desktop/       桌面端 Next.js 应用，默认端口 3002
 packages/
-  api/           前端 API facade，当前连接 package mock
+  api/           前端 API facade，mock/local 均连接 fauxrpc
   domain/        领域模型、金额、订单、支付等纯逻辑
-  mocks/         本地 fixture 与 mock 数据
   ui/            共享 UI 组件与样式
 mock/fauxrpc/    fauxrpc stub 与说明
 ```
@@ -61,13 +60,13 @@ NEXT_PUBLIC_CONNECT_BASE_URL=http://127.0.0.1:6660
 
 `NEXT_PUBLIC_DATA_SOURCE` 可选值：
 
-- `mock`：使用 package fixtures/mock，是当前已接入的默认方向。
-- `local`：使用 ConnectRPC 访问本地 fauxrpc backend。mock server URL 放在各 app 的 `.env.local` 中，字段为 `NEXT_PUBLIC_CONNECT_BASE_URL`。
+- `mock`：使用 ConnectRPC 访问本地 fauxrpc backend，是当前默认开发方向。mock server URL 放在各 app 的 `.env.local` 中，字段为 `NEXT_PUBLIC_CONNECT_BASE_URL`。
+- `local`：同样使用 ConnectRPC 访问本地 fauxrpc backend，便于后续与真实本地后端区分配置。
 - `remote`：预留给真实后端环境。
 
 `NEXT_PUBLIC_APP_ORIGIN` 用于声明当前应用访问源，例如本地开发地址或线上子域名。
 
-`NEXT_PUBLIC_CONNECT_BASE_URL` 用于 `local` 数据源。每个 app 都提交 `.env.example` 作为模板，实际使用时复制成目标环境文件：
+`NEXT_PUBLIC_CONNECT_BASE_URL` 用于 `mock` 和 `local` 数据源。每个 app 都提交 `.env.example` 作为模板，实际使用时复制成目标环境文件：
 
 ```bash
 cp apps/mobile/.env.example apps/mobile/.env.local
@@ -87,9 +86,9 @@ Next.js 会把 `NEXT_PUBLIC_*` 变量内联到静态渲染和客户端 bundle �
 
 ## API Wiring
 
-当前 runtime API client 已接入 Auth/User 的 `local` ConnectRPC smoke path；项目现在是 `packages/api` facade + `packages/mocks` package mock + Protobuf-ES 生成物 + fauxrpc mock backend/tooling。
+当前 runtime API client 通过 `packages/api` facade 调用 Protobuf-ES 生成物，并用 fauxrpc mock backend/tooling 提供本地数据。
 
-Connect Web 使用 Buf 生成的 service definition，并通过 `@connectrpc/connect` 的 `createClient` 与 `@connectrpc/connect-web` 的 `createConnectTransport({ baseUrl })` 创建 web client。当前 `mock` 仍走 package fixtures，`local` 只接 `AuthService/Login` 与 `UserService/GetUserInfo`，`remote` 仍保留为真实后端接入入口。`local` 的 `getCurrentUser` 是 smoke path，会读取 fauxrpc stub 中的 `10001` 用户；真实 session-aware 当前用户逻辑留到后端鉴权接入阶段。
+Connect Web 使用 Buf 生成的 service definition，并通过 `@connectrpc/connect` 的 `createClient` 与 `@connectrpc/connect-web` 的 `createConnectTransport({ baseUrl })` 创建 web client。当前 `mock` 与 `local` 都访问 `NEXT_PUBLIC_CONNECT_BASE_URL` 指向的 fauxrpc/local Connect 服务，不在业务代码中维护 runtime fixture；`remote` 仍保留为真实后端接入入口。`getCurrentUser` 当前是 smoke path，会读取 fauxrpc stub 中的 `10001` 用户；真实 session-aware 当前用户逻辑留到后端鉴权接入阶段。
 
 Next App Router 默认使用 Server Components。若 proto message 只在服务端使用，不涉及 client serialization；若要跨 Server Component/Client Component 边界传递，需要注意 JSON/React serializability，必要时使用 `@bufbuild/protobuf` 的 `toJson`/`fromJson` 在边界处转换。
 

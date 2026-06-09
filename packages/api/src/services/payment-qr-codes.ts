@@ -5,10 +5,6 @@ import {
   type PaymentPlatform,
   type PaymentQrContentValidationReason,
 } from "@sast-shop/domain"
-import {
-  listMockPaymentQrCodes,
-  updateMockPaymentQrCode,
-} from "@sast-shop/mocks"
 import { Channel } from "../gen/sast/sastshopv2/payment/v1/channel_pb"
 import type { QrCode as ProtoQrCode } from "../gen/sast/sastshopv2/payment/v1/qr_code_pb"
 import { QrCodeService } from "../gen/sast/sastshopv2/payment/v1/qr_code_service_pb"
@@ -34,11 +30,7 @@ export async function listPaymentQrCodes(
 ): Promise<PaymentQrCode[]> {
   const dataSource = resolveDataSource(options)
 
-  if (dataSource === "mock") {
-    return listMockPaymentQrCodes().map(mapMockQrCode)
-  }
-
-  if (dataSource === "local") {
+  if (dataSource === "mock" || dataSource === "local") {
     const client = createClient(QrCodeService, createLocalTransport(options))
     const ownerId =
       options.ownerId !== undefined
@@ -62,11 +54,7 @@ export async function updatePaymentQrCode(
 
   const dataSource = resolveDataSource(options)
 
-  if (dataSource === "mock") {
-    return mapMockQrCode(updateMockPaymentQrCode(validatedInput))
-  }
-
-  if (dataSource === "local") {
+  if (dataSource === "mock" || dataSource === "local") {
     const client = createClient(QrCodeService, createLocalTransport(options))
     const response = await requestLocal("updatePaymentQrCode", () =>
       client.updateQrCode({
@@ -146,14 +134,6 @@ function getPaymentQrValidationMessage(
 
 function getOtherPaymentQrChannel(channel: PaymentPlatform): PaymentPlatform {
   return channel === "wechat" ? "alipay" : "wechat"
-}
-
-function mapMockQrCode(qrCode: PaymentQrCode): PaymentQrCode {
-  return {
-    id: qrCode.id,
-    channel: qrCode.channel,
-    content: qrCode.content,
-  }
 }
 
 function mapProtoQrCode(qrCode: ProtoQrCode): PaymentQrCode {

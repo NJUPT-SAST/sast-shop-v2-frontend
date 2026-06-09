@@ -1,0 +1,41 @@
+stubs:
+  - id: errand-task-get-list
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/GetErrandTaskList
+    content:
+      errandTasks:
+        - taskId: "7001"
+          storeId: "3001"
+          storeName: SAST 小卖部
+          status: ERRAND_TASK_STATUS_SHOPPING
+          items:
+            - id: "7101"
+              productSnapshot:
+                id: "4001"
+                title: 农夫山泉矿泉水
+                description: 550ml 瓶装水，适合活动采购
+                priceCents: 200
+                storeId: "3001"
+                mainImageUrl: https://images.unsplash.com/photo-1564419320461-6870880221ad?auto=format&fit=crop&w=640&q=80
+                barcode: "690000000001"
+                updatedAt: "2026-06-09T00:00:00Z"
+              requiredQuantity: 12
+              purchasedQuantity: 0
+              actualUnitPriceCents: 0
+              updatedAt: "2026-06-09T00:00:00Z"
+            - id: "7102"
+              productSnapshot:
+                id: "4002"
+                title: 经典火腿三明治
+                description: 冷藏即食，采购后请尽快分发
+                priceCents: 1200
+                storeId: "3001"
+                mainImageUrl: https://images.unsplash.com/photo-1528736235302-52922df5c122?auto=format&fit=crop&w=640&q=80
+                barcode: "690000000002"
+                updatedAt: "2026-06-09T00:00:00Z"
+              requiredQuantity: 4
+              purchasedQuantity: 0
+              actualUnitPriceCents: 0
+              updatedAt: "2026-06-09T00:00:00Z"
+          createdAt: "2026-06-09T09:00:00Z"
+      currentPage: 1
+      totalCount: 1

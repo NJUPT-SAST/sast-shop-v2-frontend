@@ -145,9 +145,6 @@ importers:
       '@sast-shop/domain':
         specifier: workspace:*
         version: link:../domain
-      '@sast-shop/mocks':
-        specifier: workspace:*
-        version: link:../mocks
     devDependencies:
       typescript:
         specifier: ^5
@@ -164,12 +161,6 @@ importers:
       vitest:
         specifier: ^3.2.4
         version: 3.2.6(@types/node@20.19.42)(jiti@2.7.0)(lightningcss@1.32.0)
-
-  packages/mocks:
-    devDependencies:
-      typescript:
-        specifier: ^5
-        version: 5.9.3
 
   packages/ui:
     dependencies:

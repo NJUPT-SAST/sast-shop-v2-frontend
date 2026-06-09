@@ -1,6 +1,6 @@
 # 项目概述
 
-这是一个面向飞书网页应用的在线商城前端 monorepo。当前已经拆分为 `apps/mobile` 移动端商城、`apps/desktop` 桌面端界面，以及 `packages/api`、`packages/domain`、`packages/mocks`、`packages/ui` 共享包。已经落地的技术栈包括 Next.js 16 App Router、React 19、TypeScript strict、Tailwind CSS v4、ESLint 9、Vitest 和 pnpm workspace。
+这是一个面向飞书网页应用的在线商城前端 monorepo。当前已经拆分为 `apps/mobile` 移动端商城、`apps/desktop` 桌面端界面，以及 `packages/api`、`packages/domain`、`packages/ui` 共享包。已经落地的技术栈包括 Next.js 16 App Router、React 19、TypeScript strict、Tailwind CSS v4、ESLint 9、Vitest 和 pnpm workspace。
 
 已落地 shadcn-style workspace UI 包、`@remixicon/react` 图标、ConnectRPC Web v2、Buf/Protobuf-ES v2 代码生成、fauxrpc mock tooling、Docker/GitHub Actions 部署工作流和 `DESIGN.md` 设计规范。`fauxrpc` 仍是外部 CLI，仓库不提交 CLI 二进制。
 
@@ -35,10 +35,9 @@ pnpm mock:generate:user
 - `apps/mobile/app/`：移动端商城 App Router 入口。
 - `apps/desktop/app/`：桌面端 App Router 入口。
 - `apps/mobile/next.config.ts`、`apps/desktop/next.config.ts`：子应用 Next 配置入口。
-- `packages/api/src/`：前端 API facade，维护 `mock`、`local`、`remote` 数据源边界；当前 Auth/User/Profile/Address/Payment QR Code 已有 mock/local 闭环，`remote` 仍明确未接入。
+- `packages/api/src/`：前端 API facade，维护 `mock`、`local`、`remote` 数据源边界；当前 mock/local 都通过 ConnectRPC 访问 fauxrpc/local backend，`remote` 仍明确未接入。
 - `packages/api/src/gen/`：Buf/Protobuf-ES v2 生成物；不要手写或手改生成文件。
 - `packages/domain/src/`：领域逻辑与纯函数。
-- `packages/mocks/src/`：fixture 和 mock 数据。
 - `packages/ui/src/`：共享 UI 组件、样式和工具函数。
 - `apps/mobile/app/profile/`、`apps/desktop/app/profile/`：个人资料、地址簿与收款码页面；页面只调用 `@sast-shop/api` facade。
 - `packages/ui/src/components/dialog.tsx`、`packages/ui/src/components/drawer.tsx`：shadcn overlay 基础组件；桌面 profile 用 Dialog，移动端 profile 用 Drawer。
@@ -61,7 +60,7 @@ pnpm mock:generate:user
 - 每个 app 提交 `.env.example`；本地开发复制为 `.env.local`，生产环境复制为 `.env`。
 - `.env.local` 与 `.env` 不提交。
 - `NEXT_PUBLIC_DATA_SOURCE` 支持 `mock`、`local`、`remote`；当前默认 `mock`。
-- `NEXT_PUBLIC_CONNECT_BASE_URL` 只用于 `local` 数据源，本地 fauxrpc URL 写在各 app 的 `.env.local` 中，默认 `http://127.0.0.1:6660`。
+- `NEXT_PUBLIC_CONNECT_BASE_URL` 用于 `mock` 和 `local` 数据源，本地 fauxrpc URL 写在各 app 的 `.env.local` 中，默认 `http://127.0.0.1:6660`。
 - Next.js 会内联 `NEXT_PUBLIC_*`；部署镜像构建阶段必须注入目标环境值。
 
 # 开发规范
@@ -78,6 +77,7 @@ pnpm mock:generate:user
 - 网络请求使用 ConnectRPC 与 Buf 生成代码；页面只调用 `@sast-shop/api` facade，不直接 import proto 生成文件。
 - 使用 Connect-ES v2 官方方向：`createClient` + `createConnectTransport({ baseUrl })` + Buf 生成的 service definitions；不要引入过时的 `protoc-gen-connect-es`。
 - Server Component 可以直接 await facade；proto message 不跨 Server/Client 边界。若未来需要跨边界传递，使用 `toJson/fromJson` 显式处理序列化。
+- runtime mock 数据统一维护在 `mock/fauxrpc/stubs` 并通过 fauxrpc/local Connect 获取；不要在业务代码或 API facade 中新增手写 fixture。
 - `mock`、`local`、`remote` 不要静默互相 fallback；未接入能力应抛 `FeatureUnavailableError` 或展示明确降级状态。
 
 # 前端体验要求
@@ -104,7 +104,7 @@ pnpm mock:generate:user
 - 文档或纯配置变更：检查内容准确性即可。
 - 前端代码变更：运行 `pnpm lint`，必要时运行 `pnpm build`。
 - 视觉/交互变更：按影响范围启动 `pnpm dev:mobile` 或 `pnpm dev:desktop`，在移动端和桌面端视口检查关键流程。
-- 本地 localhost 视觉验收优先使用 Codex in-app Browser；移动端常用 390×844 视口，必要时检查 computed style（例如 Tabs 的 `border-color`、active 背景、shadow），验收后重置临时 viewport。
+- 本地 localhost 视觉验收优先使用 Codex in-app Browser；移动端常用 390×844 视口，必要时检查 computed style（例如 Tabs 的 `border-color`、active 背景、shadow），检查完成后保持移动端 viewport，不需要复位。
 - 接入数据、鉴权、飞书接口或服务端逻辑：额外关注 secrets、权限边界、错误处理和降级状态。
 - 接入数据层、生成物或 proto 配置时，运行 `pnpm proto:generate` 并确认 `buf.gen.yaml`、`packages/api/src/gen` 无 drift。
 

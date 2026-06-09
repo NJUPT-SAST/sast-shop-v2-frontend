@@ -1,11 +1,4 @@
 import { createClient } from "@connectrpc/connect"
-import {
-  createMockAddress,
-  deleteMockAddress,
-  getMockAddress,
-  listMockAddresses,
-  updateMockAddress,
-} from "@sast-shop/mocks"
 import type { ShippingAddress as ProtoShippingAddress } from "../gen/sast/sastshopv2/user/v1/address_pb"
 import { AddressService } from "../gen/sast/sastshopv2/user/v1/address_service_pb"
 import { resolveDataSource, type ServiceOptions } from "../data-source"
@@ -30,11 +23,7 @@ export async function listAddresses(
 ): Promise<ShippingAddress[]> {
   const dataSource = resolveDataSource(options)
 
-  if (dataSource === "mock") {
-    return listMockAddresses().map(mapMockAddress)
-  }
-
-  if (dataSource === "local") {
+  if (dataSource === "mock" || dataSource === "local") {
     const client = createClient(AddressService, createLocalTransport(options))
     const response = await requestLocal("listAddresses", () =>
       client.getAddress({})
@@ -52,18 +41,7 @@ export async function getAddress(
 ): Promise<ShippingAddress> {
   const dataSource = resolveDataSource(options)
 
-  if (dataSource === "mock") {
-    parseAddressId(id)
-    const address = getMockAddress(id)
-
-    if (!address) {
-      throw new FeatureUnavailableError("getAddress")
-    }
-
-    return mapMockAddress(address)
-  }
-
-  if (dataSource === "local") {
+  if (dataSource === "mock" || dataSource === "local") {
     const addressId = parseAddressId(id)
     const client = createClient(AddressService, createLocalTransport(options))
     const response = await requestLocal("getAddress", () =>
@@ -91,11 +69,7 @@ export async function createAddress(
 
   const dataSource = resolveDataSource(options)
 
-  if (dataSource === "mock") {
-    return mapMockAddress(createMockAddress(input))
-  }
-
-  if (dataSource === "local") {
+  if (dataSource === "mock" || dataSource === "local") {
     const client = createClient(AddressService, createLocalTransport(options))
     const response = await requestLocal("createAddress", () =>
       client.createAddress(input)
@@ -120,12 +94,7 @@ export async function updateAddress(
 
   const dataSource = resolveDataSource(options)
 
-  if (dataSource === "mock") {
-    parseAddressId(id)
-    return mapMockAddress(updateMockAddress(id, input))
-  }
-
-  if (dataSource === "local") {
+  if (dataSource === "mock" || dataSource === "local") {
     const addressId = parseAddressId(id)
     const client = createClient(AddressService, createLocalTransport(options))
     const response = await requestLocal("updateAddress", () =>
@@ -148,13 +117,7 @@ export async function deleteAddress(
 ): Promise<void> {
   const dataSource = resolveDataSource(options)
 
-  if (dataSource === "mock") {
-    parseAddressId(id)
-    deleteMockAddress(id)
-    return
-  }
-
-  if (dataSource === "local") {
+  if (dataSource === "mock" || dataSource === "local") {
     const addressId = parseAddressId(id)
     const client = createClient(AddressService, createLocalTransport(options))
     await requestLocal("deleteAddress", () =>
@@ -190,19 +153,6 @@ function validateAddressInput(input: ShippingAddressInput) {
     !input.detailAddress.trim()
   ) {
     throw new ValidationError("地址信息不完整")
-  }
-}
-
-function mapMockAddress(address: ShippingAddress): ShippingAddress {
-  return {
-    id: address.id,
-    recipientName: address.recipientName,
-    recipientPhone: address.recipientPhone,
-    province: address.province,
-    city: address.city,
-    district: address.district,
-    detailAddress: address.detailAddress,
-    isDefault: address.isDefault,
   }
 }
 

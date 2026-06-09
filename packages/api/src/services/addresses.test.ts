@@ -30,19 +30,30 @@ const localOptions = {
   connectBaseUrl: "http://127.0.0.1:6660",
 }
 
+const mockOptions = {
+  dataSource: "mock" as const,
+  connectBaseUrl: "http://127.0.0.1:6660",
+}
+
 describe("address service", () => {
   afterEach(() => {
     vi.unstubAllGlobals()
   })
 
   it("exposes stable address return types", () => {
-    expectTypeOf(listAddresses()).toEqualTypeOf<Promise<ShippingAddress[]>>()
-    expectTypeOf(getAddress("1001")).toEqualTypeOf<Promise<ShippingAddress>>()
-    expectTypeOf(createAddress(validInput)).toEqualTypeOf<Promise<ShippingAddress>>()
-    expectTypeOf(updateAddress("1001", validInput)).toEqualTypeOf<
+    expectTypeOf<typeof listAddresses>().returns.toEqualTypeOf<
+      Promise<ShippingAddress[]>
+    >()
+    expectTypeOf<typeof getAddress>().returns.toEqualTypeOf<
       Promise<ShippingAddress>
     >()
-    expectTypeOf(deleteAddress("1001")).toEqualTypeOf<Promise<void>>()
+    expectTypeOf<typeof createAddress>().returns.toEqualTypeOf<
+      Promise<ShippingAddress>
+    >()
+    expectTypeOf<typeof updateAddress>().returns.toEqualTypeOf<
+      Promise<ShippingAddress>
+    >()
+    expectTypeOf<typeof deleteAddress>().returns.toEqualTypeOf<Promise<void>>()
     expectTypeOf<ShippingAddress>().toEqualTypeOf<{
       id: string
       recipientName: string
@@ -55,22 +66,60 @@ describe("address service", () => {
     }>()
   })
 
-  it("returns mock addresses in mock mode", async () => {
-    const addresses = await listAddresses({ dataSource: "mock" })
+  it("lists addresses from the fauxrpc backend in mock mode", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        shippingAddresses: [
+          {
+            id: "1001",
+            ...validInput,
+            recipientName: "fauxrpc 同学",
+          },
+        ],
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
 
-    expect(addresses[0]).toMatchObject({
-      id: "1001",
-      recipientName: "南邮同学",
-      isDefault: true,
+    const addresses = await listAddresses(mockOptions)
+
+    expect(addresses).toEqual([
+      {
+        id: "1001",
+        ...validInput,
+        recipientName: "fauxrpc 同学",
+      },
+    ])
+    expect(fetchMock).toHaveBeenCalledOnce()
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.user.v1.AddressService/GetAddress",
+      body: {},
     })
   })
 
-  it("returns a mock address by id in mock mode", async () => {
-    const address = await getAddress("1001", { dataSource: "mock" })
+  it("gets an address from the fauxrpc backend in mock mode", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        shippingAddresses: [
+          {
+            id: "1001",
+            ...validInput,
+            recipientPhone: "13800000001",
+          },
+        ],
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    const address = await getAddress("1001", mockOptions)
 
     expect(address).toMatchObject({
       id: "1001",
       recipientPhone: "13800000001",
+    })
+    expect(fetchMock).toHaveBeenCalledOnce()
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.user.v1.AddressService/GetAddress",
+      body: { addressId: "1001" },
     })
   })
 
@@ -267,8 +316,11 @@ describe("address service", () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it("requires a configured Connect base URL for local mode", async () => {
+  it("requires a configured Connect base URL for local and mock modes", async () => {
     await expect(listAddresses({ dataSource: "local" })).rejects.toBeInstanceOf(
+      ApiConfigurationError
+    )
+    await expect(listAddresses({ dataSource: "mock" })).rejects.toBeInstanceOf(
       ApiConfigurationError
     )
   })

@@ -6,12 +6,12 @@ stubs:
       expiresAt: "2099-12-31T23:59:59Z"
       userInfo:
         id: "10001"
-        name: 南邮同学
+        name: 阮小妍
         avatarUrl: https://avatars.githubusercontent.com/u/37794833?s=200&v=4
   - id: user-get-user-info
     target: sast.sastshopv2.user.v1.UserService/GetUserInfo
     content:
       userInfo:
         id: "10001"
-        name: 南邮同学
+        name: 阮小妍
         avatarUrl: https://avatars.githubusercontent.com/u/37794833?s=200&v=4

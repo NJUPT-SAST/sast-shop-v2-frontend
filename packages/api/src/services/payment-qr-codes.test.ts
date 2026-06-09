@@ -22,14 +22,21 @@ const localOptions = {
   connectBaseUrl: "http://127.0.0.1:6660",
 }
 
+const mockOptions = {
+  dataSource: "mock" as const,
+  connectBaseUrl: "http://127.0.0.1:6660",
+}
+
 describe("payment QR code service", () => {
   afterEach(() => {
     vi.unstubAllGlobals()
   })
 
   it("exposes stable payment QR code return types", () => {
-    expectTypeOf(listPaymentQrCodes()).toEqualTypeOf<Promise<PaymentQrCode[]>>()
-    expectTypeOf(updatePaymentQrCode(validInput)).toEqualTypeOf<
+    expectTypeOf<typeof listPaymentQrCodes>().returns.toEqualTypeOf<
+      Promise<PaymentQrCode[]>
+    >()
+    expectTypeOf<typeof updatePaymentQrCode>().returns.toEqualTypeOf<
       Promise<PaymentQrCode>
     >()
     expectTypeOf<PaymentQrCode>().toEqualTypeOf<{
@@ -39,10 +46,33 @@ describe("payment QR code service", () => {
     }>()
   })
 
-  it("returns mock payment QR channels in mock mode", async () => {
-    const qrCodes = await listPaymentQrCodes({ dataSource: "mock" })
+  it("lists payment QR codes from the fauxrpc backend in mock mode", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        qrCodes: [
+          {
+            id: "2001",
+            channel: "CHANNEL_WECHAT",
+            content: "https://example.test/pay/wechat/sast",
+          },
+          {
+            id: "2002",
+            channel: "CHANNEL_ALIPAY",
+            content: "https://qr.alipay.com/sast-shop",
+          },
+        ],
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    const qrCodes = await listPaymentQrCodes(mockOptions)
 
     expect(qrCodes.map((qrCode) => qrCode.channel)).toEqual(["wechat", "alipay"])
+    expect(fetchMock).toHaveBeenCalledOnce()
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.payment.v1.QrCodeService/GetQrCode",
+      body: {},
+    })
   })
 
   it("validates payment QR code input before submitting update requests", async () => {
@@ -98,7 +128,7 @@ describe("payment QR code service", () => {
       "收款码渠道不正确"
     )
     await expect(
-      updatePaymentQrCode(invalidInput, { dataSource: "mock" })
+      updatePaymentQrCode(invalidInput, mockOptions)
     ).rejects.toBeInstanceOf(ValidationError)
     expect(fetchMock).not.toHaveBeenCalled()
   })
@@ -214,21 +244,43 @@ describe("payment QR code service", () => {
     })
   })
 
-  it("updates normalized payment QR content in mock mode", async () => {
+  it("updates normalized payment QR content through fauxrpc in mock mode", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        qrCode: {
+          id: "2001",
+          channel: "CHANNEL_WECHAT",
+          content: "wxp://sast-shop",
+        },
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
     const qrCode = await updatePaymentQrCode(
       {
         channel: "wechat",
         content: "  wxp://sast-shop  ",
       },
-      { dataSource: "mock" }
+      mockOptions
     )
 
     expect(qrCode.content).toBe("wxp://sast-shop")
+    expect(fetchMock).toHaveBeenCalledOnce()
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.payment.v1.QrCodeService/UpdateQrCode",
+      body: {
+        channel: "CHANNEL_WECHAT",
+        content: "wxp://sast-shop",
+      },
+    })
   })
 
-  it("requires a configured Connect base URL for local mode", async () => {
+  it("requires a configured Connect base URL for local and mock modes", async () => {
     await expect(
       listPaymentQrCodes({ dataSource: "local" })
+    ).rejects.toBeInstanceOf(ApiConfigurationError)
+    await expect(
+      listPaymentQrCodes({ dataSource: "mock" })
     ).rejects.toBeInstanceOf(ApiConfigurationError)
   })
 

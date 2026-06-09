@@ -4,6 +4,7 @@ import {
   RiRunLine,
   RiStore2Line,
 } from "@remixicon/react"
+import Link from "next/link"
 import {
   Card,
   CardDescription,
@@ -25,7 +26,7 @@ async function loadStores(): Promise<{ stores: Store[]; error: string | null }> 
   } catch {
     return {
       stores: [],
-      error: "店铺暂不可用，请确认 mock 服务或稍后再试",
+      error: "店铺暂不可用，请稍后再试",
     }
   }
 }
@@ -61,7 +62,13 @@ export default async function GroupPage() {
         {stores.length > 0 ? (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] md:gap-4">
             {stores.map((store) => (
-              <StoreCard key={store.id} store={store} />
+              <Link
+                key={store.id}
+                href={`/group/shop/${store.id}`}
+                className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <StoreCard store={store} />
+              </Link>
             ))}
           </div>
         ) : !storeResult.error ? (
@@ -69,7 +76,7 @@ export default async function GroupPage() {
             <CardHeader>
               <CardTitle className="text-base">暂无店铺</CardTitle>
               <CardDescription>
-                mock 服务返回店铺后会显示在这里。
+                店铺上架后会显示在这里。
               </CardDescription>
             </CardHeader>
           </Card>

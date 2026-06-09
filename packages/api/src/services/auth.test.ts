@@ -13,8 +13,12 @@ describe("auth service", () => {
   })
 
   it("exposes stable auth return types", () => {
-    expectTypeOf(getCurrentUser()).toEqualTypeOf<Promise<CurrentUser>>()
-    expectTypeOf(loginWithLarkCode("abc")).toEqualTypeOf<Promise<AuthSession>>()
+    expectTypeOf<typeof getCurrentUser>().returns.toEqualTypeOf<
+      Promise<CurrentUser>
+    >()
+    expectTypeOf<typeof loginWithLarkCode>().returns.toEqualTypeOf<
+      Promise<AuthSession>
+    >()
     expectTypeOf<CurrentUser>().toEqualTypeOf<{
       id: string
       name: string
@@ -22,10 +26,41 @@ describe("auth service", () => {
     }>()
   })
 
-  it("returns mock user in mock mode", async () => {
-    const user = await getCurrentUser({ dataSource: "mock" })
-    expect(user.name).toBe("南邮同学")
+  it("returns current user from the fauxrpc backend in mock mode", async () => {
+    const fetchMock = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          userInfo: {
+            id: "10001",
+            name: "fauxrpc 同学",
+            avatarUrl: "https://example.test/avatar.png",
+          },
+        }),
+        {
+          headers: {
+            "content-type": "application/json",
+          },
+        }
+      )
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    const user = await getCurrentUser({
+      dataSource: "mock",
+      connectBaseUrl: "http://127.0.0.1:6660",
+    })
+
+    expect(user).toEqual({
+      id: "10001",
+      name: "fauxrpc 同学",
+      avatarUrl: "https://example.test/avatar.png",
+    })
     expect(user).not.toHaveProperty("department")
+    expect(fetchMock).toHaveBeenCalledOnce()
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.user.v1.UserService/GetUserInfo",
+      body: { userId: "10001" },
+    })
   })
 
   it("returns current user from the local Connect backend", async () => {
@@ -133,8 +168,11 @@ describe("auth service", () => {
     ).rejects.toBeInstanceOf(ApiRequestError)
   })
 
-  it("requires a configured Connect base URL for local mode", async () => {
+  it("requires a configured Connect base URL for local and mock modes", async () => {
     await expect(getCurrentUser({ dataSource: "local" })).rejects.toBeInstanceOf(
+      ApiConfigurationError
+    )
+    await expect(getCurrentUser({ dataSource: "mock" })).rejects.toBeInstanceOf(
       ApiConfigurationError
     )
   })
@@ -148,9 +186,38 @@ describe("auth service", () => {
     ).rejects.toBeInstanceOf(FeatureUnavailableError)
   })
 
-  it("returns a mock session in mock mode", async () => {
-    const session = await loginWithLarkCode("abc", { dataSource: "mock" })
-    expect(session.sessionToken).toBe("mock-session-abc")
+  it("returns a login session from the fauxrpc backend in mock mode", async () => {
+    const fetchMock = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          sessionToken: "mock-session-token",
+          expiresAt: "2099-12-31T23:59:59Z",
+          userInfo: {
+            id: "10001",
+            name: "fauxrpc 同学",
+            avatarUrl: "https://example.test/avatar.png",
+          },
+        }),
+        {
+          headers: {
+            "content-type": "application/json",
+          },
+        }
+      )
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    const session = await loginWithLarkCode("abc", {
+      dataSource: "mock",
+      connectBaseUrl: "http://127.0.0.1:6660",
+    })
+
+    expect(session.sessionToken).toBe("mock-session-token")
+    expect(fetchMock).toHaveBeenCalledOnce()
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.user.v1.AuthService/Login",
+      body: { code: "abc" },
+    })
   })
 })
 

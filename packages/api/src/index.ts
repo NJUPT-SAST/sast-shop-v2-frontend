@@ -62,6 +62,17 @@ export {
   type SpotOrderStatusValue,
 } from "./services/spot-orders"
 export {
+  createErrandDemand,
+  type CreateErrandDemandInput,
+  type CreateErrandDemandResult,
+} from "./services/errand-demands"
+export {
+  listBuyerErrandOrders,
+  type BuyerErrandOrder,
+  type BuyerErrandOrderStatus,
+  type BuyerErrandOrderStatusFilter,
+} from "./services/buyer-errand-orders"
+export {
   listProductTemplates,
   type ProductTemplate,
 } from "./services/product-templates"

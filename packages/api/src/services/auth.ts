@@ -1,6 +1,5 @@
 import { createClient } from "@connectrpc/connect"
 import { timestampDate } from "@bufbuild/protobuf/wkt"
-import { getMockCurrentUser, loginWithMockCode } from "@sast-shop/mocks"
 import { AuthService } from "../gen/sast/sastshopv2/user/v1/auth_service_pb"
 import type { UserInfo } from "../gen/sast/sastshopv2/user/v1/user_info_pb"
 import { UserService } from "../gen/sast/sastshopv2/user/v1/user_service_pb"
@@ -25,17 +24,7 @@ export interface AuthSession {
 export async function getCurrentUser(options: ServiceOptions = {}): Promise<CurrentUser> {
   const dataSource = resolveDataSource(options)
 
-  if (dataSource === "mock") {
-    const user = getMockCurrentUser()
-
-    return {
-      id: user.id,
-      name: user.name,
-      avatarUrl: user.avatarUrl,
-    }
-  }
-
-  if (dataSource === "local") {
+  if (dataSource === "mock" || dataSource === "local") {
     const client = createClient(UserService, createLocalTransport(options))
     const response = await requestLocal("getCurrentUser", () =>
       client.getUserInfo({ userId: LOCAL_SMOKE_USER_ID })
@@ -57,21 +46,7 @@ export async function loginWithLarkCode(
 ): Promise<AuthSession> {
   const dataSource = resolveDataSource(options)
 
-  if (dataSource === "mock") {
-    const session = loginWithMockCode(code)
-
-    return {
-      sessionToken: session.sessionToken,
-      expiresAt: session.expiresAt,
-      user: {
-        id: session.user.id,
-        name: session.user.name,
-        avatarUrl: session.user.avatarUrl,
-      },
-    }
-  }
-
-  if (dataSource === "local") {
+  if (dataSource === "mock" || dataSource === "local") {
     const client = createClient(AuthService, createLocalTransport(options))
     const response = await requestLocal("loginWithLarkCode", () =>
       client.login({ code })

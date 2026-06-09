@@ -8,7 +8,7 @@ import {
   RiSearchLine,
   RiShoppingBag3Line,
 } from "@remixicon/react"
-import type { SpotOrder } from "@sast-shop/api"
+import type { BuyerErrandOrder, SpotOrder } from "@sast-shop/api"
 import { formatPrice } from "@sast-shop/domain"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
@@ -30,12 +30,21 @@ import { cn } from "@workspace/ui/lib/utils"
 
 type Source = "spot" | "errand" | "captain"
 type Perspective = "purchaser" | "seller"
-type Status = "all" | "pending_payment" | "paid" | "completed" | "cancelled"
+type Status = "all" | SpotOrder["status"] | BuyerErrandOrder["status"]
 type OrderFilters = {
   source: Source
   perspective: Perspective
   status: Status
   query: string
+}
+type RenderableOrder = {
+  id: string
+  source: Exclude<Source, "captain">
+  title: string
+  store: string
+  status: Exclude<Status, "all">
+  amount: number
+  summary: string
 }
 
 const sourceOptions: { value: Source; label: string }[] = [
@@ -44,13 +53,35 @@ const sourceOptions: { value: Source; label: string }[] = [
   { value: "captain", label: "团长任务" },
 ]
 
-const statusOptions: { value: Status; label: string }[] = [
+const spotStatusOptions: { value: Status; label: string }[] = [
   { value: "all", label: "全部" },
   { value: "pending_payment", label: "待支付" },
   { value: "paid", label: "处理中" },
   { value: "completed", label: "已完成" },
   { value: "cancelled", label: "已取消" },
 ]
+
+const errandStatusOptions: { value: Status; label: string }[] = [
+  { value: "all", label: "全部" },
+  { value: "open", label: "未接单" },
+  { value: "shopping", label: "采购中" },
+  { value: "pending_distributing", label: "待分发" },
+  { value: "distributing", label: "分发中" },
+  { value: "pending_payment", label: "待支付" },
+  { value: "completed", label: "已完成" },
+  { value: "cancelled", label: "已取消" },
+]
+
+const captainStatusOptions: { value: Status; label: string }[] = [
+  { value: "all", label: "全部" },
+]
+
+const statusOptionsBySource: Record<Source, { value: Status; label: string }[]> =
+  {
+    spot: spotStatusOptions,
+    errand: errandStatusOptions,
+    captain: captainStatusOptions,
+  }
 
 const perspectiveOptions: { value: Perspective; label: string }[] = [
   { value: "purchaser", label: "我买的" },
@@ -64,7 +95,7 @@ const DEFAULT_ORDER_FILTERS = {
   query: "",
 } satisfies OrderFilters
 
-const statusLabel: Record<string, string> = {
+const spotStatusLabel: Record<string, string> = {
   pending_payment: "待支付",
   paid: "处理中",
   completed: "已完成",
@@ -72,11 +103,24 @@ const statusLabel: Record<string, string> = {
   unknown: "未知",
 }
 
+const errandStatusLabel: Record<string, string> = {
+  open: "未接单",
+  shopping: "采购中",
+  pending_distributing: "待分发",
+  distributing: "分发中",
+  pending_payment: "待支付",
+  completed: "已完成",
+  cancelled: "已取消",
+  unknown: "未知",
+}
+
 export function OrdersView({
   spotOrders,
+  buyerErrandOrders,
   error,
 }: {
   spotOrders: SpotOrder[]
+  buyerErrandOrders: BuyerErrandOrder[]
   error: string | null
 }) {
   const router = useRouter()
@@ -84,9 +128,9 @@ export function OrdersView({
   const [filters, setFilters] = useState<OrderFilters>(DEFAULT_ORDER_FILTERS)
   const { source, perspective, status, query } = filters
   const normalizedQuery = query.trim().toLowerCase()
-  const orders = useMemo(
-    () =>
-      spotOrders.map((order) => ({
+  const orders = useMemo<RenderableOrder[]>(
+    () => [
+      ...spotOrders.map((order) => ({
         id: order.orderNo || order.id,
         source: "spot" as const,
         title: order.productTitle,
@@ -95,7 +139,25 @@ export function OrdersView({
         amount: order.totalAmountCents,
         summary: `现货 x${order.quantity}`,
       })),
-    [spotOrders]
+      ...buyerErrandOrders.map((order) => ({
+        id: order.id,
+        source: "errand" as const,
+        title:
+          order.productTemplates
+            .slice(0, 3)
+            .map((template) => template.title)
+            .join("、") || "跑腿需求",
+        store: order.store?.name ?? "跑腿店铺",
+        status: order.status,
+        amount:
+          order.totalActualAmountCents ??
+          order.totalOriginAmountCents + order.totalServiceFeeCents,
+        summary: `${order.productTotalCount} 种商品 · 跑腿费 ${formatPrice(
+          order.totalServiceFeeCents
+        )}`,
+      })),
+    ],
+    [buyerErrandOrders, spotOrders]
   )
   const filteredOrders = useMemo(
     () =>
@@ -110,6 +172,7 @@ export function OrdersView({
       ),
     [normalizedQuery, orders, perspective, source, status]
   )
+  const currentStatusOptions = statusOptionsBySource[source]
 
   useEffect(() => {
     let timeoutId: number | null = null
@@ -209,12 +272,12 @@ export function OrdersView({
                   value={query}
                   onChange={(event) => updateQuery({ q: event.target.value })}
                   className="pl-9"
-                  placeholder="搜索店铺或订单"
+                  placeholder="搜索店铺或商品"
                 />
               </div>
 
               <div className="-mx-1 flex gap-2 overflow-x-auto px-1">
-                {statusOptions.map((option) => (
+                {currentStatusOptions.map((option) => (
                   <Button
                     key={option.value}
                     type="button"
@@ -229,7 +292,8 @@ export function OrdersView({
               </div>
             </section>
 
-            {item.value === "spot" && perspective === "purchaser" ? (
+            {(item.value === "spot" || item.value === "errand") &&
+            perspective === "purchaser" ? (
               <section className="mt-3 grid gap-3 md:grid-cols-2">
                 {filteredOrders.map((order) => (
                   <Card key={order.id} className="rounded-lg">
@@ -252,7 +316,7 @@ export function OrdersView({
                               "bg-secondary text-secondary-foreground"
                           )}
                         >
-                          {statusLabel[order.status]}
+                          {getStatusLabel(order)}
                         </Badge>
                       </div>
                     </CardHeader>
@@ -274,14 +338,21 @@ export function OrdersView({
               <Empty
                 icon={<RiShoppingBag3Line className="size-5" />}
                 title="暂无卖家订单"
-                description="卖家视角订单会在对应接口接入后展示。"
+                description="卖家视角订单准备好后会在这里展示。"
+                className="mt-3"
+              />
+            ) : item.value === "errand" ? (
+              <Empty
+                icon={<RiRunLine className="size-5" />}
+                title="跑腿没有卖家视角"
+                description="跑腿订单请在我买的中查看。"
                 className="mt-3"
               />
             ) : (
               <Empty
                 icon={<RiFileList3Line className="size-5" />}
-                title="暂未接入"
-                description="跑腿订单和团长任务会在对应接口接入后展示。"
+                title="团长任务暂未开放"
+                description="后续可以在这里查看分发、结算和履约任务。"
                 className="mt-3"
               />
             )}
@@ -289,11 +360,19 @@ export function OrdersView({
         ))}
       </Tabs>
 
-      {source === "spot" && perspective === "purchaser" && filteredOrders.length === 0 ? (
+      {(source === "spot" || source === "errand") &&
+      perspective === "purchaser" &&
+      filteredOrders.length === 0 ? (
         <Empty
-          icon={<RiShoppingBag3Line className="size-5" />}
+          icon={
+            source === "spot" ? (
+              <RiShoppingBag3Line className="size-5" />
+            ) : (
+              <RiRunLine className="size-5" />
+            )
+          }
           title="暂无匹配订单"
-          description="换一个订单类型或清空筛选条件。"
+          description="换一个状态或清空搜索条件。"
         />
       ) : null}
     </div>
@@ -311,10 +390,22 @@ function isPerspective(value: string | null): value is Perspective {
 function isStatus(value: string | null): value is Status {
   return (
     value === "all" ||
+    value === "open" ||
+    value === "shopping" ||
+    value === "pending_distributing" ||
+    value === "distributing" ||
     value === "pending_payment" ||
     value === "paid" ||
     value === "completed" ||
-    value === "cancelled"
+    value === "cancelled" ||
+    value === "unknown"
+  )
+}
+
+function isStatusForSource(source: Source, value: string | null): value is Status {
+  return (
+    isStatus(value) &&
+    statusOptionsBySource[source].some((option) => option.value === value)
   )
 }
 
@@ -336,13 +427,16 @@ function getOrderFiltersFromLocation(): OrderFilters {
   const sourceParam = params.get("source")
   const perspectiveParam = params.get("perspective")
   const statusParam = params.get("status")
+  const source = isSource(sourceParam) ? sourceParam : DEFAULT_ORDER_FILTERS.source
 
   return {
-    source: isSource(sourceParam) ? sourceParam : DEFAULT_ORDER_FILTERS.source,
+    source,
     perspective: isPerspective(perspectiveParam)
       ? perspectiveParam
       : DEFAULT_ORDER_FILTERS.perspective,
-    status: isStatus(statusParam) ? statusParam : DEFAULT_ORDER_FILTERS.status,
+    status: isStatusForSource(source, statusParam)
+      ? statusParam
+      : DEFAULT_ORDER_FILTERS.status,
     query: params.get("q") ?? DEFAULT_ORDER_FILTERS.query,
   }
 }
@@ -360,4 +454,12 @@ function SourceIcon({ source }: { source: Source }) {
       <Icon className="size-4" />
     </span>
   )
+}
+
+function getStatusLabel(order: RenderableOrder) {
+  if (order.source === "errand") {
+    return errandStatusLabel[order.status] ?? errandStatusLabel.unknown
+  }
+
+  return spotStatusLabel[order.status] ?? spotStatusLabel.unknown
 }

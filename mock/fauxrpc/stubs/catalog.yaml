@@ -1,0 +1,88 @@
+stubs:
+  - id: catalog-get-store-list
+    target: sast.sastshopv2.catalog.v1.CatalogService/GetStoreList
+    content:
+      stores:
+        - id: "3001"
+          name: SAST 小卖部
+          address: 仙林校区活动室
+          logoUrl: https://avatars.githubusercontent.com/u/37794833?s=200&v=4
+          themeColor: "#0071e3"
+  - id: catalog-get-product-template-list
+    target: sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateList
+    content:
+      productTemplates:
+        - id: "4001"
+          title: 农夫山泉矿泉水
+          description: 550ml 瓶装水，适合活动采购
+          priceCents: 200
+          storeId: "3001"
+          mainImageUrl: https://images.unsplash.com/photo-1564419320461-6870880221ad?auto=format&fit=crop&w=640&q=80
+          barcode: "690000000001"
+          updatedAt: "2026-06-09T00:00:00Z"
+        - id: "4002"
+          title: 经典火腿三明治
+          description: 冷藏即食，采购后请尽快分发
+          priceCents: 1200
+          storeId: "3001"
+          mainImageUrl: https://images.unsplash.com/photo-1528736235302-52922df5c122?auto=format&fit=crop&w=640&q=80
+          barcode: "690000000002"
+          updatedAt: "2026-06-09T00:00:00Z"
+        - id: "4003"
+          title: SAST 活动贴纸包
+          description: 10 枚装，适合社团活动领取
+          priceCents: 800
+          storeId: "3001"
+          mainImageUrl: https://images.unsplash.com/photo-1517581177682-a085bb7ffb38?auto=format&fit=crop&w=640&q=80
+          barcode: "690000000003"
+          updatedAt: "2026-06-09T00:00:00Z"
+        - id: "4004"
+          title: 维他柠檬茶
+          description: 250ml 盒装饮料，适合会议间隙补给
+          priceCents: 350
+          storeId: "3001"
+          mainImageUrl: https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=640&q=80
+          barcode: "690000000004"
+          updatedAt: "2026-06-09T00:00:00Z"
+        - id: "4005"
+          title: 奥利奥原味夹心饼干
+          description: 小包装零食，便于活动现场分发
+          priceCents: 650
+          storeId: "3001"
+          mainImageUrl: https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=640&q=80
+          barcode: "690000000005"
+          updatedAt: "2026-06-09T00:00:00Z"
+        - id: "4006"
+          title: 得力黑色中性笔
+          description: 0.5mm 黑色笔芯，签到和记录常用
+          priceCents: 300
+          storeId: "3001"
+          mainImageUrl: https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?auto=format&fit=crop&w=640&q=80
+          barcode: "690000000006"
+          updatedAt: "2026-06-09T00:00:00Z"
+        - id: "4007"
+          title: 便利贴便签纸
+          description: 76mm 方形便签，适合 workshop 留言
+          priceCents: 500
+          storeId: "3001"
+          mainImageUrl: https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=640&q=80
+          barcode: "690000000007"
+          updatedAt: "2026-06-09T00:00:00Z"
+        - id: "4008"
+          title: 一次性纸杯
+          description: 50 只装，活动饮水和茶歇备用
+          priceCents: 900
+          storeId: "3001"
+          mainImageUrl: https://images.unsplash.com/photo-1526318472351-c75fcf070305?auto=format&fit=crop&w=640&q=80
+          barcode: "690000000008"
+          updatedAt: "2026-06-09T00:00:00Z"
+        - id: "4009"
+          title: 蓝牙演示翻页笔
+          description: 适合分享会、答辩和公开课借用采购
+          priceCents: 3900
+          storeId: "3001"
+          mainImageUrl: https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?auto=format&fit=crop&w=640&q=80
+          barcode: "690000000009"
+          updatedAt: "2026-06-09T00:00:00Z"
+      currentPage: 1
+      totalCount: 9

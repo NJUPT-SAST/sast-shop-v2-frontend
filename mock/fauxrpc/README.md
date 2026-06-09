@@ -22,9 +22,9 @@ pnpm mock:fauxrpc
 - 协议：按 FauxRPC 能力提供 gRPC、gRPC-Web 和 Connect
 - Dashboard：随 `--dashboard` 启用
 
-当前应用默认仍使用包内 mock 数据。将 `NEXT_PUBLIC_DATA_SOURCE` 设为 `local` 后，Auth/User、Address 和 Payment QR Code runtime API 会通过 `@connectrpc/connect` 的 `createClient` 和 `@connectrpc/connect-web` 的 `createConnectTransport({ baseUrl })` 访问本地 fauxrpc。
+当前 `mock` 和 `local` 数据源都会通过 `@connectrpc/connect` 的 `createClient` 和 `@connectrpc/connect-web` 的 `createConnectTransport({ baseUrl })` 访问本地 fauxrpc。runtime mock 数据只维护在本目录的 stubs 中，不在业务代码或 API facade 中手写 fixture。
 
-当前 `local` 的 `getCurrentUser` 是 smoke path，会读取提交版 stub 中的 `10001` 用户；真实 session-aware 当前用户逻辑留到后端鉴权接入阶段。
+当前 `getCurrentUser` 是 smoke path，会读取提交版 stub 中的 `10001` 用户；真实 session-aware 当前用户逻辑留到后端鉴权接入阶段。
 
 mock server URL 放在各 app 的本地配置文件中：
 
