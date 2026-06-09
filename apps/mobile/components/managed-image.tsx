@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { RiFileDamageLine, RiImageLine } from "@remixicon/react"
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import { cn } from "@workspace/ui/lib/utils"
@@ -55,9 +56,12 @@ export function ManagedImage({
         </span>
       ) : null}
       {showImage ? (
-        <img
-          src={src ?? undefined}
+        <Image
+          src={src}
           alt={alt}
+          fill
+          sizes="(max-width: 768px) 100vw, 50vw"
+          unoptimized
           className={cn(
             "absolute inset-0 size-full object-cover",
             state !== "loaded" && "opacity-0",
