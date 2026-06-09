@@ -205,6 +205,73 @@ Add a shared `Empty` component in `packages/ui` for panel-level empty and error 
 
 Payment QR rendering is a business component that composes shared primitives rather than becoming a generic UI primitive too early.
 
+## UI/UX Treatment
+
+This is product UI. The interface should feel familiar, dense enough to finish a task, and restrained. The visual design serves payment clarity rather than brand expression.
+
+### Payment Panel
+
+The payment panel is a task surface, not a product card.
+
+- Header: title first, one short sentence of guidance second. Do not repeat the product name or order summary in the panel.
+- Loading state: show skeletons in the same spatial positions as the final QR square, amount row, verify-code row, and bottom actions. Avoid centered spinners.
+- Ready state: QR code is the visual anchor. Amount and verify code sit below it as separate scan-friendly rows.
+- Verify code: use a high-contrast badge-like treatment, a monospace numeric style, and a copy button. Do not rely on color alone.
+- Primary action: label is "我已支付"; button color follows the selected channel only in the ready state.
+- Submitted state: remove QR and tabs. The focus shifts to "待确认收款", payment channel, verify code, and optional serial number.
+- Error state: use `Empty` inside the panel with a direct title, short explanation, and one primary recovery action.
+
+### QR Management Dialog
+
+The QR management dialog is a settings surface.
+
+- Use two equal channel items for WeChat and Alipay.
+- Each item shows the generated QR preview when configured.
+- Empty channel items show a neutral icon, "未上传", and an upload action.
+- Configured channel items use "修改", not "上传", and never show delete.
+- Decode failures, wrong-channel uploads, invalid files, and overlarge files use toast feedback because they are immediate user-action errors.
+- Save failures preserve the existing QR preview and show an inline error near the affected channel.
+
+### Empty and Error States
+
+Add `Empty` as the standard panel-level empty/error component.
+
+`Empty` supports:
+
+- Icon slot.
+- Title.
+- Description.
+- Optional action slot.
+
+Use `Empty` for payment-panel failures, missing seller QR codes, unauthenticated states, and not-yet-connected order tabs. Do not use ad hoc bordered cards for these states.
+
+### Auth States
+
+When auth is required and the user is not authenticated:
+
+- Show a focused `Empty` state in the affected surface.
+- The title should name the blocker, for example "需要登录后继续".
+- The description should name the next step, not explain implementation details.
+- The action label should be a verb-object phrase, such as "登录飞书账号".
+
+### Order Page
+
+The order page stays utilitarian.
+
+- Use tabs or segmented controls for "我买的" and "我卖的".
+- Persist filters in URL parameters without visual ceremony.
+- Not-yet-connected tabs use shared `Empty` with specific copy, not placeholder cards.
+- Keep cards compact and scan-friendly: order number, status, title, quantity, amount, and store/seller are enough for the list.
+
+### Motion
+
+Motion communicates state only.
+
+- Drawer open/close uses existing `ResponsiveDialog` behavior.
+- QR decode/save does not animate beyond loading feedback.
+- State changes use normal component transitions from the design system.
+- Respect reduced motion.
+
 ## ManagedImage
 
 Migrate `ManagedImage` from `<img>` to `next/image`.
