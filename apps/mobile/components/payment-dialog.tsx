@@ -200,9 +200,9 @@ function PaymentDialogBody({
           <Tabs
             value={platform}
             onValueChange={(value) => setPlatform(value as PaymentPlatform)}
-            className="min-h-0"
+            className="min-h-0 flex-col"
           >
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid h-9 w-full grid-cols-2">
               {PAYMENT_PLATFORMS.map(({ platform: value, label, icon: Icon }) => (
                 <TabsTrigger key={value} value={value}>
                   <Icon data-icon="inline-start" />
@@ -314,6 +314,8 @@ function PaymentBillSummary({
   amountCents: number
   verifyCode: string
 }) {
+  const isShortVerifyCode = verifyCode.length <= 8
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
@@ -331,7 +333,14 @@ function PaymentBillSummary({
           <RiKey2Line className="size-5 text-primary" />
           <span className="text-sm text-muted-foreground">标识码</span>
         </div>
-        <span className="break-all text-right font-mono text-2xl font-semibold tracking-[0.2em]">
+        <span
+          className={cn(
+            "min-w-0 break-all text-right font-mono font-semibold",
+            isShortVerifyCode
+              ? "text-2xl tracking-[0.2em]"
+              : "text-base leading-6 tracking-normal"
+          )}
+        >
           {verifyCode}
         </span>
       </div>

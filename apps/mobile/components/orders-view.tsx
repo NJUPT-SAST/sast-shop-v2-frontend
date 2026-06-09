@@ -174,8 +174,9 @@ export function OrdersView({
         onValueChange={(value) =>
           updateQuery({ perspective: value as Perspective, status: "all" })
         }
+        className="flex-col"
       >
-        <TabsList className="grid w-full grid-cols-2 md:w-fit">
+        <TabsList className="grid h-9 w-full grid-cols-2 md:w-fit">
           {perspectiveOptions.map((item) => (
             <TabsTrigger key={item.value} value={item.value}>
               {item.label}
@@ -189,8 +190,9 @@ export function OrdersView({
         onValueChange={(value) => {
           updateQuery({ source: value as Source, status: "all" })
         }}
+        className="flex-col"
       >
-        <TabsList className="grid w-full grid-cols-3 md:w-fit">
+        <TabsList className="grid h-9 w-full grid-cols-3 md:w-fit">
           {sourceOptions.map((item) => (
             <TabsTrigger key={item.value} value={item.value}>
               {item.label}
