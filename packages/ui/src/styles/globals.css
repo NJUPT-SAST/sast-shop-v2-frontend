@@ -3,23 +3,23 @@
 @source "../lib";
 
 :root {
-  --background: #f5f5f7;
+  --background: #fafafc;
   --foreground: #1d1d1f;
   --card: #ffffff;
   --card-foreground: #1d1d1f;
   --popover: #ffffff;
   --popover-foreground: #1d1d1f;
-  --primary: #0066cc;
+  --primary: #0071e3;
   --primary-foreground: #ffffff;
-  --secondary: #fafafc;
+  --secondary: #f5f5f7;
   --secondary-foreground: #333333;
-  --accent: #f0f0f0;
+  --accent: #f5f5f7;
   --accent-foreground: #1d1d1f;
   --destructive: #d70015;
   --destructive-foreground: #ffffff;
-  --muted: #f5f5f7;
-  --muted-foreground: #5f5f63;
-  --border: #e0e0e0;
+  --muted: #f0f0f0;
+  --muted-foreground: #6e6e73;
+  --border: #e5e5e7;
   --input: #e0e0e0;
   --ring: #0071e3;
   --radius: 0.625rem;
@@ -53,15 +53,18 @@
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
 }
 
-* {
-  border-color: var(--border);
-}
+@layer base {
+  * {
+    border-color: var(--border);
+  }
 
-body {
-  margin: 0;
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    color-scheme: light;
+  }
 }
 
 @keyframes slide-up {
