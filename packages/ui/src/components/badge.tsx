@@ -9,7 +9,7 @@ export function Badge({ className, variant = "default", ...props }: BadgeProps) 
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium",
+        "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3",
         variant === "default" && "bg-primary text-primary-foreground",
         variant === "secondary" && "bg-secondary text-secondary-foreground",
         variant === "outline" && "border text-foreground",

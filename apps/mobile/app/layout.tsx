@@ -44,7 +44,7 @@ export default async function RootLayout({
         >
           <MobileShell>{children}</MobileShell>
         </ProfileDialogsProvider>
-        <Toaster position="top-center" richColors />
+        <Toaster position="top-center" />
       </body>
     </html>
   )

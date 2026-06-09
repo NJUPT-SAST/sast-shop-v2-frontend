@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
+import { Toaster } from "@workspace/ui/components/sonner"
 import { DesktopShell } from "@/components/desktop-shell"
 import { desktopAppConfig } from "@/lib/app-config"
 import "./globals.css"
@@ -18,6 +19,7 @@ export default function RootLayout({
     <html lang="zh-CN" className="h-full antialiased">
       <body className="min-h-full">
         <DesktopShell>{children}</DesktopShell>
+        <Toaster />
       </body>
     </html>
   )

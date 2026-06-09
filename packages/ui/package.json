@@ -11,9 +11,12 @@
   "exports": {
     "./globals.css": "./src/styles/globals.css",
     "./components/*": "./src/components/*.tsx",
+    "./components/avatar": "./src/components/avatar.tsx",
     "./components/button": "./src/components/button.tsx",
     "./components/badge": "./src/components/badge.tsx",
     "./components/card": "./src/components/card.tsx",
+    "./components/radio-group": "./src/components/radio-group.tsx",
+    "./components/select": "./src/components/select.tsx",
     "./lib/*": "./src/lib/*.ts",
     "./lib/utils": "./src/lib/utils.ts"
   },

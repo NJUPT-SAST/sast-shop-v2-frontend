@@ -28,7 +28,7 @@ export function ProfileManagementClient() {
         first
       />
       <ProfileMenuButton
-        title="快捷收款码"
+        title="收款码"
         icon={<RiQrCodeLine className="size-4" />}
         onClick={openQrCodeDialog}
         border

@@ -1,4 +1,9 @@
 import { getProfileOverview, type ProfileOverview } from "@sast-shop/api"
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import {
@@ -69,16 +74,19 @@ export default async function ProfilePage() {
       {overview ? (
         <section className="grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-4">
           <Card>
-            <CardHeader>
-              <CardDescription>当前用户</CardDescription>
-              <CardTitle className="break-words text-2xl leading-8">
+            <CardContent className="flex items-center gap-4 p-6">
+              <Avatar className="size-14">
+                <AvatarImage
+                  src={overview.user.avatarUrl}
+                  alt={overview.user.name}
+                />
+                <AvatarFallback className="text-xl font-semibold">
+                  {overview.user.name.slice(0, 1)}
+                </AvatarFallback>
+              </Avatar>
+              <CardTitle className="min-w-0 break-words text-2xl leading-8">
                 {overview.user.name}
               </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="break-all text-sm text-muted-foreground">
-                用户 ID：{overview.user.id}
-              </p>
             </CardContent>
           </Card>
 

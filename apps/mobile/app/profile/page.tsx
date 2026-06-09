@@ -1,5 +1,10 @@
 import type { ProfileOverview } from "@sast-shop/api"
 import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar"
+import {
   Card,
   CardContent,
   CardDescription,
@@ -46,18 +51,18 @@ export default async function ProfilePage() {
       {overview ? (
         <Card className="rounded-lg">
           <CardContent className="flex items-center gap-3 p-4">
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-foreground">
-              {overview.user.name.slice(0, 1)}
-            </div>
-            <div className="min-w-0">
-              <CardDescription>当前用户</CardDescription>
-              <CardTitle className="mt-1 break-words text-xl leading-7">
-                {overview.user.name}
-              </CardTitle>
-              <p className="break-all text-sm leading-6 text-muted-foreground">
-                用户 ID：{overview.user.id}
-              </p>
-            </div>
+            <Avatar className="size-12">
+              <AvatarImage
+                src={overview.user.avatarUrl}
+                alt={overview.user.name}
+              />
+              <AvatarFallback className="text-lg font-semibold">
+                {overview.user.name.slice(0, 1)}
+              </AvatarFallback>
+            </Avatar>
+            <CardTitle className="min-w-0 break-words text-xl leading-7">
+              {overview.user.name}
+            </CardTitle>
           </CardContent>
         </Card>
       ) : null}

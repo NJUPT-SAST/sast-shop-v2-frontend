@@ -27,7 +27,7 @@ export function ProfileManagementClient({
   error,
 }: ProfileManagementClientProps) {
   const [activeDialog, setActiveDialog] = useState<ActiveDialog>(null)
-  const title = activeDialog === "addresses" ? "地址簿" : "快捷收款码"
+  const title = activeDialog === "addresses" ? "地址簿" : "收款码"
 
   return (
     <>
