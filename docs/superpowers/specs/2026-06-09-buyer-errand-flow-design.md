@@ -13,7 +13,7 @@ The old `../frontend-v2` implementation has a useful buyer-side errand interacti
 - Show buyer errand orders in `/orders` under `跑腿订单 / 我买的`.
 - Keep page components behind `@sast-shop/api` facade functions and never import generated proto files directly from app code.
 - Keep `mock`, `local`, and `remote` data source behavior explicit; do not silently fallback.
-- Follow `../frontend-v2` information architecture without copying its page code or orange visual accent.
+- Use `../frontend-v2` as a behavioral and information-architecture reference, while applying `$impeccable` product-UI guidance for the final visual hierarchy, density, copy, states, and interaction polish.
 
 ## Non-Goals
 
@@ -28,6 +28,12 @@ The old `../frontend-v2` implementation has a useful buyer-side errand interacti
 Build a facade-backed buyer errand vertical.
 
 Add errand facade services in `packages/api`, map generated ConnectRPC messages into frontend-safe types, add focused tests, then build mobile UI on top of those facades. This keeps the new flow production-shaped from the start and avoids a UI-only layer that would need to be unwound later.
+
+## UI/UX Direction
+
+Use `$impeccable` as the UI/UX quality bar. This is a task-focused product surface inside Feishu, not a public e-commerce landing page. The interface should feel reliable, fast, and clear: state first, amount breakdowns visible, standard controls, restrained color, and no decorative retail treatment.
+
+`../frontend-v2` is useful for behavior and information architecture: store detail, product-template selection, bottom cart entry, cart review, per-item service fee, expected delivery, and confirmation. The final implementation does not need to match its exact visual composition. In particular, keep the current single Action Blue system, avoid the old orange action color, avoid heavy card walls, and prefer compact task surfaces that make quantity, fee, deadline, and submission state easy to scan.
 
 ## Routes And Surfaces
 
@@ -62,7 +68,7 @@ Product cards show:
 - Store listed price.
 - Add button or quantity stepper.
 
-Product detail opens in a mobile Drawer through `ResponsiveDialog`, showing the larger image, listed price, description/specification, barcode, and a note that listed price is only an estimate.
+Product detail opens in a mobile Drawer through `ResponsiveDialog`, showing the larger image, listed price, description/specification, barcode, and a note that listed price is only an estimate. If the template card already gives enough context, the detail drawer should stay concise rather than becoming a decorative product showcase.
 
 ### Cart Drawer
 
@@ -192,6 +198,7 @@ Behavior:
 ## UI And Interaction Notes
 
 - Use Action Blue `primary` buttons instead of the orange buttons from `../frontend-v2`.
+- Let `$impeccable` product-register rules guide the final composition: standard controls, clear focus states, 150-250ms state motion only, no decorative motion, no over-rounded cards, no ghost-card border plus broad shadow pairing.
 - Use existing shared components first: `Button`, `Card`, `Badge`, `Input`, `InputGroup`, `ResponsiveDialog`, `Drawer`, `Empty`, `Spinner` or `Skeleton`, and `sonner`.
 - Do not nest cards inside cards.
 - Keep bottom cart bar above the mobile bottom nav and safe area.
