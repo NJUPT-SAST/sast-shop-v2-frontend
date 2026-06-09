@@ -29,6 +29,18 @@ export {
   type PaymentQrCodeInput,
 } from "./services/payment-qr-codes"
 export {
+  confirmBill,
+  getBill,
+  payBill,
+  supplementBillSerialNumber,
+  type ConfirmBillInput,
+  type PayBillInput,
+  type PaymentBill,
+  type PaymentBillStatus,
+  type PaymentBillUser,
+  type SupplementBillSerialNumberInput,
+} from "./services/payment-bills"
+export {
   getProfileOverview,
   type ProfileOverview,
 } from "./services/profile"

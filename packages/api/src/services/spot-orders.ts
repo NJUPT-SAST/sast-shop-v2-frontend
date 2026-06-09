@@ -14,6 +14,7 @@ import { resolveDataSource, type ServiceOptions } from "../data-source"
 import { FeatureUnavailableError, ValidationError } from "../errors"
 import { createLocalTransport, requestLocal } from "../local-connect"
 import { listStores, type Store } from "./catalog"
+import { mapPaymentBill, type PaymentBill } from "./payment-bills"
 
 export type SpotOrderPerspective = "purchaser" | "seller"
 export type SpotOrderStatusValue =
@@ -32,6 +33,8 @@ export interface SpotOrder {
   quantity: number
   unitPriceCents: number
   totalAmountCents: number
+  billId?: string
+  bill?: PaymentBill
   status: SpotOrderStatusValue
 }
 
@@ -126,6 +129,7 @@ function mapSpotOrder(order: ProtoSpotOrderBrief): SpotOrder {
     quantity: order.quantity,
     unitPriceCents: order.unitPriceCents,
     totalAmountCents: order.totalAmountCents,
+    billId: mapOptionalId(order.billId),
     status: mapStatusFromProto(order.status),
   }
 }
@@ -140,6 +144,8 @@ function mapSpotOrderDetail(order: ProtoSpotOrderDetail): SpotOrder {
     quantity: order.quantity,
     unitPriceCents: order.unitPriceCents,
     totalAmountCents: order.totalAmountCents,
+    billId: mapOptionalId(order.billId),
+    bill: order.bill ? mapPaymentBill(order.bill) : undefined,
     status: mapStatusFromProto(order.status),
   }
 }
@@ -163,6 +169,10 @@ function mapTemplate(template?: ProductTemplate) {
     title: template?.title ?? "未命名商品",
     description: template?.description ?? "",
   }
+}
+
+function mapOptionalId(id: bigint): string | undefined {
+  return id > 0n ? id.toString() : undefined
 }
 
 function mapPerspective(perspective: SpotOrderPerspective): SpotGoodsPerspective {

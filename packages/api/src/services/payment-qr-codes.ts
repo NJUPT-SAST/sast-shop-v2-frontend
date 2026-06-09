@@ -1,5 +1,11 @@
 import { createClient } from "@connectrpc/connect"
 import {
+  isPaymentQrContentAllowed,
+  validatePaymentQrContent,
+  type PaymentPlatform,
+  type PaymentQrContentValidationReason,
+} from "../../../domain/src"
+import {
   listMockPaymentQrCodes,
   updateMockPaymentQrCode,
 } from "@sast-shop/mocks"
@@ -52,20 +58,20 @@ export async function updatePaymentQrCode(
   input: PaymentQrCodeInput,
   options: ServiceOptions = {}
 ): Promise<PaymentQrCode> {
-  validatePaymentQrCodeInput(input)
+  const validatedInput = validatePaymentQrCodeInput(input)
 
   const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock") {
-    return mapMockQrCode(updateMockPaymentQrCode(input))
+    return mapMockQrCode(updateMockPaymentQrCode(validatedInput))
   }
 
   if (dataSource === "local") {
     const client = createClient(QrCodeService, createLocalTransport(options))
     const response = await requestLocal("updatePaymentQrCode", () =>
       client.updateQrCode({
-        channel: mapPaymentQrChannelToProto(input.channel),
-        content: input.content,
+        channel: mapPaymentQrChannelToProto(validatedInput.channel),
+        content: validatedInput.content,
       })
     )
 
@@ -79,13 +85,22 @@ export async function updatePaymentQrCode(
   throw new FeatureUnavailableError("updatePaymentQrCode")
 }
 
-function validatePaymentQrCodeInput(input: PaymentQrCodeInput) {
+function validatePaymentQrCodeInput(input: PaymentQrCodeInput): PaymentQrCodeInput {
   if (!isPaymentQrChannel(input.channel)) {
     throw new ValidationError("收款码渠道不正确")
   }
 
-  if (!input.content.trim()) {
-    throw new ValidationError("收款码内容不能为空")
+  const result = validatePaymentQrContent(input.channel, input.content)
+
+  if (!result.ok) {
+    throw new ValidationError(
+      getPaymentQrValidationMessage(input.channel, input.content, result.reason)
+    )
+  }
+
+  return {
+    channel: input.channel,
+    content: result.content,
   }
 }
 
@@ -99,6 +114,38 @@ function parseInt64(value: string, message: string): bigint {
 
 function isPaymentQrChannel(channel: unknown): channel is PaymentQrChannel {
   return channel === "wechat" || channel === "alipay"
+}
+
+function getPaymentQrValidationMessage(
+  channel: PaymentPlatform,
+  content: string,
+  reason: PaymentQrContentValidationReason
+): string {
+  if (reason === "empty") {
+    return "收款码内容不能为空"
+  }
+
+  if (reason === "too-long") {
+    return "收款码内容过长"
+  }
+
+  if (reason === "control-character") {
+    return "收款码内容包含不支持的字符"
+  }
+
+  if (content.trim().startsWith("data:image/")) {
+    return "收款码内容不支持，请上传对应渠道的收款码文本"
+  }
+
+  if (isPaymentQrContentAllowed(getOtherPaymentQrChannel(channel), content)) {
+    return "收款码内容与渠道不匹配"
+  }
+
+  return "收款码内容不支持，请上传对应渠道的收款码文本"
+}
+
+function getOtherPaymentQrChannel(channel: PaymentPlatform): PaymentPlatform {
+  return channel === "wechat" ? "alipay" : "wechat"
 }
 
 function mapMockQrCode(qrCode: PaymentQrCode): PaymentQrCode {
