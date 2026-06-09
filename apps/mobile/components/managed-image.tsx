@@ -35,7 +35,7 @@ export function ManagedImage({
         : "empty"
 
   const Icon = state === "error" ? RiFileDamageLine : RiImageLine
-  const showImage = Boolean(src) && state !== "error"
+  const imageSrc = currentSrc && state !== "error" ? currentSrc : null
   const updateState = (nextState: ImageState) => {
     setImageState({ src: currentSrc, state: nextState })
   }
@@ -55,9 +55,9 @@ export function ManagedImage({
           <Icon className="size-6" />
         </span>
       ) : null}
-      {showImage ? (
+      {imageSrc ? (
         <Image
-          src={src}
+          src={imageSrc}
           alt={alt}
           fill
           sizes="(max-width: 768px) 100vw, 50vw"

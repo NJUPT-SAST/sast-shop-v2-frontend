@@ -10,11 +10,11 @@ export const mockPaymentQrCodes: MockPaymentQrCode[] = [
   {
     id: "2001",
     channel: "wechat",
-    content: "https://example.test/pay/wechat/sast",
+    content: "wxp://f2f0sastshopwechat",
   },
   {
     id: "2002",
     channel: "alipay",
-    content: "https://example.test/pay/alipay/sast",
+    content: "https://qr.alipay.com/fkx-sast-shop",
   },
 ]

@@ -9,6 +9,7 @@ import {
   type ChangeEvent,
   type ReactNode,
 } from "react"
+import { usePathname, useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
   RiAddLine,
@@ -18,7 +19,6 @@ import {
   RiImageLine,
   RiMapPinLine,
   RiPencilLine,
-  RiQrCodeLine,
   RiUploadLine,
   RiWechatPayLine,
 } from "@remixicon/react"
@@ -32,9 +32,14 @@ import {
   type ProfileOverview,
   type ServiceOptions,
 } from "@sast-shop/api"
+import {
+  validatePaymentQrContent,
+  type PaymentQrContentValidationReason,
+} from "@sast-shop/domain"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Card, CardContent } from "@workspace/ui/components/card"
+import { Empty } from "@workspace/ui/components/empty"
 import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
 import {
@@ -53,7 +58,8 @@ import {
   writeDefaultPaymentPlatform,
   type PaymentPlatform,
 } from "@/lib/payment-preferences"
-import { ManagedImage } from "./managed-image"
+import { decodePaymentQrImage } from "@/lib/qr-image-decoder"
+import { PaymentQrCode } from "./payment-qr-code"
 
 type Address = ProfileOverview["addresses"][number]
 type AddressInput = Omit<Address, "id">
@@ -114,6 +120,8 @@ export function ProfileDialogsProvider({
   }>({ open: false })
   const [mutationError, setMutationError] = useState<string | null>(null)
   const [pendingAction, setPendingAction] = useState<string | null>(null)
+  const router = useRouter()
+  const pathname = usePathname()
   const serviceOptions: ServiceOptions = { dataSource, connectBaseUrl }
 
   useEffect(() => {
@@ -123,6 +131,59 @@ export function ProfileDialogsProvider({
 
     return () => window.clearTimeout(timeoutId)
   }, [])
+
+  useEffect(() => {
+    let timeoutId: number | null = null
+    const syncDialogFromLocation = () => {
+      const dialog = getDialogFromLocation()
+
+      timeoutId = window.setTimeout(() => {
+        setAddressOpen(dialog === "address")
+        setPaymentPreferenceOpen(dialog === "payment-preference")
+        setQrOpen(dialog === "qr-code")
+      }, 0)
+    }
+
+    syncDialogFromLocation()
+    window.addEventListener("popstate", syncDialogFromLocation)
+
+    return () => {
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId)
+      }
+      window.removeEventListener("popstate", syncDialogFromLocation)
+    }
+  }, [])
+
+  function setDialogQuery(dialog: string | null) {
+    const params = new URLSearchParams(window.location.search)
+
+    if (dialog) {
+      params.set("dialog", dialog)
+    } else {
+      params.delete("dialog")
+    }
+
+    const query = params.toString()
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
+  }
+
+  function updateDialogOpen(
+    open: boolean,
+    dialog: "address" | "payment-preference" | "qr-code",
+    setOpen: (open: boolean) => void
+  ) {
+    setOpen(open)
+
+    if (open) {
+      setDialogQuery(dialog)
+      return
+    }
+
+    if (getDialogFromLocation() === dialog) {
+      setDialogQuery(null)
+    }
+  }
 
   function saveDefaultPaymentPlatform(platform: PaymentPlatform) {
     writeDefaultPaymentPlatform(platform)
@@ -134,14 +195,16 @@ export function ProfileDialogsProvider({
     action: string,
     operation: () => Promise<void>,
     fallbackMessage: string
-  ) {
+  ): Promise<boolean> {
     setMutationError(null)
     setPendingAction(action)
 
     try {
       await operation()
+      return true
     } catch {
       setMutationError(fallbackMessage)
+      return false
     } finally {
       setPendingAction(null)
     }
@@ -213,7 +276,7 @@ export function ProfileDialogsProvider({
   }
 
   async function upsertQrCode(channel: PaymentQrChannel, content: string) {
-    await runMutation(
+    return runMutation(
       `qr-${channel}`,
       async () => {
         const savedQrCode = await updatePaymentQrCode(
@@ -242,9 +305,10 @@ export function ProfileDialogsProvider({
   return (
     <ProfileDialogsContext.Provider
       value={{
-        openAddressDialog: () => setAddressOpen(true),
-        openPaymentPreferenceDialog: () => setPaymentPreferenceOpen(true),
-        openQrCodeDialog: () => setQrOpen(true),
+        openAddressDialog: () => updateDialogOpen(true, "address", setAddressOpen),
+        openPaymentPreferenceDialog: () =>
+          updateDialogOpen(true, "payment-preference", setPaymentPreferenceOpen),
+        openQrCodeDialog: () => updateDialogOpen(true, "qr-code", setQrOpen),
       }}
     >
       {children}
@@ -252,7 +316,7 @@ export function ProfileDialogsProvider({
       <ResponsiveDialog
         forceDrawer
         open={addressOpen}
-        onOpenChange={setAddressOpen}
+        onOpenChange={(open) => updateDialogOpen(open, "address", setAddressOpen)}
       >
         <ResponsiveDialogContent className="max-h-[86dvh] overflow-hidden px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-lg">
           <div className="mx-auto flex max-h-[calc(86dvh-2rem)] min-h-0 w-full max-w-md flex-col gap-4">
@@ -352,7 +416,11 @@ export function ProfileDialogsProvider({
         </ResponsiveDialogContent>
       </ResponsiveDialog>
 
-      <ResponsiveDialog forceDrawer open={qrOpen} onOpenChange={setQrOpen}>
+      <ResponsiveDialog
+        forceDrawer
+        open={qrOpen}
+        onOpenChange={(open) => updateDialogOpen(open, "qr-code", setQrOpen)}
+      >
         <ResponsiveDialogContent className="max-h-[86dvh] overflow-hidden px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-md">
           <div className="mx-auto flex max-h-[calc(86dvh-2rem)] w-full max-w-md flex-col gap-4 overflow-y-auto">
             <ResponsiveDialogHeader className="px-0 text-left">
@@ -381,7 +449,9 @@ export function ProfileDialogsProvider({
       <ResponsiveDialog
         forceDrawer
         open={paymentPreferenceOpen}
-        onOpenChange={setPaymentPreferenceOpen}
+        onOpenChange={(open) =>
+          updateDialogOpen(open, "payment-preference", setPaymentPreferenceOpen)
+        }
       >
         <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-md">
           <div className="mx-auto flex w-full max-w-md flex-col gap-4">
@@ -418,15 +488,11 @@ function AddressList({
 }) {
   if (addresses.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed bg-muted/40 px-4 py-8 text-center">
-        <span className="flex size-11 items-center justify-center rounded-full bg-card">
-          <RiMapPinLine className="size-5 text-muted-foreground" />
-        </span>
-        <p className="text-sm font-medium">暂无收货地址</p>
-        <p className="text-sm leading-6 text-muted-foreground">
-          添加常用地址后，下单时可以更快填写收货信息。
-        </p>
-      </div>
+      <Empty
+        icon={<RiMapPinLine className="size-5" />}
+        title="暂无收货地址"
+        description="添加常用地址后，下单时可以更快填写收货信息。"
+      />
     )
   }
 
@@ -653,7 +719,7 @@ function QrCodeList({
 }: {
   pendingAction: string | null
   qrCodes: PaymentQrCode[]
-  onUpsert: (channel: PaymentQrChannel, content: string) => Promise<void>
+  onUpsert: (channel: PaymentQrChannel, content: string) => Promise<boolean>
 }) {
   const channels: Array<{
     channel: PaymentQrChannel
@@ -696,7 +762,7 @@ function QrCodeItem({
   icon: typeof RiWechatPayLine
   qrCode?: PaymentQrCode
   pending: boolean
-  onUpsert: (channel: PaymentQrChannel, content: string) => Promise<void>
+  onUpsert: (channel: PaymentQrChannel, content: string) => Promise<boolean>
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -706,14 +772,26 @@ function QrCodeItem({
       return
     }
 
-    await onUpsert(channel, await readFileAsDataUrl(file))
-    event.target.value = ""
-  }
+    try {
+      const content = await decodePaymentQrImage(file)
+      const validation = validatePaymentQrContent(channel, content)
 
-  const isImageContent =
-    qrCode?.content.startsWith("blob:") ||
-    qrCode?.content.startsWith("data:image") ||
-    qrCode?.content.startsWith("http")
+      if (!validation.ok) {
+        toast.error(getQrContentValidationMessage(label, validation.reason))
+        return
+      }
+
+      const saved = await onUpsert(channel, validation.content)
+
+      if (saved) {
+        toast.success(`${label}收款码已保存`)
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "二维码解析失败")
+    } finally {
+      event.target.value = ""
+    }
+  }
 
   return (
     <div className="flex min-w-0 flex-col items-center gap-3 rounded-lg border bg-card p-3">
@@ -723,18 +801,13 @@ function QrCodeItem({
       </div>
 
       <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg border bg-white p-2">
-        {qrCode && isImageContent ? (
-          <ManagedImage
-            src={qrCode.content}
-            alt={label}
-            className="size-full rounded-md bg-white"
-            imageClassName="object-contain"
+        {qrCode ? (
+          <PaymentQrCode
+            content={qrCode.content}
+            channel={channel}
+            className="w-full shadow-none"
+            size={160}
           />
-        ) : qrCode ? (
-          <div className="flex flex-col items-center gap-2 text-center text-muted-foreground">
-            <RiQrCodeLine className="size-8" />
-            <span className="text-xs">已配置</span>
-          </div>
         ) : (
           <div className="flex flex-col items-center gap-2 text-center text-muted-foreground">
             <RiImageLine className="size-8 opacity-50" />
@@ -743,7 +816,7 @@ function QrCodeItem({
         )}
       </div>
 
-      {qrCode && !isImageContent ? (
+      {qrCode ? (
         <p className="w-full truncate text-center text-xs text-muted-foreground">
           {qrCode.content}
         </p>
@@ -836,12 +909,21 @@ function formatAddress(address: Address) {
   return `${address.province}${address.city}${address.district}${address.detailAddress}`
 }
 
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
+function getDialogFromLocation() {
+  return new URLSearchParams(window.location.search).get("dialog")
+}
 
-    reader.addEventListener("load", () => resolve(String(reader.result ?? "")))
-    reader.addEventListener("error", () => reject(reader.error))
-    reader.readAsDataURL(file)
-  })
+function getQrContentValidationMessage(
+  label: string,
+  reason: PaymentQrContentValidationReason
+) {
+  if (reason === "too-long") {
+    return "二维码内容过长，请换一个收款码"
+  }
+
+  if (reason === "control-character") {
+    return "二维码内容包含不支持的字符"
+  }
+
+  return `这不是${label}收款码，请重新上传`
 }

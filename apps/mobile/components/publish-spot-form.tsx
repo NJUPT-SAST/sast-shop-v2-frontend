@@ -17,6 +17,7 @@ import { toast } from "sonner"
 import * as z from "zod"
 import {
   createSpotGoods,
+  listPaymentQrCodes,
   type DataSource,
   type ProductTemplate,
   type ServiceOptions,
@@ -47,6 +48,7 @@ import {
   ItemDescription,
   ItemTitle,
 } from "@workspace/ui/components/item"
+import { useProfileDialogs } from "./profile-dialogs-provider"
 
 const formSchema = z.object({
   barcode: z
@@ -87,6 +89,7 @@ export function PublishSpotForm({
   error: string | null
 }) {
   const serviceOptions: ServiceOptions = { dataSource, connectBaseUrl }
+  const { openQrCodeDialog } = useProfileDialogs()
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -159,6 +162,14 @@ export function PublishSpotForm({
     setSubmissionError(null)
 
     try {
+      const qrCodes = await listPaymentQrCodes(serviceOptions)
+
+      if (qrCodes.length === 0) {
+        toast.error("请先配置收款码，再上架现货")
+        openQrCodeDialog()
+        return
+      }
+
       await createSpotGoods(
         {
           productTemplateId: selectedTemplate.id,

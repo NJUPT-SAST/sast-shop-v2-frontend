@@ -4,7 +4,7 @@ import {
   validatePaymentQrContent,
   type PaymentPlatform,
   type PaymentQrContentValidationReason,
-} from "../../../domain/src"
+} from "@sast-shop/domain"
 import {
   listMockPaymentQrCodes,
   updateMockPaymentQrCode,

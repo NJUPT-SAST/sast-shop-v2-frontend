@@ -8,7 +8,6 @@ import {
   getBill,
   payBill,
   supplementBillSerialNumber,
-  type ConfirmBillInput,
   type PayBillInput,
   type PaymentBill,
   type SupplementBillSerialNumberInput,
@@ -161,12 +160,11 @@ describe("payment bill service", () => {
     await expect(
       confirmBill(
         {
-          billId: "12",
-          verifyCode: "12A4",
-        } satisfies ConfirmBillInput,
+          billId: "",
+        },
         localOptions
       )
-    ).rejects.toThrow("账单核验码不正确")
+    ).rejects.toThrow("账单 ID 不正确")
     await expect(
       supplementBillSerialNumber(
         {

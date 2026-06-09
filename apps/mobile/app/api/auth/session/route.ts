@@ -14,6 +14,19 @@ function sessionCookieOptions() {
   }
 }
 
+function isSameOriginRequest(request: Request) {
+  const requestOrigin = new URL(request.url).origin
+  const origin = request.headers.get("origin")
+
+  if (origin) {
+    return origin === requestOrigin
+  }
+
+  const referer = request.headers.get("referer")
+
+  return referer ? new URL(referer).origin === requestOrigin : false
+}
+
 async function readToken(request: Request): Promise<string | null> {
   const body: unknown = await request.json().catch(() => null)
 
@@ -32,6 +45,10 @@ export async function POST(request: Request) {
   if (parseAuthMode(process.env.AUTH_MODE) === "off") {
     cookieStore.delete(sessionCookieName)
     return new Response(null, { status: 204 })
+  }
+
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: "Invalid request origin" }, { status: 403 })
   }
 
   const token = await readToken(request)

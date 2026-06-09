@@ -8,7 +8,9 @@ import {
 import {
   createSpotOrders,
   listPaymentQrCodes,
+  payBill,
   type DataSource,
+  type PaymentBill,
   type ServiceOptions,
   type SpotGoods,
 } from "@sast-shop/api"
@@ -37,7 +39,7 @@ import {
   type PaymentPlatform,
 } from "@/lib/payment-preferences"
 import { ManagedImage } from "./managed-image"
-import { PaymentDialog } from "./payment-dialog"
+import { PaymentDialog, type PaymentDialogStatus } from "./payment-dialog"
 
 type SpotProduct = {
   id: string
@@ -51,6 +53,14 @@ type SpotProduct = {
   barcode: string
   imageUrl: string
   updatedAt: string | null
+}
+
+type CheckoutDraft = {
+  product: SpotProduct
+  quantity: number
+  status: PaymentDialogStatus
+  bill: PaymentBill | null
+  errorMessage?: string
 }
 
 export function SpotMarketplace({
@@ -85,10 +95,7 @@ export function SpotMarketplace({
   const [selectedProduct, setSelectedProduct] = useState<SpotProduct | null>(
     null
   )
-  const [checkoutDraft, setCheckoutDraft] = useState<{
-    product: SpotProduct
-    quantity: number
-  } | null>(null)
+  const [checkoutDraft, setCheckoutDraft] = useState<CheckoutDraft | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [query, setQuery] = useState("")
   const [defaultPlatform, setDefaultPlatform] =
@@ -144,73 +151,164 @@ export function SpotMarketplace({
   async function startCheckout() {
     if (!selectedProduct) return
 
-    if (!selectedProduct.sellerId) {
+    await beginCheckout(selectedProduct, quantity)
+  }
+
+  async function beginCheckout(product: SpotProduct, checkoutQuantity: number) {
+    if (!product.sellerId) {
       toast.error("发布者收款信息暂不可用")
       return
     }
 
+    const currentDefaultPlatform = readDefaultPaymentPlatform()
+
+    setDefaultPlatform(currentDefaultPlatform)
+    setPaymentQrCodes({})
+    setCheckoutDraft({
+      product,
+      quantity: checkoutQuantity,
+      status: "loading",
+      bill: null,
+    })
+    setSelectedProduct(null)
+    setSubmitted(false)
     setSubmitting(true)
 
+    let createdBill: PaymentBill | null = null
+
     try {
-      const currentDefaultPlatform = readDefaultPaymentPlatform()
-      setDefaultPlatform(currentDefaultPlatform)
-      setPaymentQrCodes({})
-
-      const qrCodes = await listPaymentQrCodes({
-        ...serviceOptions,
-        ownerId: selectedProduct.sellerId,
-      })
-
-      setPaymentQrCodes(
-        qrCodes.reduce<Partial<Record<PaymentPlatform, string>>>(
-          (mappedQrCodes, qrCode) => ({
-            ...mappedQrCodes,
-            [qrCode.channel]: qrCode.content,
-          }),
-          {}
-        )
+      const createdOrders = await createSpotOrders(
+        [
+          {
+            spotGoodsId: product.id,
+            quantity: checkoutQuantity,
+            updatedAt: product.updatedAt,
+          },
+        ],
+        serviceOptions
       )
-      setCheckoutDraft({ product: selectedProduct, quantity })
-      setSelectedProduct(null)
-      setSubmitted(false)
+      const createdOrder = createdOrders[0]
+
+      if (!createdOrder?.bill) {
+        throw new Error("missing bill")
+      }
+
+      createdBill = createdOrder.bill
+      const mappedQrCodes = await loadSellerPaymentQrCodes(product.sellerId)
+
+      setPaymentQrCodes(mappedQrCodes)
+      setDefaultPlatform(resolveAvailablePaymentPlatform(mappedQrCodes, currentDefaultPlatform))
+      setCheckoutDraft({
+        product,
+        quantity: checkoutQuantity,
+        status: "ready",
+        bill: createdBill,
+      })
     } catch {
-      toast.error("收款码暂不可用，请稍后再试")
+      setCheckoutDraft({
+        product,
+        quantity: checkoutQuantity,
+        status: "error",
+        bill: createdBill,
+        errorMessage: createdBill
+          ? "收款码暂不可用，请稍后重试。"
+          : "支付账单暂不可用，请稍后再试。",
+      })
     } finally {
       setSubmitting(false)
     }
   }
 
-  async function submitOrder() {
-    if (!checkoutDraft || submitting || submitted) return
+  async function retryCheckoutQrCodes(draft: CheckoutDraft) {
+    if (!draft.product.sellerId || !draft.bill) {
+      await beginCheckout(draft.product, draft.quantity)
+      return
+    }
+
+    const currentDefaultPlatform = readDefaultPaymentPlatform()
+
+    setDefaultPlatform(currentDefaultPlatform)
+    setPaymentQrCodes({})
+    setCheckoutDraft({
+      ...draft,
+      status: "loading",
+      errorMessage: undefined,
+    })
+    setSubmitting(true)
+
+    try {
+      const mappedQrCodes = await loadSellerPaymentQrCodes(draft.product.sellerId)
+
+      setPaymentQrCodes(mappedQrCodes)
+      setDefaultPlatform(resolveAvailablePaymentPlatform(mappedQrCodes, currentDefaultPlatform))
+      setCheckoutDraft({
+        ...draft,
+        status: "ready",
+        errorMessage: undefined,
+      })
+    } catch {
+      setCheckoutDraft({
+        ...draft,
+        status: "error",
+        errorMessage: "收款码暂不可用，请稍后重试。",
+      })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function loadSellerPaymentQrCodes(sellerId: string) {
+    const qrCodes = await listPaymentQrCodes({
+      ...serviceOptions,
+      ownerId: sellerId,
+    })
+
+    return qrCodes.reduce<Partial<Record<PaymentPlatform, string>>>(
+      (mappedQrCodes, qrCode) => ({
+        ...mappedQrCodes,
+        [qrCode.channel]: qrCode.content,
+      }),
+      {}
+    )
+  }
+
+  async function submitPayment(platform: PaymentPlatform) {
+    if (!checkoutDraft?.bill || submitting || submitted) return
 
     setSubmitting(true)
 
     try {
-      await createSpotOrders(
-        [
-          {
-            spotGoodsId: checkoutDraft.product.id,
-            quantity: checkoutDraft.quantity,
-            updatedAt: checkoutDraft.product.updatedAt,
-          },
-        ],
+      const paidBill = await payBill(
+        {
+          billId: checkoutDraft.bill.id,
+          channel: platform,
+          updatedAt: checkoutDraft.bill.updatedAt,
+        },
         serviceOptions
       )
       setSubmitted(true)
+      setCheckoutDraft((current) =>
+        current
+          ? {
+              ...current,
+              status: "submitted",
+              bill: paidBill,
+            }
+          : current
+      )
       toast.success("订单已提交，等待收款确认")
     } catch {
-      toast.error("订单提交失败，请稍后再试")
+      toast.error("支付提交失败，请稍后再试")
     } finally {
       setSubmitting(false)
     }
   }
 
   const amount = checkoutDraft
-    ? checkoutDraft.product.price * checkoutDraft.quantity
+    ? (checkoutDraft.bill?.amountCents ??
+      checkoutDraft.product.price * checkoutDraft.quantity)
     : 0
-  const verifyCode = checkoutDraft
-    ? String((4821 + Number(checkoutDraft.product.id || 0)) % 10000).padStart(4, "0")
-    : "4821"
+  const verifyCode = checkoutDraft?.bill?.verifyCode ?? ""
 
   return (
     <div className="flex flex-1 flex-col gap-6 py-6">
@@ -381,17 +479,37 @@ export function SpotMarketplace({
         verifyCode={verifyCode}
         qrCodes={paymentQrCodes}
         defaultPlatform={defaultPlatform}
-        submitting={submitting || submitted}
+        status={checkoutDraft?.status ?? "loading"}
+        errorMessage={checkoutDraft?.errorMessage}
+        submitting={submitting}
         onCancelPayment={() => {
           setCheckoutDraft(null)
           toast.message("已取消支付")
         }}
-        onPay={() => {
-          void submitOrder()
+        onPay={(platform) => {
+          void submitPayment(platform)
+        }}
+        onRetry={() => {
+          if (checkoutDraft) {
+            void retryCheckoutQrCodes(checkoutDraft)
+          }
         }}
       />
     </div>
   )
+}
+
+const PAYMENT_PLATFORM_ORDER: PaymentPlatform[] = ["wechat", "alipay"]
+
+function resolveAvailablePaymentPlatform(
+  qrCodes: Partial<Record<PaymentPlatform, string>>,
+  preferredPlatform: PaymentPlatform
+) {
+  const fallbackPlatform = PAYMENT_PLATFORM_ORDER.find((platform) => qrCodes[platform])
+
+  return qrCodes[preferredPlatform] || !fallbackPlatform
+    ? preferredPlatform
+    : fallbackPlatform
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {

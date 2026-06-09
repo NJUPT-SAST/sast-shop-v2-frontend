@@ -28,6 +28,7 @@ const blockedResponseHeaders = new Set([
   ...hopByHopHeaders,
   "content-encoding",
   "content-length",
+  "set-cookie",
 ])
 
 type ConnectRouteContext = {

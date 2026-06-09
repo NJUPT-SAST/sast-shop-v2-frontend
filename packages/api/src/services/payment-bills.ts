@@ -56,7 +56,6 @@ export interface PayBillInput {
 
 export interface ConfirmBillInput {
   billId: string
-  verifyCode: string
   updatedAt?: TimestampInput
 }
 
@@ -190,8 +189,6 @@ function validatePayBillInput(input: PayBillInput) {
 }
 
 function validateConfirmBillInput(input: ConfirmBillInput) {
-  validateVerifyCode(input.verifyCode)
-
   return {
     billId: parseInt64(input.billId, "账单 ID 不正确"),
     updatedAt: parseTimestampInput(input.updatedAt),
@@ -211,12 +208,6 @@ function validateSupplementSerialNumberInput(
     billId: parseInt64(input.billId, "账单 ID 不正确"),
     serialNumber,
     updatedAt: parseTimestampInput(input.updatedAt),
-  }
-}
-
-function validateVerifyCode(verifyCode: string) {
-  if (!/^\d{4}$/.test(verifyCode.trim())) {
-    throw new ValidationError("账单核验码不正确")
   }
 }
 
