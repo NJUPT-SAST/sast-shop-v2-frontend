@@ -49,5 +49,6 @@ next-env.d.ts
 
 # Agent files
 .agents/
+.superpowers/
 .worktrees/
 skills-lock.json
