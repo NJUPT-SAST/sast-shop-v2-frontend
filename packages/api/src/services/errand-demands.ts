@@ -1,12 +1,18 @@
 import { createClient } from "@connectrpc/connect"
 import {
+  timestampDate,
   timestampFromDate,
   type Timestamp,
 } from "@bufbuild/protobuf/wkt"
+import type { ProductTemplate as ProtoProductTemplate } from "../gen/sast/sastshopv2/catalog/v1/product_template_pb"
+import type { ErrandDemandByStore as ProtoErrandDemandByStore } from "../gen/sast/sastshopv2/errand/v1/errand_demand_by_store_pb"
+import type { ErrandDemandDetail as ProtoErrandDemandDetail } from "../gen/sast/sastshopv2/errand/v1/errand_demand_detail_pb"
+import type { ErrandDemandDetailRequester as ProtoErrandDemandDetailRequester } from "../gen/sast/sastshopv2/errand/v1/errand_demand_detail_requester_pb"
 import { ErrandDemandService } from "../gen/sast/sastshopv2/errand/v1/errand_demand_service_pb"
 import { resolveDataSource, type ServiceOptions } from "../data-source"
 import { FeatureUnavailableError, ValidationError } from "../errors"
 import { createLocalTransport, requestLocal } from "../local-connect"
+import type { ProductTemplate } from "./product-templates"
 
 const MAX_SIGNED_INT64 = 9223372036854775807n
 
@@ -23,6 +29,34 @@ export interface CreateErrandDemandInput {
 
 export interface CreateErrandDemandResult {
   errandDemandId: string
+}
+
+export interface ErrandDemandStoreSummary {
+  storeId: string
+  storeName: string
+  participantAvatars: string[]
+  totalOriginUnitPriceCents: number
+  totalServiceFeeCents: number
+  updatedAt: string | null
+}
+
+export interface ErrandDemandRequester {
+  requesterId: string
+  requesterName: string
+  requesterAvatarUrl: string
+  quantity: number
+  serviceFeePerUnitCents: number
+  errandDemandItemId: string
+  deadline: string | null
+  updatedAt: string | null
+}
+
+export interface ErrandDemandDetailGroup {
+  errandDemandId: string
+  productTemplate: ProductTemplate | null
+  estimatedUnitPriceCents: number
+  quantity: number
+  requesters: ErrandDemandRequester[]
 }
 
 export async function createErrandDemand(
@@ -42,6 +76,53 @@ export async function createErrandDemand(
   }
 
   throw new FeatureUnavailableError("createErrandDemand")
+}
+
+export async function listErrandDemandStores(
+  options: ServiceOptions & {
+    storeName?: string
+    page?: number
+    pageSize?: number
+  } = {}
+): Promise<ErrandDemandStoreSummary[]> {
+  const dataSource = resolveDataSource(options)
+
+  if (dataSource === "mock" || dataSource === "local") {
+    const client = createClient(ErrandDemandService, createLocalTransport(options))
+    const response = await requestLocal("listErrandDemandStores", () =>
+      client.getDemandList({
+        page: parsePositiveInteger(options.page ?? 1, "页码不正确"),
+        pageSize: parsePositiveInteger(options.pageSize ?? 50, "每页数量不正确"),
+        ...(options.storeName?.trim()
+          ? { storeName: options.storeName.trim() }
+          : {}),
+      })
+    )
+
+    return response.demands.map(mapErrandDemandStore)
+  }
+
+  throw new FeatureUnavailableError("listErrandDemandStores")
+}
+
+export async function getErrandDemandDetails(
+  input: { storeId: string },
+  options: ServiceOptions = {}
+): Promise<ErrandDemandDetailGroup[]> {
+  const dataSource = resolveDataSource(options)
+
+  if (dataSource === "mock" || dataSource === "local") {
+    const client = createClient(ErrandDemandService, createLocalTransport(options))
+    const response = await requestLocal("getErrandDemandDetails", () =>
+      client.getDemandDetail({
+        storeId: parseInt64(input.storeId, "店铺 ID 不正确"),
+      })
+    )
+
+    return response.details.map(mapErrandDemandDetail)
+  }
+
+  throw new FeatureUnavailableError("getErrandDemandDetails")
 }
 
 function parseCreateErrandDemandInput(input: CreateErrandDemandInput) {
@@ -72,6 +153,73 @@ function parseCreateErrandDemandInput(input: CreateErrandDemandInput) {
       }
     }),
   }
+}
+
+function mapErrandDemandStore(
+  demand: ProtoErrandDemandByStore
+): ErrandDemandStoreSummary {
+  return {
+    storeId: demand.storeId.toString(),
+    storeName: demand.storeName,
+    participantAvatars: demand.participantAvatars,
+    totalOriginUnitPriceCents: demand.totalOriginUnitPriceCents,
+    totalServiceFeeCents: demand.totalServiceFeeCents,
+    updatedAt: formatTimestamp(demand.updatedAt),
+  }
+}
+
+function mapErrandDemandDetail(
+  detail: ProtoErrandDemandDetail
+): ErrandDemandDetailGroup {
+  return {
+    errandDemandId: detail.errandDemandId.toString(),
+    productTemplate: mapProductTemplate(detail.productTemplate),
+    estimatedUnitPriceCents: detail.estimatedUnitPriceCents,
+    quantity: detail.quantity,
+    requesters: detail.requesters.map(mapErrandDemandRequester),
+  }
+}
+
+function mapErrandDemandRequester(
+  requester: ProtoErrandDemandDetailRequester
+): ErrandDemandRequester {
+  return {
+    requesterId: requester.requesterId.toString(),
+    requesterName: requester.requesterName,
+    requesterAvatarUrl: requester.requesterAvatarUrl,
+    quantity: requester.quantity,
+    serviceFeePerUnitCents: requester.serviceFeePerUnitCents,
+    errandDemandItemId: requester.errandDemandItemId.toString(),
+    deadline: formatTimestamp(requester.deadline),
+    updatedAt: formatTimestamp(requester.updatedAt),
+  }
+}
+
+function mapProductTemplate(
+  template: ProtoProductTemplate | undefined
+): ProductTemplate | null {
+  if (!template) {
+    return null
+  }
+
+  return {
+    id: template.id.toString(),
+    title: template.title,
+    description: template.description,
+    priceCents: template.priceCents,
+    storeId: template.storeId.toString(),
+    mainImageUrl: template.mainImageUrl,
+    barcode: template.barcode,
+    updatedAt: formatTimestamp(template.updatedAt),
+  }
+}
+
+function formatTimestamp(timestamp: Timestamp | undefined): string | null {
+  if (!timestamp) {
+    return null
+  }
+
+  return timestampDate(timestamp).toISOString()
 }
 
 function parseInt64(value: string, message: string): bigint {

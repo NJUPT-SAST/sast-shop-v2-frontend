@@ -1,0 +1,31 @@
+stubs:
+  - id: spot-order-get-detail
+    target: sast.sastshopv2.spot.v1.SpotOrderService/GetSpotOrderDetail
+    content:
+      spotOrderDetail:
+        id: "2001"
+        orderNo: "20260609001"
+        store:
+          id: "3001"
+          name: SAST 小卖部
+          address: 仙林校区活动室
+          logoUrl: https://avatars.githubusercontent.com/u/37794833?s=200&v=4
+          themeColor: "#0071e3"
+        productSnapshot:
+          id: "4001"
+          title: 农夫山泉矿泉水
+          description: 550ml 瓶装水，适合活动采购
+          priceCents: 200
+          storeId: "3001"
+          mainImageUrl: https://images.unsplash.com/photo-1564419320461-6870880221ad?auto=format&fit=crop&w=640&q=80
+          barcode: "690000000001"
+          updatedAt: "2026-06-09T00:00:00Z"
+        quantity: 2
+        unitPriceCents: 200
+        totalAmountCents: 400
+        billId: "9001"
+        bill:
+          id: "9001"
+          billNo: "1234"
+          status: BILL_STATUS_UNPAID
+        status: SPOT_ORDER_STATUS_PENDING_PAYMENT

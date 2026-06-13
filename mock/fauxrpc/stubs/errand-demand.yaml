@@ -1,0 +1,70 @@
+stubs:
+  - id: errand-demand-get-list
+    target: sast.sastshopv2.errand.v1.ErrandDemandService/GetDemandList
+    content:
+      demands:
+        - storeId: "3001"
+          storeName: SAST 小卖部
+          participantAvatars:
+            - https://example.test/avatar/li.png
+            - https://example.test/avatar/wang.png
+            - https://example.test/avatar/chen.png
+          totalOriginUnitPriceCents: 4200
+          totalServiceFeeCents: 800
+          updatedAt: "2026-06-10T06:20:00Z"
+      currentPage: 1
+      totalCount: 1
+  - id: errand-demand-get-detail
+    target: sast.sastshopv2.errand.v1.ErrandDemandService/GetDemandDetail
+    content:
+      details:
+        - errandDemandId: "9001"
+          productTemplate:
+            id: "4001"
+            title: 农夫山泉矿泉水
+            description: 550ml 瓶装水，适合活动采购
+            priceCents: 200
+            storeId: "3001"
+            mainImageUrl: https://images.unsplash.com/photo-1564419320461-6870880221ad?auto=format&fit=crop&w=640&q=80
+            barcode: "690000000001"
+            updatedAt: "2026-06-09T00:00:00Z"
+          estimatedUnitPriceCents: 200
+          quantity: 12
+          requesters:
+            - requesterId: "1001"
+              requesterName: 李同学
+              requesterAvatarUrl: https://example.test/avatar/li.png
+              quantity: 6
+              serviceFeePerUnitCents: 50
+              errandDemandItemId: "9101"
+              deadline: "2026-06-09T12:00:00Z"
+              updatedAt: "2026-06-09T09:20:00Z"
+            - requesterId: "1002"
+              requesterName: 王同学
+              requesterAvatarUrl: https://example.test/avatar/wang.png
+              quantity: 6
+              serviceFeePerUnitCents: 50
+              errandDemandItemId: "9102"
+              deadline: "2026-06-09T12:30:00Z"
+              updatedAt: "2026-06-09T09:25:00Z"
+        - errandDemandId: "9002"
+          productTemplate:
+            id: "4002"
+            title: 经典火腿三明治
+            description: 冷藏即食，采购后请尽快分发
+            priceCents: 1200
+            storeId: "3001"
+            mainImageUrl: https://images.unsplash.com/photo-1528736235302-52922df5c122?auto=format&fit=crop&w=640&q=80
+            barcode: "690000000002"
+            updatedAt: "2026-06-09T00:00:00Z"
+          estimatedUnitPriceCents: 1200
+          quantity: 2
+          requesters:
+            - requesterId: "1003"
+              requesterName: 陈同学
+              requesterAvatarUrl: https://example.test/avatar/chen.png
+              quantity: 2
+              serviceFeePerUnitCents: 100
+              errandDemandItemId: "9103"
+              deadline: "2026-06-09T13:00:00Z"
+              updatedAt: "2026-06-09T09:35:00Z"

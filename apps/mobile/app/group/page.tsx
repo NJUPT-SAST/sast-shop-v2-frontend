@@ -13,6 +13,7 @@ import {
 } from "@workspace/ui/components/card"
 import { ManagedImage } from "@/components/managed-image"
 import { mobileAppConfig } from "@/lib/app-config"
+import { isValidRouteId } from "@/lib/route-id"
 
 async function loadStores(): Promise<{ stores: Store[]; error: string | null }> {
   try {
@@ -61,15 +62,22 @@ export default async function GroupPage() {
 
         {stores.length > 0 ? (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] md:gap-4">
-            {stores.map((store) => (
-              <Link
-                key={store.id}
-                href={`/group/shop/${store.id}`}
-                className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                <StoreCard store={store} />
-              </Link>
-            ))}
+            {stores.map((store) =>
+              isValidRouteId(store.id) ? (
+                <Link
+                  key={store.id}
+                  href={`/group/shop/${store.id}`}
+                  prefetch={false}
+                  className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <StoreCard store={store} />
+                </Link>
+              ) : (
+                <div key={store.id} className="rounded-lg opacity-70">
+                  <StoreCard store={store} />
+                </div>
+              )
+            )}
           </div>
         ) : !storeResult.error ? (
           <Card className="rounded-lg">
@@ -100,17 +108,22 @@ export default async function GroupPage() {
               </div>
             </CardHeader>
           </Card>
-          <Card className="rounded-lg p-1">
-            <CardHeader className="gap-3">
-              <RiRunLine className="size-8 text-primary" />
-              <div className="min-w-0">
-                <CardTitle className="truncate text-base leading-5">
-                  跑腿大厅
-                </CardTitle>
-                <CardDescription>接单、分发、收款</CardDescription>
-              </div>
-            </CardHeader>
-          </Card>
+          <Link
+            href="/group/errand"
+            className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <Card className="rounded-lg p-1">
+              <CardHeader className="gap-3">
+                <RiRunLine className="size-8 text-primary" />
+                <div className="min-w-0">
+                  <CardTitle className="truncate text-base leading-5">
+                    跑腿大厅
+                  </CardTitle>
+                  <CardDescription>接单、分发、收款</CardDescription>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
         </div>
       </section>
     </div>

@@ -63,8 +63,13 @@ export {
 } from "./services/spot-orders"
 export {
   createErrandDemand,
+  getErrandDemandDetails,
+  listErrandDemandStores,
   type CreateErrandDemandInput,
   type CreateErrandDemandResult,
+  type ErrandDemandDetailGroup,
+  type ErrandDemandRequester,
+  type ErrandDemandStoreSummary,
 } from "./services/errand-demands"
 export {
   listBuyerErrandOrders,
@@ -73,10 +78,34 @@ export {
   type BuyerErrandOrderStatusFilter,
 } from "./services/buyer-errand-orders"
 export {
+  cancelTask,
+  createErrandTask,
+  getCollectingPaymentDetail,
+  getDistributingTaskDetail,
+  getShoppingTaskDetail,
   listErrandTasks,
-  type ErrandTask,
+  saveDistributingAssignment,
+  saveShoppingTaskItem,
+  transitionToCollectingPayment,
+  transitionToCompleted,
+  transitionToDistributing,
+  transitionToPendingDistributing,
+  updateActualPrice,
+  type CollectingPaymentBill,
+  type CollectingPaymentDetail,
+  type CollectingPaymentItem,
+  type CreateErrandTaskInput,
+  type CreateErrandTaskResult,
+  type DistributingRequester,
+  type DistributingTaskDetail,
+  type DistributingTaskItem,
+  type ErrandTaskBrief,
   type ErrandTaskStatusFilter,
   type ErrandTaskStatusValue,
+  type SaveDistributingAssignmentInput,
+  type SaveShoppingItemInput,
+  type ShoppingTaskDetail,
+  type ShoppingTaskItem,
 } from "./services/errand-tasks"
 export {
   listProductTemplates,

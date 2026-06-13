@@ -2,7 +2,7 @@ import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest"
 import { FeatureUnavailableError, ValidationError } from "../errors"
 import {
   listErrandTasks,
-  type ErrandTask,
+  type ErrandTaskBrief,
   type ErrandTaskStatusFilter,
 } from "./errand-tasks"
 
@@ -36,7 +36,7 @@ describe("listErrandTasks", () => {
     vi.stubGlobal("fetch", fetchMock)
 
     expectTypeOf<ReturnType<typeof listErrandTasks>>().toEqualTypeOf<
-      Promise<ErrandTask[]>
+      Promise<ErrandTaskBrief[]>
     >()
 
     const tasks = await listErrandTasks({
@@ -52,7 +52,7 @@ describe("listErrandTasks", () => {
         storeId: "3001",
         storeName: "SAST 小卖部",
         status: "shopping",
-        itemTotalCount: 2,
+        itemCount: 2,
         createdAt: "2026-06-09T08:30:00.000Z",
       },
     ])

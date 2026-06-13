@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { RiFileList3Line, RiSearchLine } from "@remixicon/react"
-import type { BuyerErrandOrder, ErrandTask, SpotOrder } from "@sast-shop/api"
+import type { BuyerErrandOrder, ErrandTaskBrief, SpotOrder } from "@sast-shop/api"
 import { formatPrice } from "@sast-shop/domain"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
@@ -57,7 +57,7 @@ type OrdersViewProps = {
   spotBuyerOrders: SpotOrder[]
   spotSellerOrders: SpotOrder[]
   buyerErrandOrders: BuyerErrandOrder[]
-  errandTasks: ErrandTask[]
+  errandTasks: ErrandTaskBrief[]
   errors: {
     spotBuyer: boolean
     spotSeller: boolean
@@ -93,7 +93,7 @@ export function OrdersView({
       ...spotBuyerOrders.map((order) => mapSpotOrder(order, "buyer")),
       ...spotSellerOrders.map((order) => mapSpotOrder(order, "seller")),
       ...buyerErrandOrders.map(mapBuyerErrandOrder),
-      ...errandTasks.map(mapErrandTask),
+      ...errandTasks.map(mapErrandTaskBrief),
     ],
     [buyerErrandOrders, errandTasks, spotBuyerOrders, spotSellerOrders]
   )
@@ -390,7 +390,7 @@ function mapBuyerErrandOrder(order: BuyerErrandOrder): RenderableOrder {
   }
 }
 
-function mapErrandTask(task: ErrandTask): RenderableOrder {
+function mapErrandTaskBrief(task: ErrandTaskBrief): RenderableOrder {
   return {
     id: `captain-${task.id}`,
     orderNo: task.id,
@@ -400,7 +400,7 @@ function mapErrandTask(task: ErrandTask): RenderableOrder {
     store: task.storeName,
     status: task.status,
     amount: null,
-    summary: `${task.itemTotalCount} 种商品`,
+    summary: `${task.itemCount} 种商品`,
   }
 }
 

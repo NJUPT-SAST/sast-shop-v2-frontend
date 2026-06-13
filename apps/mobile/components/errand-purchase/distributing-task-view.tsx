@@ -1,0 +1,756 @@
+"use client"
+
+import { useRef, useState } from "react"
+import { useRouter } from "next/navigation"
+import { RiArrowDownSLine, RiArrowUpSLine } from "@remixicon/react"
+import {
+  cancelTask,
+  saveDistributingAssignment,
+  transitionToCollectingPayment,
+  transitionToDistributing,
+  updateActualPrice,
+  type DataSource,
+  type DistributingRequester,
+  type DistributingTaskDetail,
+  type DistributingTaskItem,
+} from "@sast-shop/api"
+import { formatPrice } from "@sast-shop/domain"
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar"
+import { Badge } from "@workspace/ui/components/badge"
+import { Button } from "@workspace/ui/components/button"
+import { Input } from "@workspace/ui/components/input"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from "@workspace/ui/components/input-group"
+import {
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@workspace/ui/components/responsive-dialog"
+import { toast } from "sonner"
+
+import { ManagedImage } from "@/components/managed-image"
+
+export type DistributingTaskViewProps = {
+  dataSource: DataSource
+  connectBaseUrl: string
+  detail: DistributingTaskDetail
+  mode: "pending_distributing" | "distributing"
+}
+
+type DialogState =
+  | { type: "none" }
+  | { type: "edit_price"; item: DistributingTaskItem; draft: string }
+  | { type: "partial_dist"; item: DistributingTaskItem; requester: DistributingRequester; draft: string }
+  | { type: "confirm_start" }
+  | { type: "confirm_finish" }
+  | { type: "confirm_cancel" }
+
+const MONEY_PATTERN = /^\d*(?:\.\d{0,2})?$/
+
+function formatYuan(cents: number): string {
+  if (cents === 0) return "0"
+  return (cents / 100).toFixed(2)
+}
+
+function parseToCents(value: string): number {
+  const n = Number(value)
+  if (!Number.isFinite(n) || n < 0) return 0
+  return Math.max(0, Math.round(n * 100))
+}
+
+function isItemFullyDistributed(item: DistributingTaskItem): boolean {
+  return item.requesters.every((r) => r.distributedQuantity > 0 || r.distributedQuantity === -1)
+}
+
+export function DistributingTaskView({
+  dataSource,
+  connectBaseUrl,
+  detail,
+  mode,
+}: DistributingTaskViewProps) {
+  const router = useRouter()
+  const submittingRef = useRef(false)
+  const [items, setItems] = useState<DistributingTaskItem[]>(detail.items)
+  const [packagingFee, setPackagingFee] = useState(
+    formatYuan(detail.packagingFeeCents)
+  )
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null)
+  const [dialog, setDialog] = useState<DialogState>({ type: "none" })
+  const [submitting, setSubmitting] = useState(false)
+  const [assigningIds, setAssigningIds] = useState<Set<string>>(new Set())
+
+  const serviceOptions = { dataSource, connectBaseUrl }
+
+  const purchasedItems = items.filter((i) => {
+    const totalPurchased = i.requesters.reduce((s, r) => s + r.quantity, 0)
+    return totalPurchased > 0
+  })
+
+  const undistributed = purchasedItems.filter((i) => !isItemFullyDistributed(i))
+  const distributed = purchasedItems.filter((i) => isItemFullyDistributed(i))
+  const allDistributed = undistributed.length === 0 && purchasedItems.length > 0
+
+  const updateRequester = (
+    itemId: string,
+    assignmentId: string,
+    distributedQuantity: number
+  ) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.errandTaskItemId !== itemId
+          ? item
+          : {
+              ...item,
+              requesters: item.requesters.map((r) =>
+                r.errandTaskAssignmentId !== assignmentId
+                  ? r
+                  : { ...r, distributedQuantity }
+              ),
+            }
+      )
+    )
+  }
+
+  const updateItemPrice = (itemId: string, actualUnitPriceCents: number) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.errandTaskItemId !== itemId
+          ? item
+          : { ...item, actualUnitPriceCents }
+      )
+    )
+  }
+
+  const handleSaveAssignment = async (
+    item: DistributingTaskItem,
+    requester: DistributingRequester,
+    distributedQuantity: number
+  ) => {
+    const key = requester.errandTaskAssignmentId
+    if (assigningIds.has(key)) return
+    setAssigningIds((prev) => new Set(prev).add(key))
+    try {
+      await saveDistributingAssignment(
+        {
+          errandTaskItemId: item.errandTaskItemId,
+          errandTaskAssignmentId: requester.errandTaskAssignmentId,
+          distributedQuantity,
+          assignmentUpdatedAt: requester.assignmentUpdatedAt,
+        },
+        serviceOptions
+      )
+      updateRequester(
+        item.errandTaskItemId,
+        requester.errandTaskAssignmentId,
+        distributedQuantity
+      )
+      setDialog({ type: "none" })
+    } catch {
+      toast.error("保存失败，请稍后再试")
+    } finally {
+      setAssigningIds((prev) => {
+        const next = new Set(prev)
+        next.delete(key)
+        return next
+      })
+    }
+  }
+
+  const handleRevokeAssignment = async (
+    item: DistributingTaskItem,
+    requester: DistributingRequester
+  ) => {
+    const key = requester.errandTaskAssignmentId
+    if (assigningIds.has(key)) return
+    setAssigningIds((prev) => new Set(prev).add(key))
+    try {
+      await saveDistributingAssignment(
+        {
+          errandTaskItemId: item.errandTaskItemId,
+          errandTaskAssignmentId: requester.errandTaskAssignmentId,
+          distributedQuantity: 0,
+          assignmentUpdatedAt: requester.assignmentUpdatedAt,
+        },
+        serviceOptions
+      )
+      updateRequester(item.errandTaskItemId, requester.errandTaskAssignmentId, 0)
+    } catch {
+      toast.error("撤销失败，请稍后再试")
+    } finally {
+      setAssigningIds((prev) => {
+        const next = new Set(prev)
+        next.delete(key)
+        return next
+      })
+    }
+  }
+
+  const handleUpdatePrice = async () => {
+    if (dialog.type !== "edit_price") return
+    if (submittingRef.current) return
+    submittingRef.current = true
+    const cents = parseToCents(dialog.draft)
+    try {
+      await updateActualPrice(
+        detail.taskId,
+        dialog.item.errandTaskItemId,
+        cents,
+        null,
+        serviceOptions
+      )
+      updateItemPrice(dialog.item.errandTaskItemId, cents)
+      setDialog({ type: "none" })
+    } catch {
+      toast.error("修改价格失败，请稍后再试")
+    } finally {
+      submittingRef.current = false
+    }
+  }
+
+  const handleStartDistributing = async () => {
+    if (submittingRef.current) return
+    submittingRef.current = true
+    setSubmitting(true)
+    const feeCents = parseToCents(packagingFee)
+    try {
+      await transitionToDistributing(detail.taskId, feeCents, null, serviceOptions)
+      setDialog({ type: "none" })
+      router.refresh()
+    } catch {
+      toast.error("操作失败，请稍后再试")
+      setSubmitting(false)
+    } finally {
+      submittingRef.current = false
+    }
+  }
+
+  const handleFinishDistributing = async () => {
+    if (submittingRef.current) return
+    submittingRef.current = true
+    setSubmitting(true)
+    try {
+      await transitionToCollectingPayment(detail.taskId, null, serviceOptions)
+      setDialog({ type: "none" })
+      router.push(`/group/purchase/${detail.taskId}/payment`)
+    } catch {
+      toast.error("操作失败，请稍后再试")
+      setSubmitting(false)
+    } finally {
+      submittingRef.current = false
+    }
+  }
+
+  const handleCancel = async () => {
+    if (submittingRef.current) return
+    submittingRef.current = true
+    setSubmitting(true)
+    try {
+      await cancelTask(detail.taskId, null, serviceOptions)
+      setDialog({ type: "none" })
+      router.push("/group")
+    } catch {
+      toast.error("取消失败，请稍后再试")
+      setSubmitting(false)
+    } finally {
+      submittingRef.current = false
+    }
+  }
+
+  const renderItemList = (list: DistributingTaskItem[], groupLabel: string) => {
+    if (list.length === 0) return null
+    return (
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold text-muted-foreground">
+          {groupLabel} ({list.length})
+        </h2>
+        <div className="flex flex-col gap-3">
+          {list.map((item) => {
+            const isExpanded = expandedItemId === item.errandTaskItemId
+            return (
+              <div key={item.errandTaskItemId} className="rounded-lg border bg-card overflow-hidden">
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-3 p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={() =>
+                    setExpandedItemId(
+                      isExpanded ? null : item.errandTaskItemId
+                    )
+                  }
+                >
+                  <ManagedImage
+                    src={item.imageUrl}
+                    alt={item.title}
+                    className="size-14 shrink-0 rounded-lg"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="line-clamp-2 text-sm font-medium leading-5">
+                      {item.title}
+                    </p>
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        实购 {item.requesters.reduce((s, r) => s + r.quantity, 0)} 件
+                      </span>
+                      {item.actualUnitPriceCents !== item.originUnitPriceCents ? (
+                        <span className="text-xs text-destructive">
+                          改价 {formatPrice(item.actualUnitPriceCents)}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          {formatPrice(item.actualUnitPriceCents)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex -space-x-2">
+                      {item.requesters.slice(0, 3).map((r) => (
+                        <Avatar key={r.purchaserId} className="size-6 border-2 border-card">
+                          <AvatarImage src={r.purchaserAvatarUrl} alt={r.purchaserName} />
+                          <AvatarFallback className="text-xs">
+                            {r.purchaserName[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                      ))}
+                    </div>
+                    {isExpanded ? (
+                      <RiArrowUpSLine className="size-4 text-muted-foreground" />
+                    ) : (
+                      <RiArrowDownSLine className="size-4 text-muted-foreground" />
+                    )}
+                  </div>
+                </button>
+
+                {isExpanded && (
+                  <div className="border-t px-3 pb-3">
+                    {mode === "pending_distributing" && (
+                      <div className="mb-3 mt-3 flex items-center justify-between gap-3">
+                        <span className="text-sm text-muted-foreground">
+                          当前单价：{formatPrice(item.actualUnitPriceCents)}
+                        </span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setDialog({
+                              type: "edit_price",
+                              item,
+                              draft: formatYuan(item.actualUnitPriceCents),
+                            })
+                          }
+                        >
+                          改价
+                        </Button>
+                      </div>
+                    )}
+                    <div className="mt-3 flex flex-col gap-3">
+                      {item.requesters.map((requester) => (
+                        <RequesterRow
+                          key={requester.errandTaskAssignmentId}
+                          requester={requester}
+                          mode={mode}
+                          onDistributeAll={() =>
+                            void handleSaveAssignment(item, requester, requester.quantity)
+                          }
+                          onDistributePartial={() =>
+                            setDialog({
+                              type: "partial_dist",
+                              item,
+                              requester,
+                              draft: "",
+                            })
+                          }
+                          onRevoke={() => void handleRevokeAssignment(item, requester)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <div className="flex flex-1 flex-col gap-5 py-5">
+      <section className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="truncate text-lg font-semibold leading-7">
+            {detail.storeName}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {mode === "pending_distributing" ? "待分发" : "分发中"}
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="shrink-0 text-destructive hover:text-destructive"
+          onClick={() => setDialog({ type: "confirm_cancel" })}
+        >
+          取消采购
+        </Button>
+      </section>
+
+      {mode === "pending_distributing" && (
+        <section className="rounded-lg border bg-card p-3">
+          <label className="flex flex-col gap-1.5 text-sm font-medium">
+            包装费（元）
+            <InputGroup>
+              <InputGroupAddon>
+                <InputGroupText>¥</InputGroupText>
+              </InputGroupAddon>
+              <InputGroupInput
+                type="text"
+                inputMode="decimal"
+                value={packagingFee}
+                onChange={(e) => {
+                  if (MONEY_PATTERN.test(e.target.value)) {
+                    setPackagingFee(e.target.value)
+                  }
+                }}
+                placeholder="0"
+              />
+            </InputGroup>
+            <p className="text-xs text-muted-foreground">
+              将按购买金额比例分摊到每位买家，除不尽时向上取整
+            </p>
+          </label>
+        </section>
+      )}
+
+      {mode === "distributing" && renderItemList(undistributed, "待分发")}
+      {mode === "distributing" && renderItemList(distributed, "已分发")}
+      {mode === "pending_distributing" && renderItemList(purchasedItems, "采购商品")}
+
+      <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-10 mt-auto rounded-lg border bg-card p-2">
+        {mode === "pending_distributing" ? (
+          <Button
+            type="button"
+            className="h-12 w-full"
+            onClick={() => setDialog({ type: "confirm_start" })}
+          >
+            确认开始分发
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            disabled={!allDistributed}
+            className="h-12 w-full"
+            onClick={() => setDialog({ type: "confirm_finish" })}
+          >
+            {allDistributed
+              ? "确认分发完成"
+              : `已分发 ${distributed.length}/${purchasedItems.length} 种`}
+          </Button>
+        )}
+      </div>
+
+      <ResponsiveDialog
+        open={dialog.type === "edit_price"}
+        onOpenChange={(open) => {
+          if (!open) setDialog({ type: "none" })
+        }}
+      >
+        <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+          <ResponsiveDialogHeader className="px-0 text-left">
+            <ResponsiveDialogTitle>修改单价</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
+              {dialog.type === "edit_price" ? dialog.item.title : ""}
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          {dialog.type === "edit_price" && (
+            <InputGroup>
+              <InputGroupAddon>
+                <InputGroupText>¥</InputGroupText>
+              </InputGroupAddon>
+              <InputGroupInput
+                type="text"
+                inputMode="decimal"
+                value={dialog.draft}
+                onChange={(e) => {
+                  if (MONEY_PATTERN.test(e.target.value)) {
+                    setDialog({ ...dialog, draft: e.target.value })
+                  }
+                }}
+                placeholder="0.00"
+              />
+            </InputGroup>
+          )}
+          <ResponsiveDialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDialog({ type: "none" })}
+            >
+              取消
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleUpdatePrice()}
+            >
+              确认
+            </Button>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
+
+      <ResponsiveDialog
+        open={dialog.type === "partial_dist"}
+        onOpenChange={(open) => {
+          if (!open) setDialog({ type: "none" })
+        }}
+      >
+        <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+          <ResponsiveDialogHeader className="px-0 text-left">
+            <ResponsiveDialogTitle>部分分发</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
+              {dialog.type === "partial_dist"
+                ? `输入分发数量（1 ~ ${dialog.requester.quantity - 1}）`
+                : ""}
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          {dialog.type === "partial_dist" && (
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={dialog.requester.quantity - 1}
+              value={dialog.draft}
+              onChange={(e) => setDialog({ ...dialog, draft: e.target.value })}
+              placeholder="分发数量"
+            />
+          )}
+          <ResponsiveDialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDialog({ type: "none" })}
+            >
+              取消
+            </Button>
+            <Button
+              type="button"
+              disabled={
+                dialog.type !== "partial_dist" ||
+                !dialog.draft ||
+                Number(dialog.draft) < 1 ||
+                Number(dialog.draft) >= dialog.requester.quantity
+              }
+              onClick={() => {
+                if (dialog.type !== "partial_dist") return
+                void handleSaveAssignment(
+                  dialog.item,
+                  dialog.requester,
+                  Number(dialog.draft)
+                )
+              }}
+            >
+              确认
+            </Button>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
+
+      <ResponsiveDialog
+        open={dialog.type === "confirm_start"}
+        onOpenChange={(open) => {
+          if (!open && !submitting) setDialog({ type: "none" })
+        }}
+      >
+        <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+          <ResponsiveDialogHeader className="px-0 text-left">
+            <ResponsiveDialogTitle>确认开始分发</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
+              开始分发后将无法修改商品单价，包装费为{" "}
+              {formatPrice(parseToCents(packagingFee))}。
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          <ResponsiveDialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={submitting}
+              onClick={() => setDialog({ type: "none" })}
+            >
+              返回
+            </Button>
+            <Button
+              type="button"
+              disabled={submitting}
+              onClick={() => void handleStartDistributing()}
+            >
+              {submitting ? "处理中" : "确认开始"}
+            </Button>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
+
+      <ResponsiveDialog
+        open={dialog.type === "confirm_finish"}
+        onOpenChange={(open) => {
+          if (!open && !submitting) setDialog({ type: "none" })
+        }}
+      >
+        <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+          <ResponsiveDialogHeader className="px-0 text-left">
+            <ResponsiveDialogTitle>确认分发完成</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
+              确认所有商品已分发完毕，将进入收款阶段。
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          <ResponsiveDialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={submitting}
+              onClick={() => setDialog({ type: "none" })}
+            >
+              返回
+            </Button>
+            <Button
+              type="button"
+              disabled={submitting}
+              onClick={() => void handleFinishDistributing()}
+            >
+              {submitting ? "处理中" : "确认完成"}
+            </Button>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
+
+      <ResponsiveDialog
+        open={dialog.type === "confirm_cancel"}
+        onOpenChange={(open) => {
+          if (!open && !submitting) setDialog({ type: "none" })
+        }}
+      >
+        <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+          <ResponsiveDialogHeader className="px-0 text-left">
+            <ResponsiveDialogTitle>取消采购</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
+              确认取消此次采购任务？此操作不可撤销。
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          <ResponsiveDialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={submitting}
+              onClick={() => setDialog({ type: "none" })}
+            >
+              返回
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={submitting}
+              onClick={() => void handleCancel()}
+            >
+              {submitting ? "取消中" : "确认取消"}
+            </Button>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
+    </div>
+  )
+}
+
+function RequesterRow({
+  requester,
+  mode,
+  onDistributeAll,
+  onDistributePartial,
+  onRevoke,
+}: {
+  requester: DistributingRequester
+  mode: "pending_distributing" | "distributing"
+  onDistributeAll: () => void
+  onDistributePartial: () => void
+  onRevoke: () => void
+}) {
+  const isDone = requester.distributedQuantity > 0
+  const isSkipped = requester.distributedQuantity === -1
+
+  return (
+    <div className="flex items-center gap-2">
+      <Avatar className="size-8 shrink-0">
+        <AvatarImage src={requester.purchaserAvatarUrl} alt={requester.purchaserName} />
+        <AvatarFallback className="text-xs">{requester.purchaserName[0]}</AvatarFallback>
+      </Avatar>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">{requester.purchaserName}</p>
+        <p className="text-xs text-muted-foreground">
+          需 {requester.quantity} 件
+          {isDone ? `，已分发 ${requester.distributedQuantity} 件` : ""}
+          {isSkipped ? "，不分发" : ""}
+        </p>
+      </div>
+      {mode === "distributing" && (
+        <div className="flex shrink-0 items-center gap-1">
+          {isDone || isSkipped ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="text-xs"
+              onClick={onRevoke}
+            >
+              撤销
+            </Button>
+          ) : (
+            <>
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                className="text-xs"
+                onClick={onRevoke}
+              >
+                不分发
+              </Button>
+              {requester.quantity > 1 && (
+                <Button
+                  type="button"
+                  size="sm"
+                  className="bg-amber-500 text-white text-xs hover:bg-amber-600"
+                  onClick={onDistributePartial}
+                >
+                  部分
+                </Button>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                className="bg-emerald-500 text-white text-xs hover:bg-emerald-600"
+                onClick={onDistributeAll}
+              >
+                全部
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+      {mode === "distributing" && !isDone && !isSkipped && (
+        <Badge variant="secondary" className="shrink-0 text-xs">
+          待分发
+        </Badge>
+      )}
+    </div>
+  )
+}

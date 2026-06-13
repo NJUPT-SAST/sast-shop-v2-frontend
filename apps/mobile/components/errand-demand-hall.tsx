@@ -1,0 +1,221 @@
+"use client"
+
+import { useMemo, useState } from "react"
+import { RiArrowRightSLine, RiSearchLine, RiStore2Line } from "@remixicon/react"
+import type { ErrandDemandStoreSummary } from "@sast-shop/api"
+import Link from "next/link"
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar"
+import { Badge } from "@workspace/ui/components/badge"
+import { Button } from "@workspace/ui/components/button"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@workspace/ui/components/card"
+import { Empty } from "@workspace/ui/components/empty"
+import { Input } from "@workspace/ui/components/input"
+
+import { formatErrandDisplayPrice } from "@/lib/errand-display"
+import { sanitizeImageSrc } from "@/lib/image-src"
+import { isValidRouteId } from "@/lib/route-id"
+
+type ErrandDemandHallProps = {
+  demands: ErrandDemandStoreSummary[]
+  error: string | null
+}
+
+const updatedAtFormatter = new Intl.DateTimeFormat("zh-CN", {
+  timeZone: "Asia/Shanghai",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+})
+
+export function ErrandDemandHall({ demands, error }: ErrandDemandHallProps) {
+  const [keyword, setKeyword] = useState("")
+
+  const filteredDemands = useMemo(() => {
+    const value = keyword.trim().toLowerCase()
+
+    if (!value) {
+      return demands
+    }
+
+    return demands.filter((demand) =>
+      demand.storeName.toLowerCase().includes(value)
+    )
+  }, [demands, keyword])
+
+  return (
+    <div className="flex flex-1 flex-col gap-5 py-6">
+      <section className="flex flex-col gap-2">
+        <h1
+          className="text-xl font-semibold leading-7 md:text-2xl"
+          style={{ opacity: 1 }}
+        >
+          跑腿采购大厅
+        </h1>
+        <p className="text-sm leading-6 text-muted-foreground">
+          {error ?? "按店铺聚合未接单需求，选择完整需求行后接单。"}
+        </p>
+      </section>
+
+      <label className="relative block">
+        <span className="sr-only">搜索店铺名称</span>
+        <RiSearchLine className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={keyword}
+          onChange={(event) => {
+            setKeyword(event.target.value)
+          }}
+          placeholder="搜索店铺名称"
+          className="h-10 rounded-lg pl-9"
+        />
+      </label>
+
+      {filteredDemands.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          {filteredDemands.map((demand) => (
+            <DemandCard key={demand.storeId} demand={demand} />
+          ))}
+        </section>
+      ) : (
+        <Empty
+          icon={<RiStore2Line className="size-5" />}
+          title={error ? "跑腿需求暂不可用" : "暂无待接单需求"}
+          description={
+            error ??
+            (keyword.trim()
+              ? "没有匹配的店铺需求，换个关键词试试。"
+              : "新的跑腿需求会显示在这里。")
+          }
+        />
+      )}
+    </div>
+  )
+}
+
+function DemandCard({ demand }: { demand: ErrandDemandStoreSummary }) {
+  const goodsSubtotal = demand.totalOriginUnitPriceCents
+  const serviceFee = demand.totalServiceFeeCents
+  const total = goodsSubtotal + serviceFee
+  const participantCount = demand.participantAvatars.length
+  const card = (
+    <Card className="rounded-lg transition-colors hover:border-primary/40">
+      <CardHeader className="flex-row items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <RiStore2Line className="size-5" />
+          </span>
+          <div className="min-w-0 space-y-1">
+            <CardTitle className="truncate text-base leading-6">
+              {demand.storeName}
+            </CardTitle>
+            <p className="text-xs leading-5 text-muted-foreground">
+              {formatUpdatedAt(demand.updatedAt)}
+            </p>
+          </div>
+        </div>
+
+        <div className="shrink-0 text-right">
+          <p className="text-xs leading-5 text-muted-foreground">合计</p>
+          <p className="text-lg font-semibold leading-6 text-primary">
+            {formatErrandDisplayPrice(total)}
+          </p>
+        </div>
+      </CardHeader>
+
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="secondary" className="text-primary">
+            商品小计 {formatErrandDisplayPrice(goodsSubtotal)}
+          </Badge>
+          <Badge variant="muted" className="text-service-fee">
+            跑腿费 {formatErrandDisplayPrice(serviceFee)}
+          </Badge>
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <ParticipantAvatars avatars={demand.participantAvatars} />
+            <span className="truncate text-sm text-muted-foreground">
+              {participantCount > 0
+                ? `${participantCount} 人参与`
+                : "暂无参与人"}
+            </span>
+          </div>
+
+          {isValidRouteId(demand.storeId) ? (
+            <Button asChild size="sm" className="shrink-0">
+              <span>
+                查看需求
+                <RiArrowRightSLine className="size-4" />
+              </span>
+            </Button>
+          ) : null}
+        </div>
+      </CardContent>
+    </Card>
+  )
+
+  if (!isValidRouteId(demand.storeId)) {
+    return <div className="rounded-lg opacity-70">{card}</div>
+  }
+
+  return (
+    <Link
+      href={`/group/errand/${demand.storeId}`}
+      prefetch={false}
+      className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+    >
+      {card}
+    </Link>
+  )
+}
+
+function ParticipantAvatars({ avatars }: { avatars: string[] }) {
+  const visibleAvatars = avatars.slice(0, 3)
+
+  if (visibleAvatars.length === 0) {
+    return (
+      <Avatar className="size-7 border border-card">
+        <AvatarFallback className="text-xs">无</AvatarFallback>
+      </Avatar>
+    )
+  }
+
+  return (
+    <div className="flex -space-x-2">
+      {visibleAvatars.map((avatar, index) => (
+        <Avatar
+          key={`${avatar}-${index}`}
+          className="size-7 border-2 border-card"
+        >
+          <AvatarImage src={sanitizeImageSrc(avatar) ?? undefined} alt="" />
+          <AvatarFallback className="text-xs">用</AvatarFallback>
+        </Avatar>
+      ))}
+    </div>
+  )
+}
+
+function formatUpdatedAt(value: string | null): string {
+  if (!value) {
+    return "更新时间未知"
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return "更新时间未知"
+  }
+
+  return `更新于 ${updatedAtFormatter.format(date)}`
+}

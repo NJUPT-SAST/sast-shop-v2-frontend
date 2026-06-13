@@ -39,3 +39,7 @@ stubs:
           createdAt: "2026-06-09T09:00:00Z"
       currentPage: 1
       totalCount: 1
+  - id: errand-task-create
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/CreateTask
+    content:
+      errandTaskId: "7002"

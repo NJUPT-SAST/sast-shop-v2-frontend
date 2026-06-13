@@ -7,8 +7,12 @@ import {
 } from "../errors"
 import {
   createErrandDemand,
+  getErrandDemandDetails,
+  listErrandDemandStores,
   type CreateErrandDemandInput,
   type CreateErrandDemandResult,
+  type ErrandDemandDetailGroup,
+  type ErrandDemandStoreSummary,
 } from "./errand-demands"
 
 const localOptions = {
@@ -43,6 +47,15 @@ describe("errand demand service", () => {
   it("exposes a stable create errand demand return type", () => {
     expectTypeOf<ReturnType<typeof createErrandDemand>>().toEqualTypeOf<
       Promise<CreateErrandDemandResult>
+    >()
+  })
+
+  it("exposes stable captain demand return types", () => {
+    expectTypeOf<ReturnType<typeof listErrandDemandStores>>().toEqualTypeOf<
+      Promise<ErrandDemandStoreSummary[]>
+    >()
+    expectTypeOf<ReturnType<typeof getErrandDemandDetails>>().toEqualTypeOf<
+      Promise<ErrandDemandDetailGroup[]>
     >()
   })
 
@@ -133,6 +146,135 @@ describe("errand demand service", () => {
     ).rejects.toBeInstanceOf(ValidationError)
 
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("lists open errand demand stores through the local Connect backend", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        demands: [
+          {
+            storeId: "3001",
+            storeName: "SAST 小卖部",
+            participantAvatars: [
+              "https://example.test/avatar/a.png",
+              "https://example.test/avatar/b.png",
+            ],
+            totalOriginUnitPriceCents: 4200,
+            totalServiceFeeCents: 800,
+            updatedAt: "1970-01-01T00:00:04Z",
+          },
+        ],
+        currentPage: 1,
+        totalCount: 1,
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    const demands = await listErrandDemandStores({
+      ...localOptions,
+      storeName: "SAST",
+      page: 1,
+      pageSize: 20,
+    })
+
+    expect(demands).toEqual([
+      {
+        storeId: "3001",
+        storeName: "SAST 小卖部",
+        participantAvatars: [
+          "https://example.test/avatar/a.png",
+          "https://example.test/avatar/b.png",
+        ],
+        totalOriginUnitPriceCents: 4200,
+        totalServiceFeeCents: 800,
+        updatedAt: "1970-01-01T00:00:04.000Z",
+      },
+    ])
+    expect(fetchMock).toHaveBeenCalledOnce()
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.errand.v1.ErrandDemandService/GetDemandList",
+      body: {
+        page: 1,
+        pageSize: 20,
+        storeName: "SAST",
+      },
+    })
+  })
+
+  it("gets errand demand details through the local Connect backend", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        details: [
+          {
+            errandDemandId: "9001",
+            productTemplate: {
+              id: "4001",
+              title: "农夫山泉矿泉水",
+              description: "550ml 瓶装水",
+              priceCents: 200,
+              storeId: "3001",
+              mainImageUrl: "https://example.test/water.png",
+              barcode: "690000000001",
+              updatedAt: "1970-01-01T00:00:03Z",
+            },
+            estimatedUnitPriceCents: 200,
+            quantity: 12,
+            requesters: [
+              {
+                requesterId: "1001",
+                requesterName: "李同学",
+                requesterAvatarUrl: "https://example.test/avatar/li.png",
+                quantity: 6,
+                serviceFeePerUnitCents: 50,
+                errandDemandItemId: "9101",
+                deadline: "1970-01-01T02:00:00Z",
+                updatedAt: "1970-01-01T00:00:05Z",
+              },
+            ],
+          },
+        ],
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    const details = await getErrandDemandDetails({ storeId: "3001" }, localOptions)
+
+    expect(details).toEqual([
+      {
+        errandDemandId: "9001",
+        estimatedUnitPriceCents: 200,
+        quantity: 12,
+        productTemplate: {
+          id: "4001",
+          title: "农夫山泉矿泉水",
+          description: "550ml 瓶装水",
+          priceCents: 200,
+          storeId: "3001",
+          mainImageUrl: "https://example.test/water.png",
+          barcode: "690000000001",
+          updatedAt: "1970-01-01T00:00:03.000Z",
+        },
+        requesters: [
+          {
+            requesterId: "1001",
+            requesterName: "李同学",
+            requesterAvatarUrl: "https://example.test/avatar/li.png",
+            quantity: 6,
+            serviceFeePerUnitCents: 50,
+            errandDemandItemId: "9101",
+            deadline: "1970-01-01T02:00:00.000Z",
+            updatedAt: "1970-01-01T00:00:05.000Z",
+          },
+        ],
+      },
+    ])
+    expect(fetchMock).toHaveBeenCalledOnce()
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.errand.v1.ErrandDemandService/GetDemandDetail",
+      body: {
+        storeId: "3001",
+      },
+    })
   })
 
   it("requires a configured Connect base URL for local create mode", async () => {

@@ -119,6 +119,25 @@ describe("catalog service", () => {
     expect(errandTaskStub).toContain("status: ERRAND_TASK_STATUS_SHOPPING")
   })
 
+  it("commits fauxrpc errand demand stubs for captain demand hall data", async () => {
+    const errandDemandStub = await readFile(
+      new URL(
+        "../../../../mock/fauxrpc/stubs/errand-demand.yaml",
+        import.meta.url
+      ),
+      "utf8"
+    )
+
+    expect(errandDemandStub).toContain(
+      "target: sast.sastshopv2.errand.v1.ErrandDemandService/GetDemandList"
+    )
+    expect(errandDemandStub).toContain(
+      "target: sast.sastshopv2.errand.v1.ErrandDemandService/GetDemandDetail"
+    )
+    expect(errandDemandStub).toContain("errandDemandItemId: \"9101\"")
+    expect(errandDemandStub).toContain("serviceFeePerUnitCents: 50")
+  })
+
   it("commits the configured fauxrpc mock user name", async () => {
     const userStub = await readFile(
       new URL("../../../../mock/fauxrpc/stubs/user.yaml", import.meta.url),
