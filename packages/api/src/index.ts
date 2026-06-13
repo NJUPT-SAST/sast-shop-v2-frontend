@@ -73,6 +73,12 @@ export {
   type BuyerErrandOrderStatusFilter,
 } from "./services/buyer-errand-orders"
 export {
+  listErrandTasks,
+  type ErrandTask,
+  type ErrandTaskStatusFilter,
+  type ErrandTaskStatusValue,
+} from "./services/errand-tasks"
+export {
   listProductTemplates,
   type ProductTemplate,
 } from "./services/product-templates"

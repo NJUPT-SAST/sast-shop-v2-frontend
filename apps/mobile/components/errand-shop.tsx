@@ -282,7 +282,7 @@ export function ErrandShop({
       setItems([])
       setFeeDrafts({})
       setCartOpen(false)
-      router.push("/orders?source=errand&perspective=purchaser")
+      router.push("/orders?type=errand")
     } catch {
       toast.error("跑腿需求提交失败，请稍后再试")
     } finally {
