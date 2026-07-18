@@ -128,11 +128,7 @@ export function CollectingPaymentView({
             <h1 className="text-3xl font-semibold tracking-tight">
               收款与完成
             </h1>
-            <Badge variant="attention">收款中</Badge>
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            逐笔核对参与者付款，全部确认后完成跑腿任务。
-          </p>
         </div>
         <Button disabled={!allConfirmed} onClick={() => setCompleteOpen(true)}>
           <RiCheckboxCircleLine data-icon="inline-start" />
@@ -141,11 +137,10 @@ export function CollectingPaymentView({
       </section>
 
       <Card>
-        <CardContent className="grid grid-cols-3 gap-6 p-5">
-          <Metric label="参与者账单" value={`${bills.length} 笔`} />
+        <CardContent className="grid grid-cols-2 gap-6 p-5">
           <Metric
-            label="已确认收款"
-            value={`${confirmedCount} / ${bills.length}`}
+            label={`共 ${bills.length} 笔账单`}
+            value={`${confirmedCount} 笔已确认`}
           />
           <Metric
             label="账单总额"
@@ -217,22 +212,38 @@ export function CollectingPaymentView({
               <dd className="text-right font-semibold text-primary">
                 {formatPrice(billToConfirm.totalAmountCents)}
               </dd>
-              <dt className="text-muted-foreground">账单号</dt>
-              <dd className="truncate text-right font-mono text-xs">
-                {billToConfirm.billNo ?? "未提供"}
-              </dd>
-              <dt className="text-muted-foreground">支付渠道</dt>
-              <dd className="text-right">
-                {formatPaymentChannel(billToConfirm.paymentChannel)}
-              </dd>
-              <dt className="text-muted-foreground">支付流水号</dt>
-              <dd className="break-all text-right">
-                {billToConfirm.serialNumber ?? "未填写"}
-              </dd>
-              <dt className="text-muted-foreground">核验码</dt>
-              <dd className="text-right font-mono font-semibold tracking-widest">
-                {billToConfirm.verifyCode ?? "未提供"}
-              </dd>
+              {billToConfirm.billNo ? (
+                <>
+                  <dt className="text-muted-foreground">账单号</dt>
+                  <dd className="truncate text-right font-mono text-xs">
+                    {billToConfirm.billNo}
+                  </dd>
+                </>
+              ) : null}
+              {billToConfirm.paymentChannel ? (
+                <>
+                  <dt className="text-muted-foreground">支付渠道</dt>
+                  <dd className="text-right">
+                    {formatPaymentChannel(billToConfirm.paymentChannel)}
+                  </dd>
+                </>
+              ) : null}
+              {billToConfirm.serialNumber ? (
+                <>
+                  <dt className="text-muted-foreground">支付流水号</dt>
+                  <dd className="break-all text-right">
+                    {billToConfirm.serialNumber}
+                  </dd>
+                </>
+              ) : null}
+              {billToConfirm.verifyCode ? (
+                <>
+                  <dt className="text-muted-foreground">核验码</dt>
+                  <dd className="text-right font-mono font-semibold tracking-widest">
+                    {billToConfirm.verifyCode}
+                  </dd>
+                </>
+              ) : null}
             </dl>
           ) : null}
           <DialogFooter>
@@ -290,11 +301,13 @@ function BillCard({
           </Avatar>
           <div className="min-w-0">
             <CardTitle className="truncate text-base">
-              {bill.requesterName}
+              {bill.requesterName || bill.billNo || "待核对账单"}
             </CardTitle>
-            <p className="mt-1 truncate text-xs text-muted-foreground">
-              {bill.billNo || `账单 ${bill.billId ?? "未生成"}`}
-            </p>
+            {bill.billNo || bill.billId ? (
+              <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
+                {bill.billNo || bill.billId}
+              </p>
+            ) : null}
           </div>
         </div>
         <div className="shrink-0 text-right">
@@ -353,7 +366,7 @@ function PaymentStatusBadge({
   if (status === "pending") return <Badge variant="payment">未支付</Badge>;
   if (status === "confirmed") return <Badge variant="success">已收款</Badge>;
   if (status === "problem") return <Badge variant="danger">问题账单</Badge>;
-  return <Badge variant="neutral">状态未知</Badge>;
+  return <Badge variant="neutral">状态异常</Badge>;
 }
 
 function Metric({

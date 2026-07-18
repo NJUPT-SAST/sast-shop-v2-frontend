@@ -1,4 +1,4 @@
-import { Skeleton } from "@workspace/ui/components/skeleton"
+import { Skeleton } from "@workspace/ui/components/skeleton";
 
 export default function BuyerErrandOrderLoading() {
   return (
@@ -10,5 +10,5 @@ export default function BuyerErrandOrderLoading() {
         <Skeleton className="h-80" />
       </div>
     </div>
-  )
+  );
 }

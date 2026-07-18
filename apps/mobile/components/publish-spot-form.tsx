@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useEffectEvent,
   useMemo,
   useRef,
   useState,
@@ -16,9 +17,7 @@ import {
   RiBarcodeLine,
   RiCheckboxCircleLine,
   RiErrorWarningLine,
-  RiQrScan2Line,
   RiStoreLine,
-  RiSubtractLine,
 } from "@remixicon/react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
@@ -31,12 +30,10 @@ import {
   listPaymentQrCodes,
   scanLarkBarcode,
   type DataSource,
-  type JSAPIAuthConfig,
   type ProductTemplateMatch,
   type ServiceOptions,
 } from "@sast-shop/api";
 import { formatPrice } from "@sast-shop/domain";
-import { Badge } from "@workspace/ui/components/badge";
 import {
   Alert,
   AlertAction,
@@ -45,10 +42,6 @@ import {
 } from "@workspace/ui/components/alert";
 import { Button } from "@workspace/ui/components/button";
 import {
-  ButtonGroup,
-  ButtonGroupText,
-} from "@workspace/ui/components/button-group";
-import {
   Drawer,
   DrawerContent,
   DrawerDescription,
@@ -56,6 +49,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@workspace/ui/components/drawer";
+import { Empty } from "@workspace/ui/components/empty";
 import {
   Field,
   FieldError,
@@ -65,7 +59,6 @@ import {
 import {
   InputGroup,
   InputGroupAddon,
-  InputGroupButton,
   InputGroupInput,
   InputGroupText,
 } from "@workspace/ui/components/input-group";
@@ -81,6 +74,9 @@ import {
   RadioGroupItem,
 } from "@workspace/ui/components/radio-group";
 import { Spinner } from "@workspace/ui/components/spinner";
+import { QuantityStepper } from "@workspace/ui/components/quantity-stepper";
+import { isJsapiAuthConfig } from "@/lib/jsapi-config";
+import { useFeishuUiEnvironment } from "@/hooks/use-feishu-ui-environment";
 import {
   canPublishProductTemplate,
   getBarcodeLookupIntent,
@@ -116,15 +112,18 @@ type LookupStatus =
 export function PublishSpotForm({
   dataSource,
   connectBaseUrl,
+  entry,
 }: {
   dataSource: DataSource;
   connectBaseUrl: string;
+  entry: "manual" | "scan";
 }) {
   const serviceOptions: ServiceOptions = useMemo(
     () => ({ dataSource, connectBaseUrl }),
     [connectBaseUrl, dataSource],
   );
   const { openQrCodeDialog } = useProfileDialogs();
+  const showFeishuEntry = useFeishuUiEnvironment();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: { barcode: "", price: 0.01, stock: 1 },
@@ -132,6 +131,7 @@ export function PublishSpotForm({
   const barcode = useWatch({ control: form.control, name: "barcode" });
   const activeLookup = useRef(0);
   const scanningRef = useRef(false);
+  const scanEntryStartedRef = useRef(false);
   const submittingRef = useRef(false);
   const [lookupStatus, setLookupStatus] = useState<LookupStatus>("idle");
   const [matches, setMatches] = useState<ProductTemplateMatch[]>([]);
@@ -139,9 +139,11 @@ export function PublishSpotForm({
     useState<ProductTemplateMatch | null>(null);
   const [pendingMatchId, setPendingMatchId] = useState("");
   const [choiceOpen, setChoiceOpen] = useState(false);
+  const [needsQrCode, setNeedsQrCode] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [manualEntry, setManualEntry] = useState(entry === "manual");
   const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   function resetLookup() {
@@ -204,7 +206,10 @@ export function PublishSpotForm({
           return;
         }
 
-        setPendingMatchId(resolution.matches[0]?.productTemplate.id ?? "");
+        setPendingMatchId(
+          resolution.matches.find((match) => match.store)?.productTemplate.id ??
+            "",
+        );
         setLookupStatus("choose");
         setChoiceOpen(true);
       } catch {
@@ -247,6 +252,7 @@ export function PublishSpotForm({
   async function scanBarcode() {
     if (scanningRef.current) return;
     if (!window.h5sdk || !window.tt) {
+      setManualEntry(true);
       toast.message("请在飞书移动端内扫码，当前环境可手动输入条码");
       return;
     }
@@ -260,7 +266,7 @@ export function PublishSpotForm({
         { cache: "no-store" },
       );
       const body: unknown = await response.json().catch(() => null);
-      if (!response.ok || !isJSAPIAuthConfig(body)) {
+      if (!response.ok || !isJsapiAuthConfig(body)) {
         throw new Error(
           response.status === 401
             ? "登录已失效，请重新打开应用"
@@ -292,9 +298,23 @@ export function PublishSpotForm({
     }
   }
 
+  const startEntryScan = useEffectEvent(() => {
+    void scanBarcode();
+  });
+
+  useEffect(() => {
+    if (entry !== "scan" || scanEntryStartedRef.current) return;
+    scanEntryStartedRef.current = true;
+    startEntryScan();
+  }, [entry]);
+
   async function submitSpotGoods(values: FormValues) {
     if (submittingRef.current) return;
 
+    if (selectedMatch && !selectedMatch.store) {
+      toast.error("请先创建店铺，再重新选择商品");
+      return;
+    }
     if (!canPublishProductTemplate(selectedMatch)) {
       toast.error(
         selectedMatch ? "模板版本无效，请重新查询" : "请先选择商品模板",
@@ -307,29 +327,38 @@ export function PublishSpotForm({
     setSubmissionError(null);
 
     try {
-      const qrCodes = await listPaymentQrCodes(serviceOptions);
-
-      if (qrCodes.length === 0) {
-        toast.error("请先配置收款码，再上架现货");
-        openQrCodeDialog();
+      let qrCodes;
+      try {
+        qrCodes = await listPaymentQrCodes(serviceOptions);
+      } catch {
+        const message = "收款码状态暂时无法确认，请稍后重试";
+        setSubmissionError(message);
+        toast.error(message);
         return;
       }
 
-      await createSpotGoods(
-        {
-          productTemplateId: selectedMatch!.productTemplate.id,
-          salePriceCents: Math.round(values.price * 100),
-          stockTotal: values.stock,
-          productTemplateUpdatedAt: selectedMatch!.productTemplate.updatedAt,
-        },
-        serviceOptions,
-      );
-      setSubmitted(true);
-      toast.success("已提交上架");
-    } catch {
-      const message = "上架失败，请稍后再试";
-      setSubmissionError(message);
-      toast.error(message);
+      if (qrCodes.length === 0) {
+        setNeedsQrCode(true);
+        return;
+      }
+
+      try {
+        await createSpotGoods(
+          {
+            productTemplateId: selectedMatch!.productTemplate.id,
+            salePriceCents: Math.round(values.price * 100),
+            stockTotal: values.stock,
+            productTemplateUpdatedAt: selectedMatch!.productTemplate.updatedAt,
+          },
+          serviceOptions,
+        );
+        setSubmitted(true);
+        toast.success("已提交上架");
+      } catch {
+        const message = "上架失败，请稍后再试";
+        setSubmissionError(message);
+        toast.error(message);
+      }
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -339,58 +368,76 @@ export function PublishSpotForm({
   const createTemplateHref = `/group/templates?create=1&barcode=${encodeURIComponent(
     barcode.trim(),
   )}`;
+  const createStoreHref = buildCreateStoreHref(barcode);
+  const showEntryForm =
+    manualEntry ||
+    !showFeishuEntry ||
+    barcode.length > 0 ||
+    lookupStatus !== "idle";
+
+  if (submitted) {
+    return (
+      <div className="flex min-w-0 flex-1 flex-col gap-6 py-6 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300">
+        <h1 className="text-xl font-semibold md:text-2xl">上架现货</h1>
+        <Empty
+          icon={<RiCheckboxCircleLine className="size-5 text-primary" />}
+          title={`已上架${selectedMatch?.productTemplate.title ?? "商品"}`}
+          action={
+            <Button
+              type="button"
+              onClick={() => {
+                form.reset({ barcode: "", price: 0.01, stock: 1 });
+                resetLookup();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            >
+              <RiAddLine data-icon="inline-start" />
+              继续上架
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-6 py-6">
-      <section className="flex items-start justify-between gap-3">
-        <h1 className="min-w-0 text-xl font-semibold md:text-2xl">上架现货</h1>
-        {submitted ? <Badge>已提交</Badge> : null}
-      </section>
+      <h1 className="min-w-0 text-xl font-semibold md:text-2xl">上架现货</h1>
 
-      <section className="flex min-w-0 flex-col gap-4">
-        <Controller
-          name="barcode"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>商品条码编号</FieldLabel>
-              <InputGroup className="h-11">
-                <InputGroupAddon>
-                  <RiBarcodeLine />
-                </InputGroupAddon>
-                <InputGroupInput
-                  id={field.name}
-                  name={field.name}
-                  value={field.value}
-                  inputMode="numeric"
-                  autoComplete="off"
-                  placeholder="输入或扫描条码"
-                  aria-invalid={fieldState.invalid}
-                  onBlur={field.onBlur}
-                  onChange={(event) => {
-                    field.onChange(event);
-                    form.clearErrors("barcode");
-                    resetLookup();
-                  }}
-                  ref={field.ref}
-                />
-                <InputGroupAddon align="inline-end">
-                  <InputGroupButton
-                    type="button"
-                    size="icon-touch"
-                    aria-label="扫描条码"
-                    title="扫描条码"
-                    disabled={scanning}
-                    onClick={() => void scanBarcode()}
-                  >
-                    <RiQrScan2Line />
-                  </InputGroupButton>
-                </InputGroupAddon>
-              </InputGroup>
-              <FieldError errors={[fieldState.error]} />
-            </Field>
-          )}
-        />
+      <section className="flex min-w-0 flex-col gap-5">
+        {showEntryForm ? (
+          <Controller
+            name="barcode"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={field.name}>商品条码</FieldLabel>
+                <InputGroup className="h-12 bg-card">
+                  <InputGroupAddon>
+                    <RiBarcodeLine />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id={field.name}
+                    name={field.name}
+                    value={field.value}
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="输入商品条码编号"
+                    aria-invalid={fieldState.invalid}
+                    onBlur={field.onBlur}
+                    onChange={(event) => {
+                      field.onChange(event);
+                      form.clearErrors("barcode");
+                      resetLookup();
+                    }}
+                    ref={field.ref}
+                  />
+                </InputGroup>
+                <FieldError errors={[fieldState.error]} />
+              </Field>
+            )}
+          />
+        ) : null}
 
         {lookupStatus === "loading" ? (
           <div className="flex items-center gap-2 rounded-lg bg-secondary px-3 py-2.5 text-sm text-muted-foreground">
@@ -401,7 +448,8 @@ export function PublishSpotForm({
 
         {lookupStatus === "empty" ? (
           <TemplateActionItem
-            title="新建商品模板"
+            title="未找到商品模板"
+            description="创建模板后即可继续上架"
             icon={<RiAddLine />}
             href={createTemplateHref}
           />
@@ -445,10 +493,15 @@ export function PublishSpotForm({
           </Item>
         ) : null}
 
-        {selectedMatch ? <SelectedTemplateItem match={selectedMatch} /> : null}
+        {selectedMatch ? (
+          <SelectedTemplateItem
+            match={selectedMatch}
+            createStoreHref={createStoreHref}
+          />
+        ) : null}
       </section>
 
-      {selectedMatch ? (
+      {selectedMatch?.store ? (
         <>
           <FieldGroup className="grid grid-cols-2 gap-4">
             <Controller
@@ -485,37 +538,16 @@ export function PublishSpotForm({
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={field.name}>初始库存</FieldLabel>
-                  <ButtonGroup
+                  <QuantityStepper
                     id={field.name}
                     aria-invalid={fieldState.invalid}
-                    aria-label="调整初始库存"
                     className="w-full"
-                  >
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon-touch"
-                      aria-label="减少库存"
-                      disabled={Number(field.value) <= 1}
-                      onClick={() =>
-                        field.onChange(Math.max(1, Number(field.value) - 1))
-                      }
-                    >
-                      <RiSubtractLine />
-                    </Button>
-                    <ButtonGroupText className="min-w-0 flex-1 justify-center">
-                      {field.value}
-                    </ButtonGroupText>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon-touch"
-                      aria-label="增加库存"
-                      onClick={() => field.onChange(Number(field.value) + 1)}
-                    >
-                      <RiAddLine />
-                    </Button>
-                  </ButtonGroup>
+                    valueClassName="min-w-0 flex-1"
+                    label="初始库存"
+                    value={Number(field.value)}
+                    max={2147483647}
+                    onValueChange={field.onChange}
+                  />
                   <FieldError errors={[fieldState.error]} />
                 </Field>
               )}
@@ -526,15 +558,11 @@ export function PublishSpotForm({
             type="button"
             size="lg"
             className="h-11"
-            disabled={
-              submitted ||
-              submitting ||
-              !canPublishProductTemplate(selectedMatch)
-            }
+            disabled={submitting || !canPublishProductTemplate(selectedMatch)}
             onClick={() => void form.handleSubmit(submitSpotGoods)()}
           >
             <RiCheckboxCircleLine />
-            {submitting ? "提交中" : submitted ? "已提交上架" : "上架商品"}
+            {submitting ? "提交中" : "上架商品"}
           </Button>
           {submissionError ? (
             <Alert variant="destructive">
@@ -552,6 +580,7 @@ export function PublishSpotForm({
         value={pendingMatchId}
         onValueChange={setPendingMatchId}
         onOpenChange={setChoiceOpen}
+        createStoreHref={createStoreHref}
         onConfirm={() => {
           const next = matches.find(
             (match) => match.productTemplate.id === pendingMatchId,
@@ -566,11 +595,53 @@ export function PublishSpotForm({
           setChoiceOpen(false);
         }}
       />
+
+      <Drawer open={needsQrCode} onOpenChange={setNeedsQrCode}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>请先上传收款码</DrawerTitle>
+            <DrawerDescription>
+              上架前需配置微信或支付宝收款码
+            </DrawerDescription>
+          </DrawerHeader>
+          <DrawerFooter className="pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            <Button
+              type="button"
+              onClick={() => {
+                setNeedsQrCode(false);
+                window.setTimeout(openQrCodeDialog, 240);
+              }}
+            >
+              前往上传
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setNeedsQrCode(false)}
+            >
+              稍后处理
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+
+      {scanning && !showEntryForm ? (
+        <div className="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Spinner />
+          正在扫码
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function SelectedTemplateItem({ match }: { match: ProductTemplateMatch }) {
+function SelectedTemplateItem({
+  match,
+  createStoreHref,
+}: {
+  match: ProductTemplateMatch;
+  createStoreHref: string;
+}) {
   const template = match.productTemplate;
 
   return (
@@ -586,9 +657,18 @@ function SelectedTemplateItem({ match }: { match: ProductTemplateMatch }) {
           {template.title}
         </ItemTitle>
         <ItemDescription className="truncate">
-          {storeLabel(match)} · 参考价 {formatPrice(template.priceCents)}
+          {match.store
+            ? `${match.store.name} · 参考价 ${formatPrice(template.priceCents)}`
+            : "未找到店铺信息"}
         </ItemDescription>
       </ItemContent>
+      {!match.store ? (
+        <ItemActions>
+          <Button asChild type="button" size="sm" variant="outline">
+            <Link href={createStoreHref}>创建店铺</Link>
+          </Button>
+        </ItemActions>
+      ) : null}
     </Item>
   );
 }
@@ -600,6 +680,7 @@ function StoreChoiceDrawer({
   onValueChange,
   onOpenChange,
   onConfirm,
+  createStoreHref,
 }: {
   open: boolean;
   matches: ProductTemplateMatch[];
@@ -607,6 +688,7 @@ function StoreChoiceDrawer({
   onValueChange: (value: string) => void;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
+  createStoreHref: string;
 }) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -622,31 +704,45 @@ function StoreChoiceDrawer({
           onValueChange={onValueChange}
           className="app-scrollbar min-h-0 overflow-y-auto px-4"
         >
-          {matches.map((match) => (
-            <label
-              key={match.productTemplate.id}
-              className="flex min-w-0 cursor-pointer items-start gap-3 rounded-lg border p-3 has-data-[state=checked]:border-primary has-data-[state=checked]:bg-primary/5"
-            >
-              <RadioGroupItem
-                value={match.productTemplate.id}
-                className="mt-0.5 shrink-0"
-              />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">
-                  {storeLabel(match)}
-                </span>
-                <span className="mt-1 block truncate text-sm text-muted-foreground">
-                  {match.productTemplate.title} ·{" "}
-                  {formatPrice(match.productTemplate.priceCents)}
-                </span>
-                {match.store?.address ? (
-                  <span className="mt-1 block truncate text-xs text-muted-foreground">
-                    {match.store.address}
+          {matches.map((match) =>
+            match.store ? (
+              <label
+                key={match.productTemplate.id}
+                className="flex min-w-0 cursor-pointer items-start gap-3 rounded-lg border p-3 has-data-[state=checked]:border-primary has-data-[state=checked]:bg-primary/5"
+              >
+                <RadioGroupItem
+                  value={match.productTemplate.id}
+                  className="mt-0.5 shrink-0"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium">
+                    {match.productTemplate.title}
                   </span>
-                ) : null}
-              </span>
-            </label>
-          ))}
+                  <span className="mt-1 block truncate text-sm text-muted-foreground">
+                    {match.store.name} ·{" "}
+                    {formatPrice(match.productTemplate.priceCents)}
+                  </span>
+                  {match.store.address ? (
+                    <span className="mt-1 block truncate text-xs text-muted-foreground">
+                      {match.store.address}
+                    </span>
+                  ) : null}
+                </span>
+              </label>
+            ) : (
+              <Item key={match.productTemplate.id} variant="outline">
+                <ItemContent>
+                  <ItemTitle>{match.productTemplate.title}</ItemTitle>
+                  <ItemDescription>未找到店铺信息</ItemDescription>
+                </ItemContent>
+                <ItemActions>
+                  <Button asChild type="button" size="sm" variant="outline">
+                    <Link href={createStoreHref}>创建店铺</Link>
+                  </Button>
+                </ItemActions>
+              </Item>
+            ),
+          )}
         </RadioGroup>
         <DrawerFooter className="pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <Button type="button" size="lg" disabled={!value} onClick={onConfirm}>
@@ -660,10 +756,12 @@ function StoreChoiceDrawer({
 
 function TemplateActionItem({
   title,
+  description,
   icon,
   href,
 }: {
   title: string;
+  description?: string;
   icon: ReactNode;
   href: string;
 }) {
@@ -675,6 +773,9 @@ function TemplateActionItem({
         </span>
         <ItemContent>
           <ItemTitle>{title}</ItemTitle>
+          {description ? (
+            <ItemDescription>{description}</ItemDescription>
+          ) : null}
         </ItemContent>
         <ItemActions>
           <RiArrowRightSLine />
@@ -684,21 +785,10 @@ function TemplateActionItem({
   );
 }
 
-function storeLabel(match: ProductTemplateMatch): string {
-  return match.store?.name ?? `店铺 ${match.productTemplate.storeId}`;
-}
+function buildCreateStoreHref(barcode: string): string {
+  const returnTo = `/group/templates?create=1&barcode=${encodeURIComponent(
+    barcode.trim(),
+  )}`;
 
-function isJSAPIAuthConfig(value: unknown): value is JSAPIAuthConfig {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const config = value as Partial<JSAPIAuthConfig>;
-  return (
-    typeof config.appId === "string" &&
-    Boolean(config.appId) &&
-    typeof config.timestamp === "string" &&
-    Boolean(config.timestamp) &&
-    typeof config.nonceStr === "string" &&
-    Boolean(config.nonceStr) &&
-    typeof config.signature === "string" &&
-    Boolean(config.signature)
-  );
+  return `/group/stores/new?returnTo=${encodeURIComponent(returnTo)}`;
 }

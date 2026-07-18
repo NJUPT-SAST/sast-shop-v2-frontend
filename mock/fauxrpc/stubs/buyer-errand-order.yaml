@@ -227,3 +227,8 @@ stubs:
         totalOriginAmountCents: 900
         totalServiceFeeCents: 150
         deadline: "2026-07-18T08:00:00Z"
+
+  - id: buyer-errand-order-captain-contact
+    target: sast.sastshopv2.errand.v1.BuyerErrandOrderService/GetBuyerErrandOrderCaptainContact
+    content:
+      captainFeishuOpenId: ou_mock_errand_captain

@@ -1,4 +1,4 @@
-import { Skeleton } from "@workspace/ui/components/skeleton"
+import { Skeleton } from "@workspace/ui/components/skeleton";
 
 export default function ProductTemplatesLoading() {
   return (
@@ -15,5 +15,5 @@ export default function ProductTemplatesLoading() {
         <Skeleton className="h-24 w-full" />
       </div>
     </div>
-  )
+  );
 }

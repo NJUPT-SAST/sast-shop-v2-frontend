@@ -2,55 +2,52 @@ import {
   getErrandDemandDetails,
   listStores,
   type ErrandDemandDetailGroup,
-} from "@sast-shop/api"
-import { RiStore2Line } from "@remixicon/react"
-import { Empty } from "@workspace/ui/components/empty"
+} from "@sast-shop/api";
+import { RiStore2Line } from "@remixicon/react";
+import { Empty } from "@workspace/ui/components/empty";
 
-import { ErrandDemandDetail } from "@/components/errand-demand-detail"
-import { mobileAppConfig } from "@/lib/app-config"
-import { getServerServiceOptions } from "@/lib/server-service-options"
+import { ErrandDemandDetail } from "@/components/errand-demand-detail";
+import { mobileAppConfig } from "@/lib/app-config";
+import { getServerServiceOptions } from "@/lib/server-service-options";
 
 type ErrandDemandDetailPageProps = {
   params: Promise<{
-    storeId: string
-  }>
-}
+    storeId: string;
+  }>;
+};
 
 type DemandDetailResult = {
-  details: ErrandDemandDetailGroup[]
-  storeName: string
-  error: string | null
-}
+  details: ErrandDemandDetailGroup[];
+  storeName: string;
+  error: string | null;
+};
 
 async function loadDemandDetails(storeId: string): Promise<DemandDetailResult> {
   try {
-    const options = await getServerServiceOptions()
-    const details = await getErrandDemandDetails(
-      { storeId },
-      options
-    )
-    const stores = await listStores(options).catch(() => [])
+    const options = await getServerServiceOptions();
+    const details = await getErrandDemandDetails({ storeId }, options);
+    const stores = await listStores(options).catch(() => []);
 
     return {
       details,
       storeName:
         stores.find((store) => store.id === storeId)?.name ?? "店铺需求",
       error: null,
-    }
+    };
   } catch {
     return {
       details: [],
       storeName: "店铺需求",
       error: "跑腿需求详情暂不可用，请稍后再试",
-    }
+    };
   }
 }
 
 export default async function ErrandDemandDetailPage({
   params,
 }: ErrandDemandDetailPageProps) {
-  const { storeId } = await params
-  const { details, storeName, error } = await loadDemandDetails(storeId)
+  const { storeId } = await params;
+  const { details, storeName, error } = await loadDemandDetails(storeId);
 
   if (error) {
     return (
@@ -61,7 +58,7 @@ export default async function ErrandDemandDetailPage({
           description={error}
         />
       </div>
-    )
+    );
   }
 
   return (
@@ -72,5 +69,5 @@ export default async function ErrandDemandDetailPage({
       storeName={storeName}
       details={details}
     />
-  )
+  );
 }

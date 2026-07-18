@@ -1,22 +1,19 @@
-"use client"
+"use client";
 
-import type { ReactNode } from "react"
+import type { ReactNode } from "react";
 import {
   RiArrowRightSLine,
   RiMapPinLine,
   RiQrCodeLine,
   RiWallet3Line,
-} from "@remixicon/react"
-import { Button } from "@workspace/ui/components/button"
-import { cn } from "@workspace/ui/lib/utils"
-import { useProfileDialogs } from "./profile-dialogs-provider"
+} from "@remixicon/react";
+import { Button } from "@workspace/ui/components/button";
+import { cn } from "@workspace/ui/lib/utils";
+import { useProfileDialogs } from "./profile-dialogs-provider";
 
 export function ProfileManagementClient() {
-  const {
-    openAddressDialog,
-    openPaymentPreferenceDialog,
-    openQrCodeDialog,
-  } = useProfileDialogs()
+  const { openAddressDialog, openPaymentPreferenceDialog, openQrCodeDialog } =
+    useProfileDialogs();
 
   return (
     <div className="overflow-hidden rounded-xl border bg-card">
@@ -40,7 +37,7 @@ export function ProfileManagementClient() {
         last
       />
     </div>
-  )
+  );
 }
 
 function ProfileMenuButton({
@@ -51,12 +48,12 @@ function ProfileMenuButton({
   first = false,
   last = false,
 }: {
-  title: string
-  icon: ReactNode
-  onClick: () => void
-  border?: boolean
-  first?: boolean
-  last?: boolean
+  title: string;
+  icon: ReactNode;
+  onClick: () => void;
+  border?: boolean;
+  first?: boolean;
+  last?: boolean;
 }) {
   return (
     <Button
@@ -67,7 +64,7 @@ function ProfileMenuButton({
         "h-auto min-h-16 w-full justify-start gap-4 px-4 py-3.5",
         first && "rounded-t-xl rounded-b-none",
         last && "rounded-t-none rounded-b-xl",
-        border && "border-b"
+        border && "border-b",
       )}
       onClick={onClick}
     >
@@ -77,5 +74,5 @@ function ProfileMenuButton({
       <span className="flex-1 text-left font-medium">{title}</span>
       <RiArrowRightSLine className="size-5 text-muted-foreground" />
     </Button>
-  )
+  );
 }

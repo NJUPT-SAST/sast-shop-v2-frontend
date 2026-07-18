@@ -19,12 +19,9 @@ export default async function BuyerErrandOrderPage({
   if (!isValidRouteId(id)) notFound();
 
   let order;
-
   try {
-    order = await getBuyerErrandOrderDetail(
-      id,
-      await getServerServiceOptions(),
-    );
+    const serviceOptions = await getServerServiceOptions();
+    order = await getBuyerErrandOrderDetail(id, serviceOptions);
   } catch (error) {
     if (error instanceof ResourceNotFoundError) notFound();
     throw error;

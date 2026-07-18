@@ -1,5 +1,5 @@
-import { Card, CardContent } from "@workspace/ui/components/card"
-import { Skeleton } from "@workspace/ui/components/skeleton"
+import { Card, CardContent } from "@workspace/ui/components/card";
+import { Skeleton } from "@workspace/ui/components/skeleton";
 
 export default function SpotOrderLoading() {
   return (
@@ -16,5 +16,5 @@ export default function SpotOrderLoading() {
       </Card>
       <Skeleton className="mt-auto h-12 w-full rounded-md" />
     </div>
-  )
+  );
 }

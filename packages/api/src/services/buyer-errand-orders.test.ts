@@ -5,6 +5,7 @@ import {
   ValidationError,
 } from "../errors";
 import {
+  getBuyerErrandOrderCaptainContact,
   getBuyerErrandOrderDetail,
   listBuyerErrandOrders,
   type BuyerErrandOrder,
@@ -29,6 +30,24 @@ describe("buyer errand order service", () => {
     expectTypeOf<ReturnType<typeof getBuyerErrandOrderDetail>>().toEqualTypeOf<
       Promise<BuyerErrandOrderDetail>
     >();
+    expectTypeOf<
+      ReturnType<typeof getBuyerErrandOrderCaptainContact>
+    >().toEqualTypeOf<Promise<string>>();
+  });
+
+  it("gets the authorized captain Feishu contact", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({ captainFeishuOpenId: "ou_captain_9001" }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      getBuyerErrandOrderCaptainContact("9001", localOptions),
+    ).resolves.toBe("ou_captain_9001");
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.errand.v1.BuyerErrandOrderService/GetBuyerErrandOrderCaptainContact",
+      body: { errandDemandId: "9001" },
+    });
   });
 
   it("gets and maps a buyer errand order detail", async () => {
@@ -67,6 +86,16 @@ describe("buyer errand order service", () => {
               errandDemandItemId: "7001",
             },
             {
+              productTemplate: {
+                id: "1002",
+                title: "缺货商品",
+                description: "本次未购得",
+                priceCents: 2000,
+                storeId: "3001",
+                mainImageUrl: "https://example.com/out-of-stock.png",
+                barcode: "690000000002",
+                updatedAt: "2026-06-09T08:00:00Z",
+              },
               actualUnitPriceCents: 0,
               requiredQuantity: 1,
               purchasedQuantity: 0,
@@ -145,7 +174,16 @@ describe("buyer errand order service", () => {
           demandItemId: "7001",
         },
         {
-          productTemplate: null,
+          productTemplate: {
+            id: "1002",
+            title: "缺货商品",
+            description: "本次未购得",
+            priceCents: 2000,
+            storeId: "3001",
+            mainImageUrl: "https://example.com/out-of-stock.png",
+            barcode: "690000000002",
+            updatedAt: "2026-06-09T08:00:00.000Z",
+          },
           actualUnitPriceCents: 0,
           requiredQuantity: 1,
           purchasedQuantity: 0,
@@ -193,7 +231,17 @@ describe("buyer errand order service", () => {
           errandDemandId: "9002",
           storeId: "3001",
           status: "ERRAND_DEMAND_STATUS_OPEN",
-          productItems: [],
+          productItems: [
+            {
+              productTemplate: {
+                id: "1001",
+                title: "SAST 贴纸",
+                storeId: "3001",
+              },
+              requiredQuantity: 1,
+              errandDemandItemId: "7001",
+            },
+          ],
           totalOriginAmountCents: 0,
           totalServiceFeeCents: 0,
         },
@@ -218,6 +266,24 @@ describe("buyer errand order service", () => {
     });
   });
 
+  it("rejects a detail response without product snapshots", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        order: {
+          errandDemandId: "9002",
+          storeId: "3001",
+          status: "ERRAND_DEMAND_STATUS_OPEN",
+          productItems: [{ requiredQuantity: 1, errandDemandItemId: "7001" }],
+        },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      getBuyerErrandOrderDetail("9002", localOptions),
+    ).rejects.toBeInstanceOf(FeatureUnavailableError);
+  });
+
   it("validates buyer errand order detail IDs before submitting requests", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
@@ -238,7 +304,17 @@ describe("buyer errand order service", () => {
           errandDemandId: "9223372036854775807",
           storeId: "1",
           status: "ERRAND_DEMAND_STATUS_OPEN",
-          productItems: [],
+          productItems: [
+            {
+              productTemplate: {
+                id: "1",
+                title: "测试商品",
+                storeId: "1",
+              },
+              requiredQuantity: 1,
+              errandDemandItemId: "1",
+            },
+          ],
           totalOriginAmountCents: 0,
           totalServiceFeeCents: 0,
         },

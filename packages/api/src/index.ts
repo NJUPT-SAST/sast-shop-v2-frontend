@@ -21,6 +21,9 @@ export {
 } from "./services/auth";
 export {
   configureLarkJsapi,
+  enterLarkChat,
+  isLarkClientEnvironment,
+  isLarkMobileClientEnvironment,
   isLarkScanCancelledError,
   requestLarkAuthorizationCode,
   scanLarkBarcode,
@@ -29,6 +32,7 @@ export {
   type LarkCallbackResult,
   type LarkClientApi,
   type LarkH5Sdk,
+  type LarkJsapiName,
 } from "./lark-client";
 export {
   createAddress,
@@ -59,13 +63,20 @@ export {
   type SupplementBillSerialNumberInput,
 } from "./services/payment-bills";
 export { getProfileOverview, type ProfileOverview } from "./services/profile";
-export { listStores, type Store } from "./services/catalog";
+export {
+  createStore,
+  listStores,
+  type CreateStoreInput,
+  type Store,
+} from "./services/catalog";
 export {
   createSpotGoods,
   getSpotGoods,
   listSpotGoods,
   type CreateSpotGoodsInput,
+  type ListSpotGoodsResult,
   type SpotGoods,
+  type SpotGoodsBrief,
   type SpotProductTemplate,
 } from "./services/spot-goods";
 export {
@@ -73,6 +84,7 @@ export {
   completeSpotOrder,
   createSpotOrders,
   getSpotOrderDetail,
+  getSpotOrderSellerContact,
   listSpotOrders,
   type CreateSpotOrderInput,
   type SpotOrder,
@@ -92,6 +104,7 @@ export {
   type ErrandDemandStoreSummary,
 } from "./services/errand-demands";
 export {
+  getBuyerErrandOrderCaptainContact,
   getBuyerErrandOrderDetail,
   listBuyerErrandOrders,
   type BuyerErrandOrder,

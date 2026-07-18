@@ -1,7 +1,7 @@
-import Link from "next/link"
-import { RiFileList3Line } from "@remixicon/react"
-import { Button } from "@workspace/ui/components/button"
-import { Empty } from "@workspace/ui/components/empty"
+import Link from "next/link";
+import { RiFileList3Line } from "@remixicon/react";
+import { Button } from "@workspace/ui/components/button";
+import { Empty } from "@workspace/ui/components/empty";
 
 export default function BuyerErrandOrderNotFound() {
   return (
@@ -15,5 +15,5 @@ export default function BuyerErrandOrderNotFound() {
         </Button>
       }
     />
-  )
+  );
 }

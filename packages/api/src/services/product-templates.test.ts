@@ -1,11 +1,11 @@
-import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest"
+import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 
 import {
   ApiRequestError,
   FeatureUnavailableError,
   ResourceNotFoundError,
   ValidationError,
-} from "../errors"
+} from "../errors";
 import {
   createProductTemplate,
   getProductTemplatesByBarcode,
@@ -15,12 +15,12 @@ import {
   type ProductTemplate,
   type ProductTemplateMatch,
   type UpdateProductTemplateInput,
-} from "./product-templates"
+} from "./product-templates";
 
 const localOptions = {
   dataSource: "local" as const,
   connectBaseUrl: "http://127.0.0.1:6660",
-}
+};
 
 const createInput: CreateProductTemplateInput = {
   storeId: "3001",
@@ -29,24 +29,24 @@ const createInput: CreateProductTemplateInput = {
   priceCents: 200,
   mainImageUrl: "  https://example.test/water.png  ",
   barcode: "0690000000001",
-}
+};
 
 describe("product template service", () => {
   afterEach(() => {
-    vi.unstubAllGlobals()
-  })
+    vi.unstubAllGlobals();
+  });
 
   it("exposes stable mutation and barcode lookup types", () => {
     expectTypeOf<typeof createProductTemplate>().returns.toEqualTypeOf<
       Promise<ProductTemplate>
-    >()
+    >();
     expectTypeOf<typeof updateProductTemplate>().returns.toEqualTypeOf<
       Promise<ProductTemplate>
-    >()
+    >();
     expectTypeOf<typeof getProductTemplatesByBarcode>().returns.toEqualTypeOf<
       Promise<ProductTemplateMatch[]>
-    >()
-  })
+    >();
+  });
 
   it("creates a normalized product template and maps the complete response", async () => {
     const fetchMock = vi.fn(async () =>
@@ -61,11 +61,11 @@ describe("product template service", () => {
           barcode: "0690000000001",
           updatedAt: "2026-07-18T01:00:00.123456789Z",
         },
-      })
-    )
-    vi.stubGlobal("fetch", fetchMock)
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
 
-    const template = await createProductTemplate(createInput, localOptions)
+    const template = await createProductTemplate(createInput, localOptions);
 
     expect(template).toEqual({
       id: "4001",
@@ -76,7 +76,7 @@ describe("product template service", () => {
       mainImageUrl: "https://example.test/water.png",
       barcode: "0690000000001",
       updatedAt: "2026-07-18T01:00:00.123456789Z",
-    })
+    });
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.catalog.v1.ProductTemplateService/CreateProductTemplate",
       body: {
@@ -87,8 +87,8 @@ describe("product template service", () => {
         mainImageUrl: "https://example.test/water.png",
         barcode: "0690000000001",
       },
-    })
-  })
+    });
+  });
 
   it.each([
     [{ ...createInput, storeId: "" }, "店铺 ID 不正确"],
@@ -101,22 +101,43 @@ describe("product template service", () => {
     [{ ...createInput, priceCents: 0 }, "商品价格不正确"],
     [{ ...createInput, priceCents: 1.5 }, "商品价格不正确"],
     [{ ...createInput, priceCents: 2147483648 }, "商品价格不正确"],
-    [{ ...createInput, mainImageUrl: "javascript:alert(1)" }, "商品图片地址不正确"],
-    [{ ...createInput, mainImageUrl: "https://user:pass@example.test/a.png" }, "商品图片地址不正确"],
-    [{ ...createInput, mainImageUrl: "http://example.test/a.png" }, "商品图片地址不正确"],
-    [{ ...createInput, mainImageUrl: "https://127.0.0.1/a.png" }, "商品图片地址不正确"],
-  ] as const)("rejects invalid create input before requesting: %o", async (input, message) => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal("fetch", fetchMock)
+    [
+      { ...createInput, mainImageUrl: "javascript:alert(1)" },
+      "商品图片地址不正确",
+    ],
+    [
+      { ...createInput, mainImageUrl: "https://user:pass@example.test/a.png" },
+      "商品图片地址不正确",
+    ],
+    [
+      { ...createInput, mainImageUrl: "http://example.test/a.png" },
+      "商品图片地址不正确",
+    ],
+    [
+      { ...createInput, mainImageUrl: "https://127.0.0.1/a.png" },
+      "商品图片地址不正确",
+    ],
+  ] as const)(
+    "rejects invalid create input before requesting: %o",
+    async (input, message) => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
 
-    await expect(
-      createProductTemplate(input as CreateProductTemplateInput, localOptions)
-    ).rejects.toThrow(message)
-    await expect(
-      createProductTemplate(input as CreateProductTemplateInput, localOptions)
-    ).rejects.toBeInstanceOf(ValidationError)
-    expect(fetchMock).not.toHaveBeenCalled()
-  })
+      await expect(
+        createProductTemplate(
+          input as CreateProductTemplateInput,
+          localOptions,
+        ),
+      ).rejects.toThrow(message);
+      await expect(
+        createProductTemplate(
+          input as CreateProductTemplateInput,
+          localOptions,
+        ),
+      ).rejects.toBeInstanceOf(ValidationError);
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
 
   it("looks up every store match for a barcode and preserves leading zeroes", async () => {
     const fetchMock = vi.fn(async () =>
@@ -155,34 +176,37 @@ describe("product template service", () => {
             },
           },
         ],
-      })
-    )
-    vi.stubGlobal("fetch", fetchMock)
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
 
     const matches = await getProductTemplatesByBarcode(
       " 0690000000001 ",
-      localOptions
-    )
+      localOptions,
+    );
 
-    expect(matches).toHaveLength(2)
+    expect(matches).toHaveLength(2);
     expect(matches.map((match) => match.store?.name)).toEqual([
       "SAST 小卖部",
       "南门便利店",
-    ])
-    expect(matches[0]?.productTemplate.barcode).toBe("0690000000001")
+    ]);
+    expect(matches[0]?.productTemplate.barcode).toBe("0690000000001");
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateByBarcode",
       body: { barcode: "0690000000001" },
-    })
-  })
+    });
+  });
 
   it("returns an empty match list for an unknown barcode", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => stubJsonResponse({ items: [] })))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => stubJsonResponse({ items: [] })),
+    );
 
     await expect(
-      getProductTemplatesByBarcode("690000000099", localOptions)
-    ).resolves.toEqual([])
-  })
+      getProductTemplatesByBarcode("690000000099", localOptions),
+    ).resolves.toEqual([]);
+  });
 
   it("fails closed when a barcode match omits its product template", async () => {
     vi.stubGlobal(
@@ -190,14 +214,14 @@ describe("product template service", () => {
       vi.fn(async () =>
         stubJsonResponse({
           items: [{ store: { id: "3001", name: "SAST 小卖部" } }],
-        })
-      )
-    )
+        }),
+      ),
+    );
 
     await expect(
-      getProductTemplatesByBarcode("690000000001", localOptions)
-    ).rejects.toBeInstanceOf(FeatureUnavailableError)
-  })
+      getProductTemplatesByBarcode("690000000001", localOptions),
+    ).rejects.toBeInstanceOf(FeatureUnavailableError);
+  });
 
   it("fails closed for mismatched or duplicate store matches", async () => {
     vi.stubGlobal(
@@ -216,13 +240,13 @@ describe("product template service", () => {
               store: { id: "3002", name: "错误店铺" },
             },
           ],
-        })
-      )
-    )
+        }),
+      ),
+    );
 
     await expect(
-      getProductTemplatesByBarcode("690000000001", localOptions)
-    ).rejects.toBeInstanceOf(FeatureUnavailableError)
+      getProductTemplatesByBarcode("690000000001", localOptions),
+    ).rejects.toBeInstanceOf(FeatureUnavailableError);
 
     vi.stubGlobal(
       "fetch",
@@ -248,27 +272,27 @@ describe("product template service", () => {
               },
             },
           ],
-        })
-      )
-    )
+        }),
+      ),
+    );
 
     await expect(
-      getProductTemplatesByBarcode("690000000001", localOptions)
-    ).rejects.toBeInstanceOf(FeatureUnavailableError)
-  })
+      getProductTemplatesByBarcode("690000000001", localOptions),
+    ).rejects.toBeInstanceOf(FeatureUnavailableError);
+  });
 
   it.each(["", " ", "6900A"])(
     "rejects invalid barcode lookup %o before requesting",
     async (barcode) => {
-      const fetchMock = vi.fn()
-      vi.stubGlobal("fetch", fetchMock)
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
 
       await expect(
-        getProductTemplatesByBarcode(barcode, localOptions)
-      ).rejects.toBeInstanceOf(ValidationError)
-      expect(fetchMock).not.toHaveBeenCalled()
-    }
-  )
+        getProductTemplatesByBarcode(barcode, localOptions),
+      ).rejects.toBeInstanceOf(ValidationError);
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
 
   it("updates only explicit patch fields with the current version", async () => {
     const fetchMock = vi.fn(async () =>
@@ -282,18 +306,18 @@ describe("product template service", () => {
           barcode: "0690000000001",
           updatedAt: "2026-07-18T02:00:00Z",
         },
-      })
-    )
-    vi.stubGlobal("fetch", fetchMock)
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
 
     const input: UpdateProductTemplateInput = {
       id: "4001",
       updatedAt: "2026-07-18T01:00:00Z",
       patch: { title: "  天然矿泉水 ", priceCents: 350 },
-    }
-    const template = await updateProductTemplate(input, localOptions)
+    };
+    const template = await updateProductTemplate(input, localOptions);
 
-    expect(template.updatedAt).toBe("2026-07-18T02:00:00.000Z")
+    expect(template.updatedAt).toBe("2026-07-18T02:00:00.000Z");
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.catalog.v1.ProductTemplateService/UpdateProductTemplate",
       body: {
@@ -305,8 +329,8 @@ describe("product template service", () => {
         },
         updateMask: "title,priceCents",
       },
-    })
-  })
+    });
+  });
 
   it("preserves nanosecond versions when updating", async () => {
     const fetchMock = vi.fn(async () =>
@@ -319,9 +343,9 @@ describe("product template service", () => {
           barcode: "0690000000001",
           updatedAt: "2026-07-18T02:00:00.987654321Z",
         },
-      })
-    )
-    vi.stubGlobal("fetch", fetchMock)
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
 
     const template = await updateProductTemplate(
       {
@@ -329,10 +353,10 @@ describe("product template service", () => {
         updatedAt: "2026-07-18T01:00:00.123456789Z",
         patch: { title: "矿泉水" },
       },
-      localOptions
-    )
+      localOptions,
+    );
 
-    expect(template.updatedAt).toBe("2026-07-18T02:00:00.987654321Z")
+    expect(template.updatedAt).toBe("2026-07-18T02:00:00.987654321Z");
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.catalog.v1.ProductTemplateService/UpdateProductTemplate",
       body: {
@@ -343,18 +367,18 @@ describe("product template service", () => {
         },
         updateMask: "title",
       },
-    })
-  })
+    });
+  });
 
   it("rejects an explicitly empty store filter", async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal("fetch", fetchMock)
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
 
     await expect(
-      listProductTemplates({ ...localOptions, storeId: "" })
-    ).rejects.toBeInstanceOf(ValidationError)
-    expect(fetchMock).not.toHaveBeenCalled()
-  })
+      listProductTemplates({ ...localOptions, storeId: "" }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 
   it("keeps explicit empty optional values in the update mask", async () => {
     const fetchMock = vi.fn(async () =>
@@ -367,9 +391,9 @@ describe("product template service", () => {
           barcode: "0690000000001",
           updatedAt: "2026-07-18T02:00:00Z",
         },
-      })
-    )
-    vi.stubGlobal("fetch", fetchMock)
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
 
     await updateProductTemplate(
       {
@@ -377,8 +401,8 @@ describe("product template service", () => {
         updatedAt: "2026-07-18T01:00:00Z",
         patch: { description: "", mainImageUrl: "" },
       },
-      localOptions
-    )
+      localOptions,
+    );
 
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.catalog.v1.ProductTemplateService/UpdateProductTemplate",
@@ -389,8 +413,8 @@ describe("product template service", () => {
         },
         updateMask: "description,mainImageUrl",
       },
-    })
-  })
+    });
+  });
 
   it.each([
     { id: "4001", updatedAt: "2026-07-18T01:00:00Z", patch: {} },
@@ -398,22 +422,31 @@ describe("product template service", () => {
     { id: "4001", updatedAt: "", patch: { title: "水" } },
     { id: "4001", updatedAt: "not-a-date", patch: { title: "水" } },
     { id: "4001", updatedAt: "2026-07-18T01:00:00Z", patch: { barcode: "" } },
-  ] as const)("rejects invalid update input before requesting: %o", async (input) => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal("fetch", fetchMock)
+  ] as const)(
+    "rejects invalid update input before requesting: %o",
+    async (input) => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
 
-    await expect(
-      updateProductTemplate(input as UpdateProductTemplateInput, localOptions)
-    ).rejects.toBeInstanceOf(ValidationError)
-    expect(fetchMock).not.toHaveBeenCalled()
-  })
+      await expect(
+        updateProductTemplate(
+          input as UpdateProductTemplateInput,
+          localOptions,
+        ),
+      ).rejects.toBeInstanceOf(ValidationError);
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
 
   it("fails explicitly when create or update omits the returned template", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => stubJsonResponse({})))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => stubJsonResponse({})),
+    );
 
     await expect(
-      createProductTemplate(createInput, localOptions)
-    ).rejects.toBeInstanceOf(FeatureUnavailableError)
+      createProductTemplate(createInput, localOptions),
+    ).rejects.toBeInstanceOf(FeatureUnavailableError);
     await expect(
       updateProductTemplate(
         {
@@ -421,10 +454,10 @@ describe("product template service", () => {
           updatedAt: "2026-07-18T01:00:00Z",
           patch: { title: "新名称" },
         },
-        localOptions
-      )
-    ).rejects.toBeInstanceOf(FeatureUnavailableError)
-  })
+        localOptions,
+      ),
+    ).rejects.toBeInstanceOf(FeatureUnavailableError);
+  });
 
   it("keeps transport not-found and remote failures distinct", async () => {
     vi.stubGlobal(
@@ -432,20 +465,20 @@ describe("product template service", () => {
       vi.fn(async () =>
         stubJsonResponse(
           { code: "not_found", message: "template not found" },
-          { status: 404 }
-        )
-      )
-    )
+          { status: 404 },
+        ),
+      ),
+    );
 
     await expect(
-      getProductTemplatesByBarcode("690000000001", localOptions)
-    ).rejects.toBeInstanceOf(ResourceNotFoundError)
+      getProductTemplatesByBarcode("690000000001", localOptions),
+    ).rejects.toBeInstanceOf(ResourceNotFoundError);
     await expect(
       createProductTemplate(createInput, {
         dataSource: "remote",
-      })
-    ).rejects.toBeInstanceOf(FeatureUnavailableError)
-  })
+      }),
+    ).rejects.toBeInstanceOf(FeatureUnavailableError);
+  });
 
   it("wraps mutation transport failures", async () => {
     vi.stubGlobal(
@@ -453,36 +486,36 @@ describe("product template service", () => {
       vi.fn(async () =>
         stubJsonResponse(
           { code: "unavailable", message: "backend unavailable" },
-          { status: 503 }
-        )
-      )
-    )
+          { status: 503 },
+        ),
+      ),
+    );
 
     await expect(
-      createProductTemplate(createInput, localOptions)
-    ).rejects.toBeInstanceOf(ApiRequestError)
-  })
-})
+      createProductTemplate(createInput, localOptions),
+    ).rejects.toBeInstanceOf(ApiRequestError);
+  });
+});
 
 async function expectConnectRequest(
   fetchMock: ReturnType<typeof vi.fn>,
-  expected: { path: string; body: unknown }
+  expected: { path: string; body: unknown },
 ) {
-  const [input, init] = fetchMock.mock.calls.at(-1) ?? []
-  const url = typeof input === "string" ? input : (input as Request).url
+  const [input, init] = fetchMock.mock.calls.at(-1) ?? [];
+  const url = typeof input === "string" ? input : (input as Request).url;
   const body =
     typeof input === "string"
       ? init?.body
-      : await (input as Request).clone().text()
+      : await (input as Request).clone().text();
 
-  expect(new URL(url).pathname).toBe(expected.path)
-  expect(JSON.parse(bodyToText(body))).toEqual(expected.body)
+  expect(new URL(url).pathname).toBe(expected.path);
+  expect(JSON.parse(bodyToText(body))).toEqual(expected.body);
 }
 
 function bodyToText(body: unknown): string {
-  if (body instanceof Uint8Array) return new TextDecoder().decode(body)
-  if (body instanceof ArrayBuffer) return new TextDecoder().decode(body)
-  return String(body)
+  if (body instanceof Uint8Array) return new TextDecoder().decode(body);
+  if (body instanceof ArrayBuffer) return new TextDecoder().decode(body);
+  return String(body);
 }
 
 function stubJsonResponse(body: unknown, init: ResponseInit = {}) {
@@ -492,5 +525,5 @@ function stubJsonResponse(body: unknown, init: ResponseInit = {}) {
       "content-type": "application/json",
       ...init.headers,
     },
-  })
+  });
 }

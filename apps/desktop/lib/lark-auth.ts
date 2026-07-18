@@ -1,4 +1,4 @@
 export {
   requestLarkAuthorizationCode,
   type LarkClientApi,
-} from "@sast-shop/api"
+} from "@sast-shop/api";

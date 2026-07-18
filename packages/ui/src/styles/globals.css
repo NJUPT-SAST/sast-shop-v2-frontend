@@ -131,8 +131,11 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: "SF Pro Text", "SF Pro Display", system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
-  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+  --font-sans:
+    "SF Pro Text", "SF Pro Display", system-ui, -apple-system,
+    BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+  --font-mono:
+    ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
 }
 
 @layer base {
@@ -187,5 +190,11 @@
   .animate-slide-up,
   .animate-slide-down {
     animation: none;
+  }
+
+  [data-vaul-drawer],
+  [data-vaul-overlay] {
+    animation: none !important;
+    transition: none !important;
   }
 }

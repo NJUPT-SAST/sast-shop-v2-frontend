@@ -4,7 +4,6 @@ import { useRef, useState, type TouchEvent } from "react";
 import {
   RiAlipayLine,
   RiCheckboxCircleLine,
-  RiCloseCircleLine,
   RiDownload2Line,
   RiKey2Line,
   RiQrCodeLine,
@@ -58,10 +57,21 @@ export type PaymentDialogProps = {
 const PAYMENT_PLATFORMS: Array<{
   platform: PaymentPlatform;
   label: string;
+  scannerLabel: string;
   icon: typeof RiWechatPayLine;
 }> = [
-  { platform: "wechat", label: "微信支付", icon: RiWechatPayLine },
-  { platform: "alipay", label: "支付宝", icon: RiAlipayLine },
+  {
+    platform: "wechat",
+    label: "微信支付",
+    scannerLabel: "微信",
+    icon: RiWechatPayLine,
+  },
+  {
+    platform: "alipay",
+    label: "支付宝",
+    scannerLabel: "支付宝",
+    icon: RiAlipayLine,
+  },
 ];
 
 export function PaymentDialog({
@@ -91,6 +101,15 @@ function PaymentDialogBody({
   onRetry,
 }: Omit<PaymentDialogProps, "open" | "onOpenChange">) {
   const [platform, setPlatform] = useState<PaymentPlatform>(defaultPlatform);
+  const [savedPlatforms, setSavedPlatforms] = useState<
+    Partial<Record<PaymentPlatform, boolean>>
+  >({});
+  const [attemptedPlatforms, setAttemptedPlatforms] = useState<
+    Partial<Record<PaymentPlatform, boolean>>
+  >({});
+  const [transitionDirection, setTransitionDirection] = useState<
+    "previous" | "next"
+  >("next");
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const qrCanvasRefs = useRef<
     Partial<Record<PaymentPlatform, HTMLCanvasElement | null>>
@@ -106,6 +125,7 @@ function PaymentDialogBody({
 
     try {
       openPaymentScanner(platform);
+      setAttemptedPlatforms((current) => ({ ...current, [platform]: true }));
     } catch {
       toast.error("无法打开支付 App，请手动打开扫一扫");
     }
@@ -127,6 +147,7 @@ function PaymentDialogBody({
     link.href = canvas.toDataURL("image/png");
     link.download = `${platformLabel ?? "支付"}收款码.png`;
     link.click();
+    setSavedPlatforms((current) => ({ ...current, [platform]: true }));
     toast.success("已发起保存，请在系统提示中确认");
   }
 
@@ -148,14 +169,24 @@ function PaymentDialogBody({
     const currentIndex = PAYMENT_PLATFORMS.findIndex(
       (item) => item.platform === platform,
     );
-    const nextIndex =
-      (currentIndex + direction + PAYMENT_PLATFORMS.length) %
-      PAYMENT_PLATFORMS.length;
+    const nextIndex = currentIndex + direction;
     const nextPlatform = PAYMENT_PLATFORMS[nextIndex]?.platform;
 
     if (nextPlatform) {
-      setPlatform(nextPlatform);
+      selectPlatform(nextPlatform);
     }
+  }
+
+  function selectPlatform(nextPlatform: PaymentPlatform) {
+    if (nextPlatform === platform) return;
+    const currentIndex = PAYMENT_PLATFORMS.findIndex(
+      (item) => item.platform === platform,
+    );
+    const nextIndex = PAYMENT_PLATFORMS.findIndex(
+      (item) => item.platform === nextPlatform,
+    );
+    setTransitionDirection(nextIndex > currentIndex ? "next" : "previous");
+    setPlatform(nextPlatform);
   }
 
   function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
@@ -190,12 +221,10 @@ function PaymentDialogBody({
 
   return (
     <ResponsiveDialogContent className="max-h-[88dvh] overflow-hidden px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-md">
-      <ResponsiveDialogHeader className="px-0 text-left">
+      <ResponsiveDialogHeader className="px-0">
         <ResponsiveDialogTitle className="text-lg">支付</ResponsiveDialogTitle>
-        <ResponsiveDialogDescription
-          className={status === "ready" ? undefined : "sr-only"}
-        >
-          {status === "ready" ? "付款后点击“我已支付”" : "支付状态"}
+        <ResponsiveDialogDescription className="sr-only">
+          支付状态
         </ResponsiveDialogDescription>
       </ResponsiveDialogHeader>
 
@@ -227,10 +256,10 @@ function PaymentDialogBody({
         {status === "ready" ? (
           <Tabs
             value={platform}
-            onValueChange={(value) => setPlatform(value as PaymentPlatform)}
+            onValueChange={(value) => selectPlatform(value as PaymentPlatform)}
             className="min-h-0 flex-col"
           >
-            <TabsList className="grid h-9 w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-2">
               {PAYMENT_PLATFORMS.map(
                 ({ platform: value, label, icon: Icon }) => (
                   <TabsTrigger key={value} value={value}>
@@ -240,77 +269,101 @@ function PaymentDialogBody({
                 ),
               )}
             </TabsList>
-            {PAYMENT_PLATFORMS.map(({ platform: value, label }) => {
-              const panelQrCodeContent = qrCodes[value];
-              const panelHasQrCode = Boolean(panelQrCodeContent);
+            {PAYMENT_PLATFORMS.map(
+              ({ platform: value, label, scannerLabel }) => {
+                const panelQrCodeContent = qrCodes[value];
+                const panelHasQrCode = Boolean(panelQrCodeContent);
+                const panelQrSaved = Boolean(savedPlatforms[value]);
+                const panelScannerAttempted = Boolean(
+                  attemptedPlatforms[value],
+                );
 
-              return (
-                <TabsContent key={value} value={value} className="mt-4">
-                  <div
-                    className="flex flex-col gap-4"
-                    onTouchStart={handleTouchStart}
-                    onTouchEnd={handleTouchEnd}
+                return (
+                  <TabsContent
+                    key={value}
+                    value={value}
+                    className={cn(
+                      "mt-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200",
+                      transitionDirection === "next"
+                        ? "motion-safe:slide-in-from-right-3"
+                        : "motion-safe:slide-in-from-left-3",
+                    )}
                   >
-                    <div className="flex flex-col items-center gap-3 rounded-lg bg-muted p-4">
-                      {panelQrCodeContent ? (
-                        <PaymentQrCode
-                          content={panelQrCodeContent}
-                          channel={value}
-                          canvasRef={(canvas) => {
-                            qrCanvasRefs.current[value] = canvas;
-                          }}
-                        />
-                      ) : (
-                        <Empty
-                          icon={<RiQrCodeLine className="size-5" />}
-                          title="暂无收款码"
-                          description={`收款人还没有配置${label}收款码。`}
-                          className="w-full border bg-white"
-                        />
-                      )}
+                    <div
+                      className="flex flex-col gap-4"
+                      onTouchStart={handleTouchStart}
+                      onTouchEnd={handleTouchEnd}
+                      onTouchCancel={() => {
+                        touchStartRef.current = null;
+                      }}
+                    >
+                      <div className="flex flex-col items-center gap-3 rounded-lg bg-muted p-4">
+                        {panelQrCodeContent ? (
+                          <PaymentQrCode
+                            content={panelQrCodeContent}
+                            channel={value}
+                            canvasRef={(canvas) => {
+                              qrCanvasRefs.current[value] = canvas;
+                            }}
+                          />
+                        ) : (
+                          <Empty
+                            icon={<RiQrCodeLine className="size-5" />}
+                            title="暂无收款码"
+                            description={`收款人还没有配置${label}收款码。`}
+                            className="w-full border bg-card text-card-foreground"
+                          />
+                        )}
+                      </div>
+
+                      <PaymentBillSummary
+                        amountCents={amountCents}
+                        verifyCode={verifyCode}
+                      />
+
+                      <Separator />
+
+                      <div className="grid gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={!panelHasQrCode}
+                          onClick={saveQrCode}
+                        >
+                          {panelQrSaved ? (
+                            <RiCheckboxCircleLine data-icon="inline-start" />
+                          ) : (
+                            <RiDownload2Line data-icon="inline-start" />
+                          )}
+                          {panelQrSaved ? "收款码已保存" : "保存收款码"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={panelQrSaved ? "secondary" : "outline"}
+                          disabled={!panelHasQrCode || !panelQrSaved}
+                          onClick={openScanner}
+                        >
+                          {panelScannerAttempted ? (
+                            <RiCheckboxCircleLine data-icon="inline-start" />
+                          ) : (
+                            <RiQrScan2Line data-icon="inline-start" />
+                          )}
+                          {panelScannerAttempted
+                            ? `已尝试打开${scannerLabel}`
+                            : `打开${scannerLabel}扫一扫`}
+                        </Button>
+                      </div>
                     </div>
-
-                    <PaymentBillSummary
-                      amountCents={amountCents}
-                      verifyCode={verifyCode}
-                    />
-
-                    <Separator />
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={!panelHasQrCode}
-                        onClick={saveQrCode}
-                      >
-                        <RiDownload2Line data-icon="inline-start" />
-                        保存收款码
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={!panelHasQrCode}
-                        onClick={openScanner}
-                      >
-                        <RiQrScan2Line data-icon="inline-start" />
-                        打开扫一扫
-                      </Button>
-                    </div>
-                  </div>
-                </TabsContent>
-              );
-            })}
+                  </TabsContent>
+                );
+              },
+            )}
           </Tabs>
         ) : null}
       </div>
 
       {status === "ready" ? (
-        <ResponsiveDialogFooter className="gap-2">
-          <Button type="button" variant="outline" onClick={onCancelPayment}>
-            <RiCloseCircleLine data-icon="inline-start" />
-            稍后支付
-          </Button>
+        <ResponsiveDialogFooter className="flex-col gap-1 pt-4">
           <Button
             type="button"
             disabled={!hasQrCode || submitting}
@@ -318,6 +371,14 @@ function PaymentDialogBody({
           >
             <RiCheckboxCircleLine data-icon="inline-start" />
             {submitting ? "提交中" : "我已支付"}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className="text-muted-foreground"
+            onClick={onCancelPayment}
+          >
+            稍后支付
           </Button>
         </ResponsiveDialogFooter>
       ) : status === "submitted" ? (
@@ -366,25 +427,25 @@ function PaymentBillSummary({
   const isShortVerifyCode = verifyCode.length <= 8;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <RiWallet3Line className="size-5 text-primary" />
-          <span className="text-sm text-muted-foreground">金额</span>
-        </div>
-        <span className="text-xl font-semibold text-primary">
+    <div className="divide-y divide-border/70 overflow-hidden rounded-lg bg-muted/70 px-3">
+      <div className="flex min-h-12 items-center justify-between gap-4 py-2.5">
+        <span className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
+          <RiWallet3Line className="size-4" />
+          金额
+        </span>
+        <span className="text-right text-xl font-semibold tabular-nums text-primary">
           {formatPrice(amountCents)}
         </span>
       </div>
 
-      <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2">
-        <div className="flex items-center gap-2">
-          <RiKey2Line className="size-5 text-primary" />
-          <span className="text-sm text-muted-foreground">标识码</span>
-        </div>
+      <div className="flex min-h-12 items-center justify-between gap-4 py-2.5">
+        <span className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
+          <RiKey2Line className="size-4" />
+          标识码
+        </span>
         <span
           className={cn(
-            "min-w-0 break-all text-right font-mono font-semibold",
+            "min-w-0 break-all text-right font-mono font-semibold tabular-nums",
             isShortVerifyCode
               ? "text-2xl tracking-[0.2em]"
               : "text-base leading-6 tracking-normal",

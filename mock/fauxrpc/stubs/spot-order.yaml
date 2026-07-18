@@ -520,3 +520,8 @@ stubs:
         createdAt: "2026-07-18T02:10:00Z"
         paidAt: "2026-07-18T02:13:00Z"
         completedAt: "2026-07-18T02:30:00Z"
+
+  - id: spot-order-seller-contact
+    target: sast.sastshopv2.spot.v1.SpotOrderService/GetSpotOrderSellerContact
+    content:
+      sellerFeishuOpenId: ou_mock_spot_seller

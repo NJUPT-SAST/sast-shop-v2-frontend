@@ -4,6 +4,7 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import { file_buf_validate_validate } from "../../../../buf/validate/validate_pb";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { CreateSpotOrder } from "./create_spot_order_pb";
@@ -20,7 +21,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file sast/sastshopv2/spot/v1/spot_order_service.proto.
  */
 export const file_sast_sastshopv2_spot_v1_spot_order_service: GenFile = /*@__PURE__*/
-  fileDesc("CjBzYXN0L3Nhc3RzaG9wdjIvc3BvdC92MS9zcG90X29yZGVyX3NlcnZpY2UucHJvdG8SF3Nhc3Quc2FzdHNob3B2Mi5zcG90LnYxIuUBChRMaXN0U3BvdE9yZGVyUmVxdWVzdBIQCghzdG9yZV9pZBgBIAEoAxJCCgtwZXJzcGVjdGl2ZRgCIAEoDjItLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLlNwb3RHb29kc1BlcnNwZWN0aXZlEkQKDWZpbHRlcl9zdGF0dXMYAyABKA4yKC5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5TcG90T3JkZXJTdGF0dXNIAIgBARIMCgRwYWdlGAQgASgFEhEKCXBhZ2Vfc2l6ZRgFIAEoBUIQCg5fZmlsdGVyX3N0YXR1cyKAAQoVTGlzdFNwb3RPcmRlclJlc3BvbnNlEjwKC3Nwb3Rfb3JkZXJzGAEgAygLMicuc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuU3BvdE9yZGVyQnJpZWYSFAoMY3VycmVudF9wYWdlGAIgASgFEhMKC3RvdGFsX2NvdW50GAMgASgFIlgKF0NyZWF0ZVNwb3RPcmRlcnNSZXF1ZXN0Ej0KC3Nwb3Rfb3JkZXJzGAEgAygLMiguc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuQ3JlYXRlU3BvdE9yZGVyImAKGENyZWF0ZVNwb3RPcmRlcnNSZXNwb25zZRJEChJzcG90X29yZGVyX2RldGFpbHMYASADKAsyKC5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5TcG90T3JkZXJEZXRhaWwiMgoZR2V0U3BvdE9yZGVyRGV0YWlsUmVxdWVzdBIVCg1zcG90X29yZGVyX2lkGAEgASgDImEKGkdldFNwb3RPcmRlckRldGFpbFJlc3BvbnNlEkMKEXNwb3Rfb3JkZXJfZGV0YWlsGAEgASgLMiguc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuU3BvdE9yZGVyRGV0YWlsIl8KFkNhbmNlbFNwb3RPcmRlclJlcXVlc3QSFQoNc3BvdF9vcmRlcl9pZBgBIAEoAxIuCgp1cGRhdGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJeChdDYW5jZWxTcG90T3JkZXJSZXNwb25zZRJDChFzcG90X29yZGVyX2RldGFpbBgBIAEoCzIoLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLlNwb3RPcmRlckRldGFpbCJhChhDb21wbGV0ZVNwb3RPcmRlclJlcXVlc3QSFQoNc3BvdF9vcmRlcl9pZBgBIAEoAxIuCgp1cGRhdGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJgChlDb21wbGV0ZVNwb3RPcmRlclJlc3BvbnNlEkMKEXNwb3Rfb3JkZXJfZGV0YWlsGAEgASgLMiguc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuU3BvdE9yZGVyRGV0YWlsMuwEChBTcG90T3JkZXJTZXJ2aWNlEm4KDUxpc3RTcG90T3JkZXISLS5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5MaXN0U3BvdE9yZGVyUmVxdWVzdBouLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLkxpc3RTcG90T3JkZXJSZXNwb25zZRJ3ChBDcmVhdGVTcG90T3JkZXJzEjAuc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuQ3JlYXRlU3BvdE9yZGVyc1JlcXVlc3QaMS5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5DcmVhdGVTcG90T3JkZXJzUmVzcG9uc2USfQoSR2V0U3BvdE9yZGVyRGV0YWlsEjIuc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuR2V0U3BvdE9yZGVyRGV0YWlsUmVxdWVzdBozLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLkdldFNwb3RPcmRlckRldGFpbFJlc3BvbnNlEnQKD0NhbmNlbFNwb3RPcmRlchIvLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLkNhbmNlbFNwb3RPcmRlclJlcXVlc3QaMC5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5DYW5jZWxTcG90T3JkZXJSZXNwb25zZRJ6ChFDb21wbGV0ZVNwb3RPcmRlchIxLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLkNvbXBsZXRlU3BvdE9yZGVyUmVxdWVzdBoyLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLkNvbXBsZXRlU3BvdE9yZGVyUmVzcG9uc2ViBnByb3RvMw", [file_google_protobuf_timestamp, file_sast_sastshopv2_spot_v1_create_spot_order, file_sast_sastshopv2_spot_v1_spot_goods_perspective, file_sast_sastshopv2_spot_v1_spot_order, file_sast_sastshopv2_spot_v1_spot_order_status]);
+  fileDesc("CjBzYXN0L3Nhc3RzaG9wdjIvc3BvdC92MS9zcG90X29yZGVyX3NlcnZpY2UucHJvdG8SF3Nhc3Quc2FzdHNob3B2Mi5zcG90LnYxIuUBChRMaXN0U3BvdE9yZGVyUmVxdWVzdBIQCghzdG9yZV9pZBgBIAEoAxJCCgtwZXJzcGVjdGl2ZRgCIAEoDjItLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLlNwb3RHb29kc1BlcnNwZWN0aXZlEkQKDWZpbHRlcl9zdGF0dXMYAyABKA4yKC5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5TcG90T3JkZXJTdGF0dXNIAIgBARIMCgRwYWdlGAQgASgFEhEKCXBhZ2Vfc2l6ZRgFIAEoBUIQCg5fZmlsdGVyX3N0YXR1cyKAAQoVTGlzdFNwb3RPcmRlclJlc3BvbnNlEjwKC3Nwb3Rfb3JkZXJzGAEgAygLMicuc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuU3BvdE9yZGVyQnJpZWYSFAoMY3VycmVudF9wYWdlGAIgASgFEhMKC3RvdGFsX2NvdW50GAMgASgFIlgKF0NyZWF0ZVNwb3RPcmRlcnNSZXF1ZXN0Ej0KC3Nwb3Rfb3JkZXJzGAEgAygLMiguc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuQ3JlYXRlU3BvdE9yZGVyImAKGENyZWF0ZVNwb3RPcmRlcnNSZXNwb25zZRJEChJzcG90X29yZGVyX2RldGFpbHMYASADKAsyKC5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5TcG90T3JkZXJEZXRhaWwiMgoZR2V0U3BvdE9yZGVyRGV0YWlsUmVxdWVzdBIVCg1zcG90X29yZGVyX2lkGAEgASgDImEKGkdldFNwb3RPcmRlckRldGFpbFJlc3BvbnNlEkMKEXNwb3Rfb3JkZXJfZGV0YWlsGAEgASgLMiguc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuU3BvdE9yZGVyRGV0YWlsIkIKIEdldFNwb3RPcmRlclNlbGxlckNvbnRhY3RSZXF1ZXN0Eh4KDXNwb3Rfb3JkZXJfaWQYASABKANCB7pIBCICIAAiQgohR2V0U3BvdE9yZGVyU2VsbGVyQ29udGFjdFJlc3BvbnNlEh0KFXNlbGxlcl9mZWlzaHVfb3Blbl9pZBgBIAEoCSJfChZDYW5jZWxTcG90T3JkZXJSZXF1ZXN0EhUKDXNwb3Rfb3JkZXJfaWQYASABKAMSLgoKdXBkYXRlZF9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiXgoXQ2FuY2VsU3BvdE9yZGVyUmVzcG9uc2USQwoRc3BvdF9vcmRlcl9kZXRhaWwYASABKAsyKC5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5TcG90T3JkZXJEZXRhaWwiYQoYQ29tcGxldGVTcG90T3JkZXJSZXF1ZXN0EhUKDXNwb3Rfb3JkZXJfaWQYASABKAMSLgoKdXBkYXRlZF9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiYAoZQ29tcGxldGVTcG90T3JkZXJSZXNwb25zZRJDChFzcG90X29yZGVyX2RldGFpbBgBIAEoCzIoLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLlNwb3RPcmRlckRldGFpbDKBBgoQU3BvdE9yZGVyU2VydmljZRJuCg1MaXN0U3BvdE9yZGVyEi0uc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuTGlzdFNwb3RPcmRlclJlcXVlc3QaLi5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5MaXN0U3BvdE9yZGVyUmVzcG9uc2USdwoQQ3JlYXRlU3BvdE9yZGVycxIwLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLkNyZWF0ZVNwb3RPcmRlcnNSZXF1ZXN0GjEuc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuQ3JlYXRlU3BvdE9yZGVyc1Jlc3BvbnNlEn0KEkdldFNwb3RPcmRlckRldGFpbBIyLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLkdldFNwb3RPcmRlckRldGFpbFJlcXVlc3QaMy5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5HZXRTcG90T3JkZXJEZXRhaWxSZXNwb25zZRKSAQoZR2V0U3BvdE9yZGVyU2VsbGVyQ29udGFjdBI5LnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLkdldFNwb3RPcmRlclNlbGxlckNvbnRhY3RSZXF1ZXN0Gjouc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuR2V0U3BvdE9yZGVyU2VsbGVyQ29udGFjdFJlc3BvbnNlEnQKD0NhbmNlbFNwb3RPcmRlchIvLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLkNhbmNlbFNwb3RPcmRlclJlcXVlc3QaMC5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5DYW5jZWxTcG90T3JkZXJSZXNwb25zZRJ6ChFDb21wbGV0ZVNwb3RPcmRlchIxLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLkNvbXBsZXRlU3BvdE9yZGVyUmVxdWVzdBoyLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLkNvbXBsZXRlU3BvdE9yZGVyUmVzcG9uc2ViBnByb3RvMw", [file_buf_validate_validate, file_google_protobuf_timestamp, file_sast_sastshopv2_spot_v1_create_spot_order, file_sast_sastshopv2_spot_v1_spot_goods_perspective, file_sast_sastshopv2_spot_v1_spot_order, file_sast_sastshopv2_spot_v1_spot_order_status]);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.ListSpotOrderRequest
@@ -161,6 +162,40 @@ export const GetSpotOrderDetailResponseSchema: GenMessage<GetSpotOrderDetailResp
   messageDesc(file_sast_sastshopv2_spot_v1_spot_order_service, 5);
 
 /**
+ * @generated from message sast.sastshopv2.spot.v1.GetSpotOrderSellerContactRequest
+ */
+export type GetSpotOrderSellerContactRequest = Message<"sast.sastshopv2.spot.v1.GetSpotOrderSellerContactRequest"> & {
+  /**
+   * @generated from field: int64 spot_order_id = 1;
+   */
+  spotOrderId: bigint;
+};
+
+/**
+ * Describes the message sast.sastshopv2.spot.v1.GetSpotOrderSellerContactRequest.
+ * Use `create(GetSpotOrderSellerContactRequestSchema)` to create a new message.
+ */
+export const GetSpotOrderSellerContactRequestSchema: GenMessage<GetSpotOrderSellerContactRequest> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_spot_v1_spot_order_service, 6);
+
+/**
+ * @generated from message sast.sastshopv2.spot.v1.GetSpotOrderSellerContactResponse
+ */
+export type GetSpotOrderSellerContactResponse = Message<"sast.sastshopv2.spot.v1.GetSpotOrderSellerContactResponse"> & {
+  /**
+   * @generated from field: string seller_feishu_open_id = 1;
+   */
+  sellerFeishuOpenId: string;
+};
+
+/**
+ * Describes the message sast.sastshopv2.spot.v1.GetSpotOrderSellerContactResponse.
+ * Use `create(GetSpotOrderSellerContactResponseSchema)` to create a new message.
+ */
+export const GetSpotOrderSellerContactResponseSchema: GenMessage<GetSpotOrderSellerContactResponse> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_spot_v1_spot_order_service, 7);
+
+/**
  * @generated from message sast.sastshopv2.spot.v1.CancelSpotOrderRequest
  */
 export type CancelSpotOrderRequest = Message<"sast.sastshopv2.spot.v1.CancelSpotOrderRequest"> & {
@@ -180,7 +215,7 @@ export type CancelSpotOrderRequest = Message<"sast.sastshopv2.spot.v1.CancelSpot
  * Use `create(CancelSpotOrderRequestSchema)` to create a new message.
  */
 export const CancelSpotOrderRequestSchema: GenMessage<CancelSpotOrderRequest> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_spot_v1_spot_order_service, 6);
+  messageDesc(file_sast_sastshopv2_spot_v1_spot_order_service, 8);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.CancelSpotOrderResponse
@@ -197,7 +232,7 @@ export type CancelSpotOrderResponse = Message<"sast.sastshopv2.spot.v1.CancelSpo
  * Use `create(CancelSpotOrderResponseSchema)` to create a new message.
  */
 export const CancelSpotOrderResponseSchema: GenMessage<CancelSpotOrderResponse> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_spot_v1_spot_order_service, 7);
+  messageDesc(file_sast_sastshopv2_spot_v1_spot_order_service, 9);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.CompleteSpotOrderRequest
@@ -219,7 +254,7 @@ export type CompleteSpotOrderRequest = Message<"sast.sastshopv2.spot.v1.Complete
  * Use `create(CompleteSpotOrderRequestSchema)` to create a new message.
  */
 export const CompleteSpotOrderRequestSchema: GenMessage<CompleteSpotOrderRequest> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_spot_v1_spot_order_service, 8);
+  messageDesc(file_sast_sastshopv2_spot_v1_spot_order_service, 10);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.CompleteSpotOrderResponse
@@ -236,7 +271,7 @@ export type CompleteSpotOrderResponse = Message<"sast.sastshopv2.spot.v1.Complet
  * Use `create(CompleteSpotOrderResponseSchema)` to create a new message.
  */
 export const CompleteSpotOrderResponseSchema: GenMessage<CompleteSpotOrderResponse> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_spot_v1_spot_order_service, 9);
+  messageDesc(file_sast_sastshopv2_spot_v1_spot_order_service, 11);
 
 /**
  * @generated from service sast.sastshopv2.spot.v1.SpotOrderService
@@ -271,6 +306,16 @@ export const SpotOrderService: GenService<{
     methodKind: "unary";
     input: typeof GetSpotOrderDetailRequestSchema;
     output: typeof GetSpotOrderDetailResponseSchema;
+  },
+  /**
+   * 订单买家获取该订单卖家的飞书会话标识
+   *
+   * @generated from rpc sast.sastshopv2.spot.v1.SpotOrderService.GetSpotOrderSellerContact
+   */
+  getSpotOrderSellerContact: {
+    methodKind: "unary";
+    input: typeof GetSpotOrderSellerContactRequestSchema;
+    output: typeof GetSpotOrderSellerContactResponseSchema;
   },
   /**
    * 取消现货订单，并释放库存、取消关联账单

@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   useCallback,
@@ -7,45 +7,45 @@ import {
   useState,
   type ReactNode,
   type TouchEvent,
-} from "react"
-import { usePathname } from "next/navigation"
-import { Spinner } from "@workspace/ui/components/spinner"
-import { cn } from "@workspace/ui/lib/utils"
+} from "react";
+import { usePathname } from "next/navigation";
+import { Spinner } from "@workspace/ui/components/spinner";
+import { cn } from "@workspace/ui/lib/utils";
 import {
   resolvePullGestureAxis,
   type PullGestureAxis,
-} from "../lib/pull-gesture"
-import { useMobileScroll } from "./mobile-scroll-context"
+} from "../lib/pull-gesture";
+import { useMobileScroll } from "./mobile-scroll-context";
 
 interface ScrollbarState {
-  visible: boolean
-  thumbHeight: number
-  thumbTop: number
+  visible: boolean;
+  thumbHeight: number;
+  thumbTop: number;
 }
 
-const SCROLLBAR_TRACK_INSET = 8
-const PULL_REFRESH_THRESHOLD = 52
-const MAX_PULL_DISTANCE = 72
+const SCROLLBAR_TRACK_INSET = 8;
+const PULL_REFRESH_THRESHOLD = 52;
+const MAX_PULL_DISTANCE = 72;
 
 export function MobileScrollArea({
   children,
   hasBottomNav,
 }: {
-  children: ReactNode
-  hasBottomNav: boolean
+  children: ReactNode;
+  hasBottomNav: boolean;
 }) {
-  const pathname = usePathname()
-  const viewportRef = useRef<HTMLElement>(null)
-  const touchStartXRef = useRef<number | null>(null)
-  const touchStartYRef = useRef<number | null>(null)
-  const gestureAxisRef = useRef<PullGestureAxis>("undetermined")
-  const activePullDistanceRef = useRef(0)
-  const [isPulling, setIsPulling] = useState(false)
+  const pathname = usePathname();
+  const viewportRef = useRef<HTMLElement>(null);
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+  const gestureAxisRef = useRef<PullGestureAxis>("undetermined");
+  const activePullDistanceRef = useRef(0);
+  const [isPulling, setIsPulling] = useState(false);
   const [scrollbar, setScrollbar] = useState<ScrollbarState>({
     visible: false,
     thumbHeight: 0,
     thumbTop: 0,
-  })
+  });
   const {
     isRefreshing,
     pullDistance,
@@ -53,68 +53,71 @@ export function MobileScrollArea({
     setPullDistance,
     syncScrollState,
     refresh,
-  } = useMobileScroll()
+  } = useMobileScroll();
 
   const updateScrollbar = useCallback(() => {
-    const viewport = viewportRef.current
+    const viewport = viewportRef.current;
 
     if (!viewport) {
-      return
+      return;
     }
 
-    const { clientHeight, scrollHeight, scrollTop } = viewport
-    const maxScrollTop = scrollHeight - clientHeight
+    const { clientHeight, scrollHeight, scrollTop } = viewport;
+    const maxScrollTop = scrollHeight - clientHeight;
 
     if (maxScrollTop <= 1) {
-      setScrollbar({ visible: false, thumbHeight: 0, thumbTop: 0 })
-      return
+      setScrollbar({ visible: false, thumbHeight: 0, thumbTop: 0 });
+      return;
     }
 
-    const trackHeight = Math.max(clientHeight - SCROLLBAR_TRACK_INSET * 2, 0)
-    const thumbHeight = Math.max((clientHeight / scrollHeight) * trackHeight, 32)
-    const thumbTop = (scrollTop / maxScrollTop) * (trackHeight - thumbHeight)
+    const trackHeight = Math.max(clientHeight - SCROLLBAR_TRACK_INSET * 2, 0);
+    const thumbHeight = Math.max(
+      (clientHeight / scrollHeight) * trackHeight,
+      32,
+    );
+    const thumbTop = (scrollTop / maxScrollTop) * (trackHeight - thumbHeight);
 
-    setScrollbar({ visible: true, thumbHeight, thumbTop })
-  }, [])
+    setScrollbar({ visible: true, thumbHeight, thumbTop });
+  }, []);
 
   const handleViewportRef = useCallback(
     (viewport: HTMLElement | null) => {
-      viewportRef.current = viewport
-      registerViewport(viewport)
+      viewportRef.current = viewport;
+      registerViewport(viewport);
     },
-    [registerViewport]
-  )
+    [registerViewport],
+  );
 
   const handleScroll = useCallback(() => {
-    updateScrollbar()
-    syncScrollState()
-  }, [syncScrollState, updateScrollbar])
+    updateScrollbar();
+    syncScrollState();
+  }, [syncScrollState, updateScrollbar]);
 
   const updatePullDistance = useCallback(
     (distance: number) => {
-      activePullDistanceRef.current = distance
-      setPullDistance(distance)
+      activePullDistanceRef.current = distance;
+      setPullDistance(distance);
     },
-    [setPullDistance]
-  )
+    [setPullDistance],
+  );
 
   const handleTouchStart = useCallback((event: TouchEvent<HTMLElement>) => {
     if (!viewportRef.current || viewportRef.current.scrollTop > 2) {
-      touchStartXRef.current = null
-      touchStartYRef.current = null
-      return
+      touchStartXRef.current = null;
+      touchStartYRef.current = null;
+      return;
     }
 
-    touchStartXRef.current = event.touches[0]?.clientX ?? null
-    touchStartYRef.current = event.touches[0]?.clientY ?? null
-    gestureAxisRef.current = "undetermined"
-  }, [])
+    touchStartXRef.current = event.touches[0]?.clientX ?? null;
+    touchStartYRef.current = event.touches[0]?.clientY ?? null;
+    gestureAxisRef.current = "undetermined";
+  }, []);
 
   const handleTouchMove = useCallback(
     (event: TouchEvent<HTMLElement>) => {
-      const touchStartX = touchStartXRef.current
-      const touchStartY = touchStartYRef.current
-      const viewport = viewportRef.current
+      const touchStartX = touchStartXRef.current;
+      const touchStartY = touchStartYRef.current;
+      const viewport = viewportRef.current;
 
       if (
         touchStartX === null ||
@@ -122,83 +125,83 @@ export function MobileScrollArea({
         !viewport ||
         isRefreshing
       ) {
-        return
+        return;
       }
 
-      const currentX = event.touches[0]?.clientX ?? touchStartX
-      const currentY = event.touches[0]?.clientY ?? touchStartY
-      const deltaX = currentX - touchStartX
-      const deltaY = currentY - touchStartY
+      const currentX = event.touches[0]?.clientX ?? touchStartX;
+      const currentY = event.touches[0]?.clientY ?? touchStartY;
+      const deltaX = currentX - touchStartX;
+      const deltaY = currentY - touchStartY;
 
       if (gestureAxisRef.current === "undetermined") {
-        gestureAxisRef.current = resolvePullGestureAxis(deltaX, deltaY)
+        gestureAxisRef.current = resolvePullGestureAxis(deltaX, deltaY);
       }
 
       if (gestureAxisRef.current !== "vertical") {
-        return
+        return;
       }
 
       if (deltaY <= 0 || viewport.scrollTop > 2) {
-        updatePullDistance(0)
-        setIsPulling(false)
-        return
+        updatePullDistance(0);
+        setIsPulling(false);
+        return;
       }
 
-      const nextDistance = Math.min(deltaY * 0.45, MAX_PULL_DISTANCE)
-      updatePullDistance(nextDistance)
-      setIsPulling(true)
+      const nextDistance = Math.min(deltaY * 0.45, MAX_PULL_DISTANCE);
+      updatePullDistance(nextDistance);
+      setIsPulling(true);
 
       if (event.cancelable) {
-        event.preventDefault()
+        event.preventDefault();
       }
     },
-    [isRefreshing, updatePullDistance]
-  )
+    [isRefreshing, updatePullDistance],
+  );
 
   const handleTouchEnd = useCallback(() => {
-    touchStartXRef.current = null
-    touchStartYRef.current = null
-    gestureAxisRef.current = "undetermined"
-    setIsPulling(false)
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+    gestureAxisRef.current = "undetermined";
+    setIsPulling(false);
 
     if (activePullDistanceRef.current >= PULL_REFRESH_THRESHOLD) {
-      refresh()
-      return
+      refresh();
+      return;
     }
 
-    updatePullDistance(0)
-  }, [refresh, updatePullDistance])
+    updatePullDistance(0);
+  }, [refresh, updatePullDistance]);
 
   useEffect(() => {
-    const viewport = viewportRef.current
+    const viewport = viewportRef.current;
 
     if (!viewport) {
-      return
+      return;
     }
 
-    const rafId = requestAnimationFrame(updateScrollbar)
+    const rafId = requestAnimationFrame(updateScrollbar);
 
-    const resizeObserver = new ResizeObserver(updateScrollbar)
-    resizeObserver.observe(viewport)
+    const resizeObserver = new ResizeObserver(updateScrollbar);
+    resizeObserver.observe(viewport);
 
     if (viewport.firstElementChild) {
-      resizeObserver.observe(viewport.firstElementChild)
+      resizeObserver.observe(viewport.firstElementChild);
     }
 
     return () => {
-      cancelAnimationFrame(rafId)
-      resizeObserver.disconnect()
-    }
-  }, [pathname, updateScrollbar])
+      cancelAnimationFrame(rafId);
+      resizeObserver.disconnect();
+    };
+  }, [pathname, updateScrollbar]);
 
-  const visualPullDistance = Math.max(isRefreshing ? 48 : 0, pullDistance)
-  const showRefreshIndicator = isRefreshing || pullDistance > 0
+  const visualPullDistance = Math.max(isRefreshing ? 48 : 0, pullDistance);
+  const showRefreshIndicator = isRefreshing || pullDistance > 0;
 
   return (
     <div
       className={cn(
         "relative mx-auto flex min-h-0 w-full max-w-5xl flex-1",
-        hasBottomNav && "mb-[calc(4rem+env(safe-area-inset-bottom))]"
+        hasBottomNav && "mb-[calc(4rem+env(safe-area-inset-bottom))]",
       )}
     >
       {showRefreshIndicator ? (
@@ -222,7 +225,8 @@ export function MobileScrollArea({
         className={cn(
           "app-scrollbar flex min-h-0 w-full flex-1 flex-col overflow-y-auto px-4 md:px-6",
           scrollbar.visible ? "pb-2" : "pb-6",
-          !isPulling && "transition-transform duration-200"
+          !isPulling &&
+            "transition-transform duration-200 motion-reduce:transition-none",
         )}
         style={{ transform: `translateY(${visualPullDistance}px)` }}
         onScroll={handleScroll}
@@ -249,5 +253,5 @@ export function MobileScrollArea({
         </div>
       ) : null}
     </div>
-  )
+  );
 }

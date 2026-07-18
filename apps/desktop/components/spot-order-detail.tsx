@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { RiArrowLeftLine, RiCheckboxCircleLine } from "@remixicon/react";
+import {
+  RiArrowLeftLine,
+  RiCheckboxCircleLine,
+  RiCloseCircleLine,
+} from "@remixicon/react";
 import {
   cancelSpotOrder,
   completeSpotOrder,
@@ -24,6 +28,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
+import { CopyButton } from "@workspace/ui/components/copy-button";
 import {
   Dialog,
   DialogContent,
@@ -36,7 +41,6 @@ import { Input } from "@workspace/ui/components/input";
 import { Separator } from "@workspace/ui/components/separator";
 import { Spinner } from "@workspace/ui/components/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
-import { cn } from "@workspace/ui/lib/utils";
 import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 
@@ -47,6 +51,7 @@ import {
   type SpotOrderView,
 } from "@/lib/spot-orders";
 import { ManagedImage } from "./managed-image";
+import { LarkContactButton } from "./lark-contact-button";
 
 type ConfirmationAction = "cancel" | "complete" | "confirm" | null;
 
@@ -78,18 +83,7 @@ export function SpotOrderDetail({
     resolvedOrder.status,
     bill?.status,
   );
-  const steps =
-    view === "seller"
-      ? ["待收款", "后续处理", "已完成"]
-      : ["待支付", "处理中", "已完成"];
-  const activeStep =
-    resolvedOrder.status === "pending_payment"
-      ? 0
-      : resolvedOrder.status === "paid"
-        ? 1
-        : resolvedOrder.status === "completed"
-          ? 2
-          : -1;
+  const timeline = buildSpotOrderTimeline(resolvedOrder);
 
   async function mutate(action: Exclude<ConfirmationAction, null>) {
     if (pendingRef.current) return;
@@ -185,54 +179,56 @@ export function SpotOrderDetail({
               )}
             </Badge>
           </div>
-          <p className="mt-2 truncate text-sm text-muted-foreground">
-            订单号 {resolvedOrder.orderNo || resolvedOrder.id}
-          </p>
+          <div className="mt-1 flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+            <span className="truncate font-mono tabular-nums">
+              {resolvedOrder.orderNo || resolvedOrder.id}
+            </span>
+            <CopyButton
+              value={resolvedOrder.orderNo || String(resolvedOrder.id)}
+              label="订单号"
+            />
+          </div>
         </div>
+        {view === "buyer" ? (
+          <LarkContactButton
+            target="spot-seller"
+            orderId={String(resolvedOrder.id)}
+            dataSource={dataSource}
+            connectBaseUrl={connectBaseUrl}
+            label="联系卖家"
+          />
+        ) : null}
       </div>
 
-      <Card>
-        <CardContent className="grid grid-cols-3 gap-0 p-5">
-          {steps.map((step, index) => (
-            <div
-              key={step}
-              className="relative flex items-center gap-3 pr-4 last:pr-0"
-            >
-              <span
-                className={cn(
-                  "relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border bg-background text-sm",
-                  index <= activeStep &&
-                    "border-primary bg-primary text-primary-foreground",
-                )}
+      {timeline.length > 0 ? (
+        <Card>
+          <CardContent className="flex gap-0 overflow-x-auto p-5">
+            {timeline.map((node, index) => (
+              <div
+                key={`${node.label}-${node.timestamp}`}
+                className="relative flex min-w-44 flex-1 items-center gap-3 pr-4 last:pr-0"
               >
-                {index < activeStep ? (
-                  <RiCheckboxCircleLine className="size-4" />
-                ) : (
-                  index + 1
-                )}
-              </span>
-              <span
-                className={cn(
-                  "text-sm",
-                  index === activeStep
-                    ? "font-semibold"
-                    : "text-muted-foreground",
-                )}
-              >
-                {step}
-              </span>
-              {index < steps.length - 1 ? (
-                <span
-                  className={cn(
-                    "absolute left-8 right-0 top-4 h-px bg-border",
-                    index < activeStep && "bg-primary",
+                <span className="relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border border-primary bg-primary text-primary-foreground">
+                  {node.kind === "cancelled" ? (
+                    <RiCloseCircleLine className="size-4" />
+                  ) : (
+                    <RiCheckboxCircleLine className="size-4" />
                   )}
-                />
-              ) : null}
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{node.label}</p>
+                  <p className="truncate text-xs text-muted-foreground tabular-nums">
+                    {formatDate(node.timestamp)}
+                  </p>
+                </div>
+                {index < timeline.length - 1 ? (
+                  <span className="absolute left-8 right-0 top-4 h-px bg-primary" />
+                ) : null}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid grid-cols-[minmax(0,7fr)_minmax(20rem,3fr)] items-start gap-5">
         <Card>
@@ -250,9 +246,11 @@ export function SpotOrderDetail({
                 <h2 className="truncate text-lg font-semibold">
                   {resolvedOrder.productTitle}
                 </h2>
-                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                  {resolvedOrder.productDescription || "暂无商品说明"}
-                </p>
+                {resolvedOrder.productDescription ? (
+                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                    {resolvedOrder.productDescription}
+                  </p>
+                ) : null}
                 <p className="mt-4 text-sm">
                   {formatPrice(resolvedOrder.unitPriceCents)} ×{" "}
                   {resolvedOrder.quantity}
@@ -264,14 +262,25 @@ export function SpotOrderDetail({
             </div>
             <Separator />
             <dl className="grid grid-cols-[7rem_minmax(0,1fr)] gap-x-4 gap-y-3 text-sm">
-              <dt className="text-muted-foreground">店铺</dt>
-              <dd className="truncate">{resolvedOrder.store?.name ?? "—"}</dd>
-              <dt className="text-muted-foreground">店铺地址</dt>
-              <dd>{resolvedOrder.store?.address || "—"}</dd>
-              <dt className="text-muted-foreground">卖家</dt>
-              <dd>{resolvedOrder.seller?.name ?? "—"}</dd>
-              <dt className="text-muted-foreground">创建时间</dt>
-              <dd>{formatDate(resolvedOrder.createdAt)}</dd>
+              {resolvedOrder.store?.name ? (
+                <>
+                  <dt className="text-muted-foreground">店铺</dt>
+                  <dd className="truncate">{resolvedOrder.store.name}</dd>
+                </>
+              ) : null}
+              {resolvedOrder.store?.address ? (
+                <>
+                  <dt className="text-muted-foreground">店铺地址</dt>
+                  <dd>{resolvedOrder.store.address}</dd>
+                </>
+              ) : null}
+              {resolvedOrder.seller?.name &&
+              resolvedOrder.seller.name !== resolvedOrder.store?.name ? (
+                <>
+                  <dt className="text-muted-foreground">卖家</dt>
+                  <dd>{resolvedOrder.seller.name}</dd>
+                </>
+              ) : null}
             </dl>
           </CardContent>
         </Card>
@@ -279,6 +288,17 @@ export function SpotOrderDetail({
         <Card>
           <CardHeader>
             <CardTitle>支付信息</CardTitle>
+            {bill ? (
+              <div className="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+                <span className="truncate font-mono tabular-nums">
+                  {bill.billNo || bill.id}
+                </span>
+                <CopyButton
+                  value={bill.billNo || String(bill.id)}
+                  label="账单号"
+                />
+              </div>
+            ) : null}
           </CardHeader>
           <CardContent className="space-y-4">
             {bill ? (
@@ -287,14 +307,26 @@ export function SpotOrderDetail({
                 <dd className="font-semibold">
                   {formatPrice(bill.amountCents)}
                 </dd>
-                <dt className="text-muted-foreground">收款方</dt>
-                <dd className="truncate">{bill.payee?.name ?? "—"}</dd>
-                <dt className="text-muted-foreground">核验码</dt>
-                <dd className="font-mono text-lg font-semibold tracking-widest">
-                  {bill.verifyCode || "—"}
-                </dd>
-                <dt className="text-muted-foreground">流水号</dt>
-                <dd className="break-all">{bill.serialNumber || "—"}</dd>
+                {bill.payee?.name ? (
+                  <>
+                    <dt className="text-muted-foreground">收款方</dt>
+                    <dd className="truncate">{bill.payee.name}</dd>
+                  </>
+                ) : null}
+                {bill.verifyCode ? (
+                  <>
+                    <dt className="text-muted-foreground">核验码</dt>
+                    <dd className="font-mono text-lg font-semibold tracking-widest">
+                      {bill.verifyCode}
+                    </dd>
+                  </>
+                ) : null}
+                {bill.serialNumber ? (
+                  <>
+                    <dt className="text-muted-foreground">流水号</dt>
+                    <dd className="break-all">{bill.serialNumber}</dd>
+                  </>
+                ) : null}
               </dl>
             ) : (
               <p className="text-sm text-muted-foreground">账单尚未生成。</p>
@@ -410,6 +442,7 @@ export function SpotOrderDetail({
             </DialogDescription>
           </DialogHeader>
           <Input
+            aria-label="支付流水号"
             value={serialNumber}
             onChange={(event) => setSerialNumber(event.target.value)}
             placeholder="请输入支付流水号"
@@ -540,12 +573,14 @@ function PaymentDialog({
             <p className="text-sm text-muted-foreground">暂无可用收款码</p>
           )}
         </div>
-        <div className="flex items-center justify-between rounded-lg bg-muted px-4 py-3 text-sm">
-          <span className="text-muted-foreground">核验码</span>
-          <span className="font-mono text-lg font-semibold tracking-widest">
-            {bill?.verifyCode || "—"}
-          </span>
-        </div>
+        {bill?.verifyCode ? (
+          <div className="flex items-center justify-between rounded-lg bg-muted px-4 py-3 text-sm">
+            <span className="text-muted-foreground">核验码</span>
+            <span className="font-mono text-lg font-semibold tracking-widest">
+              {bill.verifyCode}
+            </span>
+          </div>
+        ) : null}
         <DialogFooter>
           <Button
             variant="outline"
@@ -566,10 +601,25 @@ function PaymentDialog({
   );
 }
 
-function formatDate(value: string | null) {
-  if (!value) return "—";
+function buildSpotOrderTimeline(order: SpotOrder) {
+  return [
+    { label: "创建订单", timestamp: order.createdAt, kind: "created" },
+    { label: "完成支付", timestamp: order.paidAt, kind: "paid" },
+    { label: "完成订单", timestamp: order.completedAt, kind: "completed" },
+    { label: "取消订单", timestamp: order.cancelledAt, kind: "cancelled" },
+  ].filter((node): node is { label: string; timestamp: string; kind: string } =>
+    isValidTimestamp(node.timestamp),
+  );
+}
+
+function formatDate(value: string) {
   return new Intl.DateTimeFormat("zh-CN", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function isValidTimestamp(value: string | null): value is string {
+  if (!value) return false;
+  return !Number.isNaN(Date.parse(value));
 }

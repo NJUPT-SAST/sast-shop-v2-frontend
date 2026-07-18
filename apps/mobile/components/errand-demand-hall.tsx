@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   RiArrowRightSLine,
   RiSearchLine,
   RiStore2Line,
+  RiUser3Line,
 } from "@remixicon/react";
 import type { ErrandDemandStoreSummary } from "@sast-shop/api";
 import Link from "next/link";
@@ -14,6 +16,7 @@ import {
   AvatarImage,
 } from "@workspace/ui/components/avatar";
 import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
 import {
   Card,
   CardContent,
@@ -42,6 +45,7 @@ const updatedAtFormatter = new Intl.DateTimeFormat("zh-CN", {
 });
 
 export function ErrandDemandHall({ demands, error }: ErrandDemandHallProps) {
+  const router = useRouter();
   const [keyword, setKeyword] = useState("");
 
   const filteredDemands = useMemo(() => {
@@ -76,7 +80,7 @@ export function ErrandDemandHall({ demands, error }: ErrandDemandHallProps) {
             setKeyword(event.target.value);
           }}
           placeholder="搜索店铺名称"
-          className="h-10 rounded-lg pl-9"
+          className="rounded-lg pl-9"
         />
       </label>
 
@@ -90,11 +94,16 @@ export function ErrandDemandHall({ demands, error }: ErrandDemandHallProps) {
         <Empty
           icon={<RiStore2Line className="size-5" />}
           title={error ? "跑腿需求暂不可用" : "暂无待接单需求"}
-          description={
-            error ??
-            (keyword.trim()
-              ? "没有匹配的店铺需求，换个关键词试试。"
-              : "新的跑腿需求会显示在这里。")
+          action={
+            error ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.refresh()}
+              >
+                重新加载
+              </Button>
+            ) : undefined
           }
         />
       )}
@@ -106,7 +115,7 @@ function DemandCard({ demand }: { demand: ErrandDemandStoreSummary }) {
   const goodsSubtotal = demand.totalOriginUnitPriceCents;
   const serviceFee = demand.totalServiceFeeCents;
   const total = goodsSubtotal + serviceFee;
-  const participantCount = demand.participantAvatars.length;
+  const updatedLabel = formatUpdatedAt(demand.updatedAt);
   const card = (
     <Card className="rounded-lg transition-colors hover:border-primary/40">
       <CardHeader className="flex-row items-start justify-between gap-3">
@@ -118,9 +127,11 @@ function DemandCard({ demand }: { demand: ErrandDemandStoreSummary }) {
             <CardTitle className="truncate text-base leading-6">
               {demand.storeName}
             </CardTitle>
-            <p className="text-xs leading-5 text-muted-foreground">
-              {formatUpdatedAt(demand.updatedAt)}
-            </p>
+            {updatedLabel ? (
+              <p className="text-xs leading-5 text-muted-foreground">
+                {updatedLabel}
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -146,8 +157,8 @@ function DemandCard({ demand }: { demand: ErrandDemandStoreSummary }) {
           <div className="flex min-w-0 items-center gap-2">
             <ParticipantAvatars avatars={demand.participantAvatars} />
             <span className="truncate text-sm text-muted-foreground">
-              {participantCount > 0
-                ? `${participantCount} 人参与`
+              {demand.participantAvatars.length > 0
+                ? "已有成员参与"
                 : "暂无参与人"}
             </span>
           </div>
@@ -179,11 +190,7 @@ function ParticipantAvatars({ avatars }: { avatars: string[] }) {
   const visibleAvatars = avatars.slice(0, 3);
 
   if (visibleAvatars.length === 0) {
-    return (
-      <Avatar className="size-7 border border-card">
-        <AvatarFallback className="text-xs">无</AvatarFallback>
-      </Avatar>
-    );
+    return null;
   }
 
   return (
@@ -194,23 +201,20 @@ function ParticipantAvatars({ avatars }: { avatars: string[] }) {
           className="size-7 border-2 border-card"
         >
           <AvatarImage src={sanitizeImageSrc(avatar) ?? undefined} alt="" />
-          <AvatarFallback className="text-xs">用</AvatarFallback>
+          <AvatarFallback>
+            <RiUser3Line className="size-3.5" />
+          </AvatarFallback>
         </Avatar>
       ))}
     </div>
   );
 }
 
-function formatUpdatedAt(value: string | null): string {
-  if (!value) {
-    return "更新时间未知";
-  }
+function formatUpdatedAt(value: string | null): string | null {
+  if (!value) return null;
 
   const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "更新时间未知";
-  }
+  if (Number.isNaN(date.getTime())) return null;
 
   return `更新于 ${updatedAtFormatter.format(date)}`;
 }

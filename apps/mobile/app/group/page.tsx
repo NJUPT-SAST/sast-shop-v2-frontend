@@ -7,6 +7,7 @@ import {
 import {
   RiArrowRightSLine,
   RiFileAddLine,
+  RiRefreshLine,
   RiRunLine,
   RiStore2Line,
 } from "@remixicon/react";
@@ -16,25 +17,15 @@ import { Button } from "@workspace/ui/components/button";
 import {
   Card,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
-import { Separator } from "@workspace/ui/components/separator";
+import { Empty } from "@workspace/ui/components/empty";
 import { ManagedImage } from "@/components/managed-image";
 import { getActiveErrandTasks } from "@/lib/errand-task-route";
 import { getStatusBadgeVariant, getStatusLabel } from "@/lib/order-filters";
 import { isValidRouteId } from "@/lib/route-id";
 import { getServerServiceOptions } from "@/lib/server-service-options";
-
-const createdAtFormatter = new Intl.DateTimeFormat("zh-CN", {
-  timeZone: "Asia/Shanghai",
-  month: "numeric",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-});
 
 async function loadGroupOverview(): Promise<{
   stores: Store[];
@@ -69,17 +60,19 @@ export default async function GroupPage() {
       <section className="flex flex-col gap-4">
         <h1 className="text-xl font-semibold leading-7 md:text-2xl">团购</h1>
 
-        {storeError ? (
-          <Card className="overflow-hidden rounded-lg p-1">
-            <CardHeader className="gap-2">
-              <CardTitle className="text-lg leading-6">店铺加载失败</CardTitle>
-              <CardDescription>请稍后再试</CardDescription>
+        {storeError || taskError ? (
+          <Card className="overflow-hidden rounded-lg">
+            <CardHeader className="flex-row items-center justify-between gap-3">
+              <CardTitle className="text-base leading-6">
+                部分内容加载失败
+              </CardTitle>
+              <Button asChild size="icon-touch" variant="ghost">
+                <Link href="/group" aria-label="重新加载团购页面">
+                  <RiRefreshLine />
+                </Link>
+              </Button>
             </CardHeader>
           </Card>
-        ) : null}
-
-        {taskError ? (
-          <p className="text-sm leading-6 text-muted-foreground">{taskError}</p>
         ) : null}
       </section>
 
@@ -112,6 +105,15 @@ export default async function GroupPage() {
           <h2 className="min-w-0 text-xl font-semibold leading-7 md:text-2xl">
             我要拼单
           </h2>
+          <Button asChild variant="ghost" size="icon-touch">
+            <Link
+              href="/group/stores/new?returnTo=%2Fgroup"
+              aria-label="创建店铺"
+              title="创建店铺"
+            >
+              <RiStore2Line />
+            </Link>
+          </Button>
         </div>
 
         {stores.length > 0 ? (
@@ -134,12 +136,15 @@ export default async function GroupPage() {
             )}
           </div>
         ) : !storeError ? (
-          <Card className="rounded-lg">
-            <CardHeader>
-              <CardTitle className="text-base">暂无店铺</CardTitle>
-              <CardDescription>店铺上架后会显示在这里。</CardDescription>
-            </CardHeader>
-          </Card>
+          <Empty
+            icon={<RiStore2Line className="size-5" />}
+            title="还没有店铺"
+            action={
+              <Button asChild>
+                <Link href="/group/stores/new?returnTo=%2Fgroup">创建店铺</Link>
+              </Button>
+            }
+          />
         ) : null}
       </section>
 
@@ -162,7 +167,6 @@ export default async function GroupPage() {
                   <CardTitle className="truncate text-base leading-5">
                     跑腿大厅
                   </CardTitle>
-                  <CardDescription>接单、分发、收款</CardDescription>
                 </div>
               </CardHeader>
             </Card>
@@ -178,7 +182,6 @@ export default async function GroupPage() {
                   <CardTitle className="truncate text-base leading-5">
                     商品模板
                   </CardTitle>
-                  <CardDescription>维护跑腿可选商品</CardDescription>
                 </div>
               </CardHeader>
             </Card>
@@ -200,31 +203,19 @@ function TaskCard({ task }: { task: ErrandTaskBrief }) {
               {task.storeName}
             </CardTitle>
             <CardDescription className="mt-1">
-              {task.itemCount} 种商品 · {formatCreatedAt(task.createdAt)}
+              {task.itemCount} 种商品
             </CardDescription>
           </div>
-          <Badge
-            variant={getStatusBadgeVariant(task.status)}
-            className="shrink-0"
-          >
-            {getStatusLabel(task.status)}
-          </Badge>
+          <div className="flex shrink-0 items-center gap-1">
+            <Badge variant={getStatusBadgeVariant(task.status)}>
+              {getStatusLabel(task.status)}
+            </Badge>
+            {canOpen ? (
+              <RiArrowRightSLine className="size-5 text-muted-foreground" />
+            ) : null}
+          </div>
         </div>
       </CardHeader>
-      <Separator />
-      <CardFooter className="justify-between gap-3 pt-3 text-sm">
-        <span className="min-w-0 truncate text-muted-foreground">
-          任务 #{task.id}
-        </span>
-        {canOpen ? (
-          <span className="inline-flex shrink-0 items-center font-medium text-primary">
-            继续处理
-            <RiArrowRightSLine className="size-4" />
-          </span>
-        ) : (
-          <span className="shrink-0 text-muted-foreground">任务编号异常</span>
-        )}
-      </CardFooter>
     </Card>
   );
 
@@ -241,15 +232,6 @@ function TaskCard({ task }: { task: ErrandTaskBrief }) {
       {card}
     </Link>
   );
-}
-
-function formatCreatedAt(value: string | null): string {
-  if (!value) return "创建时间未知";
-
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "创建时间未知"
-    : createdAtFormatter.format(date);
 }
 
 function StoreCard({ store }: { store: Store }) {
@@ -272,9 +254,11 @@ function StoreCard({ store }: { store: Store }) {
           <CardTitle className="truncate text-lg leading-6">
             {store.name}
           </CardTitle>
-          <CardDescription className="truncate">
-            {store.address}
-          </CardDescription>
+          {store.address ? (
+            <CardDescription className="truncate">
+              {store.address}
+            </CardDescription>
+          ) : null}
         </div>
       </CardHeader>
     </Card>

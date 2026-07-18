@@ -1,204 +1,265 @@
-import { createClient } from "@connectrpc/connect"
-import type { Timestamp } from "@bufbuild/protobuf/wkt"
-import type { ProductTemplate } from "../gen/sast/sastshopv2/catalog/v1/product_template_pb"
+import { createClient } from "@connectrpc/connect";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import type { ProductTemplate } from "../gen/sast/sastshopv2/catalog/v1/product_template_pb";
 import type {
   SpotGoodsBrief as ProtoSpotGoodsBrief,
   SpotGoodsDetail as ProtoSpotGoodsDetail,
-} from "../gen/sast/sastshopv2/spot/v1/spot_goods_pb"
-import { SpotGoodsService } from "../gen/sast/sastshopv2/spot/v1/spot_goods_service_pb"
-import { resolveDataSource, type ServiceOptions } from "../data-source"
-import { FeatureUnavailableError, ValidationError } from "../errors"
-import { createLocalTransport, requestLocal } from "../local-connect"
-import { formatProtoTimestamp, parseProtoTimestamp } from "../proto-timestamp"
-import { listStores } from "./catalog"
+} from "../gen/sast/sastshopv2/spot/v1/spot_goods_pb";
+import { SpotGoodsService } from "../gen/sast/sastshopv2/spot/v1/spot_goods_service_pb";
+import { resolveDataSource, type ServiceOptions } from "../data-source";
+import { FeatureUnavailableError, ValidationError } from "../errors";
+import { createLocalTransport, requestLocal } from "../local-connect";
+import { formatProtoTimestamp, parseProtoTimestamp } from "../proto-timestamp";
+import { listStores, type Store } from "./catalog";
 
-const MAX_SIGNED_INT64 = 9223372036854775807n
-const MAX_SIGNED_INT32 = 2147483647
+const MAX_SIGNED_INT64 = 9223372036854775807n;
+const MAX_SIGNED_INT32 = 2147483647;
 
 export interface SpotProductTemplate {
-  id: string
-  title: string
-  description: string
-  priceCents: number
-  storeId: string
-  mainImageUrl: string
-  barcode: string
-  updatedAt: string | null
+  id: string;
+  title: string;
+  description: string;
+  priceCents: number;
+  storeId: string;
+  mainImageUrl: string;
+  barcode: string;
+  updatedAt: string | null;
 }
 
 export interface SpotGoods {
-  id: string
-  product: SpotProductTemplate
-  salePriceCents: number
-  stock: number | null
-  sellerId: string | null
-  sellerName: string | null
-  updatedAt: string | null
+  id: string;
+  product: SpotProductTemplate;
+  salePriceCents: number;
+  stock: number;
+  sellerId: string;
+  sellerName: string;
+  sellerAvatarUrl: string;
+  updatedAt: string;
+}
+
+export interface SpotGoodsBrief {
+  id: string;
+  product: SpotProductTemplate;
+  salePriceCents: number;
+  updatedAt: string | null;
+  store: Store;
+}
+
+export interface ListSpotGoodsResult {
+  goods: SpotGoodsBrief[];
+  currentPage: number;
+  totalCount: number;
+  pageSize: number;
 }
 
 export interface CreateSpotGoodsInput {
-  productTemplateId: string
-  salePriceCents: number
-  stockTotal: number
-  productTemplateUpdatedAt: TimestampInput
+  productTemplateId: string;
+  salePriceCents: number;
+  stockTotal: number;
+  productTemplateUpdatedAt: TimestampInput;
 }
 
 export async function listSpotGoods(
-  options: ServiceOptions & { storeId?: string; page?: number; pageSize?: number } = {}
-): Promise<SpotGoods[]> {
-  const dataSource = resolveDataSource(options)
+  options: ServiceOptions & {
+    storeId?: string;
+    page?: number;
+    pageSize?: number;
+  } = {},
+): Promise<ListSpotGoodsResult> {
+  const dataSource = resolveDataSource(options);
 
   if (dataSource === "mock" || dataSource === "local") {
-    if (options.storeId) {
-      const goods = await listSpotGoodsBriefsByStore(options.storeId, options)
-      return hydrateSpotGoods(goods, options)
+    const storeId = parseStoreFilter(options.storeId);
+    const page = parsePositiveInt32(options.page ?? 1, "页码不正确");
+    const pageSize = parsePositiveInt32(
+      options.pageSize ?? 50,
+      "每页数量不正确",
+    );
+    const client = createClient(
+      SpotGoodsService,
+      createLocalTransport(options),
+    );
+    const [stores, response] = await Promise.all([
+      listStores(options),
+      requestLocal("listSpotGoods", () =>
+        client.listSpotGoods({ storeId, page, pageSize }),
+      ),
+    ]);
+    const storesById = new Map(stores.map((store) => [store.id, store]));
+
+    if (storeId > 0n && !storesById.has(storeId.toString())) {
+      throw new FeatureUnavailableError("spotGoods.store");
+    }
+    if (
+      !Number.isInteger(response.currentPage) ||
+      response.currentPage !== page ||
+      !Number.isInteger(response.totalCount) ||
+      response.spotGoodsList.length > pageSize ||
+      response.totalCount <
+        (page - 1) * pageSize + response.spotGoodsList.length
+    ) {
+      throw new FeatureUnavailableError("listSpotGoods.pagination");
     }
 
-    const stores = await listStores(options)
-    const goods = await Promise.all(
-      stores.map((store) => listSpotGoodsBriefsByStore(store.id, options))
-    )
-
-    return hydrateSpotGoods(deduplicateSpotGoods(goods.flat()), options)
+    return {
+      goods: response.spotGoodsList.map((goods) => {
+        const productStoreId = goods.productTemplate?.storeId.toString();
+        const store = productStoreId
+          ? storesById.get(productStoreId)
+          : undefined;
+        if (!store) throw new FeatureUnavailableError("spotGoods.store");
+        return mapSpotGoodsBrief(goods, store);
+      }),
+      currentPage: response.currentPage,
+      totalCount: response.totalCount,
+      pageSize,
+    };
   }
 
-  throw new FeatureUnavailableError("listSpotGoods")
-}
-
-function hydrateSpotGoods(
-  goods: SpotGoods[],
-  options: ServiceOptions
-): Promise<SpotGoods[]> {
-  return Promise.all(
-    goods.map((item) => getSpotGoods(item.id, options).catch(() => item))
-  )
-}
-
-function deduplicateSpotGoods(goods: SpotGoods[]): SpotGoods[] {
-  const uniqueGoods = new Map<string, SpotGoods>()
-
-  for (const item of goods) {
-    if (!uniqueGoods.has(item.id)) uniqueGoods.set(item.id, item)
-  }
-
-  return [...uniqueGoods.values()]
+  throw new FeatureUnavailableError("listSpotGoods");
 }
 
 export async function getSpotGoods(
   id: string,
-  options: ServiceOptions = {}
+  options: ServiceOptions = {},
 ): Promise<SpotGoods> {
-  const spotGoodsId = parseInt64(id, "现货商品 ID 不正确")
-  const dataSource = resolveDataSource(options)
+  const spotGoodsId = parseInt64(id, "现货商品 ID 不正确");
+  const dataSource = resolveDataSource(options);
 
   if (dataSource === "mock" || dataSource === "local") {
-    const client = createClient(SpotGoodsService, createLocalTransport(options))
+    const client = createClient(
+      SpotGoodsService,
+      createLocalTransport(options),
+    );
     const response = await requestLocal("getSpotGoods", () =>
-      client.getSpotGoods({ spotGoodsId })
-    )
+      client.getSpotGoods({ spotGoodsId }),
+    );
 
     if (!response.spotGoodsDetail) {
-      throw new FeatureUnavailableError("getSpotGoods")
+      throw new FeatureUnavailableError("getSpotGoods");
     }
 
-    return mapSpotGoodsDetail(response.spotGoodsDetail)
+    return mapSpotGoodsDetail(response.spotGoodsDetail);
   }
 
-  throw new FeatureUnavailableError("getSpotGoods")
+  throw new FeatureUnavailableError("getSpotGoods");
 }
 
 export async function createSpotGoods(
   input: CreateSpotGoodsInput,
-  options: ServiceOptions = {}
+  options: ServiceOptions = {},
 ): Promise<SpotGoods> {
-  const parsedInput = validateCreateSpotGoodsInput(input)
-  const dataSource = resolveDataSource(options)
+  const parsedInput = validateCreateSpotGoodsInput(input);
+  const dataSource = resolveDataSource(options);
 
   if (dataSource === "mock" || dataSource === "local") {
-    const client = createClient(SpotGoodsService, createLocalTransport(options))
+    const client = createClient(
+      SpotGoodsService,
+      createLocalTransport(options),
+    );
     const response = await requestLocal("createSpotGoods", () =>
       client.createSpotGoods({
         ...parsedInput,
-      })
-    )
+      }),
+    );
 
     if (!response.spotGoodsDetail) {
-      throw new FeatureUnavailableError("createSpotGoods")
+      throw new FeatureUnavailableError("createSpotGoods");
     }
 
-    return mapSpotGoodsDetail(response.spotGoodsDetail)
+    return mapSpotGoodsDetail(response.spotGoodsDetail);
   }
 
-  throw new FeatureUnavailableError("createSpotGoods")
+  throw new FeatureUnavailableError("createSpotGoods");
 }
 
-async function listSpotGoodsBriefsByStore(
-  storeId: string,
-  options: ServiceOptions & { page?: number; pageSize?: number }
-): Promise<SpotGoods[]> {
-  const client = createClient(SpotGoodsService, createLocalTransport(options))
-  const response = await requestLocal("listSpotGoods", () =>
-    client.listSpotGoods({
-      storeId: parseInt64(storeId, "店铺 ID 不正确"),
-      page: options.page ?? 1,
-      pageSize: options.pageSize ?? 50,
-    })
-  )
+function mapSpotGoodsBrief(
+  goods: ProtoSpotGoodsBrief,
+  store: Store,
+): SpotGoodsBrief {
+  if (!goods.productTemplate) {
+    throw new FeatureUnavailableError("spotGoods.productTemplate");
+  }
 
-  return response.spotGoodsList.map(mapSpotGoodsBrief)
-}
+  const product = mapTemplate(goods.productTemplate);
+  if (product.storeId !== store.id) {
+    throw new FeatureUnavailableError("spotGoods.store");
+  }
 
-function mapSpotGoodsBrief(goods: ProtoSpotGoodsBrief): SpotGoods {
   return {
     id: goods.id.toString(),
-    product: mapTemplate(goods.productTemplate),
+    product,
     salePriceCents: goods.salePriceCents,
-    stock: null,
-    sellerId: null,
-    sellerName: null,
     updatedAt: formatProtoTimestamp(goods.updatedAt),
+    store,
+  };
+}
+
+function parseStoreFilter(value: string | undefined): bigint {
+  if (value === undefined || value === "0") return 0n;
+  return parseInt64(value, "店铺 ID 不正确");
+}
+
+function parsePositiveInt32(value: number, message: string): number {
+  if (!Number.isInteger(value) || value <= 0 || value > MAX_SIGNED_INT32) {
+    throw new ValidationError(message);
   }
+  return value;
 }
 
 function mapSpotGoodsDetail(goods: ProtoSpotGoodsDetail): SpotGoods {
+  if (!goods.productTemplate) {
+    throw new FeatureUnavailableError("spotGoods.productTemplate");
+  }
+
+  if (!goods.seller) {
+    throw new FeatureUnavailableError("spotGoods.seller");
+  }
+
+  const updatedAt = formatProtoTimestamp(goods.updatedAt);
+  if (!updatedAt) {
+    throw new FeatureUnavailableError("spotGoods.updatedAt");
+  }
+
   return {
     id: goods.id.toString(),
     product: mapTemplate(goods.productTemplate),
     salePriceCents: goods.salePriceCents,
     stock: goods.stock,
-    sellerId: goods.seller?.id.toString() ?? null,
-    sellerName: goods.seller?.name ?? null,
-    updatedAt: formatProtoTimestamp(goods.updatedAt),
-  }
+    sellerId: goods.seller.id.toString(),
+    sellerName: goods.seller.name,
+    sellerAvatarUrl: goods.seller.avatarUrl,
+    updatedAt,
+  };
 }
 
-function mapTemplate(template?: ProductTemplate): SpotProductTemplate {
+function mapTemplate(template: ProductTemplate): SpotProductTemplate {
   return {
-    id: template?.id.toString() ?? "0",
-    title: template?.title ?? "未命名商品",
-    description: template?.description ?? "",
-    priceCents: template?.priceCents ?? 0,
-    storeId: template?.storeId.toString() ?? "0",
-    mainImageUrl: template?.mainImageUrl ?? "",
-    barcode: template?.barcode ?? "",
-    updatedAt: formatProtoTimestamp(template?.updatedAt),
-  }
+    id: template.id.toString(),
+    title: template.title,
+    description: template.description,
+    priceCents: template.priceCents,
+    storeId: template.storeId.toString(),
+    mainImageUrl: template.mainImageUrl,
+    barcode: template.barcode,
+    updatedAt: formatProtoTimestamp(template.updatedAt),
+  };
 }
 
-type TimestampInput = string | Timestamp | null
+type TimestampInput = string | Timestamp | null;
 
 function validateCreateSpotGoodsInput(input: CreateSpotGoodsInput) {
   const productTemplateId = parseInt64(
     input.productTemplateId,
-    "商品模板 ID 不正确"
-  )
+    "商品模板 ID 不正确",
+  );
 
   if (
     !Number.isInteger(input.salePriceCents) ||
     input.salePriceCents <= 0 ||
     input.salePriceCents > MAX_SIGNED_INT32
   ) {
-    throw new ValidationError("现货售价不正确")
+    throw new ValidationError("现货售价不正确");
   }
 
   if (
@@ -206,7 +267,7 @@ function validateCreateSpotGoodsInput(input: CreateSpotGoodsInput) {
     input.stockTotal <= 0 ||
     input.stockTotal > MAX_SIGNED_INT32
   ) {
-    throw new ValidationError("现货库存不正确")
+    throw new ValidationError("现货库存不正确");
   }
 
   return {
@@ -214,33 +275,33 @@ function validateCreateSpotGoodsInput(input: CreateSpotGoodsInput) {
     salePriceCents: input.salePriceCents,
     stockTotal: input.stockTotal,
     productTemplateUpdatedAt: parseTimestampInput(
-      input.productTemplateUpdatedAt
+      input.productTemplateUpdatedAt,
     ),
-  }
+  };
 }
 
 function parseInt64(value: string, message: string): bigint {
   if (!/^[1-9]\d*$/.test(value)) {
-    throw new ValidationError(message)
+    throw new ValidationError(message);
   }
 
-  const parsed = BigInt(value)
+  const parsed = BigInt(value);
 
   if (parsed > MAX_SIGNED_INT64) {
-    throw new ValidationError(message)
+    throw new ValidationError(message);
   }
 
-  return parsed
+  return parsed;
 }
 
 function parseTimestampInput(input: TimestampInput): Timestamp {
   if (!input) {
-    throw new ValidationError("商品模板更新时间不能为空")
+    throw new ValidationError("商品模板更新时间不能为空");
   }
 
   if (typeof input === "string") {
-    return parseProtoTimestamp(input, "商品模板更新时间不正确")
+    return parseProtoTimestamp(input, "商品模板更新时间不正确");
   }
 
-  return input
+  return input;
 }

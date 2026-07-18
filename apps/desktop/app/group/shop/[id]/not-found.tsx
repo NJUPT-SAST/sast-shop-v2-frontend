@@ -1,7 +1,7 @@
-import Link from "next/link"
-import { RiStore2Line } from "@remixicon/react"
-import { Button } from "@workspace/ui/components/button"
-import { Empty } from "@workspace/ui/components/empty"
+import Link from "next/link";
+import { RiStore2Line } from "@remixicon/react";
+import { Button } from "@workspace/ui/components/button";
+import { Empty } from "@workspace/ui/components/empty";
 
 export default function GroupShopNotFound() {
   return (
@@ -15,5 +15,5 @@ export default function GroupShopNotFound() {
         </Button>
       }
     />
-  )
+  );
 }

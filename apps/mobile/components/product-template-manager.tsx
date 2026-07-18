@@ -1,21 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   RiAddLine,
   RiBarcodeLine,
+  RiDeleteBinLine,
   RiEditLine,
   RiFileList3Line,
+  RiImageAddLine,
   RiImageLine,
+  RiQrScan2Line,
   RiSearchLine,
+  RiStore2Line,
 } from "@remixicon/react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 import {
+  configureLarkJsapi,
   createProductTemplate,
+  isLarkScanCancelledError,
+  scanLarkBarcode,
   updateProductTemplate,
   type DataSource,
   type ProductTemplate,
@@ -26,6 +34,7 @@ import {
 import { formatPrice } from "@sast-shop/domain";
 import {
   Alert,
+  AlertAction,
   AlertDescription,
   AlertTitle,
 } from "@workspace/ui/components/alert";
@@ -51,6 +60,7 @@ import { Input } from "@workspace/ui/components/input";
 import {
   InputGroup,
   InputGroupAddon,
+  InputGroupButton,
   InputGroupInput,
 } from "@workspace/ui/components/input-group";
 import {
@@ -67,7 +77,14 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@workspace/ui/components/select";
+import { Spinner } from "@workspace/ui/components/spinner";
 import { Textarea } from "@workspace/ui/components/textarea";
+
+import { ManagedImage } from "@/components/managed-image";
+import { MobileFloatingAction } from "@/components/mobile-floating-action";
+import { useFeishuUiEnvironment } from "@/hooks/use-feishu-ui-environment";
+import { isJsapiAuthConfig } from "@/lib/jsapi-config";
+import { uploadProductImage } from "@/lib/product-image-upload";
 
 const templateSchema = z.object({
   storeId: z.string().min(1, "请选择店铺"),
@@ -127,6 +144,10 @@ export function ProductTemplateManager({
     startCreating && Boolean(selectedStoreId),
   );
   const [submitting, setSubmitting] = useState(false);
+  const [scanningBarcode, setScanningBarcode] = useState(false);
+  const scanningBarcodeRef = useRef(false);
+  const showFeishuEntry = useFeishuUiEnvironment();
+  const createStoreHref = buildCreateStoreHref(prefillBarcode, startCreating);
   const form = useForm<TemplateFormValues>({
     resolver: zodResolver(templateSchema),
     defaultValues: createDefaultValues(selectedStoreId, prefillBarcode),
@@ -169,6 +190,49 @@ export function ProductTemplateManager({
     setDrawerOpen(true);
   }
 
+  async function scanTemplateBarcode() {
+    if (scanningBarcodeRef.current) return;
+    if (!window.h5sdk || !window.tt) {
+      toast.message("请在飞书移动端内扫码");
+      return;
+    }
+
+    scanningBarcodeRef.current = true;
+    setScanningBarcode(true);
+    try {
+      const signingUrl = window.location.href.split("#", 1)[0] ?? "";
+      const response = await fetch(
+        `/api/auth/jsapi-config?url=${encodeURIComponent(signingUrl)}`,
+        { cache: "no-store" },
+      );
+      const body: unknown = await response.json().catch(() => null);
+      if (!response.ok || !isJsapiAuthConfig(body)) {
+        throw new Error(
+          response.status === 401
+            ? "登录已失效，请重新打开应用"
+            : "扫码鉴权暂不可用，请稍后再试",
+        );
+      }
+
+      await configureLarkJsapi(window.h5sdk, body);
+      const barcode = await scanLarkBarcode(window.tt);
+      form.setValue("barcode", barcode, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+      toast.success("已识别商品条码");
+    } catch (reason) {
+      if (isLarkScanCancelledError(reason)) return;
+      toast.error(
+        reason instanceof Error ? reason.message : "扫码失败，请手动输入条码",
+      );
+    } finally {
+      scanningBarcodeRef.current = false;
+      setScanningBarcode(false);
+    }
+  }
+
   async function saveTemplate(values: TemplateFormValues) {
     if (submitting) return;
 
@@ -206,27 +270,38 @@ export function ProductTemplateManager({
   }
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-5 py-6">
-      <section className="flex items-start justify-between gap-3">
+    <div className="flex min-w-0 flex-1 flex-col gap-5 pb-24 pt-6">
+      <section className="flex items-center justify-between gap-3">
         <h1 className="min-w-0 text-xl font-semibold leading-7 md:text-2xl">
           商品模板
         </h1>
-        <Button
-          type="button"
-          size="sm"
-          className="shrink-0"
-          disabled={!selectedStoreId}
-          onClick={openCreateDrawer}
-        >
-          <RiAddLine />
-          新建
-        </Button>
+        {stores.length > 0 ? (
+          <Button asChild type="button" size="icon-touch" variant="ghost">
+            <Link
+              href="/group/stores/new?returnTo=%2Fgroup%2Ftemplates"
+              aria-label="创建店铺"
+              title="创建店铺"
+            >
+              <RiStore2Line />
+            </Link>
+          </Button>
+        ) : null}
       </section>
 
       {error ? (
         <Alert variant="destructive">
           <AlertTitle>模板暂不可用</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => router.refresh()}
+            >
+              重新加载
+            </Button>
+          </AlertAction>
         </Alert>
       ) : null}
 
@@ -243,11 +318,7 @@ export function ProductTemplateManager({
                 );
               }}
             >
-              <SelectTrigger
-                id="template-store"
-                className="h-10"
-                aria-label="当前店铺"
-              >
+              <SelectTrigger id="template-store" aria-label="当前店铺">
                 <span className="truncate">
                   {stores.find((store) => store.id === selectedStoreId)?.name ??
                     "选择店铺"}
@@ -297,14 +368,42 @@ export function ProductTemplateManager({
         </section>
       ) : !error ? (
         <Empty
-          icon={<RiFileList3Line className="size-5" />}
-          title={keyword ? "没有匹配的商品模板" : "暂无商品模板"}
-          description={
-            keyword
-              ? "换个商品名称、规格或条码试试。"
-              : "新建模板后，跑腿采购和现货上架都可以按条码复用。"
+          icon={
+            stores.length === 0 ? (
+              <RiStore2Line className="size-5" />
+            ) : (
+              <RiFileList3Line className="size-5" />
+            )
+          }
+          title={
+            stores.length === 0
+              ? "还没有店铺"
+              : keyword
+                ? "没有匹配的商品模板"
+                : "暂无商品模板"
+          }
+          action={
+            stores.length === 0 ? (
+              <Button asChild type="button">
+                <Link href={createStoreHref}>
+                  <RiStore2Line data-icon="inline-start" />
+                  创建店铺
+                </Link>
+              </Button>
+            ) : undefined
           }
         />
+      ) : null}
+
+      {selectedStoreId ? (
+        <MobileFloatingAction
+          type="button"
+          aria-label="新建商品模板"
+          title="新建商品模板"
+          onClick={openCreateDrawer}
+        >
+          <RiAddLine className="size-6" />
+        </MobileFloatingAction>
       ) : null}
 
       <Drawer
@@ -338,6 +437,9 @@ export function ProductTemplateManager({
               form={form}
               stores={stores}
               lockStore={Boolean(editingTemplate)}
+              scanEnabled={showFeishuEntry}
+              scanningBarcode={scanningBarcode}
+              onScanBarcode={() => void scanTemplateBarcode()}
             />
           </form>
 
@@ -372,41 +474,40 @@ function TemplateItem({
   onEdit: () => void;
 }) {
   return (
-    <Item
-      variant="outline"
-      role="button"
-      tabIndex={0}
-      className="min-w-0 cursor-pointer items-start hover:bg-muted/30"
-      onClick={onEdit}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onEdit();
-        }
-      }}
-    >
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-        {template.mainImageUrl ? <RiImageLine /> : <RiBarcodeLine />}
-      </span>
-      <ItemContent className="min-w-0 gap-1.5">
-        <div className="flex min-w-0 items-start justify-between gap-2">
-          <ItemTitle className="min-w-0 truncate leading-5">
-            {template.title}
-          </ItemTitle>
-          <Badge variant="secondary" className="shrink-0">
-            {formatPrice(template.priceCents)}
-          </Badge>
-        </div>
-        <ItemDescription className="line-clamp-2 break-words">
-          {template.description || "暂无规格说明"}
-        </ItemDescription>
-        <ItemDescription className="truncate font-mono text-xs">
-          {template.barcode}
-        </ItemDescription>
-      </ItemContent>
-      <ItemActions className="self-center">
-        <RiEditLine className="size-4 text-muted-foreground" />
-      </ItemActions>
+    <Item asChild variant="outline">
+      <button
+        type="button"
+        className="min-w-0 cursor-pointer items-start hover:bg-muted/30"
+        onClick={onEdit}
+      >
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+          {template.mainImageUrl ? <RiImageLine /> : <RiBarcodeLine />}
+        </span>
+        <ItemContent className="min-w-0 gap-1.5">
+          <div className="flex min-w-0 items-start justify-between gap-2">
+            <ItemTitle className="min-w-0 truncate leading-5">
+              {template.title}
+            </ItemTitle>
+            <Badge variant="secondary" className="shrink-0">
+              {formatPrice(template.priceCents)}
+            </Badge>
+          </div>
+          {template.description ? (
+            <ItemDescription className="line-clamp-2 break-words">
+              {template.description}
+            </ItemDescription>
+          ) : null}
+          {template.barcode ? (
+            <ItemDescription className="flex items-center gap-1.5 truncate font-mono text-xs tabular-nums">
+              <RiBarcodeLine className="size-3.5 shrink-0" aria-hidden="true" />
+              <span className="truncate">{template.barcode}</span>
+            </ItemDescription>
+          ) : null}
+        </ItemContent>
+        <ItemActions className="self-center">
+          <RiEditLine className="size-4 text-muted-foreground" />
+        </ItemActions>
+      </button>
     </Item>
   );
 }
@@ -415,10 +516,16 @@ function TemplateFields({
   form,
   stores,
   lockStore,
+  scanEnabled,
+  scanningBarcode,
+  onScanBarcode,
 }: {
   form: ReturnType<typeof useForm<TemplateFormValues>>;
   stores: Store[];
   lockStore: boolean;
+  scanEnabled: boolean;
+  scanningBarcode: boolean;
+  onScanBarcode: () => void;
 }) {
   return (
     <FieldGroup className="gap-5">
@@ -469,14 +576,29 @@ function TemplateFields({
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid}>
             <FieldLabel htmlFor={field.name}>商品条码</FieldLabel>
-            <Input
-              {...field}
-              id={field.name}
-              inputMode="numeric"
-              autoComplete="off"
-              placeholder="输入条码编号"
-              aria-invalid={fieldState.invalid}
-            />
+            <InputGroup>
+              <InputGroupInput
+                {...field}
+                id={field.name}
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="输入条码编号"
+                aria-invalid={fieldState.invalid}
+              />
+              {scanEnabled ? (
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton
+                    size="icon-sm"
+                    aria-label="扫码填写商品条码"
+                    title="扫码"
+                    disabled={scanningBarcode}
+                    onClick={onScanBarcode}
+                  >
+                    {scanningBarcode ? <Spinner /> : <RiQrScan2Line />}
+                  </InputGroupButton>
+                </InputGroupAddon>
+              ) : null}
+            </InputGroup>
             <FieldError errors={[fieldState.error]} />
           </Field>
         )}
@@ -543,21 +665,111 @@ function TemplateFields({
         name="mainImageUrl"
         control={form.control}
         render={({ field, fieldState }) => (
-          <Field data-invalid={fieldState.invalid}>
-            <FieldLabel htmlFor={field.name}>商品图片地址（选填）</FieldLabel>
-            <Input
-              {...field}
-              id={field.name}
-              type="url"
-              inputMode="url"
-              placeholder="https://example.com/image.jpg"
-              aria-invalid={fieldState.invalid}
-            />
-            <FieldError errors={[fieldState.error]} />
-          </Field>
+          <ProductImageField
+            value={field.value}
+            invalid={fieldState.invalid}
+            error={fieldState.error}
+            onChange={field.onChange}
+          />
         )}
       />
     </FieldGroup>
+  );
+}
+
+function ProductImageField({
+  value,
+  invalid,
+  error,
+  onChange,
+}: {
+  value: string;
+  invalid: boolean;
+  error: { message?: string } | undefined;
+  onChange: (value: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      onChange(await uploadProductImage(file));
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : "图片上传失败");
+    } finally {
+      setUploading(false);
+      event.target.value = "";
+    }
+  }
+
+  return (
+    <Field data-invalid={invalid}>
+      <FieldLabel htmlFor="product-template-image">商品图片</FieldLabel>
+      <div className="relative overflow-hidden rounded-lg border bg-muted/30">
+        <button
+          type="button"
+          className="relative flex aspect-video w-full items-center justify-center overflow-hidden outline-none transition-colors hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50"
+          aria-label={value ? "更换商品图片" : "上传商品图片"}
+          disabled={uploading}
+          onClick={() => inputRef.current?.click()}
+        >
+          {value ? (
+            <ManagedImage
+              src={value}
+              alt="商品图片预览"
+              className="absolute inset-0 size-full rounded-none transition-opacity duration-200 motion-reduce:transition-none"
+            />
+          ) : (
+            <RiImageAddLine className="size-8 text-muted-foreground" />
+          )}
+          {uploading ? (
+            <span className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm">
+              <Spinner className="size-6" />
+            </span>
+          ) : null}
+        </button>
+
+        {value && !uploading ? (
+          <div className="absolute top-2 right-2 flex gap-2">
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="secondary"
+              className="shadow-sm"
+              aria-label="更换商品图片"
+              title="更换图片"
+              onClick={() => inputRef.current?.click()}
+            >
+              <RiImageAddLine />
+            </Button>
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="destructive"
+              className="shadow-sm"
+              aria-label="移除商品图片"
+              title="移除图片"
+              onClick={() => onChange("")}
+            >
+              <RiDeleteBinLine />
+            </Button>
+          </div>
+        ) : null}
+      </div>
+      <input
+        ref={inputRef}
+        id="product-template-image"
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+      <FieldError errors={[error]} />
+    </Field>
   );
 }
 
@@ -614,4 +826,18 @@ function readErrorMessage(error: unknown): string {
   }
 
   return "保存商品模板失败，请稍后再试";
+}
+
+function buildCreateStoreHref(
+  barcode: string,
+  continueCreatingTemplate: boolean,
+): string {
+  const params = new URLSearchParams();
+  if (continueCreatingTemplate) params.set("create", "1");
+  if (barcode.trim()) params.set("barcode", barcode.trim());
+  const returnTo = params.size
+    ? `/group/templates?${params.toString()}`
+    : "/group/templates";
+
+  return `/group/stores/new?returnTo=${encodeURIComponent(returnTo)}`;
 }

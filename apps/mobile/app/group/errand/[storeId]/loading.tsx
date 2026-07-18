@@ -1,5 +1,5 @@
-import { Skeleton } from "@workspace/ui/components/skeleton"
-import { MobileFixedFooter } from "@/components/mobile-fixed-footer"
+import { Skeleton } from "@workspace/ui/components/skeleton";
+import { MobileFixedFooter } from "@/components/mobile-fixed-footer";
 
 export default function ErrandDemandDetailLoading() {
   return (
@@ -58,5 +58,5 @@ export default function ErrandDemandDetailLoading() {
         <Skeleton className="h-10 w-28 rounded-md" />
       </MobileFixedFooter>
     </div>
-  )
+  );
 }

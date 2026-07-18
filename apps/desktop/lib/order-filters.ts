@@ -2,59 +2,58 @@ import type {
   BuyerErrandOrderStatus,
   ErrandTaskStatusValue,
   SpotOrderStatusValue,
-} from "@sast-shop/api"
-import type { BadgeProps } from "@workspace/ui/components/badge"
+} from "@sast-shop/api";
+import type { BadgeProps } from "@workspace/ui/components/badge";
 
-export type OrderType = "spot" | "errand"
-export type SpotOrderView = "buyer" | "seller"
-export type ErrandOrderView = "participant" | "captain"
-export type OrderView = SpotOrderView | ErrandOrderView
+export type OrderType = "spot" | "errand";
+export type SpotOrderView = "buyer" | "seller";
+export type ErrandOrderView = "participant" | "captain";
+export type OrderView = SpotOrderView | ErrandOrderView;
 export type OrderStatus =
   | "all"
-  | "pending_confirm"
   | "processing"
   | BuyerErrandOrderStatus
   | ErrandTaskStatusValue
-  | SpotOrderStatusValue
-export type RenderableOrderStatus = Exclude<OrderStatus, "all">
+  | SpotOrderStatusValue;
+export type RenderableOrderStatus = Exclude<OrderStatus, "all">;
 export type RememberedOrderViews = {
-  spot: SpotOrderView
-  errand: ErrandOrderView
-}
+  spot: SpotOrderView;
+  errand: ErrandOrderView;
+};
 export type OrderFilters = {
-  type: OrderType
-  view: OrderView
-  status: OrderStatus
-  query: string
-}
-export type OrderOption<T extends string> = { value: T; label: string }
+  type: OrderType;
+  view: OrderView;
+  status: OrderStatus;
+  query: string;
+};
+export type OrderOption<T extends string> = { value: T; label: string };
 
 export const DEFAULT_REMEMBERED_ORDER_VIEWS: RememberedOrderViews = {
   spot: "buyer",
   errand: "participant",
-}
+};
 
 const DEFAULT_FILTERS: OrderFilters = {
   type: "spot",
   view: "buyer",
   status: "all",
   query: "",
-}
+};
 
 export const orderTypeOptions: OrderOption<OrderType>[] = [
   { value: "spot", label: "现货" },
   { value: "errand", label: "跑腿" },
-]
+];
 
 const spotViews: OrderOption<SpotOrderView>[] = [
-  { value: "buyer", label: "我买" },
-  { value: "seller", label: "我卖" },
-]
+  { value: "buyer", label: "我购买的" },
+  { value: "seller", label: "我售出的" },
+];
 
 const errandViews: OrderOption<ErrandOrderView>[] = [
-  { value: "participant", label: "拼单" },
-  { value: "captain", label: "团长" },
-]
+  { value: "participant", label: "我的拼单" },
+  { value: "captain", label: "团长任务" },
+];
 
 const spotBuyerStatuses: OrderOption<OrderStatus>[] = [
   { value: "all", label: "全部" },
@@ -62,16 +61,7 @@ const spotBuyerStatuses: OrderOption<OrderStatus>[] = [
   { value: "processing", label: "处理中" },
   { value: "completed", label: "已完成" },
   { value: "cancelled", label: "已取消" },
-]
-
-const spotSellerStatuses: OrderOption<OrderStatus>[] = [
-  { value: "all", label: "全部" },
-  { value: "pending_confirm", label: "待收款" },
-  { value: "paid", label: "已付款" },
-  { value: "processing", label: "处理中" },
-  { value: "completed", label: "已完成" },
-  { value: "cancelled", label: "已取消" },
-]
+];
 
 const errandParticipantStatuses: OrderOption<OrderStatus>[] = [
   { value: "all", label: "全部" },
@@ -82,7 +72,7 @@ const errandParticipantStatuses: OrderOption<OrderStatus>[] = [
   { value: "pending_payment", label: "待支付" },
   { value: "completed", label: "已完成" },
   { value: "cancelled", label: "已取消" },
-]
+];
 
 const errandCaptainStatuses: OrderOption<OrderStatus>[] = [
   { value: "all", label: "全部" },
@@ -92,118 +82,130 @@ const errandCaptainStatuses: OrderOption<OrderStatus>[] = [
   { value: "collecting_payment", label: "收款中" },
   { value: "completed", label: "已完成" },
   { value: "cancelled", label: "已取消" },
-]
+];
 
 const allStatusOptions = [
   ...spotBuyerStatuses,
-  ...spotSellerStatuses,
   ...errandParticipantStatuses,
   ...errandCaptainStatuses,
-]
+];
 
 export function getViewOptions(type: OrderType): OrderOption<OrderView>[] {
-  return type === "spot" ? spotViews : errandViews
+  return type === "spot" ? spotViews : errandViews;
 }
 
 export function getStatusOptions(
   type: OrderType,
   view: OrderView,
 ): OrderOption<OrderStatus>[] {
-  if (type === "spot" && view === "seller") return spotSellerStatuses
-  if (type === "errand" && view === "captain") return errandCaptainStatuses
-  if (type === "errand") return errandParticipantStatuses
-  return spotBuyerStatuses
+  if (type === "spot" && view === "seller") return spotBuyerStatuses;
+  if (type === "errand" && view === "captain") return errandCaptainStatuses;
+  if (type === "errand") return errandParticipantStatuses;
+  return spotBuyerStatuses;
 }
 
-export function getOrderFiltersFromParams(params: URLSearchParams): OrderFilters {
-  const type: OrderType = params.get("type") === "errand" ? "errand" : "spot"
-  const requestedView = params.get("view")
-  const defaultView = DEFAULT_REMEMBERED_ORDER_VIEWS[type]
-  const view = getViewOptions(type).some((option) => option.value === requestedView)
+export function getOrderFiltersFromParams(
+  params: URLSearchParams,
+): OrderFilters {
+  const type: OrderType = params.get("type") === "errand" ? "errand" : "spot";
+  const requestedView = params.get("view");
+  const defaultView = DEFAULT_REMEMBERED_ORDER_VIEWS[type];
+  const view = getViewOptions(type).some(
+    (option) => option.value === requestedView,
+  )
     ? (requestedView as OrderView)
-    : defaultView
-  const requestedStatus = params.get("status")
+    : defaultView;
+  const requestedStatus = params.get("status");
   const status = getStatusOptions(type, view).some(
     (option) => option.value === requestedStatus,
   )
     ? (requestedStatus as OrderStatus)
-    : "all"
+    : "all";
 
   return {
     type,
     view,
     status,
     query: params.get("q") ?? "",
-  }
+  };
 }
 
 export function updateOrderFilterParams(
   current: URLSearchParams,
   updates: {
-    type?: OrderType
-    view?: OrderView
-    status?: OrderStatus
-    q?: string
-    rememberedViews: RememberedOrderViews
+    type?: OrderType;
+    view?: OrderView;
+    status?: OrderStatus;
+    q?: string;
+    rememberedViews: RememberedOrderViews;
   },
 ): URLSearchParams {
-  const currentFilters = getOrderFiltersFromParams(current)
-  const type = updates.type ?? currentFilters.type
-  const typeChanged = type !== currentFilters.type
+  const currentFilters = getOrderFiltersFromParams(current);
+  const type = updates.type ?? currentFilters.type;
+  const typeChanged = type !== currentFilters.type;
   const requestedView =
     updates.view ??
-    (typeChanged ? updates.rememberedViews[type] : currentFilters.view)
-  const view = getViewOptions(type).some((option) => option.value === requestedView)
+    (typeChanged ? updates.rememberedViews[type] : currentFilters.view);
+  const view = getViewOptions(type).some(
+    (option) => option.value === requestedView,
+  )
     ? requestedView
-    : DEFAULT_REMEMBERED_ORDER_VIEWS[type]
-  const viewChanged = view !== currentFilters.view
+    : DEFAULT_REMEMBERED_ORDER_VIEWS[type];
+  const viewChanged = view !== currentFilters.view;
   const requestedStatus =
-    typeChanged || viewChanged ? "all" : updates.status ?? currentFilters.status
+    typeChanged || viewChanged
+      ? "all"
+      : (updates.status ?? currentFilters.status);
   const status = getStatusOptions(type, view).some(
     (option) => option.value === requestedStatus,
   )
     ? requestedStatus
-    : "all"
-  const query = typeChanged || viewChanged ? "" : updates.q ?? currentFilters.query
-  const params = new URLSearchParams(current)
+    : "all";
+  const query =
+    typeChanged || viewChanged ? "" : (updates.q ?? currentFilters.query);
+  const params = new URLSearchParams(current);
 
-  setParam(params, "type", type, DEFAULT_FILTERS.type)
-  setParam(params, "view", view, DEFAULT_REMEMBERED_ORDER_VIEWS[type])
-  setParam(params, "status", status, "all")
-  setParam(params, "q", query, "")
+  setParam(params, "type", type, DEFAULT_FILTERS.type);
+  setParam(params, "view", view, DEFAULT_REMEMBERED_ORDER_VIEWS[type]);
+  setParam(params, "status", status, "all");
+  setParam(params, "q", query, "");
 
-  return params
+  return params;
 }
 
 export function getStatusLabel(status: RenderableOrderStatus): string {
-  return allStatusOptions.find((option) => option.value === status)?.label ?? "未知"
+  if (status === "paid") return "处理中";
+
+  return (
+    allStatusOptions.find((option) => option.value === status)?.label ??
+    "状态异常"
+  );
 }
 
 export function getStatusBadgeVariant(
   status: RenderableOrderStatus,
 ): NonNullable<BadgeProps["variant"]> {
-  if (status === "shopping") return "warning"
-  if (status === "pending_distributing" || status === "distributing") return "info"
-  if (status === "pending_payment") return "payment"
-  if (status === "pending_confirm" || status === "collecting_payment") {
-    return "attention"
+  if (status === "shopping") return "warning";
+  if (status === "pending_distributing" || status === "distributing")
+    return "info";
+  if (status === "pending_payment") return "payment";
+  if (status === "collecting_payment") {
+    return "attention";
   }
-  if (status === "paid") return "review"
-  if (status === "completed") return "success"
-  if (status === "cancelled") return "danger"
-  return "neutral"
+  if (status === "paid") return "review";
+  if (status === "completed") return "success";
+  if (status === "cancelled") return "danger";
+  return "neutral";
 }
 
 export function matchesOrderStatus(
   filter: OrderStatus,
   status: RenderableOrderStatus,
 ): boolean {
-  if (filter === "all") return true
-  if (filter === "processing") return status === "paid" || status === "processing"
-  if (filter === "pending_confirm") {
-    return status === "pending_payment" || status === "pending_confirm"
-  }
-  return filter === status
+  if (filter === "all") return true;
+  if (filter === "processing")
+    return status === "paid" || status === "processing";
+  return filter === status;
 }
 
 function setParam(
@@ -212,6 +214,6 @@ function setParam(
   value: string,
   defaultValue: string,
 ) {
-  if (value && value !== defaultValue) params.set(key, value)
-  else params.delete(key)
+  if (value && value !== defaultValue) params.set(key, value);
+  else params.delete(key);
 }

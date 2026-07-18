@@ -1,4 +1,4 @@
-import { Skeleton } from "@workspace/ui/components/skeleton"
+import { Skeleton } from "@workspace/ui/components/skeleton";
 
 export default function GroupShopLoading() {
   return (
@@ -12,5 +12,5 @@ export default function GroupShopLoading() {
         <Skeleton className="h-96" />
       </div>
     </div>
-  )
+  );
 }

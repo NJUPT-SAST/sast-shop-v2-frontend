@@ -1,4 +1,4 @@
-import { Skeleton } from "@workspace/ui/components/skeleton"
+import { Skeleton } from "@workspace/ui/components/skeleton";
 
 export default function ErrandDemandDetailLoading() {
   return (
@@ -9,5 +9,5 @@ export default function ErrandDemandDetailLoading() {
         <Skeleton className="h-72" />
       </div>
     </div>
-  )
+  );
 }

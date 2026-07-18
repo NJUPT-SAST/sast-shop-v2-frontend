@@ -1,23 +1,23 @@
-"use client"
+"use client";
 
-import { usePathname, useRouter } from "next/navigation"
-import { RiArrowLeftLine } from "@remixicon/react"
-import { Button } from "@workspace/ui/components/button"
-import { cn } from "@workspace/ui/lib/utils"
-import { useSecondaryScrollTitle } from "@/hooks/use-secondary-scroll-title"
+import { usePathname, useRouter } from "next/navigation";
+import { RiArrowLeftLine } from "@remixicon/react";
+import { Button } from "@workspace/ui/components/button";
+import { cn } from "@workspace/ui/lib/utils";
+import { useSecondaryScrollTitle } from "@/hooks/use-secondary-scroll-title";
 
-const mainRoutes = ["/shop", "/group", "/orders", "/profile"] as const
+const mainRoutes = ["/shop", "/group", "/orders", "/profile"] as const;
 
 export function MobileHeader() {
-  const pathname = usePathname()
-  const router = useRouter()
+  const pathname = usePathname();
+  const router = useRouter();
   const { titleText, titlePhase, headerRef, onTitleAnimationEnd } =
-    useSecondaryScrollTitle()
-  const isMainRoute = mainRoutes.some((route) => route === pathname)
-  const showScrollTitle = titlePhase !== "hidden" && titleText.length > 0
+    useSecondaryScrollTitle();
+  const isMainRoute = mainRoutes.some((route) => route === pathname);
+  const showScrollTitle = titlePhase !== "hidden" && titleText.length > 0;
 
   if (isMainRoute) {
-    return null
+    return null;
   }
 
   return (
@@ -43,7 +43,7 @@ export function MobileHeader() {
               className={cn(
                 "block truncate text-[15px] font-semibold leading-5",
                 titlePhase === "enter" && "animate-slide-up",
-                titlePhase === "exit" && "animate-slide-down"
+                titlePhase === "exit" && "animate-slide-down",
               )}
               onAnimationEnd={onTitleAnimationEnd}
             >
@@ -56,5 +56,5 @@ export function MobileHeader() {
         <span className="size-11" aria-hidden="true" />
       </div>
     </header>
-  )
+  );
 }

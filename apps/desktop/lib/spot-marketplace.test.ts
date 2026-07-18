@@ -1,14 +1,15 @@
-import { describe, expect, it } from "vitest"
-import type { SpotGoods } from "@sast-shop/api"
+import { describe, expect, it } from "vitest";
+import type { SpotGoods, SpotGoodsBrief } from "@sast-shop/api";
 
 import {
   clampPurchaseQuantity,
   filterSpotProducts,
-  mapSpotProducts,
+  mapSpotProductBriefs,
+  mapSpotProductDetail,
   resolveAvailablePaymentPlatform,
-} from "./spot-marketplace"
+} from "./spot-marketplace";
 
-const goods: SpotGoods[] = [
+const goods: SpotGoodsBrief[] = [
   {
     id: "5001",
     product: {
@@ -22,10 +23,14 @@ const goods: SpotGoods[] = [
       updatedAt: "2026-07-18T00:00:00Z",
     },
     salePriceCents: 180,
-    stock: 3,
-    sellerId: "10001",
-    sellerName: "阮小妍",
     updatedAt: "2026-07-18T00:00:00Z",
+    store: {
+      id: "3001",
+      name: "SAST 小卖部",
+      address: "仙林校区活动室",
+      logoUrl: "",
+      themeColor: "",
+    },
   },
   {
     id: "5002",
@@ -40,10 +45,14 @@ const goods: SpotGoods[] = [
       updatedAt: "2026-07-18T00:00:00Z",
     },
     salePriceCents: 990,
-    stock: 0,
-    sellerId: "10002",
-    sellerName: "Christopher",
     updatedAt: "2026-07-18T00:00:00Z",
+    store: {
+      id: "3001",
+      name: "SAST 小卖部",
+      address: "仙林校区活动室",
+      logoUrl: "",
+      themeColor: "",
+    },
   },
   {
     id: "5003",
@@ -58,48 +67,73 @@ const goods: SpotGoods[] = [
       updatedAt: null,
     },
     salePriceCents: 600,
-    stock: null,
-    sellerId: null,
-    sellerName: null,
-    updatedAt: null,
+    updatedAt: "2026-07-18T00:00:00Z",
+    store: {
+      id: "3002",
+      name: "南邮校园超市",
+      address: "仙林校区南二门",
+      logoUrl: "",
+      themeColor: "",
+    },
   },
-]
+];
 
 describe("desktop spot marketplace", () => {
-  it("maps API goods and excludes known zero stock products", () => {
-    expect(mapSpotProducts(goods).map((item) => item.id)).toEqual([
-      "5001",
-      "5003",
-    ])
-  })
+  it("maps brief goods without detail-only stock and seller fields", () => {
+    const products = mapSpotProductBriefs(goods);
 
-  it("searches title, description, seller, and barcode case-insensitively", () => {
-    const products = mapSpotProducts(goods)
+    expect(products.map((item) => item.id)).toEqual(["5001", "5002", "5003"]);
+    expect(products[0]).not.toHaveProperty("stock");
+    expect(products[0]).not.toHaveProperty("sellerName");
+  });
 
-    expect(filterSpotProducts(products, "矿泉水").map((item) => item.id)).toEqual([
-      "5001",
-    ])
-    expect(filterSpotProducts(products, "sast").map((item) => item.id)).toEqual([
-      "5003",
-    ])
-    expect(filterSpotProducts(products, "10001").map((item) => item.id)).toEqual([
-      "5001",
-    ])
-    expect(filterSpotProducts(products, "690000000003").map((item) => item.id)).toEqual([
-      "5003",
-    ])
-  })
+  it("searches title, description, store, and barcode case-insensitively", () => {
+    const products = mapSpotProductBriefs(goods);
 
-  it("clamps quantities to one, stock, and the unbounded safety cap", () => {
-    expect(clampPurchaseQuantity(0, 3)).toBe(1)
-    expect(clampPurchaseQuantity(4, 3)).toBe(3)
-    expect(clampPurchaseQuantity(120, null)).toBe(99)
-  })
+    expect(
+      filterSpotProducts(products, "矿泉水").map((item) => item.id),
+    ).toEqual(["5001"]);
+    expect(filterSpotProducts(products, "sast").map((item) => item.id)).toEqual(
+      ["5001", "5002", "5003"],
+    );
+    expect(
+      filterSpotProducts(products, "690000000003").map((item) => item.id),
+    ).toEqual(["5003"]);
+  });
+
+  it("combines a selected brief with its fetched detail", () => {
+    const detail: SpotGoods = {
+      id: "5001",
+      product: goods[0]!.product,
+      salePriceCents: 180,
+      stock: 3,
+      sellerId: "10001",
+      sellerName: "阮小妍",
+      sellerAvatarUrl: "https://example.test/avatar.png",
+      updatedAt: "2026-07-18T00:00:00Z",
+    };
+
+    expect(
+      mapSpotProductDetail(mapSpotProductBriefs(goods)[0]!, detail),
+    ).toMatchObject({
+      storeName: "SAST 小卖部",
+      storeAddress: "仙林校区活动室",
+      stock: 3,
+      sellerName: "阮小妍",
+      sellerAvatarUrl: "https://example.test/avatar.png",
+    });
+  });
+
+  it("clamps quantities to one and available stock", () => {
+    expect(clampPurchaseQuantity(0, 3)).toBe(1);
+    expect(clampPurchaseQuantity(4, 3)).toBe(3);
+    expect(clampPurchaseQuantity(120, 99)).toBe(99);
+  });
 
   it("falls back to a configured payment platform", () => {
     expect(resolveAvailablePaymentPlatform({ alipay: "qr" }, "wechat")).toBe(
       "alipay",
-    )
-    expect(resolveAvailablePaymentPlatform({}, "wechat")).toBe("wechat")
-  })
-})
+    );
+    expect(resolveAvailablePaymentPlatform({}, "wechat")).toBe("wechat");
+  });
+});

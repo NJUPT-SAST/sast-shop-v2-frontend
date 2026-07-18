@@ -1,26 +1,45 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  RiAddLine,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import {
   RiCheckboxCircleLine,
   RiErrorWarningLine,
   RiSearchLine,
   RiShoppingBag3Line,
   RiStore2Line,
-  RiSubtractLine,
 } from "@remixicon/react";
 import {
   createSpotOrders,
+  getSpotGoods,
+  listSpotGoods,
   listPaymentQrCodes,
   payBill,
   type DataSource,
+  type ListSpotGoodsResult,
   type PaymentBill,
   type ServiceOptions,
   type SpotGoods,
 } from "@sast-shop/api";
-import { formatPrice } from "@sast-shop/domain";
+import {
+  formatPrice,
+  hasMoreSpotGoods,
+  mergeSpotGoodsPages,
+  resolveNextSpotGoodsPage,
+  type SpotGoodsLoadTrigger,
+} from "@sast-shop/domain";
 import { Badge } from "@workspace/ui/components/badge";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar";
 import {
   Alert,
   AlertDescription,
@@ -49,6 +68,8 @@ import {
   ResponsiveDialogTitle,
 } from "@workspace/ui/components/responsive-dialog";
 import { Spinner } from "@workspace/ui/components/spinner";
+import { Skeleton } from "@workspace/ui/components/skeleton";
+import { QuantityStepper } from "@workspace/ui/components/quantity-stepper";
 import { toast } from "sonner";
 
 import {
@@ -58,18 +79,25 @@ import {
 import { ManagedImage } from "./managed-image";
 import { PaymentDialog, type PaymentDialogStatus } from "./payment-dialog";
 
-type SpotProduct = {
+type SpotProductBrief = {
   id: string;
   title: string;
   description: string;
   price: number;
   originalPrice: number;
-  stock: number | null;
-  sellerId: string | null;
-  seller: string;
   barcode: string;
   imageUrl: string;
-  updatedAt: string | null;
+  storeId: string;
+  storeName: string;
+  storeAddress: string;
+};
+
+type SpotProduct = SpotProductBrief & {
+  stock: number;
+  sellerId: string;
+  seller: string;
+  sellerAvatarUrl: string;
+  updatedAt: string;
 };
 
 type CheckoutDraft = {
@@ -83,35 +111,53 @@ type CheckoutDraft = {
 export function SpotMarketplace({
   dataSource,
   connectBaseUrl,
-  products,
+  initialPage,
   error,
 }: {
   dataSource: DataSource;
   connectBaseUrl: string;
-  products: SpotGoods[];
+  initialPage: ListSpotGoodsResult;
   error: string | null;
 }) {
   const serviceOptions: ServiceOptions = { dataSource, connectBaseUrl };
+  const [loadedGoods, setLoadedGoods] = useState(initialPage.goods);
+  const [currentPage, setCurrentPage] = useState(initialPage.currentPage);
+  const [totalCount, setTotalCount] = useState(initialPage.totalCount);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
+  const loadingMoreRef = useRef(false);
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
+  const autoLoadSupported = useSyncExternalStore(
+    emptySubscribe,
+    () => "IntersectionObserver" in window,
+    () => true,
+  );
+
   const spotGoods = useMemo(
     () =>
-      products.map((goods) => ({
+      loadedGoods.map((goods) => ({
         id: goods.id,
         title: goods.product.title,
         description: goods.product.description,
         price: goods.salePriceCents,
         originalPrice: goods.product.priceCents,
-        stock: goods.stock,
-        sellerId: goods.sellerId,
-        seller: goods.sellerName ?? "发布者",
         barcode: goods.product.barcode,
         imageUrl: goods.product.mainImageUrl,
-        updatedAt: goods.updatedAt,
+        storeId: goods.store.id,
+        storeName: goods.store.name,
+        storeAddress: goods.store.address,
       })),
-    [products],
+    [loadedGoods],
+  );
+  const [selectedBrief, setSelectedBrief] = useState<SpotProductBrief | null>(
+    null,
   );
   const [selectedProduct, setSelectedProduct] = useState<SpotProduct | null>(
     null,
   );
+  const [detailStatus, setDetailStatus] = useState<
+    "idle" | "loading" | "error"
+  >("idle");
   const [checkoutDraft, setCheckoutDraft] = useState<CheckoutDraft | null>(
     null,
   );
@@ -125,31 +171,103 @@ export function SpotMarketplace({
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
-  const availableProducts = useMemo(
-    () =>
-      spotGoods.filter(
-        (product) => product.stock === null || product.stock > 0,
-      ),
-    [spotGoods],
-  );
+  const detailRequestRef = useRef(0);
   const filteredProducts = useMemo(() => {
     const keyword = query.trim().toLocaleLowerCase();
 
     if (!keyword) {
-      return availableProducts;
+      return spotGoods;
     }
 
-    return availableProducts.filter((product) =>
+    return spotGoods.filter((product) =>
       [
         product.title,
         product.description,
-        product.seller,
+        product.storeName,
         product.barcode,
       ].some((value) => value.toLocaleLowerCase().includes(keyword)),
     );
-  }, [availableProducts, query]);
+  }, [spotGoods, query]);
+  const hasMore = hasMoreSpotGoods({
+    currentPage,
+    pageSize: initialPage.pageSize,
+    totalCount,
+  });
 
-  const maxQuantity = selectedProduct?.stock ?? 99;
+  const loadNextPage = useCallback(
+    async (trigger: SpotGoodsLoadTrigger) => {
+      const nextPageNumber = resolveNextSpotGoodsPage({
+        currentPage,
+        pageSize: initialPage.pageSize,
+        totalCount,
+        loading: loadingMoreRef.current,
+        loadMoreError,
+        trigger,
+        query,
+      });
+      if (nextPageNumber === null) return;
+
+      loadingMoreRef.current = true;
+      setLoadingMore(true);
+      setLoadMoreError(false);
+
+      try {
+        const nextPage = await listSpotGoods({
+          dataSource,
+          connectBaseUrl,
+          page: nextPageNumber,
+          pageSize: initialPage.pageSize,
+        });
+        setLoadedGoods((current) =>
+          mergeSpotGoodsPages(current, nextPage.goods),
+        );
+        setCurrentPage(nextPage.currentPage);
+        setTotalCount(nextPage.totalCount);
+      } catch {
+        setLoadMoreError(true);
+      } finally {
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
+      }
+    },
+    [
+      connectBaseUrl,
+      currentPage,
+      dataSource,
+      initialPage.pageSize,
+      loadMoreError,
+      query,
+      totalCount,
+    ],
+  );
+
+  useEffect(() => {
+    if (!query.trim() || !hasMore || loadMoreError) return;
+    const timeout = window.setTimeout(() => {
+      void loadNextPage("search");
+    }, 250);
+    return () => window.clearTimeout(timeout);
+  }, [hasMore, loadMoreError, loadNextPage, query]);
+
+  useEffect(() => {
+    const sentinel = loadMoreSentinelRef.current;
+    if (!sentinel || !hasMore || loadMoreError || !autoLoadSupported) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void loadNextPage("viewport");
+        }
+      },
+      { rootMargin: "240px 0px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [autoLoadSupported, hasMore, loadMoreError, loadNextPage]);
+
+  const maxQuantity = selectedProduct?.stock ?? 1;
   const isOutOfStock = selectedProduct?.stock === 0;
 
   useEffect(() => {
@@ -167,8 +285,36 @@ export function SpotMarketplace({
   }, []);
 
   function closeDetail() {
+    detailRequestRef.current += 1;
+    setSelectedBrief(null);
     setSelectedProduct(null);
+    setDetailStatus("idle");
     setQuantity(1);
+  }
+
+  async function openDetail(product: SpotProductBrief) {
+    const requestId = detailRequestRef.current + 1;
+    detailRequestRef.current = requestId;
+    setSelectedBrief(product);
+    setSelectedProduct(null);
+    setDetailStatus("loading");
+    setQuantity(1);
+
+    try {
+      const detail = await getSpotGoods(product.id, serviceOptions);
+      if (
+        detailRequestRef.current !== requestId ||
+        detail.product.storeId !== product.storeId
+      ) {
+        if (detailRequestRef.current === requestId) setDetailStatus("error");
+        return;
+      }
+
+      setSelectedProduct(mapSpotProductDetail(product, detail));
+      setDetailStatus("idle");
+    } catch {
+      if (detailRequestRef.current === requestId) setDetailStatus("error");
+    }
   }
 
   async function startCheckout() {
@@ -188,7 +334,7 @@ export function SpotMarketplace({
       status: "loading",
       bill: null,
     });
-    setSelectedProduct(null);
+    closeDetail();
     setSubmitted(false);
     setSubmitting(true);
 
@@ -214,7 +360,7 @@ export function SpotMarketplace({
 
       const payeeId = createdPayeeId;
 
-      if (product.sellerId && product.sellerId !== payeeId) {
+      if (product.sellerId !== payeeId) {
         throw new Error("bill payee mismatch");
       }
 
@@ -252,7 +398,7 @@ export function SpotMarketplace({
     if (
       !payeeId ||
       !draft.bill?.updatedAt ||
-      (draft.product.sellerId && draft.product.sellerId !== payeeId)
+      draft.product.sellerId !== payeeId
     ) {
       await beginCheckout(draft.product, draft.quantity);
       return;
@@ -353,7 +499,7 @@ export function SpotMarketplace({
     <div className="flex flex-1 flex-col gap-6 py-6">
       <section className="flex flex-col gap-1">
         <div className="flex flex-col gap-1">
-          <h1 className="text-xl font-semibold md:text-2xl">现货商城</h1>
+          <h1 className="text-xl font-semibold md:text-2xl">商城</h1>
         </div>
       </section>
 
@@ -367,7 +513,7 @@ export function SpotMarketplace({
           aria-label="搜索现货商品"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="搜索商品、规格、卖家或条码"
+          placeholder="搜索商品、规格、店铺或条码"
         />
       </InputGroup>
 
@@ -387,8 +533,7 @@ export function SpotMarketplace({
               type="button"
               className="rounded-lg text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
               onClick={() => {
-                setSelectedProduct(product);
-                setQuantity(1);
+                void openDetail(product);
               }}
             >
               <Card className="h-full overflow-hidden rounded-lg transition-colors hover:bg-muted/30">
@@ -407,23 +552,20 @@ export function SpotMarketplace({
                 </CardHeader>
                 <CardContent className="flex flex-col gap-2 px-3 pb-3">
                   <div className="flex min-w-0 items-center justify-between gap-2">
-                    <span className="min-w-0 truncate text-base font-semibold text-primary">
-                      {formatPrice(product.price)}
-                    </span>
-                    <Badge variant="neutral" className="shrink-0">
-                      {product.stock === null
-                        ? "库存待确认"
-                        : `库存 ${product.stock}`}
-                    </Badge>
+                    <div className="flex min-w-0 items-baseline gap-1.5">
+                      <span className="min-w-0 truncate text-base font-semibold text-primary">
+                        {formatPrice(product.price)}
+                      </span>
+                      {product.originalPrice > product.price ? (
+                        <span className="shrink-0 text-xs text-muted-foreground line-through">
+                          {formatPrice(product.originalPrice)}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
-                  {product.originalPrice > product.price ? (
-                    <span className="text-xs text-muted-foreground line-through">
-                      {formatPrice(product.originalPrice)}
-                    </span>
-                  ) : null}
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <RiStore2Line className="size-3.5 shrink-0" />
-                    <span className="truncate">{product.seller}</span>
+                    <span className="truncate">{product.storeName}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -432,15 +574,10 @@ export function SpotMarketplace({
         </section>
       ) : null}
 
-      {!error && filteredProducts.length === 0 ? (
+      {!error && filteredProducts.length === 0 && !loadingMore && !hasMore ? (
         <Empty
           icon={<RiShoppingBag3Line className="size-5" />}
           title={query ? "没有匹配的现货" : "暂无在售现货"}
-          description={
-            query
-              ? "换个关键词，或清空搜索查看全部商品。"
-              : "商品上架后会显示在这里。"
-          }
           action={
             query ? (
               <Button
@@ -455,96 +592,171 @@ export function SpotMarketplace({
         />
       ) : null}
 
+      {!error && loadingMore ? <SpotGoodsLoadingSkeletons /> : null}
+
+      {!error && hasMore && !loadMoreError ? (
+        <div
+          ref={loadMoreSentinelRef}
+          className="h-px w-full"
+          aria-hidden="true"
+        />
+      ) : null}
+
+      {!error && hasMore && !loadMoreError && !autoLoadSupported ? (
+        <div className="flex justify-center">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={loadingMore}
+            onClick={() => void loadNextPage("manual")}
+          >
+            {loadingMore ? <Spinner /> : null}
+            加载更多
+          </Button>
+        </div>
+      ) : null}
+
+      {!error && loadMoreError ? (
+        <div className="flex justify-center">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={loadingMore}
+            onClick={() => void loadNextPage("manual")}
+          >
+            {loadingMore ? <Spinner /> : null}
+            重新加载
+          </Button>
+        </div>
+      ) : null}
+
+      {!error && totalCount > 0 && !hasMore && !loadingMore ? (
+        <p
+          className="text-center text-xs text-muted-foreground"
+          aria-live="polite"
+        >
+          {query.trim()
+            ? `搜索完成，共找到 ${filteredProducts.length} 件商品`
+            : `已展示全部 ${loadedGoods.length} 件商品`}
+        </p>
+      ) : null}
+
       <ResponsiveDialog
-        open={selectedProduct !== null}
+        open={selectedBrief !== null}
         onOpenChange={(open) => {
           if (!open) closeDetail();
         }}
       >
-        {selectedProduct ? (
-          <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        {selectedBrief ? (
+          <ResponsiveDialogContent className="max-h-[88dvh] overflow-hidden px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
             <ResponsiveDialogHeader className="px-0 text-left">
               <ResponsiveDialogTitle>
-                {selectedProduct.title}
+                {selectedBrief.title}
               </ResponsiveDialogTitle>
-              <ResponsiveDialogDescription>
-                确认商品与数量后创建订单并进入支付。
+              <ResponsiveDialogDescription className="sr-only">
+                商品详情与购买操作。
               </ResponsiveDialogDescription>
             </ResponsiveDialogHeader>
 
-            <div className="flex flex-col gap-4">
-              <ManagedImage
-                src={selectedProduct.imageUrl}
-                alt={selectedProduct.title}
-                className="aspect-video rounded-lg"
-              />
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-2xl font-semibold text-primary">
-                    {formatPrice(selectedProduct.price)}
-                  </p>
-                  <p className="truncate text-sm text-muted-foreground">
-                    售卖人：{selectedProduct.seller}
-                  </p>
-                </div>
-                <Badge variant="secondary">
-                  {selectedProduct.stock === null
-                    ? "库存以发布者确认为准"
-                    : `库存 ${selectedProduct.stock}`}
-                </Badge>
+            {detailStatus === "loading" ? (
+              <div className="flex min-h-64 items-center justify-center">
+                <Spinner className="size-6" />
               </div>
-              <dl className="divide-y rounded-lg bg-secondary/60 px-3">
-                <InfoRow label="商品规格" value={selectedProduct.description} />
-                <InfoRow label="条码编号" value={selectedProduct.barcode} />
-              </dl>
-              <div className="flex items-center justify-between rounded-lg bg-secondary/60 p-3">
-                <span className="text-sm font-medium">购买数量</span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon-touch"
-                    aria-label="减少购买数量"
-                    disabled={quantity <= 1}
-                    onClick={() => setQuantity((value) => value - 1)}
-                  >
-                    <RiSubtractLine />
-                  </Button>
-                  <span className="min-w-6 text-center text-sm font-semibold">
-                    {quantity}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon-touch"
-                    aria-label="增加购买数量"
-                    disabled={quantity >= maxQuantity}
-                    onClick={() => setQuantity((value) => value + 1)}
-                  >
-                    <RiAddLine />
-                  </Button>
-                </div>
+            ) : detailStatus === "error" || !selectedProduct ? (
+              <div className="flex min-h-56 flex-col items-center justify-center gap-4">
+                <p className="text-sm text-muted-foreground">
+                  商品详情暂时无法加载
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void openDetail(selectedBrief)}
+                >
+                  重新加载
+                </Button>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="app-scrollbar min-h-0 flex-1 overflow-y-auto pr-1">
+                  <div className="flex flex-col gap-4">
+                    <ManagedImage
+                      src={selectedProduct.imageUrl}
+                      alt={selectedProduct.title}
+                      className="aspect-video rounded-lg"
+                    />
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex min-w-0 items-baseline gap-2">
+                        <p className="text-2xl font-semibold text-primary">
+                          {formatPrice(selectedProduct.price)}
+                        </p>
+                        {selectedProduct.originalPrice >
+                        selectedProduct.price ? (
+                          <span className="text-sm text-muted-foreground line-through">
+                            {formatPrice(selectedProduct.originalPrice)}
+                          </span>
+                        ) : null}
+                      </div>
+                      <Badge variant="secondary">
+                        库存 {selectedProduct.stock}
+                      </Badge>
+                    </div>
+                    <dl className="divide-y rounded-lg bg-secondary/60 px-3">
+                      <SellerInfoRow
+                        name={selectedProduct.seller}
+                        avatarUrl={selectedProduct.sellerAvatarUrl}
+                      />
+                      <InfoRow label="店铺" value={selectedProduct.storeName} />
+                      {selectedProduct.storeAddress ? (
+                        <InfoRow
+                          label="地址"
+                          value={selectedProduct.storeAddress}
+                        />
+                      ) : null}
+                      {selectedProduct.description ? (
+                        <InfoRow
+                          label="商品规格"
+                          value={selectedProduct.description}
+                        />
+                      ) : null}
+                    </dl>
+                    {!isOutOfStock ? (
+                      <div className="flex items-center justify-between rounded-lg bg-secondary/60 p-3">
+                        <span className="text-sm font-medium">购买数量</span>
+                        <QuantityStepper
+                          label="购买数量"
+                          value={quantity}
+                          max={maxQuantity}
+                          onValueChange={setQuantity}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
 
-            <ResponsiveDialogFooter>
-              <Button
-                type="button"
-                disabled={isOutOfStock || submitting}
-                onClick={() => {
-                  void startCheckout();
-                }}
-              >
-                {submitting ? (
-                  <Spinner />
-                ) : (
-                  <RiCheckboxCircleLine data-icon="inline-start" />
-                )}
-                {submitting
-                  ? "正在创建订单"
-                  : `创建订单 · ${formatPrice(selectedProduct.price * quantity)}`}
-              </Button>
-            </ResponsiveDialogFooter>
+                <ResponsiveDialogFooter>
+                  <Button
+                    type="button"
+                    disabled={isOutOfStock || submitting}
+                    onClick={() => {
+                      void startCheckout();
+                    }}
+                  >
+                    {submitting ? (
+                      <Spinner />
+                    ) : (
+                      <RiCheckboxCircleLine data-icon="inline-start" />
+                    )}
+                    {submitting
+                      ? "正在创建订单"
+                      : isOutOfStock
+                        ? "暂时售罄"
+                        : `创建订单 · ${formatPrice(selectedProduct.price * quantity)}`}
+                  </Button>
+                </ResponsiveDialogFooter>
+              </>
+            )}
           </ResponsiveDialogContent>
         ) : null}
       </ResponsiveDialog>
@@ -577,6 +789,30 @@ export function SpotMarketplace({
   );
 }
 
+function SpotGoodsLoadingSkeletons() {
+  return (
+    <div
+      className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4"
+      aria-label="正在加载更多商品"
+      aria-live="polite"
+    >
+      {Array.from({ length: 2 }, (_, index) => (
+        <Card key={index} className="overflow-hidden rounded-lg">
+          <Skeleton className="aspect-square w-full rounded-none" />
+          <CardHeader className="gap-2 px-3 pt-3">
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="h-3 w-3/5" />
+          </CardHeader>
+          <CardContent className="space-y-2 px-3 pb-3">
+            <Skeleton className="h-5 w-1/2" />
+            <Skeleton className="h-3 w-2/3" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 const PAYMENT_PLATFORM_ORDER: PaymentPlatform[] = ["wechat", "alipay"];
 
 function resolveAvailablePaymentPlatform(
@@ -592,6 +828,49 @@ function resolveAvailablePaymentPlatform(
     : fallbackPlatform;
 }
 
+function mapSpotProductDetail(
+  brief: SpotProductBrief,
+  detail: SpotGoods,
+): SpotProduct {
+  return {
+    ...brief,
+    title: detail.product.title,
+    description: detail.product.description,
+    price: detail.salePriceCents,
+    originalPrice: detail.product.priceCents,
+    barcode: detail.product.barcode,
+    imageUrl: detail.product.mainImageUrl,
+    stock: detail.stock,
+    sellerId: detail.sellerId,
+    seller: detail.sellerName,
+    sellerAvatarUrl: detail.sellerAvatarUrl,
+    updatedAt: detail.updatedAt,
+  };
+}
+
+function SellerInfoRow({
+  name,
+  avatarUrl,
+}: {
+  name: string;
+  avatarUrl: string;
+}) {
+  return (
+    <div className="grid grid-cols-[5rem_minmax(0,1fr)] items-center gap-4 py-3 text-sm">
+      <dt className="text-muted-foreground">售卖人</dt>
+      <dd className="flex min-w-0 items-center justify-end gap-2 font-medium">
+        <Avatar className="size-7">
+          {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
+          <AvatarFallback className="text-xs">
+            {name.trim().slice(0, 1) || "人"}
+          </AvatarFallback>
+        </Avatar>
+        <span className="truncate">{name}</span>
+      </dd>
+    </div>
+  );
+}
+
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid grid-cols-[5rem_minmax(0,1fr)] gap-4 py-3 text-sm">
@@ -599,4 +878,8 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       <dd className="min-w-0 text-right font-medium">{value}</dd>
     </div>
   );
+}
+
+function emptySubscribe() {
+  return () => {};
 }

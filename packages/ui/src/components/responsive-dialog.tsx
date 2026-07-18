@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   Dialog,
   DialogClose,
@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "#components/dialog"
+} from "#components/dialog";
 import {
   Drawer,
   DrawerClose,
@@ -20,36 +20,36 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
-} from "#components/drawer"
-import { cn } from "#lib/utils"
+} from "#components/drawer";
+import { cn } from "#lib/utils";
 
-type ResponsiveDialogMode = "dialog" | "drawer"
+type ResponsiveDialogMode = "dialog" | "drawer";
 
 const ResponsiveDialogModeContext =
-  React.createContext<ResponsiveDialogMode | null>(null)
+  React.createContext<ResponsiveDialogMode | null>(null);
 
 function useMediaQuery(query: string): boolean {
   const subscribe = React.useCallback(
     (callback: () => void) => {
-      const mql = window.matchMedia(query)
-      mql.addEventListener("change", callback)
-      return () => mql.removeEventListener("change", callback)
+      const mql = window.matchMedia(query);
+      mql.addEventListener("change", callback);
+      return () => mql.removeEventListener("change", callback);
     },
-    [query]
-  )
+    [query],
+  );
   const getSnapshot = React.useCallback(
     () => window.matchMedia(query).matches,
-    [query]
-  )
+    [query],
+  );
 
-  return React.useSyncExternalStore(subscribe, getSnapshot, () => false)
+  return React.useSyncExternalStore(subscribe, getSnapshot, () => false);
 }
 
 function useResponsiveDialogMode(): ResponsiveDialogMode {
-  const mode = React.useContext(ResponsiveDialogModeContext)
-  const isDesktop = useMediaQuery("(min-width: 768px)")
+  const mode = React.useContext(ResponsiveDialogModeContext);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
-  return mode ?? (isDesktop ? "dialog" : "drawer")
+  return mode ?? (isDesktop ? "dialog" : "drawer");
 }
 
 function ResponsiveDialog({
@@ -58,13 +58,13 @@ function ResponsiveDialog({
   children,
   forceDrawer = false,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  children: React.ReactNode
-  forceDrawer?: boolean
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  children: React.ReactNode;
+  forceDrawer?: boolean;
 }) {
-  const isDesktop = useMediaQuery("(min-width: 768px)")
-  const mode = forceDrawer || !isDesktop ? "drawer" : "dialog"
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const mode = forceDrawer || !isDesktop ? "drawer" : "dialog";
 
   if (mode === "dialog") {
     return (
@@ -73,7 +73,7 @@ function ResponsiveDialog({
           {children}
         </Dialog>
       </ResponsiveDialogModeContext.Provider>
-    )
+    );
   }
 
   return (
@@ -82,27 +82,27 @@ function ResponsiveDialog({
         {children}
       </Drawer>
     </ResponsiveDialogModeContext.Provider>
-  )
+  );
 }
 
 function ResponsiveDialogTrigger({
   className,
   ...props
 }: React.ComponentProps<typeof DialogTrigger>) {
-  const mode = useResponsiveDialogMode()
-  const Trigger = mode === "dialog" ? DialogTrigger : DrawerTrigger
+  const mode = useResponsiveDialogMode();
+  const Trigger = mode === "dialog" ? DialogTrigger : DrawerTrigger;
 
-  return <Trigger className={className} {...props} />
+  return <Trigger className={className} {...props} />;
 }
 
 function ResponsiveDialogClose({
   className,
   ...props
 }: React.ComponentProps<typeof DialogClose>) {
-  const mode = useResponsiveDialogMode()
-  const Close = mode === "dialog" ? DialogClose : DrawerClose
+  const mode = useResponsiveDialogMode();
+  const Close = mode === "dialog" ? DialogClose : DrawerClose;
 
-  return <Close className={className} {...props} />
+  return <Close className={className} {...props} />;
 }
 
 function ResponsiveDialogContent({
@@ -111,9 +111,9 @@ function ResponsiveDialogContent({
   showCloseButton = true,
   ...props
 }: React.ComponentProps<typeof DialogContent> & {
-  showCloseButton?: boolean
+  showCloseButton?: boolean;
 }) {
-  const mode = useResponsiveDialogMode()
+  const mode = useResponsiveDialogMode();
 
   if (mode === "dialog") {
     return (
@@ -124,65 +124,65 @@ function ResponsiveDialogContent({
       >
         {children}
       </DialogContent>
-    )
+    );
   }
 
   return (
     <DrawerContent className={className} {...props}>
       {children}
     </DrawerContent>
-  )
+  );
 }
 
 function ResponsiveDialogHeader({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const mode = useResponsiveDialogMode()
-  const Header = mode === "dialog" ? DialogHeader : DrawerHeader
+  const mode = useResponsiveDialogMode();
+  const Header = mode === "dialog" ? DialogHeader : DrawerHeader;
 
-  return <Header className={className} {...props} />
+  return <Header className={className} {...props} />;
 }
 
 function ResponsiveDialogFooter({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const mode = useResponsiveDialogMode()
+  const mode = useResponsiveDialogMode();
 
   if (mode === "dialog") {
-    return <DialogFooter className={className} {...props} />
+    return <DialogFooter className={className} {...props} />;
   }
 
   return (
     <DrawerFooter
       className={cn(
         "flex-row p-0 pt-6 [&>*]:min-h-11 [&>*]:min-w-0 [&>*]:flex-1",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 function ResponsiveDialogTitle({
   className,
   ...props
 }: React.ComponentProps<typeof DialogTitle>) {
-  const mode = useResponsiveDialogMode()
-  const Title = mode === "dialog" ? DialogTitle : DrawerTitle
+  const mode = useResponsiveDialogMode();
+  const Title = mode === "dialog" ? DialogTitle : DrawerTitle;
 
-  return <Title className={className} {...props} />
+  return <Title className={className} {...props} />;
 }
 
 function ResponsiveDialogDescription({
   className,
   ...props
 }: React.ComponentProps<typeof DialogDescription>) {
-  const mode = useResponsiveDialogMode()
-  const Description = mode === "dialog" ? DialogDescription : DrawerDescription
+  const mode = useResponsiveDialogMode();
+  const Description = mode === "dialog" ? DialogDescription : DrawerDescription;
 
-  return <Description className={className} {...props} />
+  return <Description className={className} {...props} />;
 }
 
 export {
@@ -194,4 +194,4 @@ export {
   ResponsiveDialogFooter,
   ResponsiveDialogTitle,
   ResponsiveDialogDescription,
-}
+};

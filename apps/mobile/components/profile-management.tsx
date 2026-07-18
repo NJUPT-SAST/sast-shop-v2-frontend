@@ -1,5 +1,5 @@
-import { ProfileManagementClient } from "./profile-management-client"
+import { ProfileManagementClient } from "./profile-management-client";
 
 export function ProfileManagement() {
-  return <ProfileManagementClient />
+  return <ProfileManagementClient />;
 }

@@ -1,27 +1,30 @@
-import type { Metadata } from "next"
-import type { ReactNode } from "react"
-import Script from "next/script"
-import { Toaster } from "@workspace/ui/components/sonner"
-import { AuthBootstrap } from "@/components/auth-bootstrap"
-import { MobileShell } from "@/components/mobile-shell"
-import { ProfileDialogsProvider } from "@/components/profile-dialogs-provider"
-import { mobileAppConfig } from "@/lib/app-config"
-import { getServerAuthMode } from "@/lib/auth-mode"
-import "./globals.css"
+import type { Metadata } from "next";
+import type { ReactNode } from "react";
+import Script from "next/script";
+import { Toaster } from "@workspace/ui/components/sonner";
+import { AuthBootstrap } from "@/components/auth-bootstrap";
+import { MobileShell } from "@/components/mobile-shell";
+import { ProfileDialogsProvider } from "@/components/profile-dialogs-provider";
+import { mobileAppConfig } from "@/lib/app-config";
+import { getServerAuthMode } from "@/lib/auth-mode";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "SAST 商城",
   description: "SAST 商城移动端",
-}
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: ReactNode
+  children: ReactNode;
 }>) {
-  const authRequired = getServerAuthMode() === "required"
+  const authRequired = getServerAuthMode() === "required";
   return (
     <html lang="zh-CN" className="h-full antialiased">
+      <head>
+        <meta name="showNavBar" content="false" lk-config="" />
+      </head>
       <body className="min-h-full">
         {authRequired ? (
           <Script
@@ -45,5 +48,5 @@ export default function RootLayout({
         <Toaster position="top-center" />
       </body>
     </html>
-  )
+  );
 }

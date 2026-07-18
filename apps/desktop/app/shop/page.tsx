@@ -1,17 +1,32 @@
-import { listSpotGoods, type SpotGoods } from "@sast-shop/api"
+import { randomUUID } from "node:crypto";
+import { listSpotGoods, type ListSpotGoodsResult } from "@sast-shop/api";
 
-import { SpotMarketplace } from "@/components/spot-marketplace"
-import { desktopAppConfig } from "@/lib/app-config"
-import { getServerServiceOptions } from "@/lib/server-service-options"
+import { SpotMarketplace } from "@/components/spot-marketplace";
+import { desktopAppConfig } from "@/lib/app-config";
+import { getServerServiceOptions } from "@/lib/server-service-options";
 
 export default async function ShopPage() {
-  const options = await getServerServiceOptions()
-  let goods: SpotGoods[] = []
-  let errorMessage: string | null = null
+  const options = await getServerServiceOptions();
+  let page: ListSpotGoodsResult = {
+    goods: [],
+    currentPage: 0,
+    totalCount: 0,
+    pageSize: 24,
+  };
+  let errorMessage: string | null = null;
   try {
-    goods = await listSpotGoods(options)
-  } catch (error) {
-    errorMessage = error instanceof Error ? error.message : "请稍后重试"
+    page = await listSpotGoods({ ...options, page: 1, pageSize: 24 });
+  } catch {
+    errorMessage = "现货商品暂不可用，请稍后再试";
   }
-  return <SpotMarketplace dataSource={desktopAppConfig.dataSource} connectBaseUrl={desktopAppConfig.connectBaseUrl} goods={goods} error={errorMessage} />
+  const refreshKey = randomUUID();
+  return (
+    <SpotMarketplace
+      key={refreshKey}
+      dataSource={desktopAppConfig.dataSource}
+      connectBaseUrl={desktopAppConfig.connectBaseUrl}
+      initialPage={page}
+      error={errorMessage}
+    />
+  );
 }

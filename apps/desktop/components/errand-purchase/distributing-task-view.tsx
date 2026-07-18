@@ -279,11 +279,6 @@ export function DistributingTaskView({
               {mode === "pending_distributing" ? "待分发" : "分发中"}
             </Badge>
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {mode === "pending_distributing"
-              ? "核对实际单价与包装费，然后开始分发。"
-              : "按参与者记录分发数量，全部处理后生成收款账单。"}
-          </p>
         </div>
         <Button
           variant="outline"
@@ -333,7 +328,7 @@ export function DistributingTaskView({
             <div>
               <p className="text-sm text-muted-foreground">分发进度</p>
               <p className="mt-1 text-lg font-semibold">
-                {processedCount} / {requesters.length} 位参与者
+                {processedCount} 位已记录 · 共 {requesters.length} 位
               </p>
             </div>
             <Button
@@ -360,9 +355,11 @@ export function DistributingTaskView({
                 <CardTitle className="truncate text-base">
                   {item.title}
                 </CardTitle>
-                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                  {item.description || "暂无规格说明"}
-                </p>
+                {item.description ? (
+                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                    {item.description}
+                  </p>
+                ) : null}
                 <p className="mt-2 text-sm">
                   参考价 {formatPrice(item.originUnitPriceCents)} · 实购{" "}
                   {item.requesters.reduce(

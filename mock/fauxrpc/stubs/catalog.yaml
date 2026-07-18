@@ -13,6 +13,18 @@ stubs:
           address: 仙林校区南二门
           logoUrl: ""
           themeColor: "#0071e3"
+  - id: catalog-create-store
+    target: sast.sastshopv2.catalog.v1.CatalogService/CreateStore
+    cel_content: |
+      {
+        'store': {
+          'id': 3099,
+          'name': req.name,
+          'address': req.address,
+          'logo_url': req.logo_url,
+          'theme_color': req.theme_color
+        }
+      }
   - id: catalog-get-product-template-list
     target: sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateList
     active_if: req.store_id == 3001
@@ -169,6 +181,53 @@ stubs:
             address: 仙林校区活动室
             logoUrl: https://avatars.githubusercontent.com/u/37794833?s=200&v=4
             themeColor: "#0071e3"
+
+  - id: catalog-get-product-template-by-barcode-missing-store
+    target: sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateByBarcode
+    active_if: req.barcode == "690000000004"
+    priority: 100
+    content:
+      items:
+        - productTemplate:
+            id: "4098"
+            title: 维他柠檬茶
+            description: 250ml 盒装饮料
+            priceCents: 350
+            storeId: "3999"
+            mainImageUrl: https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=640&q=80
+            barcode: "690000000004"
+            updatedAt: "2026-07-18T03:00:00Z"
+
+  - id: catalog-get-product-template-by-barcode-partial-store-list
+    target: sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateByBarcode
+    active_if: req.barcode == "690000000006"
+    priority: 100
+    content:
+      items:
+        - productTemplate:
+            id: "4006"
+            title: 得力黑色中性笔
+            description: 0.5mm 黑色笔芯
+            priceCents: 300
+            storeId: "3001"
+            mainImageUrl: https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?auto=format&fit=crop&w=640&q=80
+            barcode: "690000000006"
+            updatedAt: "2026-07-18T03:00:00Z"
+          store:
+            id: "3001"
+            name: SAST 小卖部
+            address: 仙林校区活动室
+            logoUrl: https://avatars.githubusercontent.com/u/37794833?s=200&v=4
+            themeColor: "#0071e3"
+        - productTemplate:
+            id: "4097"
+            title: 得力黑色中性笔
+            description: 0.5mm 黑色笔芯
+            priceCents: 320
+            storeId: "3999"
+            mainImageUrl: https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?auto=format&fit=crop&w=640&q=80
+            barcode: "690000000006"
+            updatedAt: "2026-07-18T03:00:00Z"
 
   - id: catalog-get-product-template-by-barcode-empty
     target: sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateByBarcode

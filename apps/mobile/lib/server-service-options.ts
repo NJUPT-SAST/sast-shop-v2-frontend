@@ -58,17 +58,17 @@ export async function getServerServiceOptions(): Promise<ServiceOptions> {
 }
 
 export async function getDirectServerServiceOptions(): Promise<ServiceOptions> {
-  const connectBaseUrl = getServerConnectBaseUrl()
-  const sessionToken = (await cookies()).get(sessionCookieName)?.value
+  const connectBaseUrl = getServerConnectBaseUrl();
+  const sessionToken = (await cookies()).get(sessionCookieName)?.value;
 
   if (getServerAuthMode() === "required" && !sessionToken) {
-    throw new Error("Authentication required")
+    throw new Error("Authentication required");
   }
 
-  const connectUrl = new URL(connectBaseUrl)
+  const connectUrl = new URL(connectBaseUrl);
   const connectPath = connectUrl.pathname.endsWith("/")
     ? connectUrl.pathname
-    : `${connectUrl.pathname}/`
+    : `${connectUrl.pathname}/`;
 
   return {
     dataSource: mobileAppConfig.dataSource,
@@ -80,24 +80,24 @@ export async function getDirectServerServiceOptions(): Promise<ServiceOptions> {
           : input instanceof URL
             ? input.href
             : input.url,
-      )
+      );
       if (
         target.origin !== connectUrl.origin ||
         !target.pathname.startsWith(connectPath)
       ) {
-        throw new Error("拒绝向非 Connect 上游转发会话")
+        throw new Error("拒绝向非 Connect 上游转发会话");
       }
 
       const headers = new Headers(
         input instanceof Request ? input.headers : init?.headers,
-      )
-      headers.delete("cookie")
-      headers.delete("authorization")
-      if (sessionToken) headers.set("authorization", `Bearer ${sessionToken}`)
+      );
+      headers.delete("cookie");
+      headers.delete("authorization");
+      if (sessionToken) headers.set("authorization", `Bearer ${sessionToken}`);
 
-      return fetch(input, { ...init, headers, redirect: "manual" })
+      return fetch(input, { ...init, headers, redirect: "manual" });
     },
-  }
+  };
 }
 
 export function getServerConnectBaseUrl(): string {
@@ -105,14 +105,14 @@ export function getServerConnectBaseUrl(): string {
     process.env.CONNECT_BASE_URL ??
     (process.env.NODE_ENV === "production"
       ? undefined
-      : process.env.NEXT_PUBLIC_CONNECT_BASE_URL)
-  if (!configured) throw new Error("CONNECT_BASE_URL is not configured")
+      : process.env.NEXT_PUBLIC_CONNECT_BASE_URL);
+  if (!configured) throw new Error("CONNECT_BASE_URL is not configured");
 
-  let url: URL
+  let url: URL;
   try {
-    url = new URL(configured)
+    url = new URL(configured);
   } catch {
-    throw new Error("CONNECT_BASE_URL is invalid")
+    throw new Error("CONNECT_BASE_URL is invalid");
   }
   if (
     (url.protocol !== "https:" && url.protocol !== "http:") ||
@@ -120,8 +120,8 @@ export function getServerConnectBaseUrl(): string {
     url.password ||
     (process.env.NODE_ENV === "production" && url.protocol !== "https:")
   ) {
-    throw new Error("CONNECT_BASE_URL is invalid")
+    throw new Error("CONNECT_BASE_URL is invalid");
   }
 
-  return url.href.replace(/\/$/, "")
+  return url.href.replace(/\/$/, "");
 }

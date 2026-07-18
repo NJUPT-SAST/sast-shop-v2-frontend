@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import {
   RiCheckboxCircleLine,
   RiCloseCircleLine,
+  RiArrowDownSLine,
+  RiArrowUpSLine,
   RiErrorWarningLine,
   RiFileList3Line,
-  RiInformationLine,
   RiTimeLine,
 } from "@remixicon/react";
 import type {
@@ -36,24 +37,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from "@workspace/ui/components/drawer";
+import { CopyButton } from "@workspace/ui/components/copy-button";
 import { Separator } from "@workspace/ui/components/separator";
 
 import {
   buildBuyerErrandOrderTimeline,
-  getBuyerErrandOrderAdjustmentCents,
-  getBuyerErrandOrderAmountCents,
   reconcileBuyerErrandOrderUpdate,
   resolveBuyerErrandPaymentState,
 } from "@/lib/buyer-errand-order-detail";
+import { useFeishuUiEnvironment } from "@/hooks/use-feishu-ui-environment";
+import { resolveOrderContactAction } from "@/lib/order-contact";
 import { getStatusBadgeVariant, getStatusLabel } from "@/lib/order-filters";
 import { ManagedImage } from "./managed-image";
+import { LarkContactButton } from "./lark-contact-button";
 import { MobileFixedFooter } from "./mobile-fixed-footer";
 import {
   isPayablePaymentBill,
@@ -85,8 +81,17 @@ export function BuyerErrandOrderDetailView({
   const canSupplementSerialNumber = Boolean(
     paymentState === "submitted" && bill?.updatedAt && !bill.serialNumber,
   );
+  const feishuUiEnvironment = useFeishuUiEnvironment();
+  const contactAction = resolveOrderContactAction({
+    orderType: "errand",
+    view: "participant",
+    isFeishuEnvironment: feishuUiEnvironment,
+  });
+  const canContactCaptain = Boolean(contactAction);
   const showActionBar =
-    (paymentState === "payable" && payableBill) || canSupplementSerialNumber;
+    canContactCaptain ||
+    (paymentState === "payable" && payableBill) ||
+    canSupplementSerialNumber;
 
   function updateBill(updatedBill: PaymentBill) {
     setCurrentOrder({ ...resolvedOrder, bill: updatedBill });
@@ -101,30 +106,31 @@ export function BuyerErrandOrderDetailView({
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-lg font-semibold">跑腿订单详情</h1>
-            <p className="mt-1 truncate text-sm text-muted-foreground">
-              {resolvedOrder.store?.name ?? "跑腿店铺"}
-            </p>
+            <div className="mt-1 flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+              {resolvedOrder.store?.name ? (
+                <>
+                  <span className="truncate">{resolvedOrder.store.name}</span>
+                  <span aria-hidden="true">·</span>
+                </>
+              ) : null}
+              <span className="shrink-0 font-mono tabular-nums">
+                {resolvedOrder.id}
+              </span>
+              <CopyButton value={String(resolvedOrder.id)} label="订单号" />
+            </div>
           </div>
           <Badge variant={getStatusBadgeVariant(resolvedOrder.status)}>
             {getStatusLabel(resolvedOrder.status)}
           </Badge>
         </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          className="h-auto w-full justify-between py-3"
-          onClick={() => setTimelineOpen(true)}
-        >
-          <span className="flex min-w-0 items-center gap-2">
-            <RiTimeLine data-icon="inline-start" />
-            <span className="truncate">关键时间</span>
-          </span>
-          <span className="shrink-0 text-muted-foreground">查看时间</span>
-        </Button>
+        <OrderTimelinePanel
+          open={timelineOpen}
+          onOpenChange={setTimelineOpen}
+          order={resolvedOrder}
+        />
 
-        <StatusNotice order={resolvedOrder} paymentState={paymentState} />
-        <OrderInfoCard order={resolvedOrder} />
+        <StatusNotice paymentState={paymentState} />
         <CaptainCard order={resolvedOrder} />
         <ProductItemsCard items={resolvedOrder.productItems} />
         <AmountSummaryCard order={resolvedOrder} />
@@ -133,6 +139,17 @@ export function BuyerErrandOrderDetailView({
 
       {showActionBar ? (
         <MobileFixedFooter>
+          {contactAction ? (
+            <LarkContactButton
+              target={contactAction.target}
+              orderId={String(resolvedOrder.id)}
+              dataSource={dataSource}
+              connectBaseUrl={connectBaseUrl}
+              label={contactAction.label}
+              iconOnly
+              className="shrink-0"
+            />
+          ) : null}
           {paymentState === "payable" && payableBill ? (
             <Button
               type="button"
@@ -153,12 +170,6 @@ export function BuyerErrandOrderDetailView({
           ) : null}
         </MobileFixedFooter>
       ) : null}
-
-      <TimelineDrawer
-        open={timelineOpen}
-        onOpenChange={setTimelineOpen}
-        order={resolvedOrder}
-      />
 
       {paymentState === "payable" && payableBill ? (
         <PaymentSection
@@ -190,24 +201,10 @@ export function BuyerErrandOrderDetailView({
 }
 
 function StatusNotice({
-  order,
   paymentState,
 }: {
-  order: BuyerErrandOrderDetail;
   paymentState: ReturnType<typeof resolveBuyerErrandPaymentState>;
 }) {
-  if (order.status === "open") {
-    return (
-      <Alert>
-        <RiInformationLine />
-        <AlertTitle>等待团长接单</AlertTitle>
-        <AlertDescription>
-          尚未接单的商品会继续保留在这笔需求中。
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
   if (paymentState === "submitted") {
     return (
       <Alert>
@@ -233,29 +230,6 @@ function StatusNotice({
   }
 
   return null;
-}
-
-function OrderInfoCard({ order }: { order: BuyerErrandOrderDetail }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>订单信息</CardTitle>
-        <CardDescription>订单号 #{order.id}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
-          <dt className="text-muted-foreground">店铺</dt>
-          <dd className="min-w-0 break-words text-right">
-            {order.store?.name ?? "暂无店铺信息"}
-          </dd>
-          <dt className="text-muted-foreground">创建时间</dt>
-          <dd className="text-right">{formatDateTime(order.createdAt)}</dd>
-          <dt className="text-muted-foreground">期望送达</dt>
-          <dd className="text-right">{formatDateTime(order.deadline)}</dd>
-        </dl>
-      </CardContent>
-    </Card>
-  );
 }
 
 function CaptainCard({ order }: { order: BuyerErrandOrderDetail }) {
@@ -286,41 +260,38 @@ function ProductItemsCard({ items }: { items: BuyerErrandOrderProductItem[] }) {
     <Card className="overflow-hidden">
       <CardHeader>
         <CardTitle>商品明细</CardTitle>
-        <CardDescription>共 {items.length} 种商品</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">暂无商品明细</p>
-        ) : (
-          items.map((item, index) => (
-            <div key={item.demandItemId} className="flex flex-col gap-3">
-              {index > 0 ? <Separator /> : null}
-              <ProductItem item={item} />
-            </div>
-          ))
-        )}
+        {items.map((item, index) => (
+          <div key={item.demandItemId} className="flex flex-col gap-3">
+            {index > 0 ? <Separator /> : null}
+            <ProductItem item={item} />
+          </div>
+        ))}
       </CardContent>
     </Card>
   );
 }
 
 function ProductItem({ item }: { item: BuyerErrandOrderProductItem }) {
-  const title = item.productTemplate?.title ?? "商品信息暂不可用";
+  const title = item.productTemplate.title;
   const hasPurchaseResult = item.purchasedQuantity !== null;
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
       <div className="flex min-w-0 gap-3">
         <ManagedImage
-          src={item.productTemplate?.mainImageUrl}
+          src={item.productTemplate.mainImageUrl}
           alt={title}
           className="size-18 shrink-0 rounded-lg"
         />
         <div className="min-w-0 flex-1">
           <p className="break-words font-medium">{title}</p>
-          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-            {item.productTemplate?.description || "暂无商品规格"}
-          </p>
+          {item.productTemplate.description ? (
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+              {item.productTemplate.description}
+            </p>
+          ) : null}
           {item.nonPurchaseReason ? (
             <p className="mt-2 break-words text-sm text-destructive">
               未购买：{item.nonPurchaseReason}
@@ -369,14 +340,19 @@ function ProductItem({ item }: { item: BuyerErrandOrderProductItem }) {
 function AmountSummaryCard({ order }: { order: BuyerErrandOrderDetail }) {
   const productAmount =
     order.totalActualAmountCents ?? order.totalOriginAmountCents;
-  const total = getBuyerErrandOrderAmountCents(order);
-  const adjustment = getBuyerErrandOrderAdjustmentCents(order);
+  const total = productAmount + order.totalServiceFeeCents;
+  const billAmountDiffers =
+    order.bill != null && order.bill.amountCents !== total;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>金额汇总</CardTitle>
-        <CardDescription>待支付时以账单金额为准</CardDescription>
+        {billAmountDiffers ? (
+          <CardDescription>
+            账单金额与汇总结果不同，请以账单为准
+          </CardDescription>
+        ) : null}
       </CardHeader>
       <CardContent>
         <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 text-sm">
@@ -388,18 +364,6 @@ function AmountSummaryCard({ order }: { order: BuyerErrandOrderDetail }) {
           <dd>{formatPrice(productAmount)}</dd>
           <dt className="text-muted-foreground">跑腿费</dt>
           <dd>{formatPrice(order.totalServiceFeeCents)}</dd>
-          {adjustment !== 0 ? (
-            <>
-              <dt className="text-muted-foreground">
-                {adjustment < 0 ? "优惠及调整" : "包装费及调整"}
-              </dt>
-              <dd>
-                {adjustment < 0
-                  ? `-${formatPrice(Math.abs(adjustment))}`
-                  : formatPrice(adjustment)}
-              </dd>
-            </>
-          ) : null}
           <dt className="pt-2 font-medium">合计</dt>
           <dd className="pt-2 text-base font-semibold text-primary">
             {formatPrice(total)}
@@ -413,27 +377,36 @@ function AmountSummaryCard({ order }: { order: BuyerErrandOrderDetail }) {
 function BillCard({ bill }: { bill: PaymentBill }) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>支付账单</CardTitle>
-        <CardDescription>{bill.billNo || `账单 #${bill.id}`}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div className="flex min-w-0 items-center justify-between gap-3">
-          <span className="text-sm text-muted-foreground">账单状态</span>
-          <Badge variant={getBillBadgeVariant(bill.status)}>
-            {getBillStatusLabel(bill.status)}
-          </Badge>
+      <CardHeader className="flex-row items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1.5">
+          <CardTitle>支付账单</CardTitle>
+          <div className="flex min-w-0 items-center gap-1">
+            <CardDescription className="min-w-0 truncate font-mono tabular-nums">
+              {bill.billNo || bill.id}
+            </CardDescription>
+            <CopyButton value={bill.billNo || String(bill.id)} label="账单号" />
+          </div>
         </div>
-        <Separator />
+        <Badge variant={getBillBadgeVariant(bill.status)}>
+          {getBillStatusLabel(bill.status)}
+        </Badge>
+      </CardHeader>
+      <CardContent>
         <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
-          <dt className="text-muted-foreground">收款人</dt>
-          <dd className="min-w-0 truncate text-right">
-            {bill.payee?.name || "信息缺失"}
-          </dd>
-          <dt className="text-muted-foreground">付款标识码</dt>
-          <dd className="break-all text-right font-mono font-semibold">
-            {bill.verifyCode || "未生成"}
-          </dd>
+          {bill.payee?.name ? (
+            <>
+              <dt className="text-muted-foreground">收款人</dt>
+              <dd className="min-w-0 truncate text-right">{bill.payee.name}</dd>
+            </>
+          ) : null}
+          {bill.verifyCode ? (
+            <>
+              <dt className="text-muted-foreground">付款标识码</dt>
+              <dd className="break-all text-right font-mono font-semibold">
+                {bill.verifyCode}
+              </dd>
+            </>
+          ) : null}
           <dt className="text-muted-foreground">账单金额</dt>
           <dd className="text-right font-semibold">
             {formatPrice(bill.amountCents)}
@@ -452,7 +425,7 @@ function BillCard({ bill }: { bill: PaymentBill }) {
   );
 }
 
-function TimelineDrawer({
+function OrderTimelinePanel({
   open,
   onOpenChange,
   order,
@@ -464,54 +437,70 @@ function TimelineDrawer({
   const timeline = buildBuyerErrandOrderTimeline(order);
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent>
-        <DrawerHeader>
-          <DrawerTitle>关键时间</DrawerTitle>
-          <DrawerDescription className="sr-only">
-            查看跑腿订单的关键时间节点
-          </DrawerDescription>
-        </DrawerHeader>
-        <div className="app-scrollbar flex max-h-[60dvh] flex-col overflow-y-auto px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
-          {timeline.length === 0 ? (
-            <Alert>
-              <RiFileList3Line />
-              <AlertTitle>暂无时间记录</AlertTitle>
-              <AlertDescription>
-                当前状态为{getStatusLabel(order.status)}，后续进度会在这里更新。
-              </AlertDescription>
-            </Alert>
-          ) : (
-            timeline.map((item, index) => (
-              <div
-                key={`${item.label}-${item.timestamp}`}
-                className="flex gap-3"
-              >
-                <div className="flex flex-col items-center">
-                  <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    {order.status === "cancelled" &&
-                    index === timeline.length - 1 ? (
-                      <RiCloseCircleLine className="size-4" />
-                    ) : (
-                      <RiCheckboxCircleLine className="size-4" />
-                    )}
-                  </span>
-                  {index < timeline.length - 1 ? (
-                    <span className="min-h-8 w-px flex-1 bg-border" />
-                  ) : null}
+    <section className="overflow-hidden rounded-lg border bg-card">
+      <Button
+        type="button"
+        variant="ghost"
+        className="h-12 w-full justify-between rounded-none px-3 hover:bg-muted/50 aria-expanded:bg-transparent aria-expanded:text-foreground"
+        aria-expanded={open}
+        aria-controls="buyer-errand-order-timeline"
+        onClick={() => onOpenChange(!open)}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <RiTimeLine data-icon="inline-start" />
+          <span className="truncate">订单节点</span>
+        </span>
+        {open ? (
+          <RiArrowUpSLine className="size-5 text-muted-foreground" />
+        ) : (
+          <RiArrowDownSLine className="size-5 text-muted-foreground" />
+        )}
+      </Button>
+      <div
+        id="buyer-errand-order-timeline"
+        className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${
+          open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        }`}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="border-t px-3 pt-3">
+            {timeline.length === 0 ? (
+              <Alert className="mb-3">
+                <RiFileList3Line />
+                <AlertTitle>暂无订单节点</AlertTitle>
+              </Alert>
+            ) : (
+              timeline.map((item, index) => (
+                <div
+                  key={`${item.label}-${item.timestamp}`}
+                  className="flex gap-3"
+                >
+                  <div className="flex flex-col items-center">
+                    <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      {order.status === "cancelled" &&
+                      index === timeline.length - 1 ? (
+                        <RiCloseCircleLine className="size-4" />
+                      ) : (
+                        <RiCheckboxCircleLine className="size-4" />
+                      )}
+                    </span>
+                    {index < timeline.length - 1 ? (
+                      <span className="min-h-8 w-px flex-1 bg-border" />
+                    ) : null}
+                  </div>
+                  <div className="min-w-0 pb-4">
+                    <p className="font-medium">{item.label}</p>
+                    <p className="mt-1 text-sm text-muted-foreground tabular-nums">
+                      {formatDateTime(item.timestamp)}
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0 pb-4">
-                  <p className="font-medium">{item.label}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {formatDateTime(item.timestamp)}
-                  </p>
-                </div>
-              </div>
-            ))
-          )}
+              ))
+            )}
+          </div>
         </div>
-      </DrawerContent>
-    </Drawer>
+      </div>
+    </section>
   );
 }
 
@@ -520,7 +509,7 @@ function getBillStatusLabel(status: PaymentBill["status"]): string {
   if (status === "submitted") return "待确认收款";
   if (status === "completed") return "已完成";
   if (status === "closed") return "已关闭";
-  return "状态未知";
+  return "状态异常";
 }
 
 function getBillBadgeVariant(status: PaymentBill["status"]) {
@@ -535,19 +524,14 @@ function formatQuantity(value: number | null): string {
   return value === null ? "待处理" : `${value} 件`;
 }
 
-function formatDateTime(value: string | null): string {
-  if (!value) return "暂无";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "暂无";
-
+function formatDateTime(value: string): string {
   return new Intl.DateTimeFormat("zh-CN", {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-  }).format(date);
+  }).format(new Date(value));
 }
 
 function getAvatarFallback(name: string): string {

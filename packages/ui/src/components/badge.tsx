@@ -1,5 +1,5 @@
-import * as React from "react"
-import { cn } from "../lib/utils"
+import * as React from "react";
+import { cn } from "../lib/utils";
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?:
@@ -15,10 +15,14 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
     | "attention"
     | "review"
     | "success"
-    | "danger"
+    | "danger";
 }
 
-export function Badge({ className, variant = "default", ...props }: BadgeProps) {
+export function Badge({
+  className,
+  variant = "default",
+  ...props
+}: BadgeProps) {
   return (
     <span
       className={cn(
@@ -45,9 +49,9 @@ export function Badge({ className, variant = "default", ...props }: BadgeProps) 
           "border bg-[var(--badge-success)] text-[var(--badge-success-foreground)] border-[var(--badge-success-border)]",
         variant === "danger" &&
           "border bg-[var(--badge-danger)] text-[var(--badge-danger-foreground)] border-[var(--badge-danger-border)]",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }

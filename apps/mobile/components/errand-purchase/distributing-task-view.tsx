@@ -1,12 +1,17 @@
-"use client"
+"use client";
 
-import { useRef, useState } from "react"
-import { useRouter } from "next/navigation"
+import { type PointerEvent, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
+  RiArrowGoBackLine,
+  RiArrowLeftDoubleLine,
+  RiArrowRightDoubleLine,
   RiArrowDownSLine,
   RiArrowUpSLine,
-  RiMore2Line,
-} from "@remixicon/react"
+  RiCheckboxLine,
+  RiCloseCircleLine,
+  RiIndeterminateCircleLine,
+} from "@remixicon/react";
 import {
   cancelTask,
   getDistributingTaskDetail,
@@ -18,29 +23,22 @@ import {
   type DistributingRequester,
   type DistributingTaskDetail,
   type DistributingTaskItem,
-} from "@sast-shop/api"
-import { formatPrice } from "@sast-shop/domain"
+} from "@sast-shop/api";
+import { formatPrice } from "@sast-shop/domain";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from "@workspace/ui/components/avatar"
-import { Button } from "@workspace/ui/components/button"
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from "@workspace/ui/components/drawer"
-import { Input } from "@workspace/ui/components/input"
+} from "@workspace/ui/components/avatar";
+import { Button } from "@workspace/ui/components/button";
+import { Field, FieldLabel } from "@workspace/ui/components/field";
+import { Input } from "@workspace/ui/components/input";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
   InputGroupText,
-} from "@workspace/ui/components/input-group"
+} from "@workspace/ui/components/input-group";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -48,43 +46,50 @@ import {
   ResponsiveDialogFooter,
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
-} from "@workspace/ui/components/responsive-dialog"
-import { toast } from "sonner"
+} from "@workspace/ui/components/responsive-dialog";
+import { toast } from "sonner";
 
-import { ManagedImage } from "@/components/managed-image"
-import { MobileFixedFooter } from "@/components/mobile-fixed-footer"
-import { buildErrandTaskPaymentHref } from "@/lib/errand-task-route"
+import { ManagedImage } from "@/components/managed-image";
+import { MobileFixedFooter } from "@/components/mobile-fixed-footer";
+import { buildErrandTaskPaymentHref } from "@/lib/errand-task-route";
 
 export type DistributingTaskViewProps = {
-  dataSource: DataSource
-  connectBaseUrl: string
-  detail: DistributingTaskDetail
-  mode: "pending_distributing" | "distributing"
-}
+  dataSource: DataSource;
+  connectBaseUrl: string;
+  detail: DistributingTaskDetail;
+  mode: "pending_distributing" | "distributing";
+};
 
 type DialogState =
   | { type: "none" }
   | { type: "edit_price"; item: DistributingTaskItem; draft: string }
-  | { type: "partial_dist"; item: DistributingTaskItem; requester: DistributingRequester; draft: string }
+  | {
+      type: "partial_dist";
+      item: DistributingTaskItem;
+      requester: DistributingRequester;
+      draft: string;
+    }
   | { type: "confirm_start" }
   | { type: "confirm_finish" }
-  | { type: "confirm_cancel" }
+  | { type: "confirm_cancel" };
 
-const MONEY_PATTERN = /^\d*(?:\.\d{0,2})?$/
+const MONEY_PATTERN = /^\d*(?:\.\d{0,2})?$/;
 
 function formatYuan(cents: number): string {
-  if (cents === 0) return "0"
-  return (cents / 100).toFixed(2)
+  if (cents === 0) return "0";
+  return (cents / 100).toFixed(2);
 }
 
 function parseToCents(value: string): number {
-  const n = Number(value)
-  if (!Number.isFinite(n) || n < 0) return 0
-  return Math.max(0, Math.round(n * 100))
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Math.max(0, Math.round(n * 100));
 }
 
 function isItemFullyDistributed(item: DistributingTaskItem): boolean {
-  return item.requesters.every((r) => r.distributedQuantity > 0 || r.distributedQuantity === -1)
+  return item.requesters.every(
+    (r) => r.distributedQuantity > 0 || r.distributedQuantity === -1,
+  );
 }
 
 export function DistributingTaskView({
@@ -93,32 +98,35 @@ export function DistributingTaskView({
   detail,
   mode,
 }: DistributingTaskViewProps) {
-  const router = useRouter()
-  const submittingRef = useRef(false)
-  const [items, setItems] = useState<DistributingTaskItem[]>(detail.items)
+  const router = useRouter();
+  const submittingRef = useRef(false);
+  const [items, setItems] = useState<DistributingTaskItem[]>(detail.items);
   const [packagingFee, setPackagingFee] = useState(
-    formatYuan(detail.packagingFeeCents)
-  )
-  const [expandedItemId, setExpandedItemId] = useState<string | null>(null)
-  const [dialog, setDialog] = useState<DialogState>({ type: "none" })
-  const [submitting, setSubmitting] = useState(false)
-  const [assigningIds, setAssigningIds] = useState<Set<string>>(new Set())
+    formatYuan(detail.packagingFeeCents),
+  );
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<DialogState>({ type: "none" });
+  const [submitting, setSubmitting] = useState(false);
+  const [assigningIds, setAssigningIds] = useState<Set<string>>(new Set());
 
-  const serviceOptions = { dataSource, connectBaseUrl }
+  const serviceOptions = { dataSource, connectBaseUrl };
 
   const purchasedItems = items.filter((i) => {
-    const totalPurchased = i.requesters.reduce((s, r) => s + r.quantity, 0)
-    return totalPurchased > 0
-  })
+    const totalPurchased = i.requesters.reduce((s, r) => s + r.quantity, 0);
+    return totalPurchased > 0;
+  });
 
-  const undistributed = purchasedItems.filter((i) => !isItemFullyDistributed(i))
-  const distributed = purchasedItems.filter((i) => isItemFullyDistributed(i))
-  const allDistributed = undistributed.length === 0 && purchasedItems.length > 0
+  const undistributed = purchasedItems.filter(
+    (i) => !isItemFullyDistributed(i),
+  );
+  const distributed = purchasedItems.filter((i) => isItemFullyDistributed(i));
+  const allDistributed =
+    undistributed.length === 0 && purchasedItems.length > 0;
 
   const updateRequester = (
     itemId: string,
     assignmentId: string,
-    distributedQuantity: number
+    distributedQuantity: number,
   ) => {
     setItems((prev) =>
       prev.map((item) =>
@@ -129,31 +137,31 @@ export function DistributingTaskView({
               requesters: item.requesters.map((r) =>
                 r.errandTaskAssignmentId !== assignmentId
                   ? r
-                  : { ...r, distributedQuantity }
+                  : { ...r, distributedQuantity },
               ),
-            }
-      )
-    )
-  }
+            },
+      ),
+    );
+  };
 
   const updateItemPrice = (itemId: string, actualUnitPriceCents: number) => {
     setItems((prev) =>
       prev.map((item) =>
         item.errandTaskItemId !== itemId
           ? item
-          : { ...item, actualUnitPriceCents }
-      )
-    )
-  }
+          : { ...item, actualUnitPriceCents },
+      ),
+    );
+  };
 
   const handleSaveAssignment = async (
     item: DistributingTaskItem,
     requester: DistributingRequester,
-    distributedQuantity: number
+    distributedQuantity: number,
   ) => {
-    const key = requester.errandTaskAssignmentId
-    if (assigningIds.has(key)) return
-    setAssigningIds((prev) => new Set(prev).add(key))
+    const key = requester.errandTaskAssignmentId;
+    if (assigningIds.has(key)) return;
+    setAssigningIds((prev) => new Set(prev).add(key));
     try {
       await saveDistributingAssignment(
         {
@@ -162,40 +170,43 @@ export function DistributingTaskView({
           distributedQuantity,
           assignmentUpdatedAt: requester.assignmentUpdatedAt,
         },
-        serviceOptions
-      )
+        serviceOptions,
+      );
       updateRequester(
         item.errandTaskItemId,
         requester.errandTaskAssignmentId,
-        distributedQuantity
-      )
+        distributedQuantity,
+      );
       if (dataSource === "local") {
         try {
-          const refreshed = await getDistributingTaskDetail(detail.taskId, serviceOptions)
-          setItems(refreshed.items)
+          const refreshed = await getDistributingTaskDetail(
+            detail.taskId,
+            serviceOptions,
+          );
+          setItems(refreshed.items);
         } catch {
-          toast.warning("结果已保存，但状态刷新失败，请重新进入任务")
+          toast.warning("结果已保存，但状态刷新失败，请重新进入任务");
         }
       }
-      setDialog({ type: "none" })
+      setDialog({ type: "none" });
     } catch {
-      toast.error("保存失败，请稍后再试")
+      toast.error("保存失败，请稍后再试");
     } finally {
       setAssigningIds((prev) => {
-        const next = new Set(prev)
-        next.delete(key)
-        return next
-      })
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
     }
-  }
+  };
 
   const handleRevokeAssignment = async (
     item: DistributingTaskItem,
-    requester: DistributingRequester
+    requester: DistributingRequester,
   ) => {
-    const key = requester.errandTaskAssignmentId
-    if (assigningIds.has(key)) return
-    setAssigningIds((prev) => new Set(prev).add(key))
+    const key = requester.errandTaskAssignmentId;
+    if (assigningIds.has(key)) return;
+    setAssigningIds((prev) => new Set(prev).add(key));
     try {
       await saveDistributingAssignment(
         {
@@ -204,120 +215,136 @@ export function DistributingTaskView({
           distributedQuantity: 0,
           assignmentUpdatedAt: requester.assignmentUpdatedAt,
         },
-        serviceOptions
-      )
-      updateRequester(item.errandTaskItemId, requester.errandTaskAssignmentId, 0)
+        serviceOptions,
+      );
+      updateRequester(
+        item.errandTaskItemId,
+        requester.errandTaskAssignmentId,
+        0,
+      );
       if (dataSource === "local") {
         try {
-          const refreshed = await getDistributingTaskDetail(detail.taskId, serviceOptions)
-          setItems(refreshed.items)
+          const refreshed = await getDistributingTaskDetail(
+            detail.taskId,
+            serviceOptions,
+          );
+          setItems(refreshed.items);
         } catch {
-          toast.warning("结果已撤销，但状态刷新失败，请重新进入任务")
+          toast.warning("结果已撤销，但状态刷新失败，请重新进入任务");
         }
       }
     } catch {
-      toast.error("撤销失败，请稍后再试")
+      toast.error("撤销失败，请稍后再试");
     } finally {
       setAssigningIds((prev) => {
-        const next = new Set(prev)
-        next.delete(key)
-        return next
-      })
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
     }
-  }
+  };
 
   const handleUpdatePrice = async () => {
-    if (dialog.type !== "edit_price") return
-    if (submittingRef.current) return
-    submittingRef.current = true
-    const cents = parseToCents(dialog.draft)
+    if (dialog.type !== "edit_price") return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    const cents = parseToCents(dialog.draft);
     try {
       await updateActualPrice(
         detail.taskId,
         dialog.item.errandTaskItemId,
         cents,
         null,
-        serviceOptions
-      )
-      updateItemPrice(dialog.item.errandTaskItemId, cents)
-      setDialog({ type: "none" })
+        serviceOptions,
+      );
+      updateItemPrice(dialog.item.errandTaskItemId, cents);
+      setDialog({ type: "none" });
     } catch {
-      toast.error("修改价格失败，请稍后再试")
+      toast.error("修改价格失败，请稍后再试");
     } finally {
-      submittingRef.current = false
+      submittingRef.current = false;
     }
-  }
+  };
 
   const handleStartDistributing = async () => {
-    if (submittingRef.current) return
-    submittingRef.current = true
-    setSubmitting(true)
-    const feeCents = parseToCents(packagingFee)
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
+    const feeCents = parseToCents(packagingFee);
     try {
-      await transitionToDistributing(detail.taskId, feeCents, null, serviceOptions)
-      setDialog({ type: "none" })
-      router.refresh()
+      await transitionToDistributing(
+        detail.taskId,
+        feeCents,
+        null,
+        serviceOptions,
+      );
+      setDialog({ type: "none" });
+      router.refresh();
     } catch {
-      toast.error("操作失败，请稍后再试")
-      setSubmitting(false)
+      toast.error("操作失败，请稍后再试");
+      setSubmitting(false);
     } finally {
-      submittingRef.current = false
+      submittingRef.current = false;
     }
-  }
+  };
 
   const handleFinishDistributing = async () => {
-    if (submittingRef.current) return
-    submittingRef.current = true
-    setSubmitting(true)
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
     try {
-      await transitionToCollectingPayment(detail.taskId, null, serviceOptions)
-      setDialog({ type: "none" })
-      router.replace(buildErrandTaskPaymentHref(detail.taskId))
+      await transitionToCollectingPayment(detail.taskId, null, serviceOptions);
+      setDialog({ type: "none" });
+      router.replace(buildErrandTaskPaymentHref(detail.taskId));
     } catch {
-      toast.error("操作失败，请稍后再试")
-      setSubmitting(false)
+      toast.error("操作失败，请稍后再试");
+      setSubmitting(false);
     } finally {
-      submittingRef.current = false
+      submittingRef.current = false;
     }
-  }
+  };
 
   const handleCancel = async () => {
-    if (submittingRef.current) return
-    submittingRef.current = true
-    setSubmitting(true)
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
     try {
-      await cancelTask(detail.taskId, null, serviceOptions)
-      setDialog({ type: "none" })
-      router.push("/group")
+      await cancelTask(detail.taskId, null, serviceOptions);
+      setDialog({ type: "none" });
+      router.push("/group");
     } catch {
-      toast.error("取消失败，请稍后再试")
-      setSubmitting(false)
+      toast.error("取消失败，请稍后再试");
+      setSubmitting(false);
     } finally {
-      submittingRef.current = false
+      submittingRef.current = false;
     }
-  }
+  };
 
   const renderItemList = (list: DistributingTaskItem[], groupLabel: string) => {
-    if (list.length === 0) return null
+    if (list.length === 0) return null;
     return (
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-muted-foreground">
-          {groupLabel} ({list.length})
-        </h2>
+        <div className="flex items-baseline gap-2">
+          <h2 className="text-sm font-semibold">{groupLabel}</h2>
+          <span className="text-xs text-muted-foreground">
+            {list.length} 种商品
+          </span>
+        </div>
         <div className="flex flex-col gap-3">
           {list.map((item) => {
-            const isExpanded = expandedItemId === item.errandTaskItemId
+            const isExpanded = expandedItemId === item.errandTaskItemId;
             return (
-              <div key={item.errandTaskItemId} className="rounded-lg border bg-card overflow-hidden">
+              <div
+                key={item.errandTaskItemId}
+                className="rounded-lg border bg-card overflow-hidden"
+              >
                 <button
                   type="button"
                   aria-controls={`distributing-item-${item.errandTaskItemId}`}
                   aria-expanded={isExpanded}
                   className="flex w-full items-center gap-3 p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   onClick={() =>
-                    setExpandedItemId(
-                      isExpanded ? null : item.errandTaskItemId
-                    )
+                    setExpandedItemId(isExpanded ? null : item.errandTaskItemId)
                   }
                 >
                   <ManagedImage
@@ -329,26 +356,33 @@ export function DistributingTaskView({
                     <p className="line-clamp-2 text-sm font-medium leading-5">
                       {item.title}
                     </p>
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <span className="text-xs text-muted-foreground">
-                        实购 {item.requesters.reduce((s, r) => s + r.quantity, 0)} 件
+                    <div className="mt-1 flex flex-wrap items-center gap-1 text-xs text-muted-foreground tabular-nums">
+                      <span>
+                        实购{" "}
+                        {item.requesters.reduce((s, r) => s + r.quantity, 0)} 件
                       </span>
-                      {item.actualUnitPriceCents !== item.originUnitPriceCents ? (
-                        <span className="text-xs text-destructive">
-                          改价 {formatPrice(item.actualUnitPriceCents)}
+                      <span aria-hidden="true">·</span>
+                      {item.actualUnitPriceCents !==
+                      item.originUnitPriceCents ? (
+                        <span className="text-destructive">
+                          改价后 {formatPrice(item.actualUnitPriceCents)}/件
                         </span>
                       ) : (
-                        <span className="text-xs text-muted-foreground">
-                          {formatPrice(item.actualUnitPriceCents)}
-                        </span>
+                        <span>{formatPrice(item.actualUnitPriceCents)}/件</span>
                       )}
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <div className="flex -space-x-2">
                       {item.requesters.slice(0, 3).map((r) => (
-                        <Avatar key={r.purchaserId} className="size-6 border-2 border-card">
-                          <AvatarImage src={r.purchaserAvatarUrl} alt={r.purchaserName} />
+                        <Avatar
+                          key={r.purchaserId}
+                          className="size-6 border-2 border-card"
+                        >
+                          <AvatarImage
+                            src={r.purchaserAvatarUrl}
+                            alt={r.purchaserName}
+                          />
                           <AvatarFallback className="text-xs">
                             {r.purchaserName[0]}
                           </AvatarFallback>
@@ -370,8 +404,8 @@ export function DistributingTaskView({
                   >
                     {mode === "pending_distributing" && (
                       <div className="mb-3 mt-3 flex items-center justify-between gap-3">
-                        <span className="text-sm text-muted-foreground">
-                          当前单价：{formatPrice(item.actualUnitPriceCents)}
+                        <span className="text-sm text-muted-foreground tabular-nums">
+                          单价 {formatPrice(item.actualUnitPriceCents)}/件
                         </span>
                         <Button
                           type="button"
@@ -396,7 +430,11 @@ export function DistributingTaskView({
                           requester={requester}
                           mode={mode}
                           onDistributeAll={() =>
-                            void handleSaveAssignment(item, requester, requester.quantity)
+                            void handleSaveAssignment(
+                              item,
+                              requester,
+                              requester.quantity,
+                            )
                           }
                           onDistributePartial={() =>
                             setDialog({
@@ -406,20 +444,24 @@ export function DistributingTaskView({
                               draft: "",
                             })
                           }
-                          onSkip={() => void handleSaveAssignment(item, requester, -1)}
-                          onRevoke={() => void handleRevokeAssignment(item, requester)}
+                          onSkip={() =>
+                            void handleSaveAssignment(item, requester, -1)
+                          }
+                          onRevoke={() =>
+                            void handleRevokeAssignment(item, requester)
+                          }
                         />
                       ))}
                     </div>
                   </div>
                 )}
               </div>
-            )
+            );
           })}
         </div>
       </section>
-    )
-  }
+    );
+  };
 
   return (
     <div className="flex flex-1 flex-col gap-5 py-5 pb-24">
@@ -435,18 +477,20 @@ export function DistributingTaskView({
         <Button
           type="button"
           variant="ghost"
-          size="sm"
+          size="icon-touch"
+          aria-label="取消采购"
+          title="取消采购"
           className="shrink-0 text-destructive hover:text-destructive"
           onClick={() => setDialog({ type: "confirm_cancel" })}
         >
-          取消采购
+          <RiCloseCircleLine />
         </Button>
       </section>
 
       {mode === "pending_distributing" && (
         <section className="rounded-lg border bg-card p-3">
           <label className="flex flex-col gap-1.5 text-sm font-medium">
-            包装费（元）
+            包装费
             <InputGroup>
               <InputGroupAddon>
                 <InputGroupText>¥</InputGroupText>
@@ -457,7 +501,7 @@ export function DistributingTaskView({
                 value={packagingFee}
                 onChange={(e) => {
                   if (MONEY_PATTERN.test(e.target.value)) {
-                    setPackagingFee(e.target.value)
+                    setPackagingFee(e.target.value);
                   }
                 }}
                 placeholder="0"
@@ -472,7 +516,8 @@ export function DistributingTaskView({
 
       {mode === "distributing" && renderItemList(undistributed, "待分发")}
       {mode === "distributing" && renderItemList(distributed, "已分发")}
-      {mode === "pending_distributing" && renderItemList(purchasedItems, "采购商品")}
+      {mode === "pending_distributing" &&
+        renderItemList(purchasedItems, "采购商品")}
 
       <MobileFixedFooter>
         {mode === "pending_distributing" ? (
@@ -492,7 +537,7 @@ export function DistributingTaskView({
           >
             {allDistributed
               ? "确认分发完成"
-              : `已分发 ${distributed.length}/${purchasedItems.length} 种`}
+              : `还有 ${undistributed.length} 种商品待分发`}
           </Button>
         )}
       </MobileFixedFooter>
@@ -500,7 +545,7 @@ export function DistributingTaskView({
       <ResponsiveDialog
         open={dialog.type === "edit_price"}
         onOpenChange={(open) => {
-          if (!open) setDialog({ type: "none" })
+          if (!open) setDialog({ type: "none" });
         }}
       >
         <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
@@ -511,22 +556,28 @@ export function DistributingTaskView({
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
           {dialog.type === "edit_price" && (
-            <InputGroup>
-              <InputGroupAddon>
-                <InputGroupText>¥</InputGroupText>
-              </InputGroupAddon>
-              <InputGroupInput
-                type="text"
-                inputMode="decimal"
-                value={dialog.draft}
-                onChange={(e) => {
-                  if (MONEY_PATTERN.test(e.target.value)) {
-                    setDialog({ ...dialog, draft: e.target.value })
-                  }
-                }}
-                placeholder="0.00"
-              />
-            </InputGroup>
+            <Field>
+              <FieldLabel htmlFor="distribution-unit-price" className="sr-only">
+                实际单价
+              </FieldLabel>
+              <InputGroup>
+                <InputGroupAddon>
+                  <InputGroupText>¥</InputGroupText>
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="distribution-unit-price"
+                  type="text"
+                  inputMode="decimal"
+                  value={dialog.draft}
+                  onChange={(e) => {
+                    if (MONEY_PATTERN.test(e.target.value)) {
+                      setDialog({ ...dialog, draft: e.target.value });
+                    }
+                  }}
+                  placeholder="0.00"
+                />
+              </InputGroup>
+            </Field>
           )}
           <ResponsiveDialogFooter>
             <Button
@@ -536,10 +587,7 @@ export function DistributingTaskView({
             >
               取消
             </Button>
-            <Button
-              type="button"
-              onClick={() => void handleUpdatePrice()}
-            >
+            <Button type="button" onClick={() => void handleUpdatePrice()}>
               确认
             </Button>
           </ResponsiveDialogFooter>
@@ -549,7 +597,7 @@ export function DistributingTaskView({
       <ResponsiveDialog
         open={dialog.type === "partial_dist"}
         onOpenChange={(open) => {
-          if (!open) setDialog({ type: "none" })
+          if (!open) setDialog({ type: "none" });
         }}
       >
         <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
@@ -562,15 +610,26 @@ export function DistributingTaskView({
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
           {dialog.type === "partial_dist" && (
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={dialog.requester.quantity - 1}
-              value={dialog.draft}
-              onChange={(e) => setDialog({ ...dialog, draft: e.target.value })}
-              placeholder="分发数量"
-            />
+            <Field>
+              <FieldLabel
+                htmlFor="partial-distribution-quantity"
+                className="sr-only"
+              >
+                实际分发数量
+              </FieldLabel>
+              <Input
+                id="partial-distribution-quantity"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={dialog.requester.quantity - 1}
+                value={dialog.draft}
+                onChange={(e) =>
+                  setDialog({ ...dialog, draft: e.target.value })
+                }
+                placeholder="分发数量"
+              />
+            </Field>
           )}
           <ResponsiveDialogFooter>
             <Button
@@ -590,12 +649,12 @@ export function DistributingTaskView({
                 Number(dialog.draft) >= dialog.requester.quantity
               }
               onClick={() => {
-                if (dialog.type !== "partial_dist") return
+                if (dialog.type !== "partial_dist") return;
                 void handleSaveAssignment(
                   dialog.item,
                   dialog.requester,
-                  Number(dialog.draft)
-                )
+                  Number(dialog.draft),
+                );
               }}
             >
               确认
@@ -607,7 +666,7 @@ export function DistributingTaskView({
       <ResponsiveDialog
         open={dialog.type === "confirm_start"}
         onOpenChange={(open) => {
-          if (!open && !submitting) setDialog({ type: "none" })
+          if (!open && !submitting) setDialog({ type: "none" });
         }}
       >
         <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
@@ -641,7 +700,7 @@ export function DistributingTaskView({
       <ResponsiveDialog
         open={dialog.type === "confirm_finish"}
         onOpenChange={(open) => {
-          if (!open && !submitting) setDialog({ type: "none" })
+          if (!open && !submitting) setDialog({ type: "none" });
         }}
       >
         <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
@@ -674,7 +733,7 @@ export function DistributingTaskView({
       <ResponsiveDialog
         open={dialog.type === "confirm_cancel"}
         onOpenChange={(open) => {
-          if (!open && !submitting) setDialog({ type: "none" })
+          if (!open && !submitting) setDialog({ type: "none" });
         }}
       >
         <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
@@ -705,7 +764,7 @@ export function DistributingTaskView({
         </ResponsiveDialogContent>
       </ResponsiveDialog>
     </div>
-  )
+  );
 }
 
 function RequesterRow({
@@ -716,30 +775,149 @@ function RequesterRow({
   onSkip,
   onRevoke,
 }: {
-  requester: DistributingRequester
-  mode: "pending_distributing" | "distributing"
-  onDistributeAll: () => void
-  onDistributePartial: () => void
-  onSkip: () => void
-  onRevoke: () => void
+  requester: DistributingRequester;
+  mode: "pending_distributing" | "distributing";
+  onDistributeAll: () => void;
+  onDistributePartial: () => void;
+  onSkip: () => void;
+  onRevoke: () => void;
 }) {
-  const isDone = requester.distributedQuantity > 0
-  const isSkipped = requester.distributedQuantity === -1
-  const [actionOpen, setActionOpen] = useState(false)
+  const isDone = requester.distributedQuantity > 0;
+  const isSkipped = requester.distributedQuantity === -1;
+  const [actionOpen, setActionOpen] = useState(false);
+  const pointerStartXRef = useRef<number | null>(null);
+  const pointerStartYRef = useRef<number | null>(null);
+  const swipedRef = useRef(false);
+  const canDistributePartially = requester.quantity > 1;
+  const actionWidthClass =
+    isDone || isSkipped
+      ? "w-[52px] grid-cols-1"
+      : canDistributePartially
+        ? "w-[156px] grid-cols-3"
+        : "w-[104px] grid-cols-2";
+
   const runAction = (action: () => void) => {
-    setActionOpen(false)
-    action()
-  }
+    setActionOpen(false);
+    action();
+  };
+
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    swipedRef.current = false;
+    pointerStartXRef.current = event.clientX;
+    pointerStartYRef.current = event.clientY;
+  };
+
+  const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    if (
+      pointerStartXRef.current === null ||
+      pointerStartYRef.current === null
+    ) {
+      return;
+    }
+
+    const deltaX = event.clientX - pointerStartXRef.current;
+    const deltaY = event.clientY - pointerStartYRef.current;
+    pointerStartXRef.current = null;
+    pointerStartYRef.current = null;
+
+    if (Math.abs(deltaX) < 32 || Math.abs(deltaX) < Math.abs(deltaY)) return;
+
+    swipedRef.current = true;
+    setActionOpen(deltaX < 0);
+  };
 
   return (
-    <>
-      <div className="flex items-center gap-2">
+    <div
+      className={
+        mode === "distributing"
+          ? "relative overflow-hidden rounded-lg border bg-card sm:overflow-visible sm:border-0 sm:bg-transparent"
+          : ""
+      }
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={() => {
+        pointerStartXRef.current = null;
+        pointerStartYRef.current = null;
+      }}
+    >
+      {mode === "distributing" ? (
+        <div
+          className={`absolute inset-y-0 right-0 z-20 grid overflow-hidden transition-transform duration-200 ease-out motion-reduce:transition-none sm:hidden ${actionWidthClass} ${actionOpen ? "translate-x-0" : "translate-x-full"}`}
+          aria-hidden={!actionOpen}
+        >
+          {isDone || isSkipped ? (
+            <Button
+              type="button"
+              variant="secondary"
+              className="h-full min-w-0 rounded-none px-0"
+              tabIndex={actionOpen ? 0 : -1}
+              aria-label="撤销分发结果"
+              title="撤销"
+              onClick={() => runAction(onRevoke)}
+            >
+              <RiArrowGoBackLine className="size-6" />
+            </Button>
+          ) : (
+            <>
+              <Button
+                type="button"
+                className="h-full min-w-0 rounded-none px-0"
+                tabIndex={actionOpen ? 0 : -1}
+                aria-label="全部分发"
+                title="全部分发"
+                onClick={() => runAction(onDistributeAll)}
+              >
+                <RiCheckboxLine className="size-6" />
+              </Button>
+              {canDistributePartially ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-full min-w-0 rounded-none px-0"
+                  tabIndex={actionOpen ? 0 : -1}
+                  aria-label="部分分发"
+                  title="部分分发"
+                  onClick={() => runAction(onDistributePartial)}
+                >
+                  <RiIndeterminateCircleLine className="size-6" />
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                variant="destructive"
+                className="h-full min-w-0 rounded-none px-0"
+                tabIndex={actionOpen ? 0 : -1}
+                aria-label="不分发"
+                title="不分发"
+                onClick={() => runAction(onSkip)}
+              >
+                <RiCloseCircleLine className="size-6" />
+              </Button>
+            </>
+          )}
+        </div>
+      ) : null}
+
+      <div
+        className={`flex items-center gap-2 ${
+          mode === "distributing"
+            ? "relative z-10 touch-pan-y rounded-lg bg-card p-2 sm:bg-transparent sm:p-0"
+            : ""
+        }`}
+      >
         <Avatar className="size-8 shrink-0">
-          <AvatarImage src={requester.purchaserAvatarUrl} alt={requester.purchaserName} />
-          <AvatarFallback className="text-xs">{requester.purchaserName[0]}</AvatarFallback>
+          <AvatarImage
+            src={requester.purchaserAvatarUrl}
+            alt={requester.purchaserName}
+          />
+          <AvatarFallback className="text-xs">
+            {requester.purchaserName[0]}
+          </AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{requester.purchaserName}</p>
+          <p className="truncate text-sm font-medium">
+            {requester.purchaserName}
+          </p>
           <p className="text-xs text-muted-foreground">
             需 {requester.quantity} 件
             {isDone ? `，已分发 ${requester.distributedQuantity} 件` : ""}
@@ -794,68 +972,28 @@ function RequesterRow({
             <Button
               type="button"
               size="icon-touch"
-              variant="outline"
-              className="shrink-0 sm:hidden"
-              aria-label={`处理${requester.purchaserName}的分发结果`}
+              variant="ghost"
+              className={`shrink-0 text-muted-foreground transition-opacity sm:hidden ${actionOpen ? "pointer-events-none opacity-0" : "opacity-100"}`}
+              tabIndex={actionOpen ? -1 : 0}
+              aria-label={`${actionOpen ? "收起" : "展开"}${requester.purchaserName}的分发操作`}
               aria-expanded={actionOpen}
-              onClick={() => setActionOpen(true)}
+              onClick={() => {
+                if (swipedRef.current) {
+                  swipedRef.current = false;
+                  return;
+                }
+                setActionOpen((open) => !open);
+              }}
             >
-              <RiMore2Line />
+              {actionOpen ? (
+                <RiArrowRightDoubleLine />
+              ) : (
+                <RiArrowLeftDoubleLine />
+              )}
             </Button>
           </>
         ) : null}
       </div>
-
-      <Drawer open={actionOpen} onOpenChange={setActionOpen}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>{requester.purchaserName}</DrawerTitle>
-            <DrawerDescription>
-              需要 {requester.quantity} 件，请记录本次分发结果。
-            </DrawerDescription>
-          </DrawerHeader>
-          <DrawerFooter className="pb-[calc(1rem+env(safe-area-inset-bottom))]">
-            {isDone || isSkipped ? (
-              <Button
-                type="button"
-                size="touch"
-                variant="outline"
-                onClick={() => runAction(onRevoke)}
-              >
-                撤销分发结果
-              </Button>
-            ) : (
-              <>
-                <Button
-                  type="button"
-                  size="touch"
-                  onClick={() => runAction(onDistributeAll)}
-                >
-                  全部分发
-                </Button>
-                {requester.quantity > 1 ? (
-                  <Button
-                    type="button"
-                    size="touch"
-                    variant="secondary"
-                    onClick={() => runAction(onDistributePartial)}
-                  >
-                    部分分发
-                  </Button>
-                ) : null}
-                <Button
-                  type="button"
-                  size="touch"
-                  variant="destructive"
-                  onClick={() => runAction(onSkip)}
-                >
-                  不分发
-                </Button>
-              </>
-            )}
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-    </>
-  )
+    </div>
+  );
 }

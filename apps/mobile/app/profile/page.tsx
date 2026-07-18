@@ -1,15 +1,13 @@
 import type { ProfileOverview } from "@sast-shop/api";
+import Link from "next/link";
+import { RiRefreshLine } from "@remixicon/react";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
 } from "@workspace/ui/components/avatar";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card";
+import { Button } from "@workspace/ui/components/button";
+import { Card, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { loadProfileOverview } from "@/lib/profile-overview";
 import { ProfileManagement } from "@/components/profile-management";
 
@@ -25,7 +23,7 @@ async function getProfilePageOverview(): Promise<{
   } catch {
     return {
       overview: null,
-      error: "个人资料暂不可用，请确认数据源或稍后再试",
+      error: "个人资料暂不可用，请稍后再试",
     };
   }
 }
@@ -40,9 +38,13 @@ export default async function ProfilePage() {
 
       {result.error ? (
         <Card className="rounded-lg">
-          <CardHeader>
-            <CardTitle className="text-lg leading-6">资料暂不可用</CardTitle>
-            <CardDescription>{result.error}</CardDescription>
+          <CardHeader className="flex-row items-center justify-between gap-3">
+            <CardTitle className="text-base leading-6">资料加载失败</CardTitle>
+            <Button asChild size="icon-touch" variant="ghost">
+              <Link href="/profile" aria-label="重新加载个人资料">
+                <RiRefreshLine />
+              </Link>
+            </Button>
           </CardHeader>
         </Card>
       ) : null}

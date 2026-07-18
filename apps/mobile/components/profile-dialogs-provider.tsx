@@ -190,7 +190,7 @@ export function ProfileDialogsProvider({
       })
       .catch(() => {
         if (cancelled) return;
-        setProfileError("资料管理暂不可用，请确认数据源或稍后再试");
+        setProfileError("资料管理暂不可用，请稍后再试");
         setProfileLoadState("error");
       });
 
@@ -298,6 +298,23 @@ export function ProfileDialogsProvider({
     });
   }
 
+  function openAddressForm(mode: "add" | "edit", address?: Address) {
+    setAddressOpen(false);
+    setAddressForm({ open: true, mode, address });
+  }
+
+  function returnToAddressBook() {
+    setAddressForm((current) => ({ ...current, open: false }));
+    setDeleteConfirm({ open: false });
+    setAddressOpen(true);
+  }
+
+  function openDeleteConfirm(id: string) {
+    setAddressOpen(false);
+    setAddressForm((current) => ({ ...current, open: false }));
+    setDeleteConfirm({ open: true, id });
+  }
+
   async function upsertAddress(input: AddressInput, id?: string) {
     await runMutation(
       id ? `address-edit-${id}` : "address-add",
@@ -308,6 +325,7 @@ export function ProfileDialogsProvider({
 
         applySavedAddress(savedAddress);
         setAddressForm({ open: false, mode: "add" });
+        setAddressOpen(true);
       },
       "地址保存失败，请稍后再试",
     );
@@ -322,6 +340,7 @@ export function ProfileDialogsProvider({
           current.filter((address) => address.id !== id),
         );
         setDeleteConfirm({ open: false });
+        setAddressOpen(true);
       },
       "地址删除失败，请稍后再试",
     );
@@ -426,10 +445,8 @@ export function ProfileDialogsProvider({
               ) : (
                 <AddressList
                   addresses={addresses}
-                  onEdit={(address) =>
-                    setAddressForm({ open: true, mode: "edit", address })
-                  }
-                  onDelete={(id) => setDeleteConfirm({ open: true, id })}
+                  onEdit={(address) => openAddressForm("edit", address)}
+                  onDelete={openDeleteConfirm}
                   onSetDefault={setDefaultAddress}
                 />
               )}
@@ -443,7 +460,7 @@ export function ProfileDialogsProvider({
                   profileLoadState !== "ready" ||
                   pendingAction === "address-add"
                 }
-                onClick={() => setAddressForm({ open: true, mode: "add" })}
+                onClick={() => openAddressForm("add")}
               >
                 <RiAddLine data-icon="inline-start" />
                 添加地址
@@ -457,9 +474,13 @@ export function ProfileDialogsProvider({
         open={addressForm.open}
         mode={addressForm.mode}
         address={addressForm.address}
-        onOpenChange={(open) =>
-          setAddressForm((current) => ({ ...current, open }))
-        }
+        onOpenChange={(open) => {
+          if (open) {
+            setAddressForm((current) => ({ ...current, open: true }));
+          } else {
+            returnToAddressBook();
+          }
+        }}
         onSave={(input) => {
           return upsertAddress(input, addressForm.address?.id);
         }}
@@ -467,10 +488,8 @@ export function ProfileDialogsProvider({
           addressForm.address
             ? () => {
                 const addressId = addressForm.address?.id;
-                setAddressForm((current) => ({ ...current, open: false }));
-
                 if (addressId) {
-                  setDeleteConfirm({ open: true, id: addressId });
+                  openDeleteConfirm(addressId);
                 }
               }
             : undefined
@@ -480,9 +499,13 @@ export function ProfileDialogsProvider({
       <ResponsiveDialog
         forceDrawer
         open={deleteConfirm.open}
-        onOpenChange={(open) =>
-          setDeleteConfirm((current) => ({ ...current, open }))
-        }
+        onOpenChange={(open) => {
+          if (open) {
+            setDeleteConfirm((current) => ({ ...current, open: true }));
+          } else {
+            returnToAddressBook();
+          }
+        }}
       >
         <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
           <ResponsiveDialogHeader className="px-0 text-left">
@@ -741,7 +764,7 @@ function SwipeableAddressItem({
     >
       <div
         className={cn(
-          "absolute inset-y-0 right-2 z-10 flex translate-x-4 items-center gap-2 opacity-0 transition-all duration-200 ease-out pointer-events-none",
+          "absolute inset-y-0 right-0 z-10 flex translate-x-4 items-center gap-2 rounded-r-lg bg-card/95 px-3 opacity-0 shadow-sm backdrop-blur transition-all duration-200 ease-out motion-reduce:transition-none pointer-events-none",
           open && "translate-x-0 opacity-100 pointer-events-auto",
         )}
         aria-hidden={!open}
@@ -787,8 +810,7 @@ function SwipeableAddressItem({
         tabIndex={0}
         aria-label={`编辑${address.recipientName}的地址`}
         className={cn(
-          "relative cursor-pointer rounded-lg transition-transform duration-200 ease-out touch-pan-y outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-          open && "-translate-x-[168px]",
+          "relative cursor-pointer rounded-lg touch-pan-y outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
         )}
         onKeyDown={handleCardKeyDown}
         onClick={() => {
@@ -862,6 +884,9 @@ function AddressFormDialog({
             <ResponsiveDialogTitle className="text-xl">
               {mode === "add" ? "添加地址" : "编辑地址"}
             </ResponsiveDialogTitle>
+            <ResponsiveDialogDescription className="sr-only">
+              填写收货地址
+            </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
           <AddressForm
             key={open ? `${mode}-${address?.id ?? "new"}` : "closed"}

@@ -1,22 +1,28 @@
-"use client"
+"use client";
 
-import { useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
-import { RiCheckboxCircleLine, RiStore2Line } from "@remixicon/react"
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  RiCheckboxBlankLine,
+  RiCheckboxCircleLine,
+  RiCheckboxLine,
+  RiStore2Line,
+  RiUser3Line,
+} from "@remixicon/react";
 import {
   createErrandTask,
   type DataSource,
   type ErrandDemandDetailGroup,
-} from "@sast-shop/api"
+} from "@sast-shop/api";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from "@workspace/ui/components/avatar"
-import { Button } from "@workspace/ui/components/button"
-import { Card } from "@workspace/ui/components/card"
-import { Checkbox } from "@workspace/ui/components/checkbox"
-import { Empty } from "@workspace/ui/components/empty"
+} from "@workspace/ui/components/avatar";
+import { Button } from "@workspace/ui/components/button";
+import { Card } from "@workspace/ui/components/card";
+import { Checkbox } from "@workspace/ui/components/checkbox";
+import { Empty } from "@workspace/ui/components/empty";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -24,31 +30,31 @@ import {
   ResponsiveDialogFooter,
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
-} from "@workspace/ui/components/responsive-dialog"
-import { cn } from "@workspace/ui/lib/utils"
-import { toast } from "sonner"
+} from "@workspace/ui/components/responsive-dialog";
+import { cn } from "@workspace/ui/lib/utils";
+import { toast } from "sonner";
 
 import {
   calculateErrandSelectionTotals,
   toggleProductSelection,
   toggleRequesterSelection,
   type ErrandSelectionGroup,
-} from "@/lib/errand-selection"
+} from "@/lib/errand-selection";
 import {
   formatErrandDisplayCount,
   formatErrandDisplayPrice,
-} from "@/lib/errand-display"
-import { sanitizeImageSrc } from "@/lib/image-src"
-import { MobileFixedFooter } from "./mobile-fixed-footer"
-import { ManagedImage } from "./managed-image"
+} from "@/lib/errand-display";
+import { sanitizeImageSrc } from "@/lib/image-src";
+import { MobileFixedFooter } from "./mobile-fixed-footer";
+import { ManagedImage } from "./managed-image";
 
 type ErrandDemandDetailProps = {
-  dataSource: DataSource
-  connectBaseUrl?: string
-  storeId: string
-  storeName: string
-  details: ErrandDemandDetailGroup[]
-}
+  dataSource: DataSource;
+  connectBaseUrl?: string;
+  storeId: string;
+  storeName: string;
+  details: ErrandDemandDetailGroup[];
+};
 
 export function ErrandDemandDetail({
   dataSource,
@@ -57,15 +63,15 @@ export function ErrandDemandDetail({
   storeName,
   details,
 }: ErrandDemandDetailProps) {
-  const router = useRouter()
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [confirmOpen, setConfirmOpen] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
+  const router = useRouter();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const selectionGroups = useMemo<ErrandSelectionGroup[]>(
     () =>
       details.map((group) => ({
-        productId: group.productTemplate?.id ?? group.errandDemandId,
+        productId: group.productTemplate.id,
         estimatedUnitPriceCents: group.estimatedUnitPriceCents,
         requesters: group.requesters.map((requester) => ({
           errandDemandItemId: requester.errandDemandItemId,
@@ -74,13 +80,13 @@ export function ErrandDemandDetail({
           updatedAt: requester.updatedAt,
         })),
       })),
-    [details]
-  )
+    [details],
+  );
 
   const totals = useMemo(
     () => calculateErrandSelectionTotals(selectionGroups, selectedIds),
-    [selectionGroups, selectedIds]
-  )
+    [selectionGroups, selectedIds],
+  );
   const demandItems = useMemo(
     () =>
       details.flatMap((group) =>
@@ -94,19 +100,19 @@ export function ErrandDemandDetail({
                   updatedAt: requester.updatedAt,
                 },
               ]
-            : []
-        )
+            : [],
+        ),
       ),
-    [details, selectedIds]
-  )
-  const canSubmit = demandItems.length > 0
+    [details, selectedIds],
+  );
+  const canSubmit = demandItems.length > 0;
 
   const handleSubmit = async () => {
     if (!canSubmit || submitting) {
-      return
+      return;
     }
 
-    setSubmitting(true)
+    setSubmitting(true);
 
     try {
       const result = await createErrandTask(
@@ -114,19 +120,19 @@ export function ErrandDemandDetail({
           storeId,
           demandItems,
         },
-        { dataSource, connectBaseUrl }
-      )
+        { dataSource, connectBaseUrl },
+      );
 
-      toast.success("接单成功")
-      setConfirmOpen(false)
-      router.push(`/group/purchase/${result.errandTaskId}`)
+      toast.success("接单成功");
+      setConfirmOpen(false);
+      router.push(`/group/purchase/${result.errandTaskId}`);
     } catch {
-      toast.error("部分需求已被接单，请刷新后重试")
-      router.refresh()
+      toast.error("部分需求已被接单，请刷新后重试");
+      router.refresh();
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   if (details.length === 0) {
     return (
@@ -137,7 +143,7 @@ export function ErrandDemandDetail({
           description="可以返回跑腿采购大厅查看其他店铺。"
         />
       </div>
-    )
+    );
   }
 
   return (
@@ -158,7 +164,7 @@ export function ErrandDemandDetail({
         <section className="flex flex-col gap-3">
           {details.map((group, groupIndex) => (
             <DemandProductGroup
-              key={`${group.errandDemandId}-${group.productTemplate?.id ?? groupIndex}`}
+              key={`${group.errandDemandId}-${group.productTemplate.id}`}
               group={group}
               groupIndex={groupIndex}
               selectedIds={selectedIds}
@@ -168,7 +174,7 @@ export function ErrandDemandDetail({
               }
               onSelectRequester={(requesterId) =>
                 setSelectedIds((current) =>
-                  toggleRequesterSelection(current, requesterId)
+                  toggleRequesterSelection(current, requesterId),
                 )
               }
             />
@@ -179,28 +185,20 @@ export function ErrandDemandDetail({
       <MobileFixedFooter>
         <div className="min-w-0">
           <p className="text-xs leading-5 text-muted-foreground">
-            已选 {formatErrandDisplayCount(totals.selectedRowCount)} 行 /{" "}
+            已选 {formatErrandDisplayCount(totals.selectedRowCount)} 行 ·{" "}
             {formatErrandDisplayCount(totals.selectedQuantity)} 件
           </p>
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="text-base font-semibold text-primary">
-              {formatErrandDisplayPrice(totals.totalAmountCents)}
-            </span>
-            <span className="text-xs font-medium text-primary">
-              商品 {formatErrandDisplayPrice(totals.productAmountCents)}
-            </span>
-            <span className="text-xs font-medium text-service-fee">
-              跑腿 {formatErrandDisplayPrice(totals.serviceFeeCents)}
-            </span>
-          </div>
+          <p className="text-base font-semibold text-primary">
+            {formatErrandDisplayPrice(totals.totalAmountCents)}
+          </p>
         </div>
         <Button
           type="button"
-          className="h-10 px-4"
+          className="px-4"
           disabled={!canSubmit || submitting}
           onClick={() => setConfirmOpen(true)}
         >
-          <RiCheckboxCircleLine className="size-4" />
+          <RiCheckboxCircleLine data-icon="inline-start" />
           确认接单
         </Button>
       </MobileFixedFooter>
@@ -256,7 +254,7 @@ export function ErrandDemandDetail({
         </ResponsiveDialogContent>
       </ResponsiveDialog>
     </>
-  )
+  );
 }
 
 function DemandProductGroup({
@@ -267,49 +265,40 @@ function DemandProductGroup({
   onSelectProduct,
   onSelectRequester,
 }: {
-  group: ErrandDemandDetailGroup
-  groupIndex: number
-  selectedIds: Set<string>
-  selectionGroups: ErrandSelectionGroup[]
-  onSelectProduct: (selectedIds: Set<string>) => void
-  onSelectRequester: (requesterId: string) => void
+  group: ErrandDemandDetailGroup;
+  groupIndex: number;
+  selectedIds: Set<string>;
+  selectionGroups: ErrandSelectionGroup[];
+  onSelectProduct: (selectedIds: Set<string>) => void;
+  onSelectRequester: (requesterId: string) => void;
 }) {
-  const selectionGroup = selectionGroups[groupIndex]!
+  const selectionGroup = selectionGroups[groupIndex]!;
   const selectableIds = selectionGroup.requesters
     .filter((requester) => requester.errandDemandItemId && requester.updatedAt)
-    .map((requester) => requester.errandDemandItemId)
-  const hasSelectableRows = selectableIds.length > 0
+    .map((requester) => requester.errandDemandItemId);
+  const hasSelectableRows = selectableIds.length > 0;
   const allSelected =
-    hasSelectableRows && selectableIds.every((id) => selectedIds.has(id))
-  const product = group.productTemplate
-  const title = product?.title ?? "未命名商品"
-  const productImageUrl = product?.mainImageUrl
-  const productCheckboxId = `errand-product-${group.errandDemandId}`
+    hasSelectableRows && selectableIds.every((id) => selectedIds.has(id));
+  const product = group.productTemplate;
+  const title = product.title;
+  const productImageUrl = product.mainImageUrl;
+  const productCheckboxId = `errand-product-${group.errandDemandId}-${product.id}`;
 
   const handleProductToggle = () => {
-    onSelectProduct(toggleProductSelection(selectedIds, selectionGroup))
-  }
+    onSelectProduct(toggleProductSelection(selectedIds, selectionGroup));
+  };
 
   return (
     <Card className="overflow-hidden rounded-lg">
       <div className="flex items-start gap-3 p-3">
-        <button
-          type="button"
-          className="size-24 shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-          onClick={handleProductToggle}
-          disabled={!hasSelectableRows}
-          aria-pressed={allSelected}
-          aria-label={`选择${title}的全部需求`}
-        >
-          <ManagedImage
-            src={productImageUrl}
-            alt={title}
-            className={cn(
-              "size-24 rounded-lg border",
-              allSelected && "border-primary"
-            )}
-          />
-        </button>
+        <ManagedImage
+          src={productImageUrl}
+          alt={title}
+          className={cn(
+            "size-24 shrink-0 rounded-lg border",
+            allSelected && "border-primary",
+          )}
+        />
 
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex min-h-7 items-center justify-between gap-3">
@@ -318,15 +307,21 @@ function DemandProductGroup({
                 {title}
               </h2>
             </div>
-            <div className="flex min-h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-1 text-sm text-muted-foreground">
+            <label
+              htmlFor={productCheckboxId}
+              className={cn(
+                "flex min-h-11 shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-md px-2 text-sm text-muted-foreground",
+                !hasSelectableRows && "cursor-not-allowed opacity-50",
+              )}
+            >
               <Checkbox
                 id={productCheckboxId}
                 checked={allSelected}
                 disabled={!hasSelectableRows}
                 onCheckedChange={handleProductToggle}
               />
-              <label htmlFor={productCheckboxId}>全选</label>
-            </div>
+              <span>全选</span>
+            </label>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -361,7 +356,7 @@ function DemandProductGroup({
         ))}
       </div>
     </Card>
-  )
+  );
 }
 
 function RequesterRow({
@@ -369,48 +364,36 @@ function RequesterRow({
   selected,
   onSelect,
 }: {
-  requester: ErrandDemandDetailGroup["requesters"][number]
-  selected: boolean
-  onSelect: (requesterId: string) => void
+  requester: ErrandDemandDetailGroup["requesters"][number];
+  selected: boolean;
+  onSelect: (requesterId: string) => void;
 }) {
-  const disabled = !requester.errandDemandItemId || !requester.updatedAt
+  const disabled = !requester.errandDemandItemId || !requester.updatedAt;
   const rowServiceFeeCents =
-    requester.serviceFeePerUnitCents * requester.quantity
-  const requesterCheckboxId = `errand-requester-${requester.errandDemandItemId || requester.requesterId}`
-
+    requester.serviceFeePerUnitCents * requester.quantity;
   const handleSelect = () => {
     if (!disabled) {
-      onSelect(requester.errandDemandItemId)
+      onSelect(requester.errandDemandItemId);
     }
-  }
+  };
 
   return (
-    <div
-      role="button"
-      tabIndex={disabled ? -1 : 0}
-      aria-disabled={disabled}
+    <button
+      type="button"
+      disabled={disabled}
+      aria-pressed={selected}
       onClick={handleSelect}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault()
-          handleSelect()
-        }
-      }}
       className={cn(
-        "flex min-h-16 items-center gap-3 rounded-lg border px-3 py-2 transition-colors",
+        "flex min-h-16 w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors motion-reduce:transition-none",
         selected && "border-primary bg-primary/5",
         disabled
           ? "cursor-not-allowed border-border bg-muted/40 text-muted-foreground"
-          : "cursor-pointer border-border bg-background"
+          : "cursor-pointer border-border bg-background",
       )}
     >
-      <Checkbox
-        id={requesterCheckboxId}
-        checked={selected}
-        disabled={disabled}
-        onClick={(event) => event.stopPropagation()}
-        onCheckedChange={handleSelect}
-      />
+      <span aria-hidden="true" className="shrink-0 text-primary">
+        {selected ? <RiCheckboxLine /> : <RiCheckboxBlankLine />}
+      </span>
 
       <Avatar className="size-9">
         <AvatarImage
@@ -418,16 +401,28 @@ function RequesterRow({
           alt={requester.requesterName}
         />
         <AvatarFallback className="text-xs">
-          {nameInitial(requester.requesterName)}
+          {requester.requesterName.trim() ? (
+            nameInitial(requester.requesterName)
+          ) : (
+            <RiUser3Line className="size-4" />
+          )}
         </AvatarFallback>
       </Avatar>
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="max-w-32 truncate text-sm font-medium text-foreground">
-            {requester.requesterName || "匿名同学"}
-          </span>
-          <span className="text-xs text-muted-foreground">
+          {requester.requesterName ? (
+            <span className="max-w-32 truncate text-sm font-medium text-foreground">
+              {requester.requesterName}
+            </span>
+          ) : null}
+          <span
+            className={cn(
+              requester.requesterName
+                ? "text-xs text-muted-foreground"
+                : "text-sm font-medium text-foreground",
+            )}
+          >
             {formatErrandDisplayCount(requester.quantity)} 件
           </span>
         </div>
@@ -441,25 +436,25 @@ function RequesterRow({
           跑腿 {formatErrandDisplayPrice(rowServiceFeeCents)}
         </p>
       </div>
-    </div>
-  )
+    </button>
+  );
 }
 
 function nameInitial(name: string): string {
-  const normalizedName = name.trim()
+  const normalizedName = name.trim();
 
-  return normalizedName ? normalizedName.slice(0, 1).toUpperCase() : "同"
+  return normalizedName.slice(0, 1).toUpperCase();
 }
 
 function formatDeadline(deadline: string | null): string {
   if (!deadline) {
-    return "未设置"
+    return "未设置";
   }
 
-  const date = new Date(deadline)
+  const date = new Date(deadline);
 
   if (Number.isNaN(date.getTime())) {
-    return "未设置"
+    return "未设置";
   }
 
   return new Intl.DateTimeFormat("zh-CN", {
@@ -468,5 +463,5 @@ function formatDeadline(deadline: string | null): string {
     hour: "2-digit",
     minute: "2-digit",
     timeZone: "Asia/Shanghai",
-  }).format(date)
+  }).format(date);
 }

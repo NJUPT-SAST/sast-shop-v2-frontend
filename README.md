@@ -66,6 +66,8 @@ NEXT_PUBLIC_CONNECT_BASE_URL=http://127.0.0.1:6660
 
 `NEXT_PUBLIC_APP_ORIGIN` 用于声明当前应用访问源，例如本地开发地址或线上子域名。
 
+移动端本地视觉验收可临时设置 `NEXT_PUBLIC_FORCE_FEISHU_UI=true`，以展示飞书移动端专属入口。该开关不会注入或模拟飞书 JSAPI，实际调用仍要求真实 SDK 环境；生产环境应保持关闭。
+
 `NEXT_PUBLIC_CONNECT_BASE_URL` 只用于本地 `mock` / `local` 开发。生产应用统一通过同源 `/api/connect` 代理访问后端，私有上游地址使用服务端变量 `CONNECT_BASE_URL`，不会进入客户端 bundle。每个 app 都提交 `.env.example` 作为模板，实际使用时复制成目标环境文件：
 
 ```bash

@@ -1,6 +1,6 @@
-import * as React from "react"
+import * as React from "react";
 
-import { cn } from "#lib/utils"
+import { cn } from "#lib/utils";
 
 function Empty({
   className,
@@ -10,17 +10,17 @@ function Empty({
   action,
   ...props
 }: React.ComponentProps<"div"> & {
-  icon?: React.ReactNode
-  title: React.ReactNode
-  description?: React.ReactNode
-  action?: React.ReactNode
+  icon?: React.ReactNode;
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  action?: React.ReactNode;
 }) {
   return (
     <div
       data-slot="empty"
       className={cn(
         "flex min-h-36 flex-col items-center justify-center gap-3 rounded-lg border border-dashed bg-muted/30 px-4 py-8 text-center",
-        className
+        className,
       )}
       {...props}
     >
@@ -39,7 +39,7 @@ function Empty({
       </div>
       {action ? <div className="mt-1">{action}</div> : null}
     </div>
-  )
+  );
 }
 
-export { Empty }
+export { Empty };

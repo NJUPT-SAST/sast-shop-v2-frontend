@@ -1,9 +1,9 @@
-import { Skeleton } from "@workspace/ui/components/skeleton"
+import { Skeleton } from "@workspace/ui/components/skeleton";
 
 export function MobilePageSkeleton({
   variant = "list",
 }: {
-  variant?: "grid" | "list" | "profile"
+  variant?: "grid" | "list" | "profile";
 }) {
   return (
     <div className="flex flex-1 flex-col gap-5 py-6" aria-label="页面加载中">
@@ -37,5 +37,5 @@ export function MobilePageSkeleton({
         </>
       )}
     </div>
-  )
+  );
 }

@@ -1,7 +1,7 @@
-import { RiFileSearchLine } from "@remixicon/react"
-import { Button } from "@workspace/ui/components/button"
-import { Empty } from "@workspace/ui/components/empty"
-import Link from "next/link"
+import { RiFileSearchLine } from "@remixicon/react";
+import { Button } from "@workspace/ui/components/button";
+import { Empty } from "@workspace/ui/components/empty";
+import Link from "next/link";
 
 export default function SpotOrderNotFound() {
   return (
@@ -17,5 +17,5 @@ export default function SpotOrderNotFound() {
         }
       />
     </div>
-  )
+  );
 }

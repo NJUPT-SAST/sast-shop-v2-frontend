@@ -47,7 +47,7 @@ export interface BuyerErrandOrder {
 }
 
 export interface BuyerErrandOrderProductItem {
-  productTemplate: ProductTemplate | null;
+  productTemplate: ProductTemplate;
   actualUnitPriceCents: number;
   requiredQuantity: number;
   purchasedQuantity: number | null;
@@ -136,6 +136,34 @@ export async function getBuyerErrandOrderDetail(
   throw new FeatureUnavailableError("getBuyerErrandOrderDetail");
 }
 
+export async function getBuyerErrandOrderCaptainContact(
+  id: string,
+  options: ServiceOptions = {},
+): Promise<string> {
+  const errandDemandId = parseInt64(id, "跑腿订单 ID 不正确");
+  const dataSource = resolveDataSource(options);
+
+  if (dataSource === "mock" || dataSource === "local") {
+    const client = createClient(
+      BuyerErrandOrderService,
+      createLocalTransport(options),
+    );
+    const response = await requestLocal(
+      "getBuyerErrandOrderCaptainContact",
+      () => client.getBuyerErrandOrderCaptainContact({ errandDemandId }),
+    );
+    const openId = response.captainFeishuOpenId.trim();
+
+    if (!openId) {
+      throw new FeatureUnavailableError("getBuyerErrandOrderCaptainContact");
+    }
+
+    return openId;
+  }
+
+  throw new FeatureUnavailableError("getBuyerErrandOrderCaptainContact");
+}
+
 function parseListBuyerErrandOrdersOptions(options: {
   storeId?: string;
   status?: BuyerErrandOrderStatusFilter;
@@ -174,6 +202,10 @@ function mapBuyerErrandOrder(
 function mapBuyerErrandOrderDetail(
   order: ProtoBuyerErrandOrderDetail,
 ): BuyerErrandOrderDetail {
+  if (order.productItems.length === 0) {
+    throw new FeatureUnavailableError("buyerErrandOrder.productItems");
+  }
+
   return {
     id: order.errandDemandId.toString(),
     storeId: order.storeId.toString(),
@@ -198,10 +230,12 @@ function mapBuyerErrandOrderDetail(
 function mapBuyerErrandOrderProductItem(
   item: ProtoBuyerErrandOrderProductItem,
 ): BuyerErrandOrderProductItem {
+  if (!item.productTemplate) {
+    throw new FeatureUnavailableError("buyerErrandOrder.productTemplate");
+  }
+
   return {
-    productTemplate: item.productTemplate
-      ? mapProductTemplate(item.productTemplate)
-      : null,
+    productTemplate: mapProductTemplate(item.productTemplate),
     actualUnitPriceCents: item.actualUnitPriceCents,
     requiredQuantity: item.requiredQuantity,
     purchasedQuantity: item.purchasedQuantity ?? null,

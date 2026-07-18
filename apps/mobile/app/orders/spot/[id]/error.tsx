@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { RiErrorWarningLine } from "@remixicon/react"
-import { Button } from "@workspace/ui/components/button"
-import { Empty } from "@workspace/ui/components/empty"
-import Link from "next/link"
+import { RiErrorWarningLine } from "@remixicon/react";
+import { Button } from "@workspace/ui/components/button";
+import { Empty } from "@workspace/ui/components/empty";
+import Link from "next/link";
 
 export default function SpotOrderError({ reset }: { reset: () => void }) {
   return (
@@ -24,5 +24,5 @@ export default function SpotOrderError({ reset }: { reset: () => void }) {
         }
       />
     </div>
-  )
+  );
 }

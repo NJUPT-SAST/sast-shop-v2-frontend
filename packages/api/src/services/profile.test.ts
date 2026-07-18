@@ -1,30 +1,30 @@
-import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest"
-import type { CurrentUser } from "./auth"
-import type { ShippingAddress } from "./addresses"
-import type { PaymentQrCode } from "./payment-qr-codes"
-import { getProfileOverview, type ProfileOverview } from "./profile"
+import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest";
+import type { CurrentUser } from "./auth";
+import type { ShippingAddress } from "./addresses";
+import type { PaymentQrCode } from "./payment-qr-codes";
+import { getProfileOverview, type ProfileOverview } from "./profile";
 
 describe("profile service", () => {
   afterEach(() => {
-    vi.unstubAllGlobals()
-  })
+    vi.unstubAllGlobals();
+  });
 
   it("exposes stable profile overview return types", () => {
     expectTypeOf<typeof getProfileOverview>().returns.toEqualTypeOf<
       Promise<ProfileOverview>
-    >()
+    >();
     expectTypeOf<ProfileOverview>().toEqualTypeOf<{
-      user: CurrentUser
-      addresses: ShippingAddress[]
-      defaultAddress: ShippingAddress | null
-      paymentQrCodes: PaymentQrCode[]
-    }>()
-  })
+      user: CurrentUser;
+      addresses: ShippingAddress[];
+      defaultAddress: ShippingAddress | null;
+      paymentQrCodes: PaymentQrCode[];
+    }>();
+  });
 
   it("composes fauxrpc profile overview in mock mode", async () => {
     const fetchMock = vi.fn(async (input: string | Request) => {
-      const url = typeof input === "string" ? input : input.url
-      const pathname = new URL(url).pathname
+      const url = typeof input === "string" ? input : input.url;
+      const pathname = new URL(url).pathname;
 
       if (pathname.includes("GetUserInfo")) {
         return stubJsonResponse({
@@ -33,7 +33,7 @@ describe("profile service", () => {
             name: "fauxrpc 同学",
             avatarUrl: "https://example.test/avatar.png",
           },
-        })
+        });
       }
 
       if (pathname.includes("GetAddress")) {
@@ -50,7 +50,7 @@ describe("profile service", () => {
               isDefault: true,
             },
           ],
-        })
+        });
       }
 
       if (pathname.includes("GetQrCode")) {
@@ -67,31 +67,31 @@ describe("profile service", () => {
               content: "https://qr.alipay.com/sast-shop",
             },
           ],
-        })
+        });
       }
 
       return stubJsonResponse(
         { code: "unimplemented", message: "unexpected request" },
-        { status: 404 }
-      )
-    })
-    vi.stubGlobal("fetch", fetchMock)
+        { status: 404 },
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
 
     const overview = await getProfileOverview({
       dataSource: "mock",
       connectBaseUrl: "http://127.0.0.1:6660",
-    })
+    });
 
-    expect(overview.user.name).toBe("fauxrpc 同学")
-    expect(overview.defaultAddress?.id).toBe("1001")
-    expect(overview.addresses).toHaveLength(1)
+    expect(overview.user.name).toBe("fauxrpc 同学");
+    expect(overview.defaultAddress?.id).toBe("1001");
+    expect(overview.addresses).toHaveLength(1);
     expect(overview.paymentQrCodes.map((qrCode) => qrCode.channel)).toEqual([
       "wechat",
       "alipay",
-    ])
-    expect(fetchMock).toHaveBeenCalledTimes(3)
-  })
-})
+    ]);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+});
 
 function stubJsonResponse(body: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(body), {
@@ -100,5 +100,5 @@ function stubJsonResponse(body: unknown, init: ResponseInit = {}) {
       "content-type": "application/json",
       ...init.headers,
     },
-  })
+  });
 }

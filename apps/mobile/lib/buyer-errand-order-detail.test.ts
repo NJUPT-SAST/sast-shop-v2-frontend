@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildBuyerErrandOrderTimeline,
-  getBuyerErrandOrderAdjustmentCents,
   getBuyerErrandOrderAmountCents,
   reconcileBuyerErrandOrderUpdate,
   resolveBuyerErrandPaymentState,
@@ -37,27 +36,6 @@ describe("buyer errand order detail", () => {
         bill: { amountCents: 3698 },
       }),
     ).toBe(3698);
-  });
-
-  it("preserves positive and negative bill adjustments", () => {
-    const baseOrder = {
-      totalOriginAmountCents: 3400,
-      totalActualAmountCents: 3400,
-      totalServiceFeeCents: 600,
-    };
-
-    expect(
-      getBuyerErrandOrderAdjustmentCents({
-        ...baseOrder,
-        bill: { amountCents: 4200 },
-      }),
-    ).toBe(200);
-    expect(
-      getBuyerErrandOrderAdjustmentCents({
-        ...baseOrder,
-        bill: { amountCents: 3800 },
-      }),
-    ).toBe(-200);
   });
 
   it.each([

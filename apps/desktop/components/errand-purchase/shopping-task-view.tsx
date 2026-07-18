@@ -163,9 +163,6 @@ export function ShoppingTaskView({
             </h1>
             <Badge variant="warning">采购中</Badge>
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            逐项记录全部购买、部分购买或未购买；处理完后进入改价与分发。
-          </p>
         </div>
         <Button
           variant="outline"
@@ -181,7 +178,7 @@ export function ShoppingTaskView({
           <div>
             <p className="text-sm text-muted-foreground">处理进度</p>
             <p className="mt-1 text-lg font-semibold">
-              {processedCount} / {items.length} 种商品
+              {processedCount} 种已记录 · 共 {items.length} 种
             </p>
           </div>
           <div className="text-right">
@@ -235,6 +232,7 @@ export function ShoppingTaskView({
             </DialogDescription>
           </DialogHeader>
           <Input
+            aria-label="实际购买数量"
             type="number"
             min={1}
             max={
@@ -285,6 +283,7 @@ export function ShoppingTaskView({
             </DialogDescription>
           </DialogHeader>
           <Textarea
+            aria-label="不购买原因"
             value={skipReason}
             onChange={(event) => setSkipReason(event.target.value)}
             maxLength={15}
@@ -390,9 +389,11 @@ function ShoppingItemCard({
               {status}
             </Badge>
           </div>
-          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-            {item.productDescription || "暂无规格说明"}
-          </p>
+          {item.productDescription ? (
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+              {item.productDescription}
+            </p>
+          ) : null}
           <p className="mt-3 text-sm">
             需求 {item.requiredQuantity} 件 · 参考单价{" "}
             {formatPrice(item.actualUnitPriceCents)}

@@ -1,50 +1,46 @@
-import Link from "next/link"
+import Link from "next/link";
 import {
   listErrandTasks,
   listStores,
   type ErrandTaskBrief,
   type Store,
-} from "@sast-shop/api"
+} from "@sast-shop/api";
 import {
+  RiAddLine,
   RiArrowRightSLine,
+  RiBarcodeLine,
   RiRunLine,
   RiStore2Line,
-} from "@remixicon/react"
-import { Badge } from "@workspace/ui/components/badge"
-import { Button } from "@workspace/ui/components/button"
-import {
-  Card,
-  CardContent,
-} from "@workspace/ui/components/card"
-import { Empty } from "@workspace/ui/components/empty"
+} from "@remixicon/react";
+import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
+import { Card, CardContent } from "@workspace/ui/components/card";
+import { Empty } from "@workspace/ui/components/empty";
 import {
   Item,
   ItemActions,
   ItemContent,
   ItemDescription,
   ItemTitle,
-} from "@workspace/ui/components/item"
+} from "@workspace/ui/components/item";
 
-import { ManagedImage } from "@/components/managed-image"
-import { getActiveErrandTasks } from "@/lib/errand-task-route"
-import {
-  getStatusBadgeVariant,
-  getStatusLabel,
-} from "@/lib/order-filters"
-import { parsePositiveInt64RouteId } from "@/lib/route-id"
-import { getServerServiceOptions } from "@/lib/server-service-options"
+import { ManagedImage } from "@/components/managed-image";
+import { getActiveErrandTasks } from "@/lib/errand-task-route";
+import { getStatusBadgeVariant, getStatusLabel } from "@/lib/order-filters";
+import { parsePositiveInt64RouteId } from "@/lib/route-id";
+import { getServerServiceOptions } from "@/lib/server-service-options";
 
 export default async function GroupPage() {
-  const options = await getServerServiceOptions()
+  const options = await getServerServiceOptions();
   const [storesResult, tasksResult] = await Promise.allSettled([
     listStores(options),
     listErrandTasks(options),
-  ])
-  const stores = storesResult.status === "fulfilled" ? storesResult.value : []
+  ]);
+  const stores = storesResult.status === "fulfilled" ? storesResult.value : [];
   const tasks =
     tasksResult.status === "fulfilled"
       ? getActiveErrandTasks(tasksResult.value)
-      : []
+      : [];
 
   return (
     <div className="space-y-8">
@@ -62,19 +58,35 @@ export default async function GroupPage() {
         <section className="min-w-0 space-y-4">
           <div className="flex items-end justify-between gap-4">
             <h2 className="text-xl font-semibold">选择店铺</h2>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/group/stores/new?returnTo=%2Fgroup">
+                <RiStore2Line data-icon="inline-start" />
+                创建店铺
+              </Link>
+            </Button>
           </div>
 
           {storesResult.status === "rejected" ? (
             <Empty
               icon={<RiStore2Line className="size-5" />}
               title="店铺暂不可用"
-              description="请检查数据服务后重新加载。"
+              action={
+                <Button asChild variant="outline">
+                  <Link href="/group">重新加载</Link>
+                </Button>
+              }
             />
           ) : stores.length === 0 ? (
             <Empty
               icon={<RiStore2Line className="size-5" />}
-              title="暂无可用店铺"
-              description="店铺完成配置后会显示在这里。"
+              title="还没有店铺"
+              action={
+                <Button asChild>
+                  <Link href="/group/stores/new?returnTo=%2Fgroup">
+                    创建店铺
+                  </Link>
+                </Button>
+              }
             />
           ) : (
             <div className="grid min-w-0 gap-4 lg:grid-cols-2">
@@ -94,7 +106,12 @@ export default async function GroupPage() {
               </Button>
             </div>
             {tasksResult.status === "rejected" ? (
-              <p className="text-sm text-destructive">采购任务加载失败。</p>
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/30 px-3 py-2">
+                <p className="text-sm text-destructive">采购任务加载失败</p>
+                <Button asChild size="sm" variant="ghost">
+                  <Link href="/group">重试</Link>
+                </Button>
+              </div>
             ) : tasks.length === 0 ? (
               <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
                 当前没有进行中的团长任务。
@@ -107,14 +124,40 @@ export default async function GroupPage() {
               </div>
             )}
           </section>
+
+          <section className="space-y-3">
+            <h2 className="font-semibold">补货</h2>
+            <div className="grid gap-2">
+              <Link
+                href="/publish/spot"
+                className="group flex min-h-20 items-center gap-3 rounded-lg border bg-card px-4 transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <RiAddLine className="size-5" />
+                </span>
+                <span className="min-w-0 flex-1 font-medium">上架现货</span>
+                <RiArrowRightSLine className="size-5 text-muted-foreground transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none" />
+              </Link>
+              <Link
+                href="/group/templates"
+                className="group flex min-h-20 items-center gap-3 rounded-lg border bg-card px-4 transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
+                  <RiBarcodeLine className="size-5" />
+                </span>
+                <span className="min-w-0 flex-1 font-medium">商品模板</span>
+                <RiArrowRightSLine className="size-5 text-muted-foreground transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none" />
+              </Link>
+            </div>
+          </section>
         </aside>
       </div>
     </div>
-  )
+  );
 }
 
 function StoreCard({ store }: { store: Store }) {
-  const id = parsePositiveInt64RouteId(store.id)
+  const id = parsePositiveInt64RouteId(store.id);
   const content = (
     <Card className="h-full min-w-0 overflow-hidden transition-colors group-hover:border-primary/40">
       <CardContent className="flex min-w-0 items-center gap-4 p-4">
@@ -125,19 +168,20 @@ function StoreCard({ store }: { store: Store }) {
         />
         <div className="min-w-0 flex-1">
           <h3 className="truncate font-semibold">{store.name}</h3>
-          <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
-            {store.address || "暂无店铺地址"}
-          </p>
-          <span className="mt-3 inline-flex items-center text-sm font-medium text-primary">
-            选择商品
-            <RiArrowRightSLine className="size-4" />
-          </span>
+          {store.address ? (
+            <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
+              {store.address}
+            </p>
+          ) : null}
         </div>
+        {id ? (
+          <RiArrowRightSLine className="size-5 shrink-0 text-muted-foreground" />
+        ) : null}
       </CardContent>
     </Card>
-  )
+  );
 
-  if (!id) return <div className="opacity-60">{content}</div>
+  if (!id) return <div className="opacity-60">{content}</div>;
 
   return (
     <Link
@@ -147,11 +191,11 @@ function StoreCard({ store }: { store: Store }) {
     >
       {content}
     </Link>
-  )
+  );
 }
 
 function TaskItem({ task }: { task: ErrandTaskBrief }) {
-  const id = parsePositiveInt64RouteId(task.id)
+  const id = parsePositiveInt64RouteId(task.id);
   const content = (
     <Item variant="outline" className="min-w-0">
       <ItemContent className="min-w-0">
@@ -172,9 +216,9 @@ function TaskItem({ task }: { task: ErrandTaskBrief }) {
         </ItemActions>
       ) : null}
     </Item>
-  )
+  );
 
-  if (!id) return <div className="opacity-60">{content}</div>
+  if (!id) return <div className="opacity-60">{content}</div>;
 
   return (
     <Link
@@ -184,5 +228,5 @@ function TaskItem({ task }: { task: ErrandTaskBrief }) {
     >
       {content}
     </Link>
-  )
+  );
 }

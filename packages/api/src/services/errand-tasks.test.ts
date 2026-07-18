@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest"
-import { FeatureUnavailableError, ValidationError } from "../errors"
+import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest";
+import { FeatureUnavailableError, ValidationError } from "../errors";
 import {
   cancelTask,
   getCollectingPaymentDetail,
@@ -11,17 +11,17 @@ import {
   transitionToPendingDistributing,
   type ErrandTaskBrief,
   type ErrandTaskStatusFilter,
-} from "./errand-tasks"
+} from "./errand-tasks";
 
 const localOptions = {
   dataSource: "local" as const,
   connectBaseUrl: "http://127.0.0.1:6660",
-}
+};
 
 describe("listErrandTasks", () => {
   afterEach(() => {
-    vi.unstubAllGlobals()
-  })
+    vi.unstubAllGlobals();
+  });
 
   it("returns typed errand task briefs", async () => {
     const fetchMock = vi.fn(async () =>
@@ -38,20 +38,20 @@ describe("listErrandTasks", () => {
         ],
         currentPage: 1,
         totalCount: 1,
-      })
-    )
-    vi.stubGlobal("fetch", fetchMock)
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
 
     expectTypeOf<ReturnType<typeof listErrandTasks>>().toEqualTypeOf<
       Promise<ErrandTaskBrief[]>
-    >()
+    >();
 
     const tasks = await listErrandTasks({
       ...localOptions,
       status: "shopping",
       page: 2,
       pageSize: 20,
-    })
+    });
 
     expect(tasks).toEqual([
       {
@@ -62,8 +62,8 @@ describe("listErrandTasks", () => {
         itemCount: 2,
         createdAt: "2026-06-09T08:30:00.000Z",
       },
-    ])
-    expect(fetchMock).toHaveBeenCalledOnce()
+    ]);
+    expect(fetchMock).toHaveBeenCalledOnce();
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/GetErrandTaskList",
       body: {
@@ -71,8 +71,8 @@ describe("listErrandTasks", () => {
         pageSize: 20,
         filterStatus: "ERRAND_TASK_STATUS_SHOPPING",
       },
-    })
-  })
+    });
+  });
 
   it("accepts valid status filters", async () => {
     const fetchMock = vi.fn(async () =>
@@ -80,12 +80,14 @@ describe("listErrandTasks", () => {
         errandTasks: [],
         currentPage: 1,
         totalCount: 0,
-      })
-    )
-    vi.stubGlobal("fetch", fetchMock)
-    const status: ErrandTaskStatusFilter = "shopping"
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const status: ErrandTaskStatusFilter = "shopping";
 
-    await expect(listErrandTasks({ ...localOptions, status })).resolves.toEqual([])
+    await expect(listErrandTasks({ ...localOptions, status })).resolves.toEqual(
+      [],
+    );
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/GetErrandTaskList",
       body: {
@@ -93,34 +95,34 @@ describe("listErrandTasks", () => {
         pageSize: 50,
         filterStatus: "ERRAND_TASK_STATUS_SHOPPING",
       },
-    })
-  })
+    });
+  });
 
   it("rejects invalid pagination", async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal("fetch", fetchMock)
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
 
     await expect(
-      listErrandTasks({ ...localOptions, page: 0 })
-    ).rejects.toBeInstanceOf(ValidationError)
+      listErrandTasks({ ...localOptions, page: 0 }),
+    ).rejects.toBeInstanceOf(ValidationError);
 
     await expect(
-      listErrandTasks({ ...localOptions, pageSize: 0 })
-    ).rejects.toBeInstanceOf(ValidationError)
+      listErrandTasks({ ...localOptions, pageSize: 0 }),
+    ).rejects.toBeInstanceOf(ValidationError);
 
-    expect(fetchMock).not.toHaveBeenCalled()
-  })
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 
   it("keeps remote explicitly unavailable", async () => {
-    await expect(listErrandTasks({ dataSource: "remote" })).rejects.toBeInstanceOf(
-      FeatureUnavailableError
-    )
-  })
+    await expect(
+      listErrandTasks({ dataSource: "remote" }),
+    ).rejects.toBeInstanceOf(FeatureUnavailableError);
+  });
 
   it("finds a task beyond the first page", async () => {
-    let callCount = 0
+    let callCount = 0;
     const fetchMock = vi.fn(async () => {
-      callCount += 1
+      callCount += 1;
       return stubJsonResponse(
         callCount === 1
           ? {
@@ -140,27 +142,29 @@ describe("listErrandTasks", () => {
               ],
               currentPage: 2,
               totalCount: 51,
-            }
-      )
-    })
-    vi.stubGlobal("fetch", fetchMock)
+            },
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
 
-    await expect(getErrandTaskBrief("7051", localOptions)).resolves.toMatchObject({
+    await expect(
+      getErrandTaskBrief("7051", localOptions),
+    ).resolves.toMatchObject({
       id: "7051",
       status: "completed",
-    })
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     await expectConnectRequestAt(fetchMock, 1, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/GetErrandTaskList",
       body: { page: 2, pageSize: 50 },
-    })
-  })
-})
+    });
+  });
+});
 
 describe("captain task detail facades", () => {
   afterEach(() => {
-    vi.unstubAllGlobals()
-  })
+    vi.unstubAllGlobals();
+  });
 
   it("maps shopping detail and preserves optional purchase state", async () => {
     const fetchMock = vi.fn(async () =>
@@ -190,9 +194,9 @@ describe("captain task detail facades", () => {
             actualUnitPriceCents: 1100,
           },
         ],
-      })
-    )
-    vi.stubGlobal("fetch", fetchMock)
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
 
     await expect(getShoppingTaskDetail("7001", localOptions)).resolves.toEqual({
       taskId: "7001",
@@ -224,12 +228,12 @@ describe("captain task detail facades", () => {
           updatedAt: null,
         },
       ],
-    })
+    });
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/GetShoppingTaskDetail",
       body: { errandTaskId: "7001" },
-    })
-  })
+    });
+  });
 
   it("maps distributing detail with requester concurrency fields", async () => {
     const fetchMock = vi.fn(async () =>
@@ -260,11 +264,11 @@ describe("captain task detail facades", () => {
             ],
           },
         ],
-      })
-    )
-    vi.stubGlobal("fetch", fetchMock)
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
 
-    const detail = await getDistributingTaskDetail("7002", localOptions)
+    const detail = await getDistributingTaskDetail("7002", localOptions);
 
     expect(detail).toMatchObject({
       taskId: "7002",
@@ -284,8 +288,8 @@ describe("captain task detail facades", () => {
           ],
         },
       ],
-    })
-  })
+    });
+  });
 
   it("maps collecting-payment bills and explainable amount fields", async () => {
     const fetchMock = vi.fn(async () =>
@@ -325,11 +329,11 @@ describe("captain task detail facades", () => {
             totalAmountCents: 1500,
           },
         ],
-      })
-    )
-    vi.stubGlobal("fetch", fetchMock)
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
 
-    const detail = await getCollectingPaymentDetail("7004", localOptions)
+    const detail = await getCollectingPaymentDetail("7004", localOptions);
 
     expect(detail).toEqual({
       taskId: "7004",
@@ -367,12 +371,12 @@ describe("captain task detail facades", () => {
           totalAmountCents: 1500,
         },
       ],
-    })
-  })
+    });
+  });
 
   it("sends purchase mutations with optimistic concurrency timestamps", async () => {
-    const fetchMock = vi.fn(async () => stubJsonResponse({}))
-    vi.stubGlobal("fetch", fetchMock)
+    const fetchMock = vi.fn(async () => stubJsonResponse({}));
+    vi.stubGlobal("fetch", fetchMock);
 
     await saveShoppingTaskItem(
       {
@@ -381,8 +385,8 @@ describe("captain task detail facades", () => {
         purchasedQuantity: 8,
         itemUpdatedAt: "2026-07-18T02:00:00Z",
       },
-      localOptions
-    )
+      localOptions,
+    );
 
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/SaveShoppingTaskItem",
@@ -392,40 +396,40 @@ describe("captain task detail facades", () => {
         purchasedQuantity: 8,
         errandTaskItemUpdatedAt: "2026-07-18T02:00:00Z",
       },
-    })
-  })
+    });
+  });
 
   it("uses dedicated task transition and cancel endpoints", async () => {
-    const fetchMock = vi.fn(async () => stubJsonResponse({}))
-    vi.stubGlobal("fetch", fetchMock)
+    const fetchMock = vi.fn(async () => stubJsonResponse({}));
+    vi.stubGlobal("fetch", fetchMock);
 
-    await transitionToPendingDistributing("7001", null, localOptions)
-    await cancelTask("7001", null, localOptions)
+    await transitionToPendingDistributing("7001", null, localOptions);
+    await cancelTask("7001", null, localOptions);
 
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     await expectConnectRequestAt(fetchMock, 0, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/TransitionToPendingDistributing",
       body: { errandTaskId: "7001" },
-    })
+    });
     await expectConnectRequestAt(fetchMock, 1, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/CancelTask",
       body: { errandTaskId: "7001" },
-    })
-  })
+    });
+  });
 
   it("rejects invalid and overflowing task ids before a request", async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal("fetch", fetchMock)
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
 
-    await expect(getShoppingTaskDetail("0", localOptions)).rejects.toBeInstanceOf(
-      ValidationError
-    )
     await expect(
-      getShoppingTaskDetail("9223372036854775808", localOptions)
-    ).rejects.toBeInstanceOf(ValidationError)
-    expect(fetchMock).not.toHaveBeenCalled()
-  })
-})
+      getShoppingTaskDetail("0", localOptions),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      getShoppingTaskDetail("9223372036854775808", localOptions),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
 
 function stubJsonResponse(body: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(body), {
@@ -434,44 +438,46 @@ function stubJsonResponse(body: unknown, init: ResponseInit = {}) {
       "content-type": "application/json",
       ...init.headers,
     },
-  })
+  });
 }
 
 async function expectConnectRequest(
   fetchMock: ReturnType<typeof vi.fn>,
   expected: {
-    path: string
-    body: Record<string, unknown>
-  }
+    path: string;
+    body: Record<string, unknown>;
+  },
 ) {
-  await expectConnectRequestAt(fetchMock, 0, expected)
+  await expectConnectRequestAt(fetchMock, 0, expected);
 }
 
 async function expectConnectRequestAt(
   fetchMock: ReturnType<typeof vi.fn>,
   index: number,
   expected: {
-    path: string
-    body: Record<string, unknown>
-  }
+    path: string;
+    body: Record<string, unknown>;
+  },
 ) {
-  const [input, init] = fetchMock.mock.calls[index] ?? []
-  const url = typeof input === "string" ? input : (input as Request).url
+  const [input, init] = fetchMock.mock.calls[index] ?? [];
+  const url = typeof input === "string" ? input : (input as Request).url;
   const body =
-    typeof input === "string" ? init?.body : await (input as Request).clone().text()
+    typeof input === "string"
+      ? init?.body
+      : await (input as Request).clone().text();
 
-  expect(new URL(url).pathname).toBe(expected.path)
-  expect(JSON.parse(bodyToText(body))).toEqual(expected.body)
+  expect(new URL(url).pathname).toBe(expected.path);
+  expect(JSON.parse(bodyToText(body))).toEqual(expected.body);
 }
 
 function bodyToText(body: unknown): string {
   if (body instanceof Uint8Array) {
-    return new TextDecoder().decode(body)
+    return new TextDecoder().decode(body);
   }
 
   if (body instanceof ArrayBuffer) {
-    return new TextDecoder().decode(body)
+    return new TextDecoder().decode(body);
   }
 
-  return String(body)
+  return String(body);
 }

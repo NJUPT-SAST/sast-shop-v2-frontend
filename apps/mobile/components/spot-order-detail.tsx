@@ -3,9 +3,12 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  RiArrowDownSLine,
+  RiArrowUpSLine,
   RiCheckboxCircleLine,
   RiCloseCircleLine,
-  RiQuestionLine,
+  RiFileList3Line,
+  RiTimeLine,
 } from "@remixicon/react";
 import {
   cancelSpotOrder,
@@ -21,20 +24,16 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@workspace/ui/components/alert";
+import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from "@workspace/ui/components/drawer";
+import { CopyButton } from "@workspace/ui/components/copy-button";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -49,12 +48,15 @@ import { cn } from "@workspace/ui/lib/utils";
 import { toast } from "sonner";
 
 import type { SpotOrderView } from "@/lib/order-filters";
+import { useFeishuUiEnvironment } from "@/hooks/use-feishu-ui-environment";
+import { resolveOrderContactAction } from "@/lib/order-contact";
 import {
   hasPaymentRecipient,
   reconcileSpotOrderUpdate,
   resolveSpotOrderActions,
 } from "@/lib/spot-order-actions";
 import { ManagedImage } from "./managed-image";
+import { LarkContactButton } from "./lark-contact-button";
 import { MobileFixedFooter } from "./mobile-fixed-footer";
 import {
   PaymentSection,
@@ -70,37 +72,6 @@ export type SpotOrderDetailProps = {
 };
 
 type VersionedPaymentBill = PaymentBill & { updatedAt: string };
-type OrderStep = {
-  label: string;
-  isActive: boolean;
-  isDone: boolean;
-};
-
-const STATUS_STEP_INDEX: Record<SpotOrder["status"], number> = {
-  pending_payment: 0,
-  paid: 1,
-  completed: 2,
-  cancelled: -1,
-  unknown: -1,
-};
-
-const BUYER_STEP_LABELS = ["待支付", "处理中", "已完成"];
-const SELLER_STEP_LABELS = ["待收款", "后续处理", "已完成"];
-
-function buildSteps(
-  status: SpotOrder["status"],
-  view: SpotOrderView,
-): OrderStep[] {
-  const activeIndex = STATUS_STEP_INDEX[status];
-  const labels = view === "seller" ? SELLER_STEP_LABELS : BUYER_STEP_LABELS;
-
-  return labels.map((label, index) => ({
-    label,
-    isDone: activeIndex > index,
-    isActive: activeIndex === index,
-  }));
-}
-
 export function SpotOrderDetail({
   dataSource,
   connectBaseUrl,
@@ -110,7 +81,7 @@ export function SpotOrderDetail({
   const router = useRouter();
   const [currentOrder, setCurrentOrder] = useState(order);
   const [paymentDrawerOpen, setPaymentDrawerOpen] = useState(false);
-  const [progressDrawerOpen, setProgressDrawerOpen] = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [confirmPaymentDialogOpen, setConfirmPaymentDialogOpen] =
@@ -123,7 +94,6 @@ export function SpotOrderDetail({
 
   const resolvedOrder = reconcileSpotOrderUpdate(currentOrder, order);
   const bill = resolvedOrder.bill;
-  const steps = buildSteps(resolvedOrder.status, view);
   const isCancelled = resolvedOrder.status === "cancelled";
   const actions = resolveSpotOrderActions(
     view,
@@ -139,7 +109,15 @@ export function SpotOrderDetail({
   const canSupplementSerialNumber =
     actions.canSupplementSerialNumber && Boolean(versionedBill);
   const canConfirmPayment = actions.canConfirmPayment && Boolean(versionedBill);
+  const feishuUiEnvironment = useFeishuUiEnvironment();
+  const contactAction = resolveOrderContactAction({
+    orderType: "spot",
+    view,
+    isFeishuEnvironment: feishuUiEnvironment,
+  });
+  const canContactSeller = Boolean(contactAction);
   const showActionBar =
+    canContactSeller ||
     actions.canCancel ||
     canSubmitPayment ||
     canSupplementSerialNumber ||
@@ -206,30 +184,15 @@ export function SpotOrderDetail({
       >
         <h1 className="text-lg font-semibold">订单详情</h1>
 
-        <OrderProgressBar
-          steps={steps}
+        <OrderTimelinePanel
+          order={resolvedOrder}
           currentLabel={currentStatusLabel}
-          isCancelled={isCancelled}
-          onExpand={() => setProgressDrawerOpen(true)}
+          open={timelineOpen}
+          onOpenChange={setTimelineOpen}
         />
 
         <OrderInfoCard order={resolvedOrder} view={view} />
-
-        {resolvedOrder.status === "paid" && bill ? (
-          <PaidStatusSection bill={bill} />
-        ) : null}
-
-        {view === "buyer" &&
-        resolvedOrder.status === "pending_payment" &&
-        bill?.status === "submitted" ? (
-          <AwaitingPaymentConfirmation bill={bill} />
-        ) : null}
-
-        {view === "seller" &&
-        resolvedOrder.status === "pending_payment" &&
-        bill ? (
-          <SellerPaymentReview bill={bill} />
-        ) : null}
+        {bill ? <BillCard bill={bill} /> : null}
 
         {view === "buyer" && actions.canPay && !payableBill ? (
           <UnavailablePaymentBill />
@@ -257,6 +220,17 @@ export function SpotOrderDetail({
 
       {showActionBar ? (
         <MobileFixedFooter>
+          {contactAction ? (
+            <LarkContactButton
+              target={contactAction.target}
+              orderId={String(resolvedOrder.id)}
+              dataSource={dataSource}
+              connectBaseUrl={connectBaseUrl}
+              label={contactAction.label}
+              iconOnly
+              className="shrink-0"
+            />
+          ) : null}
           {actions.canCancel ? (
             <Button
               type="button"
@@ -305,13 +279,6 @@ export function SpotOrderDetail({
           ) : null}
         </MobileFixedFooter>
       ) : null}
-
-      <OrderProgressDrawer
-        open={progressDrawerOpen}
-        onOpenChange={setProgressDrawerOpen}
-        steps={steps}
-        isCancelled={isCancelled}
-      />
 
       {canSubmitPayment && payableBill ? (
         <PaymentSection
@@ -366,9 +333,11 @@ export function SpotOrderDetail({
         open={confirmPaymentDialogOpen}
         onOpenChange={setConfirmPaymentDialogOpen}
         title="确认收款"
-        description={`请核对标识码 ${bill?.verifyCode ?? "-"} 和到账金额 ${formatPrice(
-          bill?.amountCents ?? resolvedOrder.totalAmountCents,
-        )}，确认实际到账后再继续。`}
+        description={
+          bill?.verifyCode
+            ? `请核对标识码 ${bill.verifyCode} 和到账金额 ${formatPrice(bill.amountCents)}，确认实际到账后再继续。`
+            : `请核对到账金额 ${formatPrice(bill?.amountCents ?? resolvedOrder.totalAmountCents)}，确认实际到账后再继续。`
+        }
         confirmLabel="确认已到账"
         pending={lifecyclePending === "confirm-payment"}
         onConfirm={() => void handleLifecycleAction("confirm-payment")}
@@ -377,138 +346,118 @@ export function SpotOrderDetail({
   );
 }
 
-function OrderProgressBar({
-  steps,
+function OrderTimelinePanel({
+  order,
   currentLabel,
-  isCancelled,
-  onExpand,
+  open,
+  onOpenChange,
 }: {
-  steps: OrderStep[];
+  order: SpotOrder;
   currentLabel: string;
-  isCancelled: boolean;
-  onExpand: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
+  const timeline = buildSpotOrderTimeline(order);
+
   return (
-    <button
-      type="button"
-      className="flex w-full items-center justify-between rounded-lg border bg-card p-4 text-left"
-      onClick={onExpand}
-    >
-      <div className="flex items-center gap-3">
-        {isCancelled ? (
-          <span className="flex size-8 items-center justify-center rounded-full bg-muted">
-            <RiCloseCircleLine className="size-4 text-muted-foreground" />
+    <section className="overflow-hidden rounded-lg border bg-card">
+      <Button
+        type="button"
+        variant="ghost"
+        className="h-12 w-full justify-between rounded-none px-3 hover:bg-muted/50 aria-expanded:bg-transparent aria-expanded:text-foreground"
+        aria-expanded={open}
+        aria-controls="spot-order-timeline"
+        onClick={() => onOpenChange(!open)}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <RiTimeLine data-icon="inline-start" />
+          <span className="truncate">订单节点</span>
+        </span>
+        <span className="flex min-w-0 items-center gap-1">
+          <span className="truncate text-sm font-normal text-muted-foreground">
+            {currentLabel}
           </span>
-        ) : (
-          <span className="flex size-8 items-center justify-center rounded-full bg-primary/10">
-            <RiCheckboxCircleLine className="size-4 text-primary" />
-          </span>
-        )}
-        <div>
-          <p className="text-sm font-medium">{currentLabel}</p>
-          {!isCancelled ? (
-            <p className="text-xs text-muted-foreground">
-              {steps.filter((s) => s.isDone || s.isActive).length} /{" "}
-              {steps.length} 步骤
-            </p>
-          ) : null}
+          {open ? (
+            <RiArrowUpSLine className="size-5 shrink-0 text-muted-foreground" />
+          ) : (
+            <RiArrowDownSLine className="size-5 shrink-0 text-muted-foreground" />
+          )}
+        </span>
+      </Button>
+      <div
+        id="spot-order-timeline"
+        className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${
+          open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        }`}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="border-t px-3 pt-3">
+            {timeline.length === 0 ? (
+              <Alert className="mb-3">
+                <RiFileList3Line />
+                <AlertTitle>暂无订单节点</AlertTitle>
+              </Alert>
+            ) : (
+              timeline.map((item, index) => (
+                <div
+                  key={`${item.label}-${item.timestamp}`}
+                  className="flex gap-3"
+                >
+                  <div className="flex flex-col items-center">
+                    <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      {item.kind === "cancelled" ? (
+                        <RiCloseCircleLine className="size-4" />
+                      ) : (
+                        <RiCheckboxCircleLine className="size-4" />
+                      )}
+                    </span>
+                    {index < timeline.length - 1 ? (
+                      <span className="min-h-8 w-px flex-1 bg-border" />
+                    ) : null}
+                  </div>
+                  <div className="min-w-0 pb-4">
+                    <p className="font-medium">{item.label}</p>
+                    <p className="mt-1 text-sm text-muted-foreground tabular-nums">
+                      {formatDateTime(item.timestamp)}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
-      <RiQuestionLine className="size-4 text-muted-foreground" />
-    </button>
+    </section>
   );
 }
 
-function OrderProgressDrawer({
-  open,
-  onOpenChange,
-  steps,
-  isCancelled,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  steps: OrderStep[];
-  isCancelled: boolean;
-}) {
-  return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent>
-        <DrawerHeader>
-          <DrawerTitle>订单进度</DrawerTitle>
-          <DrawerDescription className="sr-only">
-            查看现货订单的处理进度
-          </DrawerDescription>
-        </DrawerHeader>
-        <div className="px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
-          {isCancelled ? (
-            <div className="flex items-start gap-3">
-              <div className="flex flex-col items-center">
-                <span className="flex size-7 items-center justify-center rounded-full bg-muted">
-                  <RiCloseCircleLine className="size-4 text-muted-foreground" />
-                </span>
-              </div>
-              <p className="pt-0.5 text-sm font-medium text-muted-foreground">
-                已取消
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-0">
-              {steps.map((step, index) => (
-                <div key={step.label} className="flex items-start gap-3">
-                  <div className="flex flex-col items-center">
-                    <span
-                      className={cn(
-                        "flex size-7 items-center justify-center rounded-full",
-                        step.isDone
-                          ? "bg-primary/10 text-primary"
-                          : step.isActive
-                            ? "bg-primary/10 text-primary"
-                            : "bg-muted text-muted-foreground",
-                      )}
-                    >
-                      {step.isDone ? (
-                        <RiCheckboxCircleLine className="size-4" />
-                      ) : (
-                        <span className="text-xs font-semibold">
-                          {index + 1}
-                        </span>
-                      )}
-                    </span>
-                    {index < steps.length - 1 ? (
-                      <span
-                        className={cn(
-                          "my-1 w-0.5 flex-1",
-                          step.isDone ? "bg-primary/30" : "bg-muted",
-                        )}
-                        style={{ minHeight: "1.5rem" }}
-                      />
-                    ) : null}
-                  </div>
-                  <div className="pb-4 pt-0.5">
-                    <p
-                      className={cn(
-                        "text-sm font-medium",
-                        step.isActive
-                          ? "text-foreground"
-                          : step.isDone
-                            ? "text-primary"
-                            : "text-muted-foreground",
-                      )}
-                    >
-                      {step.label}
-                    </p>
-                    {step.isActive ? (
-                      <p className="mt-0.5 text-xs text-primary">当前状态</p>
-                    ) : null}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </DrawerContent>
-    </Drawer>
+function buildSpotOrderTimeline(order: SpotOrder) {
+  const nodes = [
+    { label: "创建订单", timestamp: order.createdAt, kind: "created" },
+    { label: "完成支付", timestamp: order.paidAt, kind: "paid" },
+    { label: "完成订单", timestamp: order.completedAt, kind: "completed" },
+    { label: "取消订单", timestamp: order.cancelledAt, kind: "cancelled" },
+  ];
+
+  return nodes.filter(
+    (node): node is { label: string; timestamp: string; kind: string } =>
+      isValidTimestamp(node.timestamp),
   );
+}
+
+function formatDateTime(value: string): string {
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(value));
+}
+
+function isValidTimestamp(value: string | null): value is string {
+  if (!value) return false;
+  return !Number.isNaN(Date.parse(value));
 }
 
 function getCurrentStatusLabel(
@@ -518,7 +467,7 @@ function getCurrentStatusLabel(
 ): string {
   if (orderStatus === "completed") return "已完成";
   if (orderStatus === "cancelled") return "已取消";
-  if (orderStatus === "unknown") return "未知";
+  if (orderStatus === "unknown") return "状态异常";
 
   if (orderStatus === "paid") {
     return view === "seller" ? "后续处理" : "处理中";
@@ -533,6 +482,22 @@ function getCurrentStatusLabel(
   return billStatus === "submitted" ? "等待收款确认" : "待支付";
 }
 
+function getBillStatusLabel(status: PaymentBill["status"]): string {
+  if (status === "unpaid") return "待支付";
+  if (status === "submitted") return "待确认收款";
+  if (status === "completed") return "已完成";
+  if (status === "closed") return "已关闭";
+  return "状态异常";
+}
+
+function getBillBadgeVariant(status: PaymentBill["status"]) {
+  if (status === "unpaid") return "payment" as const;
+  if (status === "submitted") return "attention" as const;
+  if (status === "completed") return "success" as const;
+  if (status === "closed") return "danger" as const;
+  return "neutral" as const;
+}
+
 function OrderInfoCard({
   order,
   view,
@@ -542,24 +507,31 @@ function OrderInfoCard({
 }) {
   const lineTotal = order.unitPriceCents * order.quantity;
   const counterparty = view === "seller" ? order.bill?.payer : order.seller;
+  const showCounterparty =
+    counterparty && counterparty.name !== order.store?.name;
 
   return (
     <Card className="rounded-lg">
       <CardHeader>
         <CardTitle className="text-base">订单信息</CardTitle>
+        <div className="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+          <span className="min-w-0 truncate font-mono tabular-nums">
+            {order.orderNo || order.id}
+          </span>
+          <CopyButton
+            value={order.orderNo || String(order.id)}
+            label="订单号"
+          />
+        </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="text-muted-foreground">订单号</span>
-          <span className="font-mono text-xs">{order.orderNo}</span>
-        </div>
         {order.store ? (
           <div className="flex items-center justify-between gap-3 text-sm">
             <span className="text-muted-foreground">店铺</span>
             <span>{order.store.name}</span>
           </div>
         ) : null}
-        {counterparty ? (
+        {showCounterparty ? (
           <div className="flex items-center justify-between gap-3 text-sm">
             <span className="text-muted-foreground">
               {view === "seller" ? "买家" : "卖家"}
@@ -601,102 +573,60 @@ function OrderInfoCard({
   );
 }
 
-function PaidStatusSection({ bill }: { bill: PaymentBill }) {
+function BillCard({ bill }: { bill: PaymentBill }) {
   return (
     <Card className="rounded-lg">
-      <CardHeader>
-        <CardTitle className="text-base">支付信息</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <RiCheckboxCircleLine className="size-4 shrink-0 text-primary" />
-          收款方将根据标识码核对收款信息
-        </div>
-        <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2">
-          <span className="text-sm text-muted-foreground">标识码</span>
-          <span className="select-all font-mono text-sm font-semibold">
-            {bill.verifyCode}
-          </span>
-        </div>
-        {bill.channel ? (
-          <div className="flex items-center justify-between gap-3 text-sm">
-            <span className="text-muted-foreground">支付方式</span>
-            <span>{bill.channel === "wechat" ? "微信支付" : "支付宝"}</span>
+      <CardHeader className="flex-row items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1.5">
+          <CardTitle className="text-base">支付账单</CardTitle>
+          <div className="flex min-w-0 items-center gap-1">
+            <CardDescription className="min-w-0 truncate font-mono tabular-nums">
+              {bill.billNo || bill.id}
+            </CardDescription>
+            <CopyButton value={bill.billNo || String(bill.id)} label="账单号" />
           </div>
-        ) : null}
-      </CardContent>
-    </Card>
-  );
-}
-
-function AwaitingPaymentConfirmation({ bill }: { bill: PaymentBill }) {
-  return (
-    <Card className="rounded-lg">
-      <CardHeader>
-        <CardTitle className="text-base">等待收款确认</CardTitle>
+        </div>
+        <Badge variant={getBillBadgeVariant(bill.status)}>
+          {getBillStatusLabel(bill.status)}
+        </Badge>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <RiCheckboxCircleLine className="size-4 shrink-0 text-primary" />
-          已提交支付信息，请等待发布者核对款项。
-        </div>
-        <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2">
-          <span className="text-sm text-muted-foreground">付款标识码</span>
-          <span className="font-mono text-sm font-semibold">
-            {bill.verifyCode}
-          </span>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function SellerPaymentReview({ bill }: { bill: PaymentBill }) {
-  if (bill.status === "unpaid") {
-    return (
-      <Card className="rounded-lg">
-        <CardHeader>
-          <CardTitle className="text-base">等待买家付款</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          买家尚未提交支付信息，到账后再进行收款确认。
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (bill.status !== "submitted") return null;
-
-  return (
-    <Card className="rounded-lg">
-      <CardHeader>
-        <CardTitle className="text-base">核对收款信息</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2">
-          <span className="text-sm text-muted-foreground">付款标识码</span>
-          <span className="font-mono text-sm font-semibold">
-            {bill.verifyCode}
-          </span>
-        </div>
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="text-muted-foreground">支付方式</span>
-          <span>
-            {bill.channel === "wechat"
-              ? "微信支付"
-              : bill.channel === "alipay"
-                ? "支付宝"
-                : "未填写"}
-          </span>
-        </div>
-        {bill.serialNumber ? (
-          <div className="flex min-w-0 items-start justify-between gap-3 text-sm">
-            <span className="shrink-0 text-muted-foreground">支付流水号</span>
-            <span className="min-w-0 break-all text-right font-mono text-xs">
-              {bill.serialNumber}
-            </span>
-          </div>
-        ) : null}
+      <CardContent>
+        <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
+          {bill.payee?.name ? (
+            <>
+              <dt className="text-muted-foreground">收款人</dt>
+              <dd className="min-w-0 truncate text-right">{bill.payee.name}</dd>
+            </>
+          ) : null}
+          {bill.verifyCode ? (
+            <>
+              <dt className="text-muted-foreground">付款标识码</dt>
+              <dd className="break-all text-right font-mono font-semibold">
+                {bill.verifyCode}
+              </dd>
+            </>
+          ) : null}
+          <dt className="text-muted-foreground">账单金额</dt>
+          <dd className="text-right font-semibold">
+            {formatPrice(bill.amountCents)}
+          </dd>
+          {bill.channel ? (
+            <>
+              <dt className="text-muted-foreground">支付方式</dt>
+              <dd className="text-right">
+                {bill.channel === "wechat" ? "微信支付" : "支付宝"}
+              </dd>
+            </>
+          ) : null}
+          {bill.serialNumber ? (
+            <>
+              <dt className="text-muted-foreground">支付流水号</dt>
+              <dd className="break-all text-right font-mono">
+                {bill.serialNumber}
+              </dd>
+            </>
+          ) : null}
+        </dl>
       </CardContent>
     </Card>
   );

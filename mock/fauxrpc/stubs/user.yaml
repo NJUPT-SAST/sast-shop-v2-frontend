@@ -2,11 +2,11 @@ stubs:
   - id: auth-login
     target: sast.sastshopv2.user.v1.AuthService/Login
     content:
-      sessionToken: mock-session-token-sast-shop
-      expiresAt: "2099-12-31T23:59:59Z"
-      userInfo:
+      accessToken: mock-session-token-sast-shop
+      expiresIn: 86400
+      member:
         id: "10001"
-        name: 阮小妍
+        displayName: 阮小妍
         avatarUrl: https://avatars.githubusercontent.com/u/37794833?s=200&v=4
   - id: auth-get-jsapi-config
     target: sast.sastshopv2.user.v1.AuthService/GetJSAPIAuthConfig

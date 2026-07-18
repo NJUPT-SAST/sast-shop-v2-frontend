@@ -19,11 +19,13 @@ function isMobileDataSource(value: string | undefined): value is DataSource {
 }
 
 export function resolveMobileDataSource(value: string | undefined): DataSource {
-  return isMobileDataSource(value) ? value : "local";
+  if (value === undefined) return "local";
+  if (isMobileDataSource(value)) return value;
+  throw new Error(
+    `NEXT_PUBLIC_DATA_SOURCE 必须是 mock、local 或 remote，当前值为 ${JSON.stringify(value)}`,
+  );
 }
 
-const isDataSourceFallback =
-  dataSourceEnv !== undefined && !isMobileDataSource(dataSourceEnv);
 const authMode = getServerAuthMode();
 const appOrigin = (appOriginEnv ?? "https://m.sast-shop.example.com").replace(
   /\/$/,
@@ -33,12 +35,6 @@ const appOrigin = (appOriginEnv ?? "https://m.sast-shop.example.com").replace(
 export const mobileAppConfig = {
   appName: "SAST 商城",
   dataSource: resolveMobileDataSource(dataSourceEnv),
-  dataSourceFallback: isDataSourceFallback
-    ? {
-        providedValue: dataSourceEnv,
-        fallbackValue: "local" satisfies DataSource,
-      }
-    : null,
   appOrigin,
   connectBaseUrl:
     authMode === "required"

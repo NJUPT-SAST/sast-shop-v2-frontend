@@ -6,4 +6,4 @@ export {
   type ErrandSelectionGroup,
   type ErrandSelectionRequester,
   type ErrandSelectionTotals,
-} from "@sast-shop/domain"
+} from "@sast-shop/domain";

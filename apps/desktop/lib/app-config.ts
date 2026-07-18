@@ -19,21 +19,16 @@ function isDesktopDataSource(value: string | undefined): value is DataSource {
 export function resolveDesktopDataSource(
   value: string | undefined,
 ): DataSource {
-  return isDesktopDataSource(value) ? value : "mock";
+  if (value === undefined) return "mock";
+  if (isDesktopDataSource(value)) return value;
+  throw new Error(
+    `NEXT_PUBLIC_DATA_SOURCE 必须是 mock、local 或 remote，当前值为 ${JSON.stringify(value)}`,
+  );
 }
-
-const isDataSourceFallback =
-  dataSourceEnv !== undefined && !isDesktopDataSource(dataSourceEnv);
 
 export const desktopAppConfig = {
   appName: "SAST 商城 PC 端",
   dataSource: resolveDesktopDataSource(dataSourceEnv),
-  dataSourceFallback: isDataSourceFallback
-    ? {
-        providedValue: dataSourceEnv,
-        fallbackValue: "mock" satisfies DataSource,
-      }
-    : null,
   appOrigin,
   connectBaseUrl: `${appOrigin}/api/connect`,
 };

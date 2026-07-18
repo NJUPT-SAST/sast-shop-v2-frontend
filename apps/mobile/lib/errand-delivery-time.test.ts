@@ -34,12 +34,10 @@ describe("errand delivery time", () => {
   it("validates deadlines at least two hours in the future", () => {
     const now = new Date(2026, 5, 9, 10, 0);
 
-    expect(
-      isValidErrandDeadline(new Date(2026, 5, 9, 11, 59), now),
-    ).toBe(false);
-    expect(
-      isValidErrandDeadline(new Date(2026, 5, 9, 12, 0), now),
-    ).toBe(true);
+    expect(isValidErrandDeadline(new Date(2026, 5, 9, 11, 59), now)).toBe(
+      false,
+    );
+    expect(isValidErrandDeadline(new Date(2026, 5, 9, 12, 0), now)).toBe(true);
   });
 
   it("formats datetime-local values at local date and minute precision", () => {

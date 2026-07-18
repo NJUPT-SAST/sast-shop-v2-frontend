@@ -1,95 +1,101 @@
-import { createClient } from "@connectrpc/connect"
-import { timestampDate } from "@bufbuild/protobuf/wkt"
-import { AuthService } from "../gen/sast/sastshopv2/user/v1/auth_service_pb"
-import type { UserInfo } from "../gen/sast/sastshopv2/user/v1/user_info_pb"
-import { UserService } from "../gen/sast/sastshopv2/user/v1/user_service_pb"
-import { resolveDataSource, type ServiceOptions } from "../data-source"
-import { FeatureUnavailableError, ValidationError } from "../errors"
-import { createLocalTransport, requestLocal } from "../local-connect"
+import { createClient } from "@connectrpc/connect";
+import { AuthService } from "../gen/sast/sastshopv2/user/v1/auth_service_pb";
+import type { UserInfo } from "../gen/sast/sastshopv2/user/v1/user_info_pb";
+import { UserService } from "../gen/sast/sastshopv2/user/v1/user_service_pb";
+import { resolveDataSource, type ServiceOptions } from "../data-source";
+import { FeatureUnavailableError, ValidationError } from "../errors";
+import { createLocalTransport, requestLocal } from "../local-connect";
 
-const LOCAL_SMOKE_USER_ID = 10001n
+const LOCAL_SMOKE_USER_ID = 10001n;
 
 export interface CurrentUser {
-  id: string
-  name: string
-  avatarUrl: string
+  id: string;
+  name: string;
+  avatarUrl: string;
 }
 
 export interface AuthSession {
-  sessionToken: string
-  expiresAt: string
-  user: CurrentUser
+  sessionToken: string;
+  expiresAt: string;
+  user: CurrentUser;
 }
 
 export interface JSAPIAuthConfig {
-  appId: string
-  timestamp: string
-  nonceStr: string
-  signature: string
+  appId: string;
+  timestamp: string;
+  nonceStr: string;
+  signature: string;
 }
 
-export async function getCurrentUser(options: ServiceOptions = {}): Promise<CurrentUser> {
-  const dataSource = resolveDataSource(options)
+export async function getCurrentUser(
+  options: ServiceOptions = {},
+): Promise<CurrentUser> {
+  const dataSource = resolveDataSource(options);
 
   if (dataSource === "mock" || dataSource === "local") {
-    const client = createClient(UserService, createLocalTransport(options))
+    const client = createClient(UserService, createLocalTransport(options));
     const response = await requestLocal("getCurrentUser", () =>
-      client.getUserInfo({ userId: LOCAL_SMOKE_USER_ID })
-    )
+      client.getUserInfo({ userId: LOCAL_SMOKE_USER_ID }),
+    );
 
     if (!response.userInfo) {
-      throw new FeatureUnavailableError("getCurrentUser")
+      throw new FeatureUnavailableError("getCurrentUser");
     }
 
-    return mapUserInfo(response.userInfo)
+    return mapUserInfo(response.userInfo);
   }
 
-  throw new FeatureUnavailableError("getCurrentUser")
+  throw new FeatureUnavailableError("getCurrentUser");
 }
 
 export async function loginWithLarkCode(
   code: string,
-  options: ServiceOptions = {}
+  options: ServiceOptions = {},
 ): Promise<AuthSession> {
-  const dataSource = resolveDataSource(options)
+  const dataSource = resolveDataSource(options);
 
   if (dataSource === "mock" || dataSource === "local") {
-    const client = createClient(AuthService, createLocalTransport(options))
+    const client = createClient(AuthService, createLocalTransport(options));
     const response = await requestLocal("loginWithLarkCode", () =>
-      client.login({ code })
-    )
+      client.login({ code }),
+    );
 
-    if (!response.userInfo || !response.expiresAt || !response.sessionToken.trim()) {
-      throw new FeatureUnavailableError("loginWithLarkCode")
+    if (
+      !response.member ||
+      !response.accessToken.trim() ||
+      response.expiresIn <= 0
+    ) {
+      throw new FeatureUnavailableError("loginWithLarkCode");
     }
 
-    const expiresAt = timestampDate(response.expiresAt)
-    if (expiresAt.getTime() <= Date.now()) {
-      throw new FeatureUnavailableError("loginWithLarkCode")
-    }
+    const expiresAt = new Date(Date.now() + response.expiresIn * 1000);
 
     return {
-      sessionToken: response.sessionToken.trim(),
+      sessionToken: response.accessToken.trim(),
       expiresAt: expiresAt.toISOString(),
-      user: mapUserInfo(response.userInfo),
-    }
+      user: {
+        id: response.member.id.toString(),
+        name: response.member.displayName,
+        avatarUrl: response.member.avatarUrl,
+      },
+    };
   }
 
-  throw new FeatureUnavailableError("loginWithLarkCode")
+  throw new FeatureUnavailableError("loginWithLarkCode");
 }
 
 export async function getJSAPIAuthConfig(
   signingUrl: string,
   options: ServiceOptions = {},
 ): Promise<JSAPIAuthConfig> {
-  const url = normalizeJSAPISigningUrl(signingUrl)
-  const dataSource = resolveDataSource(options)
+  const url = normalizeJSAPISigningUrl(signingUrl);
+  const dataSource = resolveDataSource(options);
 
   if (dataSource === "mock" || dataSource === "local") {
-    const client = createClient(AuthService, createLocalTransport(options))
+    const client = createClient(AuthService, createLocalTransport(options));
     const response = await requestLocal("getJSAPIAuthConfig", () =>
       client.getJSAPIAuthConfig({ url }),
-    )
+    );
 
     if (
       !response.appId.trim() ||
@@ -97,7 +103,7 @@ export async function getJSAPIAuthConfig(
       !response.nonceStr.trim() ||
       !response.signature.trim()
     ) {
-      throw new FeatureUnavailableError("getJSAPIAuthConfig")
+      throw new FeatureUnavailableError("getJSAPIAuthConfig");
     }
 
     return {
@@ -105,22 +111,22 @@ export async function getJSAPIAuthConfig(
       timestamp: response.timestamp,
       nonceStr: response.nonceStr,
       signature: response.signature,
-    }
+    };
   }
 
-  throw new FeatureUnavailableError("getJSAPIAuthConfig")
+  throw new FeatureUnavailableError("getJSAPIAuthConfig");
 }
 
 function normalizeJSAPISigningUrl(value: string): string {
   if (typeof value !== "string" || value.length > 4096) {
-    throw new ValidationError("JSAPI 签名地址不正确")
+    throw new ValidationError("JSAPI 签名地址不正确");
   }
 
-  let url: URL
+  let url: URL;
   try {
-    url = new URL(value)
+    url = new URL(value);
   } catch {
-    throw new ValidationError("JSAPI 签名地址不正确")
+    throw new ValidationError("JSAPI 签名地址不正确");
   }
 
   if (
@@ -128,11 +134,11 @@ function normalizeJSAPISigningUrl(value: string): string {
     url.username ||
     url.password
   ) {
-    throw new ValidationError("JSAPI 签名地址不正确")
+    throw new ValidationError("JSAPI 签名地址不正确");
   }
 
-  url.hash = ""
-  return url.href
+  url.hash = "";
+  return url.href;
 }
 
 function mapUserInfo(userInfo: UserInfo): CurrentUser {
@@ -140,5 +146,5 @@ function mapUserInfo(userInfo: UserInfo): CurrentUser {
     id: userInfo.id.toString(),
     name: userInfo.name,
     avatarUrl: userInfo.avatarUrl,
-  }
+  };
 }

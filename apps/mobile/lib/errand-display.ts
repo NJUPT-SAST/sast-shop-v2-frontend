@@ -1,4 +1,4 @@
 export {
   formatErrandDisplayCount,
   formatErrandDisplayPrice,
-} from "@sast-shop/domain"
+} from "@sast-shop/domain";

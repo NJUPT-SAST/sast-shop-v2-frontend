@@ -57,17 +57,6 @@ export function getBuyerErrandOrderAmountCents(order: AmountSource): number {
   );
 }
 
-export function getBuyerErrandOrderAdjustmentCents(order: AmountSource): number {
-  const productAmount =
-    order.totalActualAmountCents ?? order.totalOriginAmountCents;
-
-  return (
-    getBuyerErrandOrderAmountCents(order) -
-    productAmount -
-    order.totalServiceFeeCents
-  );
-}
-
 export function resolveBuyerErrandPaymentState(
   orderStatus: BuyerErrandOrderStatus,
   bill: {
@@ -127,19 +116,16 @@ export function buildBuyerErrandOrderTimeline(
     { label: "完成采购", timestamp: order.shoppingCompletedAt ?? "" },
     { label: "完成分发", timestamp: order.distributionCompletedAt ?? "" },
     { label: "完成支付", timestamp: order.paymentCompletedAt ?? "" },
-  ].filter((item) => Boolean(item.timestamp));
+  ].filter((item) => isValidTimestamp(item.timestamp));
 
-  if (order.status !== "cancelled" || !order.cancelledAt) {
+  if (order.status !== "cancelled" || !isValidTimestamp(order.cancelledAt)) {
     return events;
   }
 
   const cancelledAt = Date.parse(order.cancelledAt);
-  const beforeCancellation = Number.isNaN(cancelledAt)
-    ? events
-    : events.filter((item) => {
-        const timestamp = Date.parse(item.timestamp);
-        return Number.isNaN(timestamp) || timestamp <= cancelledAt;
-      });
+  const beforeCancellation = events.filter(
+    (item) => Date.parse(item.timestamp) <= cancelledAt,
+  );
 
   return [
     ...beforeCancellation,
@@ -152,4 +138,9 @@ function parseTimestamp(value: string | null | undefined): number {
 
   const parsed = Date.parse(value);
   return Number.isNaN(parsed) ? -1 : parsed;
+}
+
+function isValidTimestamp(value: string | null | undefined): value is string {
+  if (!value) return false;
+  return !Number.isNaN(Date.parse(value));
 }

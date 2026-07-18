@@ -1,18 +1,19 @@
-"use client"
+"use client";
 
-import { useMemo, useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   RiArrowLeftLine,
   RiCheckboxCircleLine,
   RiStore2Line,
-} from "@remixicon/react"
+  RiUser3Line,
+} from "@remixicon/react";
 import {
   createErrandTask,
   type DataSource,
   type ErrandDemandDetailGroup,
-} from "@sast-shop/api"
+} from "@sast-shop/api";
 import {
   calculateErrandSelectionTotals,
   formatErrandDisplayCount,
@@ -20,17 +21,17 @@ import {
   toggleProductSelection,
   toggleRequesterSelection,
   type ErrandSelectionGroup,
-} from "@sast-shop/domain"
-import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar"
-import { Badge } from "@workspace/ui/components/badge"
-import { Button } from "@workspace/ui/components/button"
+} from "@sast-shop/domain";
+import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar";
+import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "@workspace/ui/components/card"
-import { Checkbox } from "@workspace/ui/components/checkbox"
+} from "@workspace/ui/components/card";
+import { Checkbox } from "@workspace/ui/components/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -38,12 +39,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@workspace/ui/components/dialog"
-import { Empty } from "@workspace/ui/components/empty"
-import { cn } from "@workspace/ui/lib/utils"
-import { toast } from "sonner"
+} from "@workspace/ui/components/dialog";
+import { Empty } from "@workspace/ui/components/empty";
+import { cn } from "@workspace/ui/lib/utils";
+import { toast } from "sonner";
 
-import { ManagedImage } from "@/components/managed-image"
+import { ManagedImage } from "@/components/managed-image";
 
 export function ErrandDemandDetail({
   dataSource,
@@ -53,21 +54,21 @@ export function ErrandDemandDetail({
   details,
   error,
 }: {
-  dataSource: DataSource
-  connectBaseUrl?: string
-  storeId: string
-  storeName: string
-  details: ErrandDemandDetailGroup[]
-  error: string | null
+  dataSource: DataSource;
+  connectBaseUrl?: string;
+  storeId: string;
+  storeName: string;
+  details: ErrandDemandDetailGroup[];
+  error: string | null;
 }) {
-  const router = useRouter()
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [confirmOpen, setConfirmOpen] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
+  const router = useRouter();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const groups = useMemo<ErrandSelectionGroup[]>(
     () =>
       details.map((group) => ({
-        productId: group.productTemplate?.id ?? group.errandDemandId,
+        productId: group.productTemplate.id,
         estimatedUnitPriceCents: group.estimatedUnitPriceCents,
         requesters: group.requesters.map((requester) => ({
           errandDemandItemId: requester.errandDemandItemId,
@@ -77,11 +78,11 @@ export function ErrandDemandDetail({
         })),
       })),
     [details],
-  )
+  );
   const totals = useMemo(
     () => calculateErrandSelectionTotals(groups, selectedIds),
     [groups, selectedIds],
-  )
+  );
   const demandItems = useMemo(
     () =>
       details.flatMap((group) =>
@@ -99,24 +100,24 @@ export function ErrandDemandDetail({
         ),
       ),
     [details, selectedIds],
-  )
+  );
 
   async function submitTask() {
-    if (submitting || demandItems.length === 0) return
-    setSubmitting(true)
+    if (submitting || demandItems.length === 0) return;
+    setSubmitting(true);
     try {
       const result = await createErrandTask(
         { storeId, demandItems },
         { dataSource, connectBaseUrl },
-      )
-      toast.success("接单成功，已创建采购任务")
-      setConfirmOpen(false)
-      router.push(`/group/purchase/${result.errandTaskId}`)
+      );
+      toast.success("接单成功，已创建采购任务");
+      setConfirmOpen(false);
+      router.push(`/group/purchase/${result.errandTaskId}`);
     } catch {
-      toast.error("部分需求可能已被接单，请刷新后重试")
-      router.refresh()
+      toast.error("部分需求可能已被接单，请刷新后重试");
+      router.refresh();
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
   }
 
@@ -132,19 +133,16 @@ export function ErrandDemandDetail({
           </Button>
         }
       />
-    )
+    );
   }
 
   return (
     <div className="space-y-6">
       <section className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Badge variant="muted">跑腿需求</Badge>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight">
-            {storeName}
-          </h1>
+          <h1 className="text-3xl font-semibold tracking-tight">{storeName}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            勾选需要承接的完整需求行，确认后生成采购任务。
+            每行需求需整行承接
           </p>
         </div>
         <Button asChild variant="outline">
@@ -158,7 +156,7 @@ export function ErrandDemandDetail({
       <section className="grid min-w-0 gap-4 xl:grid-cols-2">
         {details.map((group, index) => (
           <DemandGroupCard
-            key={`${group.errandDemandId}-${group.productTemplate?.id ?? index}`}
+            key={`${group.errandDemandId}-${group.productTemplate.id}`}
             group={group}
             selectionGroup={groups[index]!}
             selectedIds={selectedIds}
@@ -200,15 +198,20 @@ export function ErrandDemandDetail({
           <DialogHeader>
             <DialogTitle>确认领取这些需求？</DialogTitle>
             <DialogDescription>
-              将创建包含 {formatErrandDisplayCount(totals.selectedRowCount)} 行、
-              {formatErrandDisplayCount(totals.selectedQuantity)} 件商品的采购任务。
-              未选择的需求会继续留在大厅。
+              将创建包含 {formatErrandDisplayCount(totals.selectedRowCount)}{" "}
+              行、
+              {formatErrandDisplayCount(totals.selectedQuantity)}{" "}
+              件商品的采购任务。 未选择的需求会继续留在大厅。
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2 rounded-lg border bg-muted/30 p-4 text-sm">
             <AmountRow label="预计商品金额" value={totals.productAmountCents} />
             <AmountRow label="跑腿费" value={totals.serviceFeeCents} />
-            <AmountRow label="预计合计" value={totals.totalAmountCents} emphasized />
+            <AmountRow
+              label="预计合计"
+              value={totals.totalAmountCents}
+              emphasized
+            />
           </div>
           <DialogFooter>
             <Button
@@ -230,7 +233,7 @@ export function ErrandDemandDetail({
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }
 
 function DemandGroupCard({
@@ -239,30 +242,33 @@ function DemandGroupCard({
   selectedIds,
   onSelectedIdsChange,
 }: {
-  group: ErrandDemandDetailGroup
-  selectionGroup: ErrandSelectionGroup
-  selectedIds: Set<string>
-  onSelectedIdsChange: (ids: Set<string>) => void
+  group: ErrandDemandDetailGroup;
+  selectionGroup: ErrandSelectionGroup;
+  selectedIds: Set<string>;
+  onSelectedIdsChange: (ids: Set<string>) => void;
 }) {
   const selectableIds = selectionGroup.requesters
     .filter((requester) => requester.errandDemandItemId && requester.updatedAt)
-    .map((requester) => requester.errandDemandItemId)
+    .map((requester) => requester.errandDemandItemId);
   const allSelected =
-    selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
-  const product = group.productTemplate
-  const title = product?.title ?? "未命名商品"
+    selectableIds.length > 0 &&
+    selectableIds.every((id) => selectedIds.has(id));
+  const product = group.productTemplate;
+  const title = product.title;
 
   return (
     <Card className="min-w-0 overflow-hidden">
       <CardHeader className="flex-row items-start gap-4">
         <ManagedImage
-          src={product?.mainImageUrl}
+          src={product.mainImageUrl}
           alt={title}
           className="size-20 shrink-0 rounded-lg border"
         />
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-start justify-between gap-3">
-            <CardTitle className="min-w-0 truncate text-base">{title}</CardTitle>
+            <CardTitle className="min-w-0 truncate text-base">
+              {title}
+            </CardTitle>
             <label className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
               <Checkbox
                 checked={allSelected}
@@ -288,14 +294,14 @@ function DemandGroupCard({
       </CardHeader>
       <CardContent className="grid gap-2 border-t pt-4">
         {group.requesters.map((requester) => {
-          const id = requester.errandDemandItemId
-          const disabled = !id || !requester.updatedAt
-          const selected = selectedIds.has(id)
+          const id = requester.errandDemandItemId;
+          const disabled = !id || !requester.updatedAt;
+          const selected = selectedIds.has(id);
           const toggle = () => {
             if (!disabled) {
-              onSelectedIdsChange(toggleRequesterSelection(selectedIds, id))
+              onSelectedIdsChange(toggleRequesterSelection(selectedIds, id));
             }
-          }
+          };
 
           return (
             <div
@@ -307,8 +313,8 @@ function DemandGroupCard({
               onClick={toggle}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault()
-                  toggle()
+                  event.preventDefault();
+                  toggle();
                 }
               }}
               className={cn(
@@ -324,15 +330,27 @@ function DemandGroupCard({
                 disabled={disabled}
                 onClick={(event) => event.stopPropagation()}
                 onCheckedChange={toggle}
-                aria-label={`选择${requester.requesterName || "匿名同学"}的需求`}
+                aria-label={
+                  requester.requesterName
+                    ? `选择${requester.requesterName}的需求`
+                    : "选择该商品需求"
+                }
               />
               <Avatar className="size-9">
-                <AvatarFallback>{nameInitial(requester.requesterName)}</AvatarFallback>
+                <AvatarFallback>
+                  {requester.requesterName.trim() ? (
+                    nameInitial(requester.requesterName)
+                  ) : (
+                    <RiUser3Line className="size-4" />
+                  )}
+                </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">
-                  {requester.requesterName || "匿名同学"}
-                </p>
+                {requester.requesterName ? (
+                  <p className="truncate text-sm font-medium">
+                    {requester.requesterName}
+                  </p>
+                ) : null}
                 <p className="mt-0.5 truncate text-xs text-muted-foreground">
                   {formatErrandDisplayCount(requester.quantity)} 件 · 截止{" "}
                   {formatDeadline(requester.deadline)}
@@ -345,11 +363,11 @@ function DemandGroupCard({
                 )}
               </span>
             </div>
-          )
+          );
         })}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 function AmountRow({
@@ -357,33 +375,35 @@ function AmountRow({
   value,
   emphasized = false,
 }: {
-  label: string
-  value: number
-  emphasized?: boolean
+  label: string;
+  value: number;
+  emphasized?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between gap-4">
       <span className="text-muted-foreground">{label}</span>
-      <span className={emphasized ? "font-semibold text-primary" : "font-medium"}>
+      <span
+        className={emphasized ? "font-semibold text-primary" : "font-medium"}
+      >
         {formatPrice(value)}
       </span>
     </div>
-  )
+  );
 }
 
 function nameInitial(name: string): string {
-  return name.trim().slice(0, 1).toUpperCase() || "同"
+  return name.trim().slice(0, 1).toUpperCase();
 }
 
 function formatDeadline(value: string | null): string {
-  if (!value) return "未设置"
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return "未设置"
+  if (!value) return "未设置";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "未设置";
   return new Intl.DateTimeFormat("zh-CN", {
     timeZone: "Asia/Shanghai",
     month: "numeric",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(date)
+  }).format(date);
 }

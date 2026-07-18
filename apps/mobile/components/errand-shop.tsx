@@ -7,7 +7,6 @@ import {
   RiShoppingBag3Line,
   RiShoppingCartLine,
   RiStore2Line,
-  RiSubtractLine,
 } from "@remixicon/react";
 import {
   createErrandDemand,
@@ -17,11 +16,11 @@ import {
   type Store,
 } from "@sast-shop/api";
 import { formatPrice } from "@sast-shop/domain";
-import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card } from "@workspace/ui/components/card";
 import { Empty } from "@workspace/ui/components/empty";
 import { Input } from "@workspace/ui/components/input";
+import { QuantityStepper } from "@workspace/ui/components/quantity-stepper";
 import {
   InputGroup,
   InputGroupAddon,
@@ -276,20 +275,13 @@ export function ErrandShop({
           className="size-14 shrink-0 rounded-lg"
         />
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <h1 className="truncate text-lg font-semibold leading-7">
-                {store.name}
-              </h1>
-              <p className="mt-0.5 flex items-start gap-1.5 text-sm leading-5 text-muted-foreground">
-                <RiStore2Line className="mt-0.5 size-4 shrink-0" />
-                <span className="line-clamp-2">{store.address}</span>
-              </p>
-            </div>
-            <Badge variant="secondary" className="shrink-0">
-              跑腿
-            </Badge>
-          </div>
+          <h1 className="truncate text-lg font-semibold leading-7">
+            {store.name}
+          </h1>
+          <p className="mt-0.5 flex items-start gap-1.5 text-sm leading-5 text-muted-foreground">
+            <RiStore2Line className="mt-0.5 size-4 shrink-0" />
+            <span className="line-clamp-2">{store.address}</span>
+          </p>
         </div>
       </section>
 
@@ -300,7 +292,6 @@ export function ErrandShop({
           <Empty
             icon={<RiShoppingBag3Line className="size-5" />}
             title="此店铺暂无可用商品模板"
-            description="可以返回团购页选择其他店铺。"
           />
         ) : (
           <div className="columns-1 gap-3 md:columns-2">
@@ -339,12 +330,9 @@ export function ErrandShop({
 
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-primary">
+                        <p className="text-sm font-semibold tabular-nums text-primary">
                           {formatPrice(template.priceCents)}
                         </p>
-                        <Badge variant="muted" className="mt-1">
-                          店铺标价
-                        </Badge>
                       </div>
 
                       {cartItem ? (
@@ -361,11 +349,12 @@ export function ErrandShop({
                       ) : (
                         <Button
                           type="button"
-                          size="sm"
+                          size="icon-touch"
+                          aria-label={`将${template.title}加入跑腿清单`}
+                          title="加入清单"
                           onClick={() => addItem(template)}
                         >
-                          <RiAddLine data-icon="inline-start" />
-                          加入清单
+                          <RiAddLine />
                         </Button>
                       )}
                     </div>
@@ -390,10 +379,8 @@ export function ErrandShop({
               {totalCount > 0 ? `${totalCount} 件商品` : "跑腿清单"}
             </span>
           </span>
-          <span className="shrink-0 text-right text-sm font-semibold">
-            {totalCount > 0
-              ? formatPrice(estimatedTotalCents)
-              : "选择商品后发起需求"}
+          <span className="shrink-0 text-right text-sm font-semibold tabular-nums">
+            {totalCount > 0 ? formatPrice(estimatedTotalCents) : "请选择商品"}
           </span>
         </Button>
       </MobileFixedFooter>
@@ -426,19 +413,14 @@ export function ErrandShop({
                     <p className="text-2xl font-semibold text-primary">
                       {formatPrice(selectedTemplate.priceCents)}
                     </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      店铺标价
-                    </p>
                   </div>
                 </div>
-                <InfoRow
-                  label="商品规格"
-                  value={selectedTemplate.description || "暂无规格说明"}
-                />
-                <InfoRow
-                  label="条码编号"
-                  value={selectedTemplate.barcode || "暂无条码编号"}
-                />
+                {selectedTemplate.description ? (
+                  <InfoRow
+                    label="商品规格"
+                    value={selectedTemplate.description}
+                  />
+                ) : null}
               </div>
             </div>
             <ResponsiveDialogFooter>
@@ -603,30 +585,17 @@ function QuantityControl({
   onIncrement: () => void;
 }) {
   return (
-    <div className="flex shrink-0 items-center gap-1">
-      <Button
-        type="button"
-        variant="outline"
-        size="icon-sm"
-        aria-label={`减少${title}数量`}
-        onClick={onDecrement}
-      >
-        <RiSubtractLine />
-      </Button>
-      <span className="min-w-7 text-center text-sm font-semibold">
-        {quantity}
-      </span>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon-sm"
-        aria-label={`增加${title}数量`}
-        disabled={quantity >= MAX_QUANTITY}
-        onClick={onIncrement}
-      >
-        <RiAddLine />
-      </Button>
-    </div>
+    <QuantityStepper
+      className="shrink-0"
+      label={`${title}数量`}
+      value={quantity}
+      min={0}
+      max={MAX_QUANTITY}
+      onValueChange={(next) => {
+        if (next < quantity) onDecrement();
+        if (next > quantity) onIncrement();
+      }}
+    />
   );
 }
 
@@ -651,7 +620,9 @@ function TotalRow({
   return (
     <div className="flex items-center justify-between gap-4 py-1">
       <span className="text-muted-foreground">{label}</span>
-      <span className={strong ? "text-base font-semibold" : "font-medium"}>
+      <span
+        className={`tabular-nums ${strong ? "text-base font-semibold" : "font-medium"}`}
+      >
         {value}
       </span>
     </div>

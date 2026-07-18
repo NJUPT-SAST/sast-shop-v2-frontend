@@ -3,54 +3,54 @@ import {
   listStores,
   type ProductTemplate,
   type Store,
-} from "@sast-shop/api"
-import { RiStore2Line } from "@remixicon/react"
-import { Empty } from "@workspace/ui/components/empty"
+} from "@sast-shop/api";
+import { RiStore2Line } from "@remixicon/react";
+import { Empty } from "@workspace/ui/components/empty";
 
-import { ErrandShop } from "@/components/errand-shop"
-import { mobileAppConfig } from "@/lib/app-config"
-import { getServerServiceOptions } from "@/lib/server-service-options"
+import { ErrandShop } from "@/components/errand-shop";
+import { mobileAppConfig } from "@/lib/app-config";
+import { getServerServiceOptions } from "@/lib/server-service-options";
 
 type GroupShopPageProps = {
   params: Promise<{
-    id: string
-  }>
-}
+    id: string;
+  }>;
+};
 
 type StoreDetail = {
-  store: Store | null
-  templates: ProductTemplate[]
-  error: string | null
-}
+  store: Store | null;
+  templates: ProductTemplate[];
+  error: string | null;
+};
 
 async function loadStoreDetail(storeId: string): Promise<StoreDetail> {
   try {
-    const options = await getServerServiceOptions()
+    const options = await getServerServiceOptions();
     const [stores, templates] = await Promise.all([
       listStores(options),
       listProductTemplates({
         ...options,
         storeId,
       }),
-    ])
+    ]);
 
     return {
       store: stores.find((store) => store.id === storeId) ?? null,
       templates,
       error: null,
-    }
+    };
   } catch {
     return {
       store: null,
       templates: [],
       error: "店铺商品暂不可用，请稍后再试",
-    }
+    };
   }
 }
 
 export default async function GroupShopPage({ params }: GroupShopPageProps) {
-  const { id } = await params
-  const { store, templates, error } = await loadStoreDetail(id)
+  const { id } = await params;
+  const { store, templates, error } = await loadStoreDetail(id);
 
   if (error || !store) {
     return (
@@ -61,7 +61,7 @@ export default async function GroupShopPage({ params }: GroupShopPageProps) {
           description={error ?? "没有找到对应店铺。"}
         />
       </div>
-    )
+    );
   }
 
   return (
@@ -71,5 +71,5 @@ export default async function GroupShopPage({ params }: GroupShopPageProps) {
       store={store}
       templates={templates}
     />
-  )
+  );
 }

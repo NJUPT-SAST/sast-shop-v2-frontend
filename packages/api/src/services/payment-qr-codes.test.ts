@@ -1,50 +1,50 @@
-import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest"
+import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import {
   ApiConfigurationError,
   ApiRequestError,
   FeatureUnavailableError,
   ValidationError,
-} from "../errors"
+} from "../errors";
 import {
   listPaymentQrCodes,
   updatePaymentQrCode,
   type PaymentQrCode,
   type PaymentQrCodeInput,
-} from "./payment-qr-codes"
+} from "./payment-qr-codes";
 
 const validInput: PaymentQrCodeInput = {
   channel: "alipay",
   content: "https://qr.alipay.com/sast-shop-new",
-}
+};
 
 const localOptions = {
   dataSource: "local" as const,
   connectBaseUrl: "http://127.0.0.1:6660",
-}
+};
 
 const mockOptions = {
   dataSource: "mock" as const,
   connectBaseUrl: "http://127.0.0.1:6660",
-}
+};
 
 describe("payment QR code service", () => {
   afterEach(() => {
-    vi.unstubAllGlobals()
-  })
+    vi.unstubAllGlobals();
+  });
 
   it("exposes stable payment QR code return types", () => {
     expectTypeOf<typeof listPaymentQrCodes>().returns.toEqualTypeOf<
       Promise<PaymentQrCode[]>
-    >()
+    >();
     expectTypeOf<typeof updatePaymentQrCode>().returns.toEqualTypeOf<
       Promise<PaymentQrCode>
-    >()
+    >();
     expectTypeOf<PaymentQrCode>().toEqualTypeOf<{
-      id: string
-      channel: "wechat" | "alipay"
-      content: string
-    }>()
-  })
+      id: string;
+      channel: "wechat" | "alipay";
+      content: string;
+    }>();
+  });
 
   it("lists payment QR codes from the fauxrpc backend in mock mode", async () => {
     const fetchMock = vi.fn(async () =>
@@ -61,29 +61,32 @@ describe("payment QR code service", () => {
             content: "https://qr.alipay.com/sast-shop",
           },
         ],
-      })
-    )
-    vi.stubGlobal("fetch", fetchMock)
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
 
-    const qrCodes = await listPaymentQrCodes(mockOptions)
+    const qrCodes = await listPaymentQrCodes(mockOptions);
 
-    expect(qrCodes.map((qrCode) => qrCode.channel)).toEqual(["wechat", "alipay"])
-    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(qrCodes.map((qrCode) => qrCode.channel)).toEqual([
+      "wechat",
+      "alipay",
+    ]);
+    expect(fetchMock).toHaveBeenCalledOnce();
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.payment.v1.QrCodeService/GetQrCode",
       body: {},
-    })
-  })
+    });
+  });
 
   it("validates payment QR code input before submitting update requests", async () => {
     await expect(
-      updatePaymentQrCode({ ...validInput, content: " " }, localOptions)
-    ).rejects.toBeInstanceOf(ValidationError)
-  })
+      updatePaymentQrCode({ ...validInput, content: " " }, localOptions),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
 
   it("rejects payment QR image data URLs before submitting update requests", async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal("fetch", fetchMock)
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
 
     await expect(
       updatePaymentQrCode(
@@ -91,16 +94,16 @@ describe("payment QR code service", () => {
           channel: "alipay",
           content: "data:image/png;base64,iVBORw0KGgo=",
         },
-        localOptions
-      )
-    ).rejects.toThrow("收款码内容不支持，请上传对应渠道的收款码文本")
+        localOptions,
+      ),
+    ).rejects.toThrow("收款码内容不支持，请上传对应渠道的收款码文本");
 
-    expect(fetchMock).not.toHaveBeenCalled()
-  })
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 
   it("rejects payment QR content that belongs to another channel", async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal("fetch", fetchMock)
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
 
     await expect(
       updatePaymentQrCode(
@@ -108,30 +111,30 @@ describe("payment QR code service", () => {
           channel: "wechat",
           content: "https://qr.alipay.com/sast-shop",
         },
-        localOptions
-      )
-    ).rejects.toThrow("收款码内容与渠道不匹配")
+        localOptions,
+      ),
+    ).rejects.toThrow("收款码内容与渠道不匹配");
 
-    expect(fetchMock).not.toHaveBeenCalled()
-  })
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 
   it("rejects invalid runtime payment QR channels before submitting update requests", async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal("fetch", fetchMock)
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
 
     const invalidInput: PaymentQrCodeInput = {
       channel: "bank" as PaymentQrCodeInput["channel"],
       content: "https://example.test/pay/bank",
-    }
+    };
 
-    await expect(updatePaymentQrCode(invalidInput, localOptions)).rejects.toThrow(
-      "收款码渠道不正确"
-    )
     await expect(
-      updatePaymentQrCode(invalidInput, mockOptions)
-    ).rejects.toBeInstanceOf(ValidationError)
-    expect(fetchMock).not.toHaveBeenCalled()
-  })
+      updatePaymentQrCode(invalidInput, localOptions),
+    ).rejects.toThrow("收款码渠道不正确");
+    await expect(
+      updatePaymentQrCode(invalidInput, mockOptions),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 
   it("lists payment QR codes from the local Connect backend", async () => {
     const fetchMock = vi.fn(async () =>
@@ -143,11 +146,11 @@ describe("payment QR code service", () => {
             content: "wxp://sast-shop",
           },
         ],
-      })
-    )
-    vi.stubGlobal("fetch", fetchMock)
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
 
-    const qrCodes = await listPaymentQrCodes(localOptions)
+    const qrCodes = await listPaymentQrCodes(localOptions);
 
     expect(qrCodes).toEqual([
       {
@@ -155,13 +158,13 @@ describe("payment QR code service", () => {
         channel: "wechat",
         content: "wxp://sast-shop",
       },
-    ])
-    expect(fetchMock).toHaveBeenCalledOnce()
+    ]);
+    expect(fetchMock).toHaveBeenCalledOnce();
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.payment.v1.QrCodeService/GetQrCode",
       body: {},
-    })
-  })
+    });
+  });
 
   it("passes owner id when listing another user's payment QR codes", async () => {
     const fetchMock = vi.fn(async () =>
@@ -173,42 +176,42 @@ describe("payment QR code service", () => {
             content: "wxp://sast-shop-seller",
           },
         ],
-      })
-    )
-    vi.stubGlobal("fetch", fetchMock)
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
 
     const qrCodes = await listPaymentQrCodes({
       ...localOptions,
       ownerId: "42",
-    })
+    });
 
-    expect(qrCodes[0]?.content).toBe("wxp://sast-shop-seller")
+    expect(qrCodes[0]?.content).toBe("wxp://sast-shop-seller");
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.payment.v1.QrCodeService/GetQrCode",
       body: {
         ownerId: "42",
       },
-    })
-  })
+    });
+  });
 
   it("validates owner id before listing another user's payment QR codes", async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal("fetch", fetchMock)
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
 
     await expect(
       listPaymentQrCodes({
         ...localOptions,
         ownerId: "",
-      })
-    ).rejects.toThrow("收款码用户 ID 不正确")
+      }),
+    ).rejects.toThrow("收款码用户 ID 不正确");
     await expect(
       listPaymentQrCodes({
         ...localOptions,
         ownerId: "",
-      })
-    ).rejects.toBeInstanceOf(ValidationError)
-    expect(fetchMock).not.toHaveBeenCalled()
-  })
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 
   it("rejects unsafe payment QR content returned by the backend", async () => {
     vi.stubGlobal(
@@ -222,21 +225,21 @@ describe("payment QR code service", () => {
               content: "https://phishing.example/pay",
             },
           ],
-        })
-      )
-    )
+        }),
+      ),
+    );
 
     await expect(listPaymentQrCodes(localOptions)).rejects.toBeInstanceOf(
-      FeatureUnavailableError
-    )
-  })
+      FeatureUnavailableError,
+    );
+  });
 
   it("updates a normalized payment QR code through the local Connect backend", async () => {
     const input: PaymentQrCodeInput = {
       channel: "alipay",
       content: "  https://qr.alipay.com/sast-shop  ",
-    }
-    const normalizedContent = "https://qr.alipay.com/sast-shop"
+    };
+    const normalizedContent = "https://qr.alipay.com/sast-shop";
     const fetchMock = vi.fn(async () =>
       stubJsonResponse({
         qrCode: {
@@ -244,26 +247,26 @@ describe("payment QR code service", () => {
           channel: "CHANNEL_ALIPAY",
           content: normalizedContent,
         },
-      })
-    )
-    vi.stubGlobal("fetch", fetchMock)
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
 
-    const qrCode = await updatePaymentQrCode(input, localOptions)
+    const qrCode = await updatePaymentQrCode(input, localOptions);
 
     expect(qrCode).toEqual({
       id: "2002",
       channel: "alipay",
       content: normalizedContent,
-    })
-    expect(fetchMock).toHaveBeenCalledOnce()
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.payment.v1.QrCodeService/UpdateQrCode",
       body: {
         channel: "CHANNEL_ALIPAY",
         content: normalizedContent,
       },
-    })
-  })
+    });
+  });
 
   it("updates normalized payment QR content through fauxrpc in mock mode", async () => {
     const fetchMock = vi.fn(async () =>
@@ -273,37 +276,37 @@ describe("payment QR code service", () => {
           channel: "CHANNEL_WECHAT",
           content: "wxp://sast-shop",
         },
-      })
-    )
-    vi.stubGlobal("fetch", fetchMock)
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
 
     const qrCode = await updatePaymentQrCode(
       {
         channel: "wechat",
         content: "  wxp://sast-shop  ",
       },
-      mockOptions
-    )
+      mockOptions,
+    );
 
-    expect(qrCode.content).toBe("wxp://sast-shop")
-    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(qrCode.content).toBe("wxp://sast-shop");
+    expect(fetchMock).toHaveBeenCalledOnce();
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.payment.v1.QrCodeService/UpdateQrCode",
       body: {
         channel: "CHANNEL_WECHAT",
         content: "wxp://sast-shop",
       },
-    })
-  })
+    });
+  });
 
   it("requires a configured Connect base URL for local and mock modes", async () => {
     await expect(
-      listPaymentQrCodes({ dataSource: "local" })
-    ).rejects.toBeInstanceOf(ApiConfigurationError)
+      listPaymentQrCodes({ dataSource: "local" }),
+    ).rejects.toBeInstanceOf(ApiConfigurationError);
     await expect(
-      listPaymentQrCodes({ dataSource: "mock" })
-    ).rejects.toBeInstanceOf(ApiConfigurationError)
-  })
+      listPaymentQrCodes({ dataSource: "mock" }),
+    ).rejects.toBeInstanceOf(ApiConfigurationError);
+  });
 
   it("wraps local Connect failures in an API request error", async () => {
     vi.stubGlobal(
@@ -314,25 +317,25 @@ describe("payment QR code service", () => {
             code: "unavailable",
             message: "backend unavailable",
           },
-          { status: 503 }
-        )
-      )
-    )
+          { status: 503 },
+        ),
+      ),
+    );
 
     await expect(listPaymentQrCodes(localOptions)).rejects.toBeInstanceOf(
-      ApiRequestError
-    )
-  })
+      ApiRequestError,
+    );
+  });
 
   it("throws for remote mode before backend client is wired", async () => {
     await expect(
-      listPaymentQrCodes({ dataSource: "remote" })
-    ).rejects.toBeInstanceOf(FeatureUnavailableError)
+      listPaymentQrCodes({ dataSource: "remote" }),
+    ).rejects.toBeInstanceOf(FeatureUnavailableError);
     await expect(
-      updatePaymentQrCode(validInput, { dataSource: "remote" })
-    ).rejects.toBeInstanceOf(FeatureUnavailableError)
-  })
-})
+      updatePaymentQrCode(validInput, { dataSource: "remote" }),
+    ).rejects.toBeInstanceOf(FeatureUnavailableError);
+  });
+});
 
 function stubJsonResponse(body: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(body), {
@@ -341,33 +344,35 @@ function stubJsonResponse(body: unknown, init: ResponseInit = {}) {
       "content-type": "application/json",
       ...init.headers,
     },
-  })
+  });
 }
 
 async function expectConnectRequest(
   fetchMock: ReturnType<typeof vi.fn>,
   expected: {
-    path: string
-    body: Record<string, unknown>
-  }
+    path: string;
+    body: Record<string, unknown>;
+  },
 ) {
-  const [input, init] = fetchMock.mock.calls[0] ?? []
-  const url = typeof input === "string" ? input : (input as Request).url
+  const [input, init] = fetchMock.mock.calls[0] ?? [];
+  const url = typeof input === "string" ? input : (input as Request).url;
   const body =
-    typeof input === "string" ? init?.body : await (input as Request).clone().text()
+    typeof input === "string"
+      ? init?.body
+      : await (input as Request).clone().text();
 
-  expect(new URL(url).pathname).toBe(expected.path)
-  expect(JSON.parse(bodyToText(body))).toEqual(expected.body)
+  expect(new URL(url).pathname).toBe(expected.path);
+  expect(JSON.parse(bodyToText(body))).toEqual(expected.body);
 }
 
 function bodyToText(body: unknown): string {
   if (body instanceof Uint8Array) {
-    return new TextDecoder().decode(body)
+    return new TextDecoder().decode(body);
   }
 
   if (body instanceof ArrayBuffer) {
-    return new TextDecoder().decode(body)
+    return new TextDecoder().decode(body);
   }
 
-  return String(body)
+  return String(body);
 }

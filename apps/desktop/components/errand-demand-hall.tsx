@@ -1,35 +1,38 @@
-"use client"
+"use client";
 
-import { useMemo, useState } from "react"
-import Link from "next/link"
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   RiArrowLeftLine,
   RiArrowRightSLine,
   RiSearchLine,
   RiStore2Line,
-} from "@remixicon/react"
-import type { ErrandDemandStoreSummary } from "@sast-shop/api"
+  RiUser3Line,
+} from "@remixicon/react";
+import type { ErrandDemandStoreSummary } from "@sast-shop/api";
+import { formatErrandDisplayCount, formatPrice } from "@sast-shop/domain";
 import {
-  formatErrandDisplayCount,
-  formatPrice,
-} from "@sast-shop/domain"
-import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
-import { Badge } from "@workspace/ui/components/badge"
-import { Button } from "@workspace/ui/components/button"
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar";
+import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "@workspace/ui/components/card"
-import { Empty } from "@workspace/ui/components/empty"
+} from "@workspace/ui/components/card";
+import { Empty } from "@workspace/ui/components/empty";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-} from "@workspace/ui/components/input-group"
+} from "@workspace/ui/components/input-group";
 
-import { parsePositiveInt64RouteId } from "@/lib/route-id"
+import { parsePositiveInt64RouteId } from "@/lib/route-id";
 
 const updatedAtFormatter = new Intl.DateTimeFormat("zh-CN", {
   timeZone: "Asia/Shanghai",
@@ -38,37 +41,30 @@ const updatedAtFormatter = new Intl.DateTimeFormat("zh-CN", {
   hour: "2-digit",
   minute: "2-digit",
   hour12: false,
-})
+});
 
 export function ErrandDemandHall({
   demands,
   error,
 }: {
-  demands: ErrandDemandStoreSummary[]
-  error: string | null
+  demands: ErrandDemandStoreSummary[];
+  error: string | null;
 }) {
-  const [keyword, setKeyword] = useState("")
+  const router = useRouter();
+  const [keyword, setKeyword] = useState("");
   const filtered = useMemo(() => {
-    const query = keyword.trim().toLocaleLowerCase("zh-CN")
+    const query = keyword.trim().toLocaleLowerCase("zh-CN");
     return query
       ? demands.filter((demand) =>
           demand.storeName.toLocaleLowerCase("zh-CN").includes(query),
         )
-      : demands
-  }, [demands, keyword])
+      : demands;
+  }, [demands, keyword]);
 
   return (
     <div className="space-y-6">
       <section className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <Badge variant="muted">团长接单</Badge>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight">
-            跑腿采购大厅
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            按店铺聚合未接单需求，进入详情后勾选完整需求行。
-          </p>
-        </div>
+        <h1 className="text-3xl font-semibold tracking-tight">跑腿采购大厅</h1>
         <Button asChild variant="outline">
           <Link href="/group">
             <RiArrowLeftLine data-icon="inline-start" />
@@ -93,16 +89,26 @@ export function ErrandDemandHall({
         <Empty
           icon={<RiStore2Line className="size-5" />}
           title="跑腿需求暂不可用"
-          description={error}
+          action={
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.refresh()}
+            >
+              重新加载
+            </Button>
+          }
         />
       ) : filtered.length === 0 ? (
         <Empty
           icon={<RiStore2Line className="size-5" />}
           title={keyword.trim() ? "没有匹配的店铺需求" : "暂无待接单需求"}
-          description={
-            keyword.trim()
-              ? "换个关键词试试。"
-              : "新的跑腿需求会显示在这里。"
+          action={
+            keyword.trim() ? (
+              <Button variant="outline" onClick={() => setKeyword("")}>
+                清空搜索
+              </Button>
+            ) : undefined
           }
         />
       ) : (
@@ -113,14 +119,15 @@ export function ErrandDemandHall({
         </section>
       )}
     </div>
-  )
+  );
 }
 
 function DemandCard({ demand }: { demand: ErrandDemandStoreSummary }) {
-  const id = parsePositiveInt64RouteId(demand.storeId)
-  const goodsSubtotal = demand.totalOriginUnitPriceCents
-  const serviceFee = demand.totalServiceFeeCents
-  const total = goodsSubtotal + serviceFee
+  const id = parsePositiveInt64RouteId(demand.storeId);
+  const goodsSubtotal = demand.totalOriginUnitPriceCents;
+  const serviceFee = demand.totalServiceFeeCents;
+  const total = goodsSubtotal + serviceFee;
+  const updatedLabel = formatUpdatedAt(demand.updatedAt);
   const content = (
     <Card className="h-full min-w-0 transition-colors group-hover:border-primary/40">
       <CardHeader className="flex-row items-start justify-between gap-4">
@@ -132,9 +139,11 @@ function DemandCard({ demand }: { demand: ErrandDemandStoreSummary }) {
             <CardTitle className="truncate text-base">
               {demand.storeName}
             </CardTitle>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {formatUpdatedAt(demand.updatedAt)}
-            </p>
+            {updatedLabel ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {updatedLabel}
+              </p>
+            ) : null}
           </div>
         </div>
         <div className="shrink-0 text-right">
@@ -146,34 +155,26 @@ function DemandCard({ demand }: { demand: ErrandDemandStoreSummary }) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2">
-          <Badge variant="secondary">
-            商品 {formatPrice(goodsSubtotal)}
-          </Badge>
-          <Badge variant="muted">
-            跑腿费 {formatPrice(serviceFee)}
-          </Badge>
+          <Badge variant="secondary">商品 {formatPrice(goodsSubtotal)}</Badge>
+          <Badge variant="muted">跑腿费 {formatPrice(serviceFee)}</Badge>
         </div>
         <div className="flex min-w-0 items-center justify-between gap-4 border-t pt-4">
           <div className="flex min-w-0 items-center gap-2">
             <ParticipantAvatars avatars={demand.participantAvatars} />
             <span className="truncate text-sm text-muted-foreground">
-              {formatErrandDisplayCount(demand.participantAvatars.length)} 人参与
+              {formatErrandDisplayCount(demand.participantAvatars.length)}{" "}
+              人参与
             </span>
           </div>
           {id ? (
-            <span className="inline-flex shrink-0 items-center text-sm font-medium text-primary">
-              查看并接单
-              <RiArrowRightSLine className="size-4" />
-            </span>
-          ) : (
-            <span className="text-sm text-muted-foreground">店铺编号异常</span>
-          )}
+            <RiArrowRightSLine className="size-5 shrink-0 text-muted-foreground" />
+          ) : null}
         </div>
       </CardContent>
     </Card>
-  )
+  );
 
-  if (!id) return <div className="opacity-60">{content}</div>
+  if (!id) return <div className="opacity-60">{content}</div>;
 
   return (
     <Link
@@ -183,18 +184,23 @@ function DemandCard({ demand }: { demand: ErrandDemandStoreSummary }) {
     >
       {content}
     </Link>
-  )
+  );
 }
 
 function ParticipantAvatars({ avatars }: { avatars: string[] }) {
-  const visibleAvatars = avatars.slice(0, 3)
+  const visibleAvatars = avatars.slice(0, 3);
+  if (visibleAvatars.length === 0) return null;
+
   return (
     <div className="flex -space-x-2" aria-hidden="true">
-      {(visibleAvatars.length > 0 ? visibleAvatars : [""]).map((avatar, index) => (
-        <Avatar key={`${avatar}-${index}`} className="size-7 border-2 border-card">
-          {avatar ? <AvatarImage src={avatar} alt="" /> : null}
-          <AvatarFallback className="text-xs">
-            {avatars.length > 0 ? "用" : "无"}
+      {visibleAvatars.map((avatar, index) => (
+        <Avatar
+          key={`${avatar}-${index}`}
+          className="size-7 border-2 border-card"
+        >
+          <AvatarImage src={avatar} alt="" />
+          <AvatarFallback>
+            <RiUser3Line className="size-3.5" />
           </AvatarFallback>
         </Avatar>
       ))}
@@ -204,13 +210,13 @@ function ParticipantAvatars({ avatars }: { avatars: string[] }) {
         </span>
       ) : null}
     </div>
-  )
+  );
 }
 
-function formatUpdatedAt(value: string | null): string {
-  if (!value) return "更新时间未知"
-  const date = new Date(value)
+function formatUpdatedAt(value: string | null): string | null {
+  if (!value) return null;
+  const date = new Date(value);
   return Number.isNaN(date.getTime())
-    ? "更新时间未知"
-    : `更新于 ${updatedAtFormatter.format(date)}`
+    ? null
+    : `更新于 ${updatedAtFormatter.format(date)}`;
 }

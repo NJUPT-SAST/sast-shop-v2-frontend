@@ -1,5 +1,5 @@
-import { MobilePageSkeleton } from "@/components/mobile-page-skeleton"
+import { MobilePageSkeleton } from "@/components/mobile-page-skeleton";
 
 export default function GroupLoading() {
-  return <MobilePageSkeleton variant="grid" />
+  return <MobilePageSkeleton variant="grid" />;
 }
