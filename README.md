@@ -167,10 +167,9 @@ cp deploy/compose.desktop.yml /data/sast-shop-desktop/docker-compose.yml
 ```dotenv
 CONNECT_BASE_URL=https://api.example.com
 CONNECT_HEALTH_URL=https://api.example.com/health/ready
-EVENTO_PICTURE_API_BASE_URL=https://evento.sast.fun/api
-EVENTO_PICTURE_DIR=sast-shop
-EVENTO_PICTURE_TOKEN=replace-me
 ```
+
+商品图片由前端同源代理上传到 `CONNECT_BASE_URL` 对应后端的 `/api/uploads/product-image`，不需要额外图床地址或图床令牌。
 
 先验证配置，再由 Deploy workflow 拉取并切换 GHCR 镜像：
 

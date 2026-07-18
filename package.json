@@ -10,7 +10,7 @@
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test && vitest run config/connect-health-url.test.ts config/next-security.test.ts",
+    "test": "pnpm -r test && vitest run config/connect-health-url.test.ts config/next-security.test.ts config/product-image-upload.test.ts",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
     "audit:prod": "pnpm audit --prod --audit-level high",
     "proto:generate": "buf generate --template buf.gen.yaml",

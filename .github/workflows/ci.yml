@@ -138,9 +138,6 @@ jobs:
             --env AUTH_MODE=required \
             --env CONNECT_BASE_URL=https://backend.example.invalid \
             --env CONNECT_HEALTH_URL=https://backend.example.invalid/health \
-            --env EVENTO_PICTURE_API_BASE_URL=https://pictures.example.invalid/api \
-            --env EVENTO_PICTURE_DIR=sast-shop-ci \
-            --env EVENTO_PICTURE_TOKEN=ci-not-a-secret \
             "sast-shop-${APP_NAME}:ci"
 
           for attempt in $(seq 1 30); do

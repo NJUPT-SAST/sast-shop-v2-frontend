@@ -7,9 +7,6 @@ set -eu
 : "${NEXT_PUBLIC_APP_ORIGIN:?NEXT_PUBLIC_APP_ORIGIN is required}"
 : "${CONNECT_BASE_URL:?CONNECT_BASE_URL is required}"
 : "${CONNECT_HEALTH_URL:?CONNECT_HEALTH_URL is required}"
-: "${EVENTO_PICTURE_API_BASE_URL:?EVENTO_PICTURE_API_BASE_URL is required}"
-: "${EVENTO_PICTURE_DIR:?EVENTO_PICTURE_DIR is required}"
-: "${EVENTO_PICTURE_TOKEN:?EVENTO_PICTURE_TOKEN is required}"
 
 case "$APP_NAME:$PORT" in
   mobile:3001|desktop:3002) ;;
@@ -51,7 +48,6 @@ node -e '
   const urls = [
     ["CONNECT_BASE_URL", process.env.CONNECT_BASE_URL, false],
     ["CONNECT_HEALTH_URL", process.env.CONNECT_HEALTH_URL, false],
-    ["EVENTO_PICTURE_API_BASE_URL", process.env.EVENTO_PICTURE_API_BASE_URL, false],
     ["NEXT_PUBLIC_APP_ORIGIN", process.env.NEXT_PUBLIC_APP_ORIGIN, true],
   ];
   for (const [name, value, originOnly] of urls) {
