@@ -16,6 +16,8 @@ import { FeatureUnavailableError, ValidationError } from "../errors"
 import { createLocalTransport, requestLocal } from "../local-connect"
 import type { PaymentQrChannel } from "./payment-qr-codes"
 
+const MAX_SIGNED_INT64 = 9223372036854775807n
+
 export type PaymentBillStatus =
   | "unpaid"
   | "submitted"
@@ -51,21 +53,21 @@ export interface PaymentBill {
 export interface PayBillInput {
   billId: string
   channel: PaymentQrChannel
-  updatedAt?: TimestampInput
+  updatedAt: TimestampInput
 }
 
 export interface ConfirmBillInput {
   billId: string
-  updatedAt?: TimestampInput
+  updatedAt: TimestampInput
 }
 
 export interface SupplementBillSerialNumberInput {
   billId: string
   serialNumber: string
-  updatedAt?: TimestampInput
+  updatedAt: TimestampInput
 }
 
-type TimestampInput = string | Timestamp | null
+type TimestampInput = string | Timestamp
 
 export async function getBill(
   billId: string,
@@ -74,7 +76,7 @@ export async function getBill(
   const parsedBillId = parseInt64(billId, "账单 ID 不正确")
   const dataSource = resolveDataSource(options)
 
-  if (dataSource === "local") {
+  if (dataSource === "mock" || dataSource === "local") {
     const client = createClient(BillService, createLocalTransport(options))
     const response = await requestLocal("getBill", () =>
       client.getBill({ billId: parsedBillId })
@@ -97,7 +99,7 @@ export async function payBill(
   const parsedInput = validatePayBillInput(input)
   const dataSource = resolveDataSource(options)
 
-  if (dataSource === "local") {
+  if (dataSource === "mock" || dataSource === "local") {
     const client = createClient(BillService, createLocalTransport(options))
     const response = await requestLocal("payBill", () =>
       client.payBill(parsedInput)
@@ -120,7 +122,7 @@ export async function confirmBill(
   const parsedInput = validateConfirmBillInput(input)
   const dataSource = resolveDataSource(options)
 
-  if (dataSource === "local") {
+  if (dataSource === "mock" || dataSource === "local") {
     const client = createClient(BillService, createLocalTransport(options))
     const response = await requestLocal("confirmBill", () =>
       client.confirmBill(parsedInput)
@@ -143,7 +145,7 @@ export async function supplementBillSerialNumber(
   const parsedInput = validateSupplementSerialNumberInput(input)
   const dataSource = resolveDataSource(options)
 
-  if (dataSource === "local") {
+  if (dataSource === "mock" || dataSource === "local") {
     const client = createClient(BillService, createLocalTransport(options))
     const response = await requestLocal("supplementBillSerialNumber", () =>
       client.supplementSerialNumber(parsedInput)
@@ -204,6 +206,10 @@ function validateSupplementSerialNumberInput(
     throw new ValidationError("支付流水号不能为空")
   }
 
+  if (!/^[A-Za-z0-9-]{6,64}$/.test(serialNumber)) {
+    throw new ValidationError("支付流水号格式不正确")
+  }
+
   return {
     billId: parseInt64(input.billId, "账单 ID 不正确"),
     serialNumber,
@@ -216,12 +222,17 @@ function parseInt64(value: string, message: string): bigint {
     throw new ValidationError(message)
   }
 
-  return BigInt(value)
+  const parsed = BigInt(value)
+  if (parsed > MAX_SIGNED_INT64) {
+    throw new ValidationError(message)
+  }
+
+  return parsed
 }
 
-function parseTimestampInput(input?: TimestampInput): Timestamp | undefined {
+function parseTimestampInput(input: TimestampInput): Timestamp {
   if (!input) {
-    return undefined
+    throw new ValidationError("账单更新时间不能为空")
   }
 
   if (typeof input !== "string") {

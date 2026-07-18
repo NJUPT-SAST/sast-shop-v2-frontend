@@ -1,11 +1,11 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, Ref } from "react";
 import {
   RiAlipayFill,
   RiWechatPayFill,
   type RemixiconComponentType,
 } from "@remixicon/react";
 import type { PaymentPlatform } from "@sast-shop/domain";
-import { QRCodeSVG } from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
 
 import { cn } from "@workspace/ui/lib/utils";
 
@@ -14,6 +14,7 @@ export interface PaymentQrCodeProps {
   channel: PaymentPlatform;
   className?: string;
   size?: number;
+  canvasRef?: Ref<HTMLCanvasElement>;
 }
 
 const PAYMENT_LOGO_META: Record<
@@ -41,6 +42,7 @@ export function PaymentQrCode({
   channel,
   className,
   size = 184,
+  canvasRef,
 }: PaymentQrCodeProps) {
   const logoSize = Math.max(22, Math.round(size * 0.2));
   const logoIconSize = Math.max(14, Math.round(logoSize * 0.62));
@@ -60,7 +62,8 @@ export function PaymentQrCode({
       )}
       style={qrStyle}
     >
-      <QRCodeSVG
+      <QRCodeCanvas
+        ref={canvasRef}
         value={content}
         size={size}
         level="H"

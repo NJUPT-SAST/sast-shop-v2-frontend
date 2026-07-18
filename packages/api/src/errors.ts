@@ -12,6 +12,13 @@ export class ApiRequestError extends Error {
   }
 }
 
+export class ResourceNotFoundError extends Error {
+  constructor(resource: string) {
+    super(`${resource} was not found`)
+    this.name = "ResourceNotFoundError"
+  }
+}
+
 export class ApiConfigurationError extends Error {
   constructor(key: string) {
     super(`${key} must be configured`)

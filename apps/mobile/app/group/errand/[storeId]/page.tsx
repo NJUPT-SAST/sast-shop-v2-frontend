@@ -8,6 +8,7 @@ import { Empty } from "@workspace/ui/components/empty"
 
 import { ErrandDemandDetail } from "@/components/errand-demand-detail"
 import { mobileAppConfig } from "@/lib/app-config"
+import { getServerServiceOptions } from "@/lib/server-service-options"
 
 type ErrandDemandDetailPageProps = {
   params: Promise<{
@@ -23,17 +24,12 @@ type DemandDetailResult = {
 
 async function loadDemandDetails(storeId: string): Promise<DemandDetailResult> {
   try {
+    const options = await getServerServiceOptions()
     const details = await getErrandDemandDetails(
       { storeId },
-      {
-        dataSource: mobileAppConfig.dataSource,
-        connectBaseUrl: mobileAppConfig.connectBaseUrl,
-      }
+      options
     )
-    const stores = await listStores({
-      dataSource: mobileAppConfig.dataSource,
-      connectBaseUrl: mobileAppConfig.connectBaseUrl,
-    }).catch(() => [])
+    const stores = await listStores(options).catch(() => [])
 
     return {
       details,

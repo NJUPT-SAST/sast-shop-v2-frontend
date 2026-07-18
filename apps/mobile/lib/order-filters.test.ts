@@ -212,6 +212,21 @@ describe("order filters", () => {
     expect(next.toString()).toBe("view=seller")
   })
 
+  it("preserves the search query when only the status changes", () => {
+    const params = new URLSearchParams(
+      "type=errand&view=participant&q=milk&source=notification"
+    )
+
+    const next = updateOrderFilterParams(params, {
+      status: "pending_payment",
+      rememberedViews: DEFAULT_REMEMBERED_ORDER_VIEWS,
+    })
+
+    expect(next.toString()).toBe(
+      "type=errand&q=milk&source=notification&status=pending_payment"
+    )
+  })
+
   it("omits default params when updating filters", () => {
     const next = updateOrderFilterParams(new URLSearchParams(), {
       type: "spot",

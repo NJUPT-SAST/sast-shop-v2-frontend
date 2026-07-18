@@ -66,29 +66,29 @@ NEXT_PUBLIC_CONNECT_BASE_URL=http://127.0.0.1:6660
 
 `NEXT_PUBLIC_APP_ORIGIN` 用于声明当前应用访问源，例如本地开发地址或线上子域名。
 
-`NEXT_PUBLIC_CONNECT_BASE_URL` 用于 `mock` 和 `local` 数据源。每个 app 都提交 `.env.example` 作为模板，实际使用时复制成目标环境文件：
+`NEXT_PUBLIC_CONNECT_BASE_URL` 只用于本地 `mock` / `local` 开发。生产应用统一通过同源 `/api/connect` 代理访问后端，私有上游地址使用服务端变量 `CONNECT_BASE_URL`，不会进入客户端 bundle。每个 app 都提交 `.env.example` 作为模板，实际使用时复制成目标环境文件：
 
 ```bash
 cp apps/mobile/.env.example apps/mobile/.env.local
 cp apps/desktop/.env.example apps/desktop/.env.local
 ```
 
-生产环境则复制为 `.env` 并写入生产值：
+非容器生产环境可复制为 `.env`，并至少配置 `NEXT_PUBLIC_DATA_SOURCE`、`NEXT_PUBLIC_APP_ORIGIN`、`NEXT_PUBLIC_FEISHU_APP_ID` 和私有 `CONNECT_BASE_URL`：
 
 ```bash
 cp apps/mobile/.env.example apps/mobile/.env
 cp apps/desktop/.env.example apps/desktop/.env
 ```
 
-`.env.local` 与 `.env` 不提交。本地 fauxrpc URL 应写在 `.env.local` 的 `NEXT_PUBLIC_CONNECT_BASE_URL` 中。
+`.env.local` 与 `.env` 不提交。本地 fauxrpc URL 写在 `.env.local` 的 `NEXT_PUBLIC_CONNECT_BASE_URL` 与 `CONNECT_BASE_URL` 中；生产 `CONNECT_BASE_URL` 必须是无内嵌凭据的 HTTPS URL。
 
-Next.js 会把 `NEXT_PUBLIC_*` 变量内联到静态渲染和客户端 bundle 中；当前页面是静态预渲染，部署镜像构建时必须提供目标环境的值。docker-compose 示例仍保留运行时环境变量，方便服务端配置可见，但不能替代构建时注入。
+Next.js 会把 `NEXT_PUBLIC_*` 变量内联到静态渲染和客户端 bundle 中，部署镜像构建时必须提供目标环境的公开值。`CONNECT_BASE_URL` 只在容器启动时由 docker-compose 注入，不能作为 Docker build arg。
 
 ## API Wiring
 
 当前 runtime API client 通过 `packages/api` facade 调用 Protobuf-ES 生成物，并用 fauxrpc mock backend/tooling 提供本地数据。
 
-Connect Web 使用 Buf 生成的 service definition，并通过 `@connectrpc/connect` 的 `createClient` 与 `@connectrpc/connect-web` 的 `createConnectTransport({ baseUrl })` 创建 web client。当前 `mock` 与 `local` 都访问 `NEXT_PUBLIC_CONNECT_BASE_URL` 指向的 fauxrpc/local Connect 服务，不在业务代码中维护 runtime fixture；`remote` 仍保留为真实后端接入入口。`getCurrentUser` 当前是 smoke path，会读取 fauxrpc stub 中的 `10001` 用户；真实 session-aware 当前用户逻辑留到后端鉴权接入阶段。
+Connect Web 使用 Buf 生成的 service definition，并通过 `@connectrpc/connect` 的 `createClient` 与 `@connectrpc/connect-web` 的 `createConnectTransport({ baseUrl })` 创建 web client。本地 `mock` 与 `local` 访问 `NEXT_PUBLIC_CONNECT_BASE_URL` 指向的 fauxrpc/local Connect 服务；生产浏览器只访问同源代理，由代理读取私有 `CONNECT_BASE_URL`。`remote` facade 尚未实现，部署工作流会明确拒绝该值。`getCurrentUser` 当前仍是 smoke path，会读取 fauxrpc stub 中的 `10001` 用户；真实 session-aware 当前用户逻辑需要后端提供对应接口后接入。
 
 Next App Router 默认使用 Server Components。若 proto message 只在服务端使用，不涉及 client serialization；若要跨 Server Component/Client Component 边界传递，需要注意 JSON/React serializability，必要时使用 `@bufbuild/protobuf` 的 `toJson`/`fromJson` 在边界处转换。
 
@@ -122,15 +122,16 @@ DESKTOP_SSH_PRIVATE_KEY
 
 推荐为 mobile 和 desktop 分别创建低权限 Linux 用户，只允许操作对应服务目录。
 
-仓库还需要配置以下 Repository Variables，用于 Docker build 阶段注入 `NEXT_PUBLIC_APP_ORIGIN`：
+仓库还需要配置以下 Repository Variables，用于 Docker build 阶段注入公开配置：
 
 ```text
 MOBILE_APP_ORIGIN=https://shop.example.com
 DESKTOP_APP_ORIGIN=https://shop-admin.example.com
-NEXT_PUBLIC_CONNECT_BASE_URL=https://api.example.com
+NEXT_PUBLIC_DATA_SOURCE=local
+NEXT_PUBLIC_FEISHU_APP_ID=cli_xxx
 ```
 
-`NEXT_PUBLIC_DATA_SOURCE` 也是 Docker build 阶段变量。当前 CI/CD 部署默认使用 `mock`，这样真实后端接入前登录和当前用户资料仍可用。接入 ConnectRPC 真实后端后，可将 Repository Variable `NEXT_PUBLIC_DATA_SOURCE=remote`；fauxrpc/staging 环境可设为 `local`，然后重新 build/deploy。
+`NEXT_PUBLIC_DATA_SOURCE` 必须显式配置为 `mock` 或 `local`；在 `remote` facade 真正接通前，CI/CD 会拒绝构建 `remote` 镜像。私有 `CONNECT_BASE_URL` 不配置为 Repository Variable，而是在服务器对应 compose 环境中注入。
 
 ### 服务器目录
 
@@ -149,8 +150,8 @@ services:
     image: sast/sast-shop-mobile:current
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_DATA_SOURCE: mock
-      NEXT_PUBLIC_APP_ORIGIN: https://shop.example.com
+      AUTH_MODE: required
+      CONNECT_BASE_URL: https://api.example.com
       PORT: 3001
     ports:
       - "127.0.0.1:3001:3001"
@@ -164,8 +165,8 @@ services:
     image: sast/sast-shop-desktop:current
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_DATA_SOURCE: mock
-      NEXT_PUBLIC_APP_ORIGIN: https://shop-admin.example.com
+      AUTH_MODE: required
+      CONNECT_BASE_URL: https://api.example.com
       PORT: 3002
     ports:
       - "127.0.0.1:3002:3002"

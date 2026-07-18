@@ -137,10 +137,17 @@ function getOtherPaymentQrChannel(channel: PaymentPlatform): PaymentPlatform {
 }
 
 function mapProtoQrCode(qrCode: ProtoQrCode): PaymentQrCode {
+  const channel = mapPaymentQrChannelFromProto(qrCode.channel)
+  const content = validatePaymentQrContent(channel, qrCode.content)
+
+  if (!content.ok) {
+    throw new FeatureUnavailableError("paymentQrContent")
+  }
+
   return {
     id: qrCode.id.toString(),
-    channel: mapPaymentQrChannelFromProto(qrCode.channel),
-    content: qrCode.content,
+    channel,
+    content: content.content,
   }
 }
 

@@ -7,9 +7,11 @@ import {
   RiCheckboxLine,
   RiCloseCircleLine,
   RiIndeterminateCircleLine,
+  RiMore2Line,
 } from "@remixicon/react"
 import {
   cancelTask,
+  getShoppingTaskDetail,
   saveShoppingTaskItem,
   transitionToPendingDistributing,
   type DataSource,
@@ -18,6 +20,15 @@ import {
 } from "@sast-shop/api"
 import { formatPrice } from "@sast-shop/domain"
 import { Button } from "@workspace/ui/components/button"
+import { Card, CardContent } from "@workspace/ui/components/card"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@workspace/ui/components/drawer"
 import { Input } from "@workspace/ui/components/input"
 import {
   ResponsiveDialog,
@@ -31,6 +42,7 @@ import { Textarea } from "@workspace/ui/components/textarea"
 import { toast } from "sonner"
 
 import { ManagedImage } from "@/components/managed-image"
+import { MobileFixedFooter } from "@/components/mobile-fixed-footer"
 
 export type ShoppingTaskViewProps = {
   dataSource: DataSource
@@ -54,8 +66,8 @@ function getStatusIcon(item: ShoppingTaskItem) {
   if (item.purchasedQuantity === 0)
     return <RiCloseCircleLine className="size-5 text-destructive" />
   if (item.purchasedQuantity < item.requiredQuantity)
-    return <RiIndeterminateCircleLine className="size-5 text-amber-500" />
-  return <RiCheckboxLine className="size-5 text-emerald-500" />
+    return <RiIndeterminateCircleLine className="size-5 text-primary" />
+  return <RiCheckboxLine className="size-5 text-primary" />
 }
 
 export function ShoppingTaskView({
@@ -66,7 +78,6 @@ export function ShoppingTaskView({
   const router = useRouter()
   const submittingRef = useRef(false)
   const [items, setItems] = useState<ShoppingTaskItem[]>(detail.taskItems)
-  const [openSwipeId, setOpenSwipeId] = useState<string | null>(null)
   const [dialog, setDialog] = useState<DialogState>({ type: "none" })
   const [partialQty, setPartialQty] = useState("")
   const [skipReason, setSkipReason] = useState("")
@@ -82,11 +93,6 @@ export function ShoppingTaskView({
     if (i.purchasedQuantity === null || i.purchasedQuantity === 0) return sum
     return sum + i.actualUnitPriceCents * i.purchasedQuantity
   }, 0)
-  const totalServiceFeeCents = items.reduce((sum, i) => {
-    if (i.purchasedQuantity === null || i.purchasedQuantity === 0) return sum
-    return sum
-  }, 0)
-
   const updateItem = (updated: ShoppingTaskItem) => {
     setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))
   }
@@ -114,8 +120,15 @@ export function ShoppingTaskView({
         purchasedQuantity,
         nonPurchaseReason: nonPurchaseReason ?? null,
       })
+      if (dataSource === "local") {
+        try {
+          const refreshed = await getShoppingTaskDetail(detail.taskId, serviceOptions)
+          setItems(refreshed.taskItems)
+        } catch {
+          toast.warning("结果已保存，但状态刷新失败，请重新进入任务")
+        }
+      }
       setDialog({ type: "none" })
-      setOpenSwipeId(null)
     } catch {
       toast.error("保存失败，请稍后再试")
     } finally {
@@ -138,6 +151,14 @@ export function ShoppingTaskView({
         serviceOptions
       )
       updateItem({ ...item, purchasedQuantity: null, nonPurchaseReason: null })
+      if (dataSource === "local") {
+        try {
+          const refreshed = await getShoppingTaskDetail(detail.taskId, serviceOptions)
+          setItems(refreshed.taskItems)
+        } catch {
+          toast.warning("结果已撤销，但状态刷新失败，请重新进入任务")
+        }
+      }
     } catch {
       toast.error("撤销失败，请稍后再试")
     } finally {
@@ -178,7 +199,7 @@ export function ShoppingTaskView({
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-5 py-5">
+    <div className="flex flex-1 flex-col gap-5 py-5 pb-24">
       <section className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="truncate text-lg font-semibold leading-7">
@@ -204,12 +225,9 @@ export function ShoppingTaskView({
           </h2>
           <div className="flex flex-col gap-3">
             {unprocessed.map((item) => (
-              <SwipeableShoppingCard
+              <ShoppingItemCard
                 key={item.id}
                 item={item}
-                isOpen={openSwipeId === item.id}
-                onSwipeOpen={() => setOpenSwipeId(item.id)}
-                onSwipeClose={() => setOpenSwipeId(null)}
                 onBuyAll={() => handleSave(item, item.requiredQuantity)}
                 onBuyPartial={() => {
                   setPartialQty("")
@@ -242,7 +260,7 @@ export function ShoppingTaskView({
         </section>
       )}
 
-      <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-10 mt-auto rounded-lg border bg-card p-2">
+      <MobileFixedFooter>
         <Button
           type="button"
           disabled={!allDone}
@@ -253,7 +271,7 @@ export function ShoppingTaskView({
             ? "确认完成采购"
             : `已处理 ${processed.length}/${items.length} 种`}
         </Button>
-      </div>
+      </MobileFixedFooter>
 
       <ResponsiveDialog
         open={dialog.type === "partial"}
@@ -294,6 +312,7 @@ export function ShoppingTaskView({
               disabled={
                 dialog.type !== "partial" ||
                 !partialQty ||
+                !Number.isInteger(Number(partialQty)) ||
                 Number(partialQty) < 1 ||
                 Number(partialQty) >= dialog.item.requiredQuantity
               }
@@ -362,20 +381,19 @@ export function ShoppingTaskView({
               请核对采购结果后确认
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
-          <div className="rounded-lg border bg-secondary/60 p-3 text-sm">
+          <Card>
+            <CardContent className="flex flex-col gap-2 p-3 text-sm">
             <div className="flex items-center justify-between py-1">
               <span className="text-muted-foreground">商品费合计</span>
               <span className="font-medium">
                 {formatPrice(totalProductCents)}
               </span>
             </div>
-            <div className="flex items-center justify-between py-1">
-              <span className="text-muted-foreground">合计</span>
-              <span className="text-base font-semibold">
-                {formatPrice(totalProductCents + totalServiceFeeCents)}
-              </span>
-            </div>
-          </div>
+              <p className="text-xs leading-5 text-muted-foreground">
+                跑腿费与包装费将在生成收款账单后计算。
+              </p>
+            </CardContent>
+          </Card>
           <ResponsiveDialogFooter>
             <Button
               type="button"
@@ -433,41 +451,27 @@ export function ShoppingTaskView({
   )
 }
 
-function SwipeableShoppingCard({
+function ShoppingItemCard({
   item,
-  isOpen,
-  onSwipeOpen,
-  onSwipeClose,
   onBuyAll,
   onBuyPartial,
   onSkip,
 }: {
   item: ShoppingTaskItem
-  isOpen: boolean
-  onSwipeOpen: () => void
-  onSwipeClose: () => void
   onBuyAll: () => void
   onBuyPartial: () => void
   onSkip: () => void
 }) {
-  const touchStartX = useRef<number | null>(null)
+  const [actionOpen, setActionOpen] = useState(false)
+
+  const runAction = (action: () => void) => {
+    setActionOpen(false)
+    action()
+  }
 
   return (
-    <div className="relative overflow-hidden rounded-lg border bg-card">
-      <div
-        className="flex items-center gap-3 p-3 transition-transform duration-200"
-        style={{ transform: isOpen ? "translateX(-160px)" : "translateX(0)" }}
-        onTouchStart={(e) => {
-          touchStartX.current = e.touches[0].clientX
-        }}
-        onTouchEnd={(e) => {
-          if (touchStartX.current === null) return
-          const delta = touchStartX.current - e.changedTouches[0].clientX
-          if (delta > 40) onSwipeOpen()
-          else if (delta < -20) onSwipeClose()
-          touchStartX.current = null
-        }}
-      >
+    <>
+      <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
         <ManagedImage
           src={item.productImageUrl}
           alt={item.productTitle}
@@ -490,7 +494,6 @@ function SwipeableShoppingCard({
           <Button
             type="button"
             size="sm"
-            className="bg-emerald-500 text-white hover:bg-emerald-600"
             onClick={onBuyAll}
           >
             全部购买
@@ -499,7 +502,7 @@ function SwipeableShoppingCard({
             <Button
               type="button"
               size="sm"
-              className="bg-amber-500 text-white hover:bg-amber-600"
+              variant="secondary"
               onClick={onBuyPartial}
             >
               部分购买
@@ -514,37 +517,53 @@ function SwipeableShoppingCard({
             不购买
           </Button>
         </div>
+        <Button
+          type="button"
+          size="icon-touch"
+          variant="outline"
+          className="shrink-0 sm:hidden"
+          aria-label={`处理${item.productTitle}`}
+          aria-expanded={actionOpen}
+          onClick={() => setActionOpen(true)}
+        >
+          <RiMore2Line />
+        </Button>
       </div>
 
-      <div
-        className="absolute right-0 top-0 flex h-full w-40 items-stretch sm:hidden"
-        aria-hidden={!isOpen}
-      >
-        <button
-          type="button"
-          className="flex flex-1 flex-col items-center justify-center gap-1 bg-emerald-500 text-white text-xs font-medium"
-          onClick={onBuyAll}
-        >
-          全部购买
-        </button>
-        {item.requiredQuantity > 1 && (
-          <button
-            type="button"
-            className="flex flex-1 flex-col items-center justify-center gap-1 bg-amber-500 text-white text-xs font-medium"
-            onClick={onBuyPartial}
-          >
-            部分购买
-          </button>
-        )}
-        <button
-          type="button"
-          className="flex flex-1 flex-col items-center justify-center gap-1 bg-destructive text-destructive-foreground text-xs font-medium"
-          onClick={onSkip}
-        >
-          不购买
-        </button>
-      </div>
-    </div>
+      <Drawer open={actionOpen} onOpenChange={setActionOpen}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>{item.productTitle}</DrawerTitle>
+            <DrawerDescription>
+              需要 {item.requiredQuantity} 件，请记录本次实际采购结果。
+            </DrawerDescription>
+          </DrawerHeader>
+          <DrawerFooter className="pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            <Button type="button" size="touch" onClick={() => runAction(onBuyAll)}>
+              全部购买
+            </Button>
+            {item.requiredQuantity > 1 ? (
+              <Button
+                type="button"
+                size="touch"
+                variant="secondary"
+                onClick={() => runAction(onBuyPartial)}
+              >
+                部分购买
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              size="touch"
+              variant="destructive"
+              onClick={() => runAction(onSkip)}
+            >
+              不购买
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    </>
   )
 }
 
@@ -566,14 +585,16 @@ function ProcessedShoppingCard({
 
   return (
     <div className="flex items-center gap-3 rounded-lg border bg-card p-3 opacity-75">
-      <button
+      <Button
         type="button"
-        className="shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        variant="ghost"
+        size="icon-touch"
+        className="shrink-0"
         aria-label="撤销采购结果"
         onClick={onRevoke}
       >
         {icon ?? <RiCheckboxBlankLine className="size-5" />}
-      </button>
+      </Button>
       <ManagedImage
         src={item.productImageUrl}
         alt={item.productTitle}

@@ -8,6 +8,13 @@ stubs:
         id: "10001"
         name: 阮小妍
         avatarUrl: https://avatars.githubusercontent.com/u/37794833?s=200&v=4
+  - id: auth-get-jsapi-config
+    target: sast.sastshopv2.user.v1.AuthService/GetJSAPIAuthConfig
+    content:
+      appId: cli_mock_sast_shop
+      timestamp: "1784320800000"
+      nonceStr: mock-jsapi-nonce
+      signature: mock-jsapi-signature
   - id: user-get-user-info
     target: sast.sastshopv2.user.v1.UserService/GetUserInfo
     content:

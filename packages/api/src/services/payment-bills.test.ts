@@ -146,14 +146,50 @@ describe("payment bill service", () => {
     })
   })
 
+  it("confirms a bill through the fauxrpc backend in mock mode", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        bill: {
+          id: "9001",
+          billNo: "ER-20260718-001",
+          status: "BILL_STATUS_COMPLETED",
+          amountCents: 1500,
+          verifyCode: "2718",
+          channel: "CHANNEL_WECHAT",
+          completedAt: "2026-07-18T03:00:00Z",
+          updatedAt: "2026-07-18T03:00:00Z",
+        },
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    const bill = await confirmBill(
+      { billId: "9001", updatedAt: "2026-07-18T02:00:00Z" },
+      { ...localOptions, dataSource: "mock" }
+    )
+
+    expect(bill).toMatchObject({ id: "9001", status: "completed" })
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.payment.v1.BillService/ConfirmBill",
+      body: { billId: "9001", updatedAt: "2026-07-18T02:00:00Z" },
+    })
+  })
+
   it("validates bill input before submitting requests", async () => {
     const fetchMock = vi.fn()
     vi.stubGlobal("fetch", fetchMock)
 
     await expect(getBill("", localOptions)).rejects.toThrow("账单 ID 不正确")
     await expect(
+      getBill("9223372036854775808", localOptions)
+    ).rejects.toThrow("账单 ID 不正确")
+    await expect(
       payBill(
-        { billId: "12", channel: "bank" as PayBillInput["channel"] },
+        {
+          billId: "12",
+          channel: "bank" as PayBillInput["channel"],
+          updatedAt: "1970-01-01T00:00:02Z",
+        },
         localOptions
       )
     ).rejects.toThrow("支付渠道不正确")
@@ -161,6 +197,7 @@ describe("payment bill service", () => {
       confirmBill(
         {
           billId: "",
+          updatedAt: "1970-01-01T00:00:02Z",
         },
         localOptions
       )
@@ -170,10 +207,27 @@ describe("payment bill service", () => {
         {
           billId: "12",
           serialNumber: " ",
+          updatedAt: "1970-01-01T00:00:02Z",
         } satisfies SupplementBillSerialNumberInput,
         localOptions
       )
     ).rejects.toThrow("支付流水号不能为空")
+    await expect(
+      payBill(
+        { billId: "12", channel: "wechat", updatedAt: "" },
+        localOptions
+      )
+    ).rejects.toThrow("账单更新时间不能为空")
+    await expect(
+      supplementBillSerialNumber(
+        {
+          billId: "12",
+          serialNumber: "中文流水号",
+          updatedAt: "1970-01-01T00:00:02Z",
+        },
+        localOptions
+      )
+    ).rejects.toThrow("支付流水号格式不正确")
     await expect(getBill("", localOptions)).rejects.toBeInstanceOf(ValidationError)
 
     expect(fetchMock).not.toHaveBeenCalled()
@@ -184,7 +238,14 @@ describe("payment bill service", () => {
       FeatureUnavailableError
     )
     await expect(
-      payBill({ billId: "12", channel: "wechat" }, { dataSource: "remote" })
+      payBill(
+        {
+          billId: "12",
+          channel: "wechat",
+          updatedAt: "1970-01-01T00:00:02Z",
+        },
+        { dataSource: "remote" }
+      )
     ).rejects.toBeInstanceOf(FeatureUnavailableError)
   })
 })

@@ -154,7 +154,15 @@ function ResponsiveDialogFooter({
     return <DialogFooter className={className} {...props} />
   }
 
-  return <DrawerFooter className={cn("flex-row p-0 pt-6", className)} {...props} />
+  return (
+    <DrawerFooter
+      className={cn(
+        "flex-row p-0 pt-6 [&>*]:min-h-11 [&>*]:min-w-0 [&>*]:flex-1",
+        className
+      )}
+      {...props}
+    />
+  )
 }
 
 function ResponsiveDialogTitle({

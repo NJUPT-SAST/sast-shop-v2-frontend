@@ -11,6 +11,10 @@ import {
 import { usePathname } from "next/navigation"
 import { Spinner } from "@workspace/ui/components/spinner"
 import { cn } from "@workspace/ui/lib/utils"
+import {
+  resolvePullGestureAxis,
+  type PullGestureAxis,
+} from "../lib/pull-gesture"
 import { useMobileScroll } from "./mobile-scroll-context"
 
 interface ScrollbarState {
@@ -32,7 +36,9 @@ export function MobileScrollArea({
 }) {
   const pathname = usePathname()
   const viewportRef = useRef<HTMLElement>(null)
+  const touchStartXRef = useRef<number | null>(null)
   const touchStartYRef = useRef<number | null>(null)
+  const gestureAxisRef = useRef<PullGestureAxis>("undetermined")
   const activePullDistanceRef = useRef(0)
   const [isPulling, setIsPulling] = useState(false)
   const [scrollbar, setScrollbar] = useState<ScrollbarState>({
@@ -94,32 +100,51 @@ export function MobileScrollArea({
 
   const handleTouchStart = useCallback((event: TouchEvent<HTMLElement>) => {
     if (!viewportRef.current || viewportRef.current.scrollTop > 2) {
+      touchStartXRef.current = null
       touchStartYRef.current = null
       return
     }
 
+    touchStartXRef.current = event.touches[0]?.clientX ?? null
     touchStartYRef.current = event.touches[0]?.clientY ?? null
+    gestureAxisRef.current = "undetermined"
   }, [])
 
   const handleTouchMove = useCallback(
     (event: TouchEvent<HTMLElement>) => {
+      const touchStartX = touchStartXRef.current
       const touchStartY = touchStartYRef.current
       const viewport = viewportRef.current
 
-      if (touchStartY === null || !viewport || isRefreshing) {
+      if (
+        touchStartX === null ||
+        touchStartY === null ||
+        !viewport ||
+        isRefreshing
+      ) {
         return
       }
 
+      const currentX = event.touches[0]?.clientX ?? touchStartX
       const currentY = event.touches[0]?.clientY ?? touchStartY
-      const distance = currentY - touchStartY
+      const deltaX = currentX - touchStartX
+      const deltaY = currentY - touchStartY
 
-      if (distance <= 0 || viewport.scrollTop > 2) {
+      if (gestureAxisRef.current === "undetermined") {
+        gestureAxisRef.current = resolvePullGestureAxis(deltaX, deltaY)
+      }
+
+      if (gestureAxisRef.current !== "vertical") {
+        return
+      }
+
+      if (deltaY <= 0 || viewport.scrollTop > 2) {
         updatePullDistance(0)
         setIsPulling(false)
         return
       }
 
-      const nextDistance = Math.min(distance * 0.45, MAX_PULL_DISTANCE)
+      const nextDistance = Math.min(deltaY * 0.45, MAX_PULL_DISTANCE)
       updatePullDistance(nextDistance)
       setIsPulling(true)
 
@@ -131,7 +156,9 @@ export function MobileScrollArea({
   )
 
   const handleTouchEnd = useCallback(() => {
+    touchStartXRef.current = null
     touchStartYRef.current = null
+    gestureAxisRef.current = "undetermined"
     setIsPulling(false)
 
     if (activePullDistanceRef.current >= PULL_REFRESH_THRESHOLD) {

@@ -1,14 +1,13 @@
 import { listSpotGoods } from "@sast-shop/api"
 import { SpotMarketplace } from "@/components/spot-marketplace"
 import { mobileAppConfig } from "@/lib/app-config"
+import { getServerServiceOptions } from "@/lib/server-service-options"
 
 async function getSpotGoods() {
   try {
+    const options = await getServerServiceOptions()
     return {
-      goods: await listSpotGoods({
-        dataSource: mobileAppConfig.dataSource,
-        connectBaseUrl: mobileAppConfig.connectBaseUrl,
-      }),
+      goods: await listSpotGoods(options),
       error: null,
     }
   } catch {

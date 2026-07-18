@@ -2,9 +2,14 @@
 
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { RiArrowDownSLine, RiArrowUpSLine } from "@remixicon/react"
+import {
+  RiArrowDownSLine,
+  RiArrowUpSLine,
+  RiMore2Line,
+} from "@remixicon/react"
 import {
   cancelTask,
+  getDistributingTaskDetail,
   saveDistributingAssignment,
   transitionToCollectingPayment,
   transitionToDistributing,
@@ -20,8 +25,15 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@workspace/ui/components/avatar"
-import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@workspace/ui/components/drawer"
 import { Input } from "@workspace/ui/components/input"
 import {
   InputGroup,
@@ -40,6 +52,8 @@ import {
 import { toast } from "sonner"
 
 import { ManagedImage } from "@/components/managed-image"
+import { MobileFixedFooter } from "@/components/mobile-fixed-footer"
+import { buildErrandTaskPaymentHref } from "@/lib/errand-task-route"
 
 export type DistributingTaskViewProps = {
   dataSource: DataSource
@@ -155,6 +169,14 @@ export function DistributingTaskView({
         requester.errandTaskAssignmentId,
         distributedQuantity
       )
+      if (dataSource === "local") {
+        try {
+          const refreshed = await getDistributingTaskDetail(detail.taskId, serviceOptions)
+          setItems(refreshed.items)
+        } catch {
+          toast.warning("结果已保存，但状态刷新失败，请重新进入任务")
+        }
+      }
       setDialog({ type: "none" })
     } catch {
       toast.error("保存失败，请稍后再试")
@@ -185,6 +207,14 @@ export function DistributingTaskView({
         serviceOptions
       )
       updateRequester(item.errandTaskItemId, requester.errandTaskAssignmentId, 0)
+      if (dataSource === "local") {
+        try {
+          const refreshed = await getDistributingTaskDetail(detail.taskId, serviceOptions)
+          setItems(refreshed.items)
+        } catch {
+          toast.warning("结果已撤销，但状态刷新失败，请重新进入任务")
+        }
+      }
     } catch {
       toast.error("撤销失败，请稍后再试")
     } finally {
@@ -242,7 +272,7 @@ export function DistributingTaskView({
     try {
       await transitionToCollectingPayment(detail.taskId, null, serviceOptions)
       setDialog({ type: "none" })
-      router.push(`/group/purchase/${detail.taskId}/payment`)
+      router.replace(buildErrandTaskPaymentHref(detail.taskId))
     } catch {
       toast.error("操作失败，请稍后再试")
       setSubmitting(false)
@@ -281,6 +311,8 @@ export function DistributingTaskView({
               <div key={item.errandTaskItemId} className="rounded-lg border bg-card overflow-hidden">
                 <button
                   type="button"
+                  aria-controls={`distributing-item-${item.errandTaskItemId}`}
+                  aria-expanded={isExpanded}
                   className="flex w-full items-center gap-3 p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   onClick={() =>
                     setExpandedItemId(
@@ -332,7 +364,10 @@ export function DistributingTaskView({
                 </button>
 
                 {isExpanded && (
-                  <div className="border-t px-3 pb-3">
+                  <div
+                    id={`distributing-item-${item.errandTaskItemId}`}
+                    className="border-t px-3 pb-3"
+                  >
                     {mode === "pending_distributing" && (
                       <div className="mb-3 mt-3 flex items-center justify-between gap-3">
                         <span className="text-sm text-muted-foreground">
@@ -371,6 +406,7 @@ export function DistributingTaskView({
                               draft: "",
                             })
                           }
+                          onSkip={() => void handleSaveAssignment(item, requester, -1)}
                           onRevoke={() => void handleRevokeAssignment(item, requester)}
                         />
                       ))}
@@ -386,7 +422,7 @@ export function DistributingTaskView({
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-5 py-5">
+    <div className="flex flex-1 flex-col gap-5 py-5 pb-24">
       <section className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="truncate text-lg font-semibold leading-7">
@@ -438,7 +474,7 @@ export function DistributingTaskView({
       {mode === "distributing" && renderItemList(distributed, "已分发")}
       {mode === "pending_distributing" && renderItemList(purchasedItems, "采购商品")}
 
-      <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-10 mt-auto rounded-lg border bg-card p-2">
+      <MobileFixedFooter>
         {mode === "pending_distributing" ? (
           <Button
             type="button"
@@ -459,7 +495,7 @@ export function DistributingTaskView({
               : `已分发 ${distributed.length}/${purchasedItems.length} 种`}
           </Button>
         )}
-      </div>
+      </MobileFixedFooter>
 
       <ResponsiveDialog
         open={dialog.type === "edit_price"}
@@ -549,6 +585,7 @@ export function DistributingTaskView({
               disabled={
                 dialog.type !== "partial_dist" ||
                 !dialog.draft ||
+                !Number.isInteger(Number(dialog.draft)) ||
                 Number(dialog.draft) < 1 ||
                 Number(dialog.draft) >= dialog.requester.quantity
               }
@@ -676,81 +713,149 @@ function RequesterRow({
   mode,
   onDistributeAll,
   onDistributePartial,
+  onSkip,
   onRevoke,
 }: {
   requester: DistributingRequester
   mode: "pending_distributing" | "distributing"
   onDistributeAll: () => void
   onDistributePartial: () => void
+  onSkip: () => void
   onRevoke: () => void
 }) {
   const isDone = requester.distributedQuantity > 0
   const isSkipped = requester.distributedQuantity === -1
+  const [actionOpen, setActionOpen] = useState(false)
+  const runAction = (action: () => void) => {
+    setActionOpen(false)
+    action()
+  }
 
   return (
-    <div className="flex items-center gap-2">
-      <Avatar className="size-8 shrink-0">
-        <AvatarImage src={requester.purchaserAvatarUrl} alt={requester.purchaserName} />
-        <AvatarFallback className="text-xs">{requester.purchaserName[0]}</AvatarFallback>
-      </Avatar>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{requester.purchaserName}</p>
-        <p className="text-xs text-muted-foreground">
-          需 {requester.quantity} 件
-          {isDone ? `，已分发 ${requester.distributedQuantity} 件` : ""}
-          {isSkipped ? "，不分发" : ""}
-        </p>
-      </div>
-      {mode === "distributing" && (
-        <div className="flex shrink-0 items-center gap-1">
-          {isDone || isSkipped ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="text-xs"
-              onClick={onRevoke}
-            >
-              撤销
-            </Button>
-          ) : (
-            <>
-              <Button
-                type="button"
-                size="sm"
-                variant="destructive"
-                className="text-xs"
-                onClick={onRevoke}
-              >
-                不分发
-              </Button>
-              {requester.quantity > 1 && (
+    <>
+      <div className="flex items-center gap-2">
+        <Avatar className="size-8 shrink-0">
+          <AvatarImage src={requester.purchaserAvatarUrl} alt={requester.purchaserName} />
+          <AvatarFallback className="text-xs">{requester.purchaserName[0]}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium">{requester.purchaserName}</p>
+          <p className="text-xs text-muted-foreground">
+            需 {requester.quantity} 件
+            {isDone ? `，已分发 ${requester.distributedQuantity} 件` : ""}
+            {isSkipped ? "，不分发" : ""}
+          </p>
+        </div>
+        {mode === "distributing" ? (
+          <>
+            <div className="hidden shrink-0 items-center gap-1 sm:flex">
+              {isDone || isSkipped ? (
                 <Button
                   type="button"
                   size="sm"
-                  className="bg-amber-500 text-white text-xs hover:bg-amber-600"
-                  onClick={onDistributePartial}
+                  variant="outline"
+                  className="text-xs"
+                  onClick={onRevoke}
                 >
-                  部分
+                  撤销
                 </Button>
+              ) : (
+                <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    className="text-xs"
+                    onClick={onSkip}
+                  >
+                    不分发
+                  </Button>
+                  {requester.quantity > 1 ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={onDistributePartial}
+                    >
+                      部分
+                    </Button>
+                  ) : null}
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="text-xs"
+                    onClick={onDistributeAll}
+                  >
+                    全部
+                  </Button>
+                </>
               )}
+            </div>
+            <Button
+              type="button"
+              size="icon-touch"
+              variant="outline"
+              className="shrink-0 sm:hidden"
+              aria-label={`处理${requester.purchaserName}的分发结果`}
+              aria-expanded={actionOpen}
+              onClick={() => setActionOpen(true)}
+            >
+              <RiMore2Line />
+            </Button>
+          </>
+        ) : null}
+      </div>
+
+      <Drawer open={actionOpen} onOpenChange={setActionOpen}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>{requester.purchaserName}</DrawerTitle>
+            <DrawerDescription>
+              需要 {requester.quantity} 件，请记录本次分发结果。
+            </DrawerDescription>
+          </DrawerHeader>
+          <DrawerFooter className="pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            {isDone || isSkipped ? (
               <Button
                 type="button"
-                size="sm"
-                className="bg-emerald-500 text-white text-xs hover:bg-emerald-600"
-                onClick={onDistributeAll}
+                size="touch"
+                variant="outline"
+                onClick={() => runAction(onRevoke)}
               >
-                全部
+                撤销分发结果
               </Button>
-            </>
-          )}
-        </div>
-      )}
-      {mode === "distributing" && !isDone && !isSkipped && (
-        <Badge variant="secondary" className="shrink-0 text-xs">
-          待分发
-        </Badge>
-      )}
-    </div>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  size="touch"
+                  onClick={() => runAction(onDistributeAll)}
+                >
+                  全部分发
+                </Button>
+                {requester.quantity > 1 ? (
+                  <Button
+                    type="button"
+                    size="touch"
+                    variant="secondary"
+                    onClick={() => runAction(onDistributePartial)}
+                  >
+                    部分分发
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  size="touch"
+                  variant="destructive"
+                  onClick={() => runAction(onSkip)}
+                >
+                  不分发
+                </Button>
+              </>
+            )}
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    </>
   )
 }

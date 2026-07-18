@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   RiAddLine,
@@ -45,6 +45,7 @@ import {
   toDateTimeLocalValue,
 } from "@/lib/errand-delivery-time"
 import { ManagedImage } from "./managed-image"
+import { MobileFixedFooter } from "./mobile-fixed-footer"
 
 type ErrandShopProps = {
   dataSource: DataSource
@@ -61,7 +62,6 @@ type ErrandCartItem = {
 
 const MAX_QUANTITY = 20
 const MONEY_DRAFT_PATTERN = /^\d*(?:\.\d{0,2})?$/
-const TEMPLATE_REFRESH_INTERVAL_MS = 15_000
 
 export function ErrandShop({
   dataSource,
@@ -80,29 +80,6 @@ export function ErrandShop({
     toDateTimeLocalValue(getDefaultErrandDeadline())
   )
   const [submitting, setSubmitting] = useState(false)
-
-  useEffect(() => {
-    if (cartOpen || selectedTemplate || submitting) {
-      return
-    }
-
-    const refreshTemplates = () => {
-      if (document.visibilityState === "visible") {
-        router.refresh()
-      }
-    }
-    const refreshInterval = window.setInterval(
-      refreshTemplates,
-      TEMPLATE_REFRESH_INTERVAL_MS
-    )
-
-    document.addEventListener("visibilitychange", refreshTemplates)
-
-    return () => {
-      window.clearInterval(refreshInterval)
-      document.removeEventListener("visibilitychange", refreshTemplates)
-    }
-  }, [cartOpen, router, selectedTemplate, submitting])
 
   const cartByTemplateId = useMemo(
     () => new Map(items.map((item) => [item.template.id, item])),
@@ -292,7 +269,7 @@ export function ErrandShop({
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-5 py-5">
+    <div className="flex flex-1 flex-col gap-5 py-5 pb-24">
       <section className="flex items-start gap-3 rounded-lg border bg-card p-3">
         <ManagedImage
           src={store.logoUrl}
@@ -366,26 +343,9 @@ export function ErrandShop({
 
                   <div className="flex min-w-0 flex-1 flex-col gap-2">
                     <div className="min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <button
-                          type="button"
-                          className="min-w-0 text-left outline-none focus-visible:rounded-md focus-visible:ring-3 focus-visible:ring-ring/50"
-                          onClick={() => setSelectedTemplate(template)}
-                        >
-                          <h3 className="line-clamp-2 text-sm font-semibold leading-5">
-                            {template.title}
-                          </h3>
-                        </button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-xs"
-                          aria-label={`查看${template.title}详情`}
-                          onClick={() => setSelectedTemplate(template)}
-                        >
-                          <RiInformationLine />
-                        </Button>
-                      </div>
+                      <h3 className="line-clamp-2 text-sm font-semibold leading-5">
+                        {template.title}
+                      </h3>
                       {template.description ? (
                         <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
                           {template.description}
@@ -433,7 +393,7 @@ export function ErrandShop({
         )}
       </section>
 
-      <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-10 mt-auto rounded-lg border bg-card p-2">
+      <MobileFixedFooter>
         <Button
           type="button"
           disabled={totalCount === 0}
@@ -452,7 +412,7 @@ export function ErrandShop({
               : "选择商品后发起需求"}
           </span>
         </Button>
-      </div>
+      </MobileFixedFooter>
 
       <ResponsiveDialog
         open={selectedTemplate !== null}

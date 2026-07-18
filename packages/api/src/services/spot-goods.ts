@@ -1,9 +1,5 @@
 import { createClient } from "@connectrpc/connect"
-import {
-  timestampDate,
-  timestampFromDate,
-  type Timestamp,
-} from "@bufbuild/protobuf/wkt"
+import type { Timestamp } from "@bufbuild/protobuf/wkt"
 import type { ProductTemplate } from "../gen/sast/sastshopv2/catalog/v1/product_template_pb"
 import type {
   SpotGoodsBrief as ProtoSpotGoodsBrief,
@@ -13,7 +9,11 @@ import { SpotGoodsService } from "../gen/sast/sastshopv2/spot/v1/spot_goods_serv
 import { resolveDataSource, type ServiceOptions } from "../data-source"
 import { FeatureUnavailableError, ValidationError } from "../errors"
 import { createLocalTransport, requestLocal } from "../local-connect"
+import { formatProtoTimestamp, parseProtoTimestamp } from "../proto-timestamp"
 import { listStores } from "./catalog"
+
+const MAX_SIGNED_INT64 = 9223372036854775807n
+const MAX_SIGNED_INT32 = 2147483647
 
 export interface SpotProductTemplate {
   id: string
@@ -40,7 +40,7 @@ export interface CreateSpotGoodsInput {
   productTemplateId: string
   salePriceCents: number
   stockTotal: number
-  productTemplateUpdatedAt?: TimestampInput
+  productTemplateUpdatedAt: TimestampInput
 }
 
 export async function listSpotGoods(
@@ -50,30 +50,51 @@ export async function listSpotGoods(
 
   if (dataSource === "mock" || dataSource === "local") {
     if (options.storeId) {
-      return listSpotGoodsByStore(options.storeId, options)
+      const goods = await listSpotGoodsBriefsByStore(options.storeId, options)
+      return hydrateSpotGoods(goods, options)
     }
 
     const stores = await listStores(options)
     const goods = await Promise.all(
-      stores.map((store) => listSpotGoodsByStore(store.id, options))
+      stores.map((store) => listSpotGoodsBriefsByStore(store.id, options))
     )
 
-    return goods.flat()
+    return hydrateSpotGoods(deduplicateSpotGoods(goods.flat()), options)
   }
 
   throw new FeatureUnavailableError("listSpotGoods")
+}
+
+function hydrateSpotGoods(
+  goods: SpotGoods[],
+  options: ServiceOptions
+): Promise<SpotGoods[]> {
+  return Promise.all(
+    goods.map((item) => getSpotGoods(item.id, options).catch(() => item))
+  )
+}
+
+function deduplicateSpotGoods(goods: SpotGoods[]): SpotGoods[] {
+  const uniqueGoods = new Map<string, SpotGoods>()
+
+  for (const item of goods) {
+    if (!uniqueGoods.has(item.id)) uniqueGoods.set(item.id, item)
+  }
+
+  return [...uniqueGoods.values()]
 }
 
 export async function getSpotGoods(
   id: string,
   options: ServiceOptions = {}
 ): Promise<SpotGoods> {
+  const spotGoodsId = parseInt64(id, "现货商品 ID 不正确")
   const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock" || dataSource === "local") {
     const client = createClient(SpotGoodsService, createLocalTransport(options))
     const response = await requestLocal("getSpotGoods", () =>
-      client.getSpotGoods({ spotGoodsId: parseInt64(id, "现货商品 ID 不正确") })
+      client.getSpotGoods({ spotGoodsId })
     )
 
     if (!response.spotGoodsDetail) {
@@ -90,22 +111,14 @@ export async function createSpotGoods(
   input: CreateSpotGoodsInput,
   options: ServiceOptions = {}
 ): Promise<SpotGoods> {
-  validateCreateSpotGoodsInput(input)
+  const parsedInput = validateCreateSpotGoodsInput(input)
   const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock" || dataSource === "local") {
     const client = createClient(SpotGoodsService, createLocalTransport(options))
     const response = await requestLocal("createSpotGoods", () =>
       client.createSpotGoods({
-        productTemplateId: parseInt64(
-          input.productTemplateId,
-          "商品模板 ID 不正确"
-        ),
-        salePriceCents: input.salePriceCents,
-        stockTotal: input.stockTotal,
-        productTemplateUpdatedAt: parseTimestampInput(
-          input.productTemplateUpdatedAt
-        ),
+        ...parsedInput,
       })
     )
 
@@ -119,7 +132,7 @@ export async function createSpotGoods(
   throw new FeatureUnavailableError("createSpotGoods")
 }
 
-async function listSpotGoodsByStore(
+async function listSpotGoodsBriefsByStore(
   storeId: string,
   options: ServiceOptions & { page?: number; pageSize?: number }
 ): Promise<SpotGoods[]> {
@@ -132,15 +145,7 @@ async function listSpotGoodsByStore(
     })
   )
 
-  const details = await Promise.all(
-    response.spotGoodsList.map((goods) =>
-      getSpotGoods(goods.id.toString(), options).catch(() =>
-        mapSpotGoodsBrief(goods)
-      )
-    )
-  )
-
-  return details
+  return response.spotGoodsList.map(mapSpotGoodsBrief)
 }
 
 function mapSpotGoodsBrief(goods: ProtoSpotGoodsBrief): SpotGoods {
@@ -151,7 +156,7 @@ function mapSpotGoodsBrief(goods: ProtoSpotGoodsBrief): SpotGoods {
     stock: null,
     sellerId: null,
     sellerName: null,
-    updatedAt: formatTimestamp(goods.updatedAt),
+    updatedAt: formatProtoTimestamp(goods.updatedAt),
   }
 }
 
@@ -163,7 +168,7 @@ function mapSpotGoodsDetail(goods: ProtoSpotGoodsDetail): SpotGoods {
     stock: goods.stock,
     sellerId: goods.seller?.id.toString() ?? null,
     sellerName: goods.seller?.name ?? null,
-    updatedAt: formatTimestamp(goods.updatedAt),
+    updatedAt: formatProtoTimestamp(goods.updatedAt),
   }
 }
 
@@ -176,21 +181,41 @@ function mapTemplate(template?: ProductTemplate): SpotProductTemplate {
     storeId: template?.storeId.toString() ?? "0",
     mainImageUrl: template?.mainImageUrl ?? "",
     barcode: template?.barcode ?? "",
-    updatedAt: formatTimestamp(template?.updatedAt),
+    updatedAt: formatProtoTimestamp(template?.updatedAt),
   }
 }
 
 type TimestampInput = string | Timestamp | null
 
 function validateCreateSpotGoodsInput(input: CreateSpotGoodsInput) {
-  parseInt64(input.productTemplateId, "商品模板 ID 不正确")
+  const productTemplateId = parseInt64(
+    input.productTemplateId,
+    "商品模板 ID 不正确"
+  )
 
-  if (!Number.isInteger(input.salePriceCents) || input.salePriceCents <= 0) {
+  if (
+    !Number.isInteger(input.salePriceCents) ||
+    input.salePriceCents <= 0 ||
+    input.salePriceCents > MAX_SIGNED_INT32
+  ) {
     throw new ValidationError("现货售价不正确")
   }
 
-  if (!Number.isInteger(input.stockTotal) || input.stockTotal <= 0) {
+  if (
+    !Number.isInteger(input.stockTotal) ||
+    input.stockTotal <= 0 ||
+    input.stockTotal > MAX_SIGNED_INT32
+  ) {
     throw new ValidationError("现货库存不正确")
+  }
+
+  return {
+    productTemplateId,
+    salePriceCents: input.salePriceCents,
+    stockTotal: input.stockTotal,
+    productTemplateUpdatedAt: parseTimestampInput(
+      input.productTemplateUpdatedAt
+    ),
   }
 }
 
@@ -199,21 +224,23 @@ function parseInt64(value: string, message: string): bigint {
     throw new ValidationError(message)
   }
 
-  return BigInt(value)
+  const parsed = BigInt(value)
+
+  if (parsed > MAX_SIGNED_INT64) {
+    throw new ValidationError(message)
+  }
+
+  return parsed
 }
 
-function parseTimestampInput(input?: TimestampInput): Timestamp | undefined {
+function parseTimestampInput(input: TimestampInput): Timestamp {
   if (!input) {
-    return undefined
+    throw new ValidationError("商品模板更新时间不能为空")
   }
 
   if (typeof input === "string") {
-    return timestampFromDate(new Date(input))
+    return parseProtoTimestamp(input, "商品模板更新时间不正确")
   }
 
   return input
-}
-
-function formatTimestamp(timestamp?: Timestamp): string | null {
-  return timestamp ? timestampDate(timestamp).toISOString() : null
 }

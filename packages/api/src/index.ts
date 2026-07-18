@@ -1,17 +1,35 @@
-export { resolveDataSource, type DataSource, type ServiceOptions } from "./data-source"
+export {
+  resolveDataSource,
+  type DataSource,
+  type ServiceOptions,
+} from "./data-source";
 export {
   ApiConfigurationError,
   ApiRequestError,
   AuthRequiredError,
   FeatureUnavailableError,
+  ResourceNotFoundError,
   ValidationError,
-} from "./errors"
+} from "./errors";
 export {
   getCurrentUser,
+  getJSAPIAuthConfig,
   loginWithLarkCode,
   type AuthSession,
   type CurrentUser,
-} from "./services/auth"
+  type JSAPIAuthConfig,
+} from "./services/auth";
+export {
+  configureLarkJsapi,
+  isLarkScanCancelledError,
+  requestLarkAuthorizationCode,
+  scanLarkBarcode,
+  waitForLarkReady,
+  LarkClientError,
+  type LarkCallbackResult,
+  type LarkClientApi,
+  type LarkH5Sdk,
+} from "./lark-client";
 export {
   createAddress,
   deleteAddress,
@@ -20,14 +38,14 @@ export {
   updateAddress,
   type ShippingAddress,
   type ShippingAddressInput,
-} from "./services/addresses"
+} from "./services/addresses";
 export {
   listPaymentQrCodes,
   updatePaymentQrCode,
   type PaymentQrChannel,
   type PaymentQrCode,
   type PaymentQrCodeInput,
-} from "./services/payment-qr-codes"
+} from "./services/payment-qr-codes";
 export {
   confirmBill,
   getBill,
@@ -39,12 +57,9 @@ export {
   type PaymentBillStatus,
   type PaymentBillUser,
   type SupplementBillSerialNumberInput,
-} from "./services/payment-bills"
-export {
-  getProfileOverview,
-  type ProfileOverview,
-} from "./services/profile"
-export { listStores, type Store } from "./services/catalog"
+} from "./services/payment-bills";
+export { getProfileOverview, type ProfileOverview } from "./services/profile";
+export { listStores, type Store } from "./services/catalog";
 export {
   createSpotGoods,
   getSpotGoods,
@@ -52,15 +67,20 @@ export {
   type CreateSpotGoodsInput,
   type SpotGoods,
   type SpotProductTemplate,
-} from "./services/spot-goods"
+} from "./services/spot-goods";
 export {
+  cancelSpotOrder,
+  completeSpotOrder,
   createSpotOrders,
+  getSpotOrderDetail,
   listSpotOrders,
   type CreateSpotOrderInput,
   type SpotOrder,
+  type SpotOrderMutationInput,
   type SpotOrderPerspective,
+  type SpotOrderSeller,
   type SpotOrderStatusValue,
-} from "./services/spot-orders"
+} from "./services/spot-orders";
 export {
   createErrandDemand,
   getErrandDemandDetails,
@@ -70,18 +90,23 @@ export {
   type ErrandDemandDetailGroup,
   type ErrandDemandRequester,
   type ErrandDemandStoreSummary,
-} from "./services/errand-demands"
+} from "./services/errand-demands";
 export {
+  getBuyerErrandOrderDetail,
   listBuyerErrandOrders,
   type BuyerErrandOrder,
+  type BuyerErrandOrderCaptain,
+  type BuyerErrandOrderDetail,
+  type BuyerErrandOrderProductItem,
   type BuyerErrandOrderStatus,
   type BuyerErrandOrderStatusFilter,
-} from "./services/buyer-errand-orders"
+} from "./services/buyer-errand-orders";
 export {
   cancelTask,
   createErrandTask,
   getCollectingPaymentDetail,
   getDistributingTaskDetail,
+  getErrandTaskBrief,
   getShoppingTaskDetail,
   listErrandTasks,
   saveDistributingAssignment,
@@ -106,8 +131,15 @@ export {
   type SaveShoppingItemInput,
   type ShoppingTaskDetail,
   type ShoppingTaskItem,
-} from "./services/errand-tasks"
+} from "./services/errand-tasks";
 export {
+  createProductTemplate,
+  getProductTemplatesByBarcode,
   listProductTemplates,
+  updateProductTemplate,
+  type CreateProductTemplateInput,
   type ProductTemplate,
-} from "./services/product-templates"
+  type ProductTemplateMatch,
+  type UpdateProductTemplateInput,
+  type UpdateProductTemplatePatch,
+} from "./services/product-templates";

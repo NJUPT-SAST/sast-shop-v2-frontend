@@ -8,8 +8,15 @@ stubs:
           address: 仙林校区活动室
           logoUrl: https://avatars.githubusercontent.com/u/37794833?s=200&v=4
           themeColor: "#0071e3"
+        - id: "3002"
+          name: 南邮校园超市
+          address: 仙林校区南二门
+          logoUrl: ""
+          themeColor: "#0071e3"
   - id: catalog-get-product-template-list
     target: sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateList
+    active_if: req.store_id == 3001
+    priority: 100
     content:
       productTemplates:
         - id: "4001"
@@ -86,3 +93,116 @@ stubs:
           updatedAt: "2026-06-09T00:00:00Z"
       currentPage: 1
       totalCount: 9
+
+  - id: catalog-get-product-template-list-campus-market
+    target: sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateList
+    active_if: req.store_id == 3002
+    priority: 100
+    content:
+      productTemplates:
+        - id: "4010"
+          title: 农夫山泉矿泉水
+          description: 550ml 瓶装水
+          priceCents: 250
+          storeId: "3002"
+          mainImageUrl: https://images.unsplash.com/photo-1564419320461-6870880221ad?auto=format&fit=crop&w=640&q=80
+          barcode: "690000000001"
+          updatedAt: "2026-07-18T03:00:00Z"
+      currentPage: 1
+      totalCount: 1
+
+  - id: catalog-get-product-template-by-barcode-water
+    target: sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateByBarcode
+    active_if: req.barcode == "690000000001"
+    priority: 100
+    content:
+      items:
+        - productTemplate:
+            id: "4001"
+            title: 农夫山泉矿泉水
+            description: 550ml 瓶装水，适合活动采购
+            priceCents: 200
+            storeId: "3001"
+            mainImageUrl: https://images.unsplash.com/photo-1564419320461-6870880221ad?auto=format&fit=crop&w=640&q=80
+            barcode: "690000000001"
+            updatedAt: "2026-07-18T03:00:00Z"
+          store:
+            id: "3001"
+            name: SAST 小卖部
+            address: 仙林校区活动室
+            logoUrl: https://avatars.githubusercontent.com/u/37794833?s=200&v=4
+            themeColor: "#0071e3"
+        - productTemplate:
+            id: "4010"
+            title: 农夫山泉矿泉水
+            description: 550ml 瓶装水
+            priceCents: 250
+            storeId: "3002"
+            mainImageUrl: https://images.unsplash.com/photo-1564419320461-6870880221ad?auto=format&fit=crop&w=640&q=80
+            barcode: "690000000001"
+            updatedAt: "2026-07-18T03:00:00Z"
+          store:
+            id: "3002"
+            name: 南邮校园超市
+            address: 仙林校区南二门
+            logoUrl: ""
+            themeColor: "#0071e3"
+
+  - id: catalog-get-product-template-by-barcode-sticker
+    target: sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateByBarcode
+    active_if: req.barcode == "690000000003"
+    priority: 100
+    content:
+      items:
+        - productTemplate:
+            id: "4003"
+            title: SAST 活动贴纸包
+            description: 10 枚装，适合社团活动领取
+            priceCents: 800
+            storeId: "3001"
+            mainImageUrl: https://images.unsplash.com/photo-1517581177682-a085bb7ffb38?auto=format&fit=crop&w=640&q=80
+            barcode: "690000000003"
+            updatedAt: "2026-07-18T03:00:00Z"
+          store:
+            id: "3001"
+            name: SAST 小卖部
+            address: 仙林校区活动室
+            logoUrl: https://avatars.githubusercontent.com/u/37794833?s=200&v=4
+            themeColor: "#0071e3"
+
+  - id: catalog-get-product-template-by-barcode-empty
+    target: sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateByBarcode
+    content:
+      items: []
+
+  - id: catalog-create-product-template
+    target: sast.sastshopv2.catalog.v1.ProductTemplateService/CreateProductTemplate
+    cel_content: |
+      {
+        'product_template': {
+          'id': 4099,
+          'title': req.title,
+          'description': req.description,
+          'price_cents': req.price_cents,
+          'store_id': req.store_id,
+          'main_image_url': req.main_image_url,
+          'barcode': req.barcode,
+          'updated_at': now
+        }
+      }
+
+  - id: catalog-update-product-template
+    target: sast.sastshopv2.catalog.v1.ProductTemplateService/UpdateProductTemplate
+    cel_content: |
+      {
+        'product_template': {
+          'id': req.product_template.id,
+          'title': req.product_template.title,
+          'description': req.product_template.description,
+          'price_cents': req.product_template.price_cents,
+          'store_id': req.product_template.store_id,
+          'main_image_url': req.product_template.main_image_url,
+          'barcode': req.product_template.barcode,
+          'updated_at': now
+        }
+      }

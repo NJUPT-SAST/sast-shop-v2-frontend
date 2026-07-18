@@ -1,16 +1,22 @@
-import { createClient } from "@connectrpc/connect"
-import type { ProductTemplate as ProtoProductTemplate } from "../gen/sast/sastshopv2/catalog/v1/product_template_pb"
-import type { Store as ProtoStore } from "../gen/sast/sastshopv2/catalog/v1/store_pb"
-import type { BuyerErrandOrderBrief as ProtoBuyerErrandOrderBrief } from "../gen/sast/sastshopv2/errand/v1/buyer_errand_order_pb"
-import { BuyerErrandOrderService } from "../gen/sast/sastshopv2/errand/v1/buyer_errand_order_service_pb"
-import { ErrandDemandStatus } from "../gen/sast/sastshopv2/errand/v1/errand_demand_status_pb"
-import { resolveDataSource, type ServiceOptions } from "../data-source"
-import { FeatureUnavailableError, ValidationError } from "../errors"
-import { createLocalTransport, requestLocal } from "../local-connect"
-import type { Store } from "./catalog"
-import type { ProductTemplate } from "./product-templates"
+import { createClient } from "@connectrpc/connect";
+import type { ProductTemplate as ProtoProductTemplate } from "../gen/sast/sastshopv2/catalog/v1/product_template_pb";
+import type { Store as ProtoStore } from "../gen/sast/sastshopv2/catalog/v1/store_pb";
+import type {
+  BuyerErrandOrderBrief as ProtoBuyerErrandOrderBrief,
+  BuyerErrandOrderDetail as ProtoBuyerErrandOrderDetail,
+  BuyerErrandOrderProductItem as ProtoBuyerErrandOrderProductItem,
+} from "../gen/sast/sastshopv2/errand/v1/buyer_errand_order_pb";
+import { BuyerErrandOrderService } from "../gen/sast/sastshopv2/errand/v1/buyer_errand_order_service_pb";
+import { ErrandDemandStatus } from "../gen/sast/sastshopv2/errand/v1/errand_demand_status_pb";
+import type { UserInfo } from "../gen/sast/sastshopv2/user/v1/user_info_pb";
+import { resolveDataSource, type ServiceOptions } from "../data-source";
+import { FeatureUnavailableError, ValidationError } from "../errors";
+import { createLocalTransport, requestLocal } from "../local-connect";
+import type { Store } from "./catalog";
+import { mapPaymentBill, type PaymentBill } from "./payment-bills";
+import type { ProductTemplate } from "./product-templates";
 
-const MAX_SIGNED_INT64 = 9223372036854775807n
+const MAX_SIGNED_INT64 = 9223372036854775807n;
 
 export type BuyerErrandOrderStatus =
   | "open"
@@ -20,60 +26,122 @@ export type BuyerErrandOrderStatus =
   | "pending_payment"
   | "completed"
   | "cancelled"
-  | "unknown"
+  | "unknown";
 
 export type BuyerErrandOrderStatusFilter = Exclude<
   BuyerErrandOrderStatus,
   "unknown"
->
+>;
 
 export interface BuyerErrandOrder {
-  id: string
-  storeId: string
-  createdAt: string | null
-  store: Store | null
-  status: BuyerErrandOrderStatus
-  productTemplates: ProductTemplate[]
-  totalOriginAmountCents: number
-  totalActualAmountCents: number | null
-  totalServiceFeeCents: number
-  productTotalCount: number
+  id: string;
+  storeId: string;
+  createdAt: string | null;
+  store: Store | null;
+  status: BuyerErrandOrderStatus;
+  productTemplates: ProductTemplate[];
+  totalOriginAmountCents: number;
+  totalActualAmountCents: number | null;
+  totalServiceFeeCents: number;
+  productTotalCount: number;
+}
+
+export interface BuyerErrandOrderProductItem {
+  productTemplate: ProductTemplate | null;
+  actualUnitPriceCents: number;
+  requiredQuantity: number;
+  purchasedQuantity: number | null;
+  nonPurchaseReason: string | null;
+  distributedQuantity: number | null;
+  serviceFeePerUnitCents: number;
+  subtotalCents: number;
+  demandItemId: string;
+}
+
+export interface BuyerErrandOrderCaptain {
+  id: string;
+  name: string;
+  avatarUrl: string;
+}
+
+export interface BuyerErrandOrderDetail {
+  id: string;
+  storeId: string;
+  createdAt: string | null;
+  store: Store | null;
+  status: BuyerErrandOrderStatus;
+  productItems: BuyerErrandOrderProductItem[];
+  totalOriginAmountCents: number;
+  totalActualAmountCents: number | null;
+  totalServiceFeeCents: number;
+  captain: BuyerErrandOrderCaptain | null;
+  bill: PaymentBill | null;
+  deadline: string | null;
+  shoppingStartAt: string | null;
+  shoppingCompletedAt: string | null;
+  distributionCompletedAt: string | null;
+  paymentCompletedAt: string | null;
+  cancelledAt: string | null;
 }
 
 export async function listBuyerErrandOrders(
   options: ServiceOptions & {
-    storeId?: string
-    status?: BuyerErrandOrderStatusFilter
-    page?: number
-    pageSize?: number
-  } = {}
+    storeId?: string;
+    status?: BuyerErrandOrderStatusFilter;
+    page?: number;
+    pageSize?: number;
+  } = {},
 ): Promise<BuyerErrandOrder[]> {
-  const request = parseListBuyerErrandOrdersOptions(options)
-  const dataSource = resolveDataSource(options)
+  const request = parseListBuyerErrandOrdersOptions(options);
+  const dataSource = resolveDataSource(options);
 
   if (dataSource === "mock" || dataSource === "local") {
     const client = createClient(
       BuyerErrandOrderService,
-      createLocalTransport(options)
-    )
+      createLocalTransport(options),
+    );
     const response = await requestLocal("listBuyerErrandOrders", () =>
-      client.getBuyerErrandOrderBrief(request)
-    )
+      client.getBuyerErrandOrderBrief(request),
+    );
 
-    return response.orders.map(mapBuyerErrandOrder)
+    return response.orders.map(mapBuyerErrandOrder);
   }
 
-  throw new FeatureUnavailableError("listBuyerErrandOrders")
+  throw new FeatureUnavailableError("listBuyerErrandOrders");
 }
 
-function parseListBuyerErrandOrdersOptions(
-  options: {
-    storeId?: string
-    status?: BuyerErrandOrderStatusFilter
-    page?: number
-    pageSize?: number
+export async function getBuyerErrandOrderDetail(
+  id: string,
+  options: ServiceOptions = {},
+): Promise<BuyerErrandOrderDetail> {
+  const errandDemandId = parseInt64(id, "跑腿订单 ID 不正确");
+  const dataSource = resolveDataSource(options);
+
+  if (dataSource === "mock" || dataSource === "local") {
+    const client = createClient(
+      BuyerErrandOrderService,
+      createLocalTransport(options),
+    );
+    const response = await requestLocal("getBuyerErrandOrderDetail", () =>
+      client.getBuyerErrandOrderDetail({ errandDemandId }),
+    );
+
+    if (!response.order) {
+      throw new FeatureUnavailableError("getBuyerErrandOrderDetail");
+    }
+
+    return mapBuyerErrandOrderDetail(response.order);
   }
-) {
+
+  throw new FeatureUnavailableError("getBuyerErrandOrderDetail");
+}
+
+function parseListBuyerErrandOrdersOptions(options: {
+  storeId?: string;
+  status?: BuyerErrandOrderStatusFilter;
+  page?: number;
+  pageSize?: number;
+}) {
   return {
     page: parsePositiveInteger(options.page ?? 1, "页码不正确"),
     pageSize: parsePositiveInteger(options.pageSize ?? 50, "每页数量不正确"),
@@ -83,11 +151,11 @@ function parseListBuyerErrandOrdersOptions(
     ...(options.status
       ? { statusFilter: parseStatusFilter(options.status) }
       : {}),
-  }
+  };
 }
 
 function mapBuyerErrandOrder(
-  order: ProtoBuyerErrandOrderBrief
+  order: ProtoBuyerErrandOrderBrief,
 ): BuyerErrandOrder {
   return {
     id: order.errandDemandId.toString(),
@@ -100,12 +168,66 @@ function mapBuyerErrandOrder(
     totalActualAmountCents: order.totalActualAmountCents ?? null,
     totalServiceFeeCents: order.totalServiceFeeCents,
     productTotalCount: order.productTotalCount,
+  };
+}
+
+function mapBuyerErrandOrderDetail(
+  order: ProtoBuyerErrandOrderDetail,
+): BuyerErrandOrderDetail {
+  return {
+    id: order.errandDemandId.toString(),
+    storeId: order.storeId.toString(),
+    createdAt: formatTimestamp(order.createdAt),
+    store: mapStore(order.storeInfo),
+    status: mapStatusFromProto(order.status),
+    productItems: order.productItems.map(mapBuyerErrandOrderProductItem),
+    totalOriginAmountCents: order.totalOriginAmountCents,
+    totalActualAmountCents: order.totalActualAmountCents ?? null,
+    totalServiceFeeCents: order.totalServiceFeeCents,
+    captain: mapCaptain(order.captainInfo),
+    bill: order.bill ? mapPaymentBill(order.bill) : null,
+    deadline: formatTimestamp(order.deadline),
+    shoppingStartAt: formatTimestamp(order.shoppingStartAt),
+    shoppingCompletedAt: formatTimestamp(order.shoppingCompletedAt),
+    distributionCompletedAt: formatTimestamp(order.distributionCompletedAt),
+    paymentCompletedAt: formatTimestamp(order.paymentCompletedAt),
+    cancelledAt: formatTimestamp(order.cancelledAt),
+  };
+}
+
+function mapBuyerErrandOrderProductItem(
+  item: ProtoBuyerErrandOrderProductItem,
+): BuyerErrandOrderProductItem {
+  return {
+    productTemplate: item.productTemplate
+      ? mapProductTemplate(item.productTemplate)
+      : null,
+    actualUnitPriceCents: item.actualUnitPriceCents,
+    requiredQuantity: item.requiredQuantity,
+    purchasedQuantity: item.purchasedQuantity ?? null,
+    nonPurchaseReason: item.nonPurchaseReason ?? null,
+    distributedQuantity: item.distributedQuantity ?? null,
+    serviceFeePerUnitCents: item.serviceFeePerUnitCents,
+    subtotalCents: item.subtotalCents,
+    demandItemId: item.errandDemandItemId.toString(),
+  };
+}
+
+function mapCaptain(user?: UserInfo): BuyerErrandOrderCaptain | null {
+  if (!user) {
+    return null;
   }
+
+  return {
+    id: user.id.toString(),
+    name: user.name,
+    avatarUrl: user.avatarUrl,
+  };
 }
 
 function mapStore(store?: ProtoStore): Store | null {
   if (!store) {
-    return null
+    return null;
   }
 
   return {
@@ -114,7 +236,7 @@ function mapStore(store?: ProtoStore): Store | null {
     address: store.address,
     logoUrl: store.logoUrl,
     themeColor: store.themeColor,
-  }
+  };
 }
 
 function mapProductTemplate(template: ProtoProductTemplate): ProductTemplate {
@@ -127,77 +249,77 @@ function mapProductTemplate(template: ProtoProductTemplate): ProductTemplate {
     mainImageUrl: template.mainImageUrl,
     barcode: template.barcode,
     updatedAt: formatTimestamp(template.updatedAt),
-  }
+  };
 }
 
 function mapStatusFromProto(
-  status: ErrandDemandStatus
+  status: ErrandDemandStatus,
 ): BuyerErrandOrderStatus {
-  if (status === ErrandDemandStatus.OPEN) return "open"
-  if (status === ErrandDemandStatus.SHOPPING) return "shopping"
+  if (status === ErrandDemandStatus.OPEN) return "open";
+  if (status === ErrandDemandStatus.SHOPPING) return "shopping";
   if (status === ErrandDemandStatus.PENDING_DISTRIBUTING) {
-    return "pending_distributing"
+    return "pending_distributing";
   }
-  if (status === ErrandDemandStatus.DISTRIBUTING) return "distributing"
-  if (status === ErrandDemandStatus.PENDING_PAYMENT) return "pending_payment"
-  if (status === ErrandDemandStatus.COMPLETED) return "completed"
-  if (status === ErrandDemandStatus.CANCELLED) return "cancelled"
-  return "unknown"
+  if (status === ErrandDemandStatus.DISTRIBUTING) return "distributing";
+  if (status === ErrandDemandStatus.PENDING_PAYMENT) return "pending_payment";
+  if (status === ErrandDemandStatus.COMPLETED) return "completed";
+  if (status === ErrandDemandStatus.CANCELLED) return "cancelled";
+  return "unknown";
 }
 
 function parseStatusFilter(status: string): ErrandDemandStatus {
-  const protoStatus = mapStatusToProto(status)
+  const protoStatus = mapStatusToProto(status);
 
   if (protoStatus === undefined) {
-    throw new ValidationError("跑腿订单状态不正确")
+    throw new ValidationError("跑腿订单状态不正确");
   }
 
-  return protoStatus
+  return protoStatus;
 }
 
 function mapStatusToProto(status: string): ErrandDemandStatus | undefined {
-  if (status === "open") return ErrandDemandStatus.OPEN
-  if (status === "shopping") return ErrandDemandStatus.SHOPPING
+  if (status === "open") return ErrandDemandStatus.OPEN;
+  if (status === "shopping") return ErrandDemandStatus.SHOPPING;
   if (status === "pending_distributing") {
-    return ErrandDemandStatus.PENDING_DISTRIBUTING
+    return ErrandDemandStatus.PENDING_DISTRIBUTING;
   }
-  if (status === "distributing") return ErrandDemandStatus.DISTRIBUTING
-  if (status === "pending_payment") return ErrandDemandStatus.PENDING_PAYMENT
-  if (status === "completed") return ErrandDemandStatus.COMPLETED
-  if (status === "cancelled") return ErrandDemandStatus.CANCELLED
-  return undefined
+  if (status === "distributing") return ErrandDemandStatus.DISTRIBUTING;
+  if (status === "pending_payment") return ErrandDemandStatus.PENDING_PAYMENT;
+  if (status === "completed") return ErrandDemandStatus.COMPLETED;
+  if (status === "cancelled") return ErrandDemandStatus.CANCELLED;
+  return undefined;
 }
 
 function parseInt64(value: string, message: string): bigint {
   if (!/^[1-9]\d*$/.test(value)) {
-    throw new ValidationError(message)
+    throw new ValidationError(message);
   }
 
-  const parsed = BigInt(value)
+  const parsed = BigInt(value);
 
   if (parsed > MAX_SIGNED_INT64) {
-    throw new ValidationError(message)
+    throw new ValidationError(message);
   }
 
-  return parsed
+  return parsed;
 }
 
 function parsePositiveInteger(value: number, message: string): number {
   if (!Number.isInteger(value) || value <= 0) {
-    throw new ValidationError(message)
+    throw new ValidationError(message);
   }
 
-  return value
+  return value;
 }
 
 function formatTimestamp(
-  timestamp: { seconds: bigint; nanos: number } | undefined
+  timestamp: { seconds: bigint; nanos: number } | undefined,
 ): string | null {
   if (!timestamp) {
-    return null
+    return null;
   }
 
   return new Date(
-    Number(timestamp.seconds) * 1000 + Math.floor(timestamp.nanos / 1_000_000)
-  ).toISOString()
+    Number(timestamp.seconds) * 1000 + Math.floor(timestamp.nanos / 1_000_000),
+  ).toISOString();
 }

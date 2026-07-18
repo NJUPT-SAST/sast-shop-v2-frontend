@@ -14,6 +14,7 @@ describe("route id guards", () => {
     )
     expect(isValidRouteId("")).toBe(false)
     expect(isValidRouteId("0")).toBe(false)
+    expect(isValidRouteId("9223372036854775808")).toBe(false)
     expect(isValidRouteId("../orders")).toBe(false)
   })
 })

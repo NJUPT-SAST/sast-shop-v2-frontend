@@ -3,7 +3,7 @@ import {
   type ErrandDemandStoreSummary,
 } from "@sast-shop/api"
 import { ErrandDemandHall } from "@/components/errand-demand-hall"
-import { mobileAppConfig } from "@/lib/app-config"
+import { getServerServiceOptions } from "@/lib/server-service-options"
 
 async function loadErrandDemandStores(): Promise<{
   demands: ErrandDemandStoreSummary[]
@@ -11,10 +11,7 @@ async function loadErrandDemandStores(): Promise<{
 }> {
   try {
     return {
-      demands: await listErrandDemandStores({
-        dataSource: mobileAppConfig.dataSource,
-        connectBaseUrl: mobileAppConfig.connectBaseUrl,
-      }),
+      demands: await listErrandDemandStores(await getServerServiceOptions()),
       error: null,
     }
   } catch {

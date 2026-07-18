@@ -4,8 +4,8 @@ import {
   ApiRequestError,
   FeatureUnavailableError,
 } from "../errors"
-import type { AuthSession, CurrentUser } from "./auth"
-import { getCurrentUser, loginWithLarkCode } from "./auth"
+import type { AuthSession, CurrentUser, JSAPIAuthConfig } from "./auth"
+import { getCurrentUser, getJSAPIAuthConfig, loginWithLarkCode } from "./auth"
 
 describe("auth service", () => {
   afterEach(() => {
@@ -19,11 +19,58 @@ describe("auth service", () => {
     expectTypeOf<typeof loginWithLarkCode>().returns.toEqualTypeOf<
       Promise<AuthSession>
     >()
+    expectTypeOf<typeof getJSAPIAuthConfig>().returns.toEqualTypeOf<
+      Promise<JSAPIAuthConfig>
+    >()
     expectTypeOf<CurrentUser>().toEqualTypeOf<{
       id: string
       name: string
       avatarUrl: string
     }>()
+  })
+
+  it("returns JSAPI signing fields without exposing a ticket", async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          appId: "cli_test",
+          timestamp: "1784320800000",
+          nonceStr: "nonce-value",
+          signature: "signed-value",
+        }),
+        { headers: { "content-type": "application/json" } },
+      ),
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    await expect(
+      getJSAPIAuthConfig("https://shop.example.com/publish/spot?source=nav#ignored", {
+        dataSource: "local",
+        connectBaseUrl: "http://127.0.0.1:6660",
+      }),
+    ).resolves.toEqual({
+      appId: "cli_test",
+      timestamp: "1784320800000",
+      nonceStr: "nonce-value",
+      signature: "signed-value",
+    })
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.user.v1.AuthService/GetJSAPIAuthConfig",
+      body: { url: "https://shop.example.com/publish/spot?source=nav" },
+    })
+  })
+
+  it.each([
+    "javascript:alert(1)",
+    "https://user:secret@shop.example.com/publish/spot",
+    "not a url",
+  ])("rejects unsafe JSAPI signing URL %s", async (url) => {
+    await expect(
+      getJSAPIAuthConfig(url, {
+        dataSource: "local",
+        connectBaseUrl: "http://127.0.0.1:6660",
+      }),
+    ).rejects.toThrow("JSAPI 签名地址不正确")
   })
 
   it("returns current user from the fauxrpc backend in mock mode", async () => {
@@ -139,6 +186,36 @@ describe("auth service", () => {
       path: "/sast.sastshopv2.user.v1.AuthService/Login",
       body: { code: "lark-code" },
     })
+  })
+
+  it.each([
+    { sessionToken: "", expiresAt: "2099-12-31T23:59:59Z" },
+    { sessionToken: "expired-token", expiresAt: "2020-01-01T00:00:00Z" },
+  ])("rejects an invalid login session", async ({ sessionToken, expiresAt }) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            sessionToken,
+            expiresAt,
+            userInfo: {
+              id: "10001",
+              name: "南邮同学",
+              avatarUrl: "https://example.test/avatar.png",
+            },
+          }),
+          { headers: { "content-type": "application/json" } },
+        ),
+      ),
+    )
+
+    await expect(
+      loginWithLarkCode("lark-code", {
+        dataSource: "local",
+        connectBaseUrl: "http://127.0.0.1:6660",
+      }),
+    ).rejects.toBeInstanceOf(FeatureUnavailableError)
   })
 
   it("wraps local Connect failures in an API request error", async () => {

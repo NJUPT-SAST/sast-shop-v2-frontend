@@ -1,4 +1,9 @@
 stubs:
+  - id: errand-demand-create
+    target: sast.sastshopv2.errand.v1.ErrandDemandService/CreateErrandDemand
+    content:
+      errandDemandId: "9203"
+
   - id: errand-demand-get-list
     target: sast.sastshopv2.errand.v1.ErrandDemandService/GetDemandList
     content:

@@ -4,18 +4,15 @@ import {
   listSpotOrders,
 } from "@sast-shop/api"
 import { OrdersView } from "@/components/orders-view"
-import { mobileAppConfig } from "@/lib/app-config"
 import { getOrderFiltersFromParams } from "@/lib/order-filters"
+import { getServerServiceOptions } from "@/lib/server-service-options"
 
 type OrdersPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
 }
 
 async function getOrders() {
-  const options = {
-    dataSource: mobileAppConfig.dataSource,
-    connectBaseUrl: mobileAppConfig.connectBaseUrl,
-  }
+  const options = await getServerServiceOptions()
   const [
     spotBuyerResult,
     spotSellerResult,

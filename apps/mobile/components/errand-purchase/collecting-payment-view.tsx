@@ -28,6 +28,8 @@ import {
 } from "@workspace/ui/components/responsive-dialog"
 import { toast } from "sonner"
 
+import { MobileFixedFooter } from "@/components/mobile-fixed-footer"
+
 export type CollectingPaymentViewProps = {
   dataSource: DataSource
   connectBaseUrl: string
@@ -42,11 +44,11 @@ type DialogState =
 function getStatusBadge(status: CollectingPaymentBill["paymentStatus"]) {
   switch (status) {
     case "pending_confirmation":
-      return <Badge className="bg-amber-500 text-white shrink-0">待确认</Badge>
+      return <Badge className="shrink-0">待确认</Badge>
     case "pending":
       return <Badge variant="secondary" className="shrink-0">未支付</Badge>
     case "confirmed":
-      return <Badge className="bg-emerald-500 text-white shrink-0">已收款</Badge>
+      return <Badge variant="outline" className="shrink-0">已收款</Badge>
     case "problem":
       return <Badge variant="destructive" className="shrink-0">问题</Badge>
     default:
@@ -62,6 +64,7 @@ export function CollectingPaymentView({
 }: CollectingPaymentViewProps) {
   const router = useRouter()
   const submittingRef = useRef(false)
+  const confirmingRef = useRef(false)
   const [bills, setBills] = useState<CollectingPaymentBill[]>(detail.bills)
   const [expandedBillId, setExpandedBillId] = useState<string | null>(null)
   const [dialog, setDialog] = useState<DialogState>({ type: "none" })
@@ -93,14 +96,23 @@ export function CollectingPaymentView({
       toast.error("账单 ID 不存在")
       return
     }
-    if (confirmingBillId) return
+    if (!bill.billUpdatedAt) {
+      toast.error("账单状态已过期，请刷新后重试")
+      return
+    }
+    if (confirmingRef.current) return
+    confirmingRef.current = true
     setConfirmingBillId(bill.requesterId)
     try {
-      await confirmBill({ billId: bill.billId }, serviceOptions)
+      await confirmBill(
+        { billId: bill.billId, updatedAt: bill.billUpdatedAt },
+        serviceOptions
+      )
       updateBill(bill.requesterId, "confirmed")
     } catch {
       toast.error("确认收款失败，请稍后再试")
     } finally {
+      confirmingRef.current = false
       setConfirmingBillId(null)
     }
   }
@@ -144,6 +156,8 @@ export function CollectingPaymentView({
               <div key={expandKey} className="rounded-lg border bg-card overflow-hidden">
                 <button
                   type="button"
+                  aria-controls={`payment-bill-${expandKey}`}
+                  aria-expanded={isExpanded}
                   className="flex w-full items-center gap-3 p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   onClick={() =>
                     setExpandedBillId(isExpanded ? null : expandKey)
@@ -179,7 +193,10 @@ export function CollectingPaymentView({
                 </button>
 
                 {isExpanded && (
-                  <div className="border-t px-3 pb-3">
+                  <div
+                    id={`payment-bill-${expandKey}`}
+                    className="border-t px-3 pb-3"
+                  >
                     <div className="mt-3 flex flex-col gap-2">
                       {bill.items.map((item) => (
                         <div
@@ -224,7 +241,7 @@ export function CollectingPaymentView({
                       <div className="mt-3 flex gap-2">
                         <Button
                           type="button"
-                          size="sm"
+                          size="touch"
                           variant="outline"
                           className="flex-1 text-destructive"
                           onClick={() => handleMarkProblem(bill)}
@@ -234,8 +251,8 @@ export function CollectingPaymentView({
                         </Button>
                         <Button
                           type="button"
-                          size="sm"
-                          className="flex-1 bg-emerald-500 text-white hover:bg-emerald-600"
+                          size="touch"
+                          className="flex-1"
                           onClick={() => void handleConfirmBill(bill)}
                           disabled={confirmingBillId === bill.requesterId}
                         >
@@ -256,10 +273,10 @@ export function CollectingPaymentView({
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-5 py-5">
+    <div className="flex flex-1 flex-col gap-5 py-5 pb-24">
       <section className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold leading-7">支付核对</h1>
-        <Badge className="bg-orange-500 text-white shrink-0">收款中</Badge>
+        <Badge className="shrink-0">收款中</Badge>
       </section>
 
       {renderBillSection(pendingConfirmation, "待确认")}
@@ -272,7 +289,7 @@ export function CollectingPaymentView({
         </div>
       )}
 
-      <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-10 mt-auto rounded-lg border bg-card p-2">
+      <MobileFixedFooter>
         <Button
           type="button"
           disabled={!allConfirmed}
@@ -281,7 +298,7 @@ export function CollectingPaymentView({
         >
           订单完成 ({confirmedCount}/{totalCount})
         </Button>
-      </div>
+      </MobileFixedFooter>
 
       <ResponsiveDialog
         open={dialog.type === "confirm_complete"}

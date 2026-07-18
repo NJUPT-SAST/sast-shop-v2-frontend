@@ -29,7 +29,7 @@ export function MobileHeader() {
         <Button
           type="button"
           variant="ghost"
-          size="icon-lg"
+          size="icon-touch"
           className="border-0 bg-transparent shadow-none"
           aria-label="返回上一页"
           onClick={() => router.back()}

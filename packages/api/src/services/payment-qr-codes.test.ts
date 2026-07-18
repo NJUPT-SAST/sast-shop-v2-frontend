@@ -53,7 +53,7 @@ describe("payment QR code service", () => {
           {
             id: "2001",
             channel: "CHANNEL_WECHAT",
-            content: "https://example.test/pay/wechat/sast",
+            content: "wxp://sast-shop",
           },
           {
             id: "2002",
@@ -140,7 +140,7 @@ describe("payment QR code service", () => {
           {
             id: "2001",
             channel: "CHANNEL_WECHAT",
-            content: "https://example.test/pay/wechat/sast",
+            content: "wxp://sast-shop",
           },
         ],
       })
@@ -153,7 +153,7 @@ describe("payment QR code service", () => {
       {
         id: "2001",
         channel: "wechat",
-        content: "https://example.test/pay/wechat/sast",
+        content: "wxp://sast-shop",
       },
     ])
     expect(fetchMock).toHaveBeenCalledOnce()
@@ -170,7 +170,7 @@ describe("payment QR code service", () => {
           {
             id: "3001",
             channel: "CHANNEL_WECHAT",
-            content: "https://example.test/pay/wechat/seller",
+            content: "wxp://sast-shop-seller",
           },
         ],
       })
@@ -182,7 +182,7 @@ describe("payment QR code service", () => {
       ownerId: "42",
     })
 
-    expect(qrCodes[0]?.content).toBe("https://example.test/pay/wechat/seller")
+    expect(qrCodes[0]?.content).toBe("wxp://sast-shop-seller")
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.payment.v1.QrCodeService/GetQrCode",
       body: {
@@ -208,6 +208,27 @@ describe("payment QR code service", () => {
       })
     ).rejects.toBeInstanceOf(ValidationError)
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("rejects unsafe payment QR content returned by the backend", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        stubJsonResponse({
+          qrCodes: [
+            {
+              id: "3001",
+              channel: "CHANNEL_WECHAT",
+              content: "https://phishing.example/pay",
+            },
+          ],
+        })
+      )
+    )
+
+    await expect(listPaymentQrCodes(localOptions)).rejects.toBeInstanceOf(
+      FeatureUnavailableError
+    )
   })
 
   it("updates a normalized payment QR code through the local Connect backend", async () => {

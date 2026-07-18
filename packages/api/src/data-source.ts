@@ -5,6 +5,7 @@ export type DataSource = "mock" | "local" | "remote"
 export interface ServiceOptions {
   dataSource?: DataSource
   connectBaseUrl?: string
+  fetch?: typeof globalThis.fetch
 }
 
 export function resolveDataSource(options: ServiceOptions = {}): DataSource {

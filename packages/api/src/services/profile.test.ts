@@ -59,7 +59,7 @@ describe("profile service", () => {
             {
               id: "2001",
               channel: "CHANNEL_WECHAT",
-              content: "https://example.test/pay/wechat/sast",
+              content: "wxp://sast-shop",
             },
             {
               id: "2002",

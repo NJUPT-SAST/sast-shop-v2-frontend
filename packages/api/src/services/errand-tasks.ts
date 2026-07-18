@@ -13,6 +13,7 @@ import type { DistributingRequestInfo } from "../gen/sast/sastshopv2/errand/v1/d
 import type { CollectingPaymentBillDetail } from "../gen/sast/sastshopv2/errand/v1/collecting_payment_bill_pb"
 import type { CollectingPaymentRequesterItemDetail } from "../gen/sast/sastshopv2/errand/v1/collecting_payment_requester_item_pb"
 import { BillStatus } from "../gen/sast/sastshopv2/payment/v1/bill_pb"
+import { Channel } from "../gen/sast/sastshopv2/payment/v1/channel_pb"
 import { resolveDataSource, type ServiceOptions } from "../data-source"
 import { FeatureUnavailableError, ValidationError } from "../errors"
 import { createLocalTransport, requestLocal } from "../local-connect"
@@ -51,6 +52,12 @@ export interface ErrandTaskBrief {
   createdAt: string | null
 }
 
+type ListErrandTasksOptions = ServiceOptions & {
+  page?: number
+  pageSize?: number
+  status?: ErrandTaskStatusFilter
+}
+
 export async function createErrandTask(
   input: CreateErrandTaskInput,
   options: ServiceOptions = {}
@@ -71,12 +78,32 @@ export async function createErrandTask(
 }
 
 export async function listErrandTasks(
-  options: ServiceOptions & {
-    page?: number
-    pageSize?: number
-    status?: ErrandTaskStatusFilter
-  } = {}
+  options: ListErrandTasksOptions = {}
 ): Promise<ErrandTaskBrief[]> {
+  const result = await listErrandTaskPage(options)
+  return result.tasks
+}
+
+export async function getErrandTaskBrief(
+  taskId: string,
+  options: ServiceOptions = {}
+): Promise<ErrandTaskBrief | null> {
+  const normalizedTaskId = parseInt64(taskId, "任务 ID 不正确").toString()
+  const pageSize = 50
+  let page = 1
+
+  while (true) {
+    const result = await listErrandTaskPage({ ...options, page, pageSize })
+    const task = result.tasks.find((item) => item.id === normalizedTaskId)
+
+    if (task) return task
+    if (page * pageSize >= result.totalCount) return null
+
+    page += 1
+  }
+}
+
+async function listErrandTaskPage(options: ListErrandTasksOptions) {
   const request = {
     page: parsePositiveInteger(options.page ?? 1, "页码不正确"),
     pageSize: parsePositiveInteger(options.pageSize ?? 50, "每页数量不正确"),
@@ -92,7 +119,10 @@ export async function listErrandTasks(
       client.getErrandTaskList(request)
     )
 
-    return response.errandTasks.map(mapErrandTask)
+    return {
+      tasks: response.errandTasks.map(mapErrandTask),
+      totalCount: response.totalCount,
+    }
   }
 
   throw new FeatureUnavailableError("listErrandTasks")
@@ -297,6 +327,10 @@ export interface CollectingPaymentBill {
   paymentStatus: "pending" | "pending_confirmation" | "confirmed" | "problem" | "unknown"
   billId: string | null
   billNo: string | null
+  billUpdatedAt: string | null
+  paymentChannel: "wechat" | "alipay" | null
+  serialNumber: string | null
+  verifyCode: string | null
   items: CollectingPaymentItem[]
   productAmountCents: number
   serviceFeeAmountCents: number
@@ -692,10 +726,20 @@ function mapCollectingPaymentBill(
     paymentStatus: mapBillStatus(bill.paymentStatus),
     billId: bill.bill?.id.toString() ?? null,
     billNo: bill.bill?.billNo ?? null,
+    billUpdatedAt: formatTimestamp(bill.bill?.updatedAt),
+    paymentChannel: mapPaymentChannel(bill.bill?.channel),
+    serialNumber: bill.bill?.serialNumber ?? null,
+    verifyCode: bill.bill?.verifyCode || null,
     items: bill.items.map(mapCollectingPaymentItem),
     productAmountCents: bill.productAmountCents,
     serviceFeeAmountCents: bill.serviceFeeAmountCents,
     packagingFeeShareCents: bill.packagingFeeShareCents,
     totalAmountCents: bill.totalAmountCents,
   }
+}
+
+function mapPaymentChannel(channel: Channel | undefined): CollectingPaymentBill["paymentChannel"] {
+  if (channel === Channel.WECHAT) return "wechat"
+  if (channel === Channel.ALIPAY) return "alipay"
+  return null
 }

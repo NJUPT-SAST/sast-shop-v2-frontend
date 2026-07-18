@@ -1,38 +1,40 @@
-"use client"
+"use client";
 
-import { useEffect, useRef, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
-  RiArrowLeftLine,
   RiCheckboxCircleLine,
   RiCloseCircleLine,
   RiQuestionLine,
-} from "@remixicon/react"
+} from "@remixicon/react";
 import {
-  listPaymentQrCodes,
-  payBill,
-  supplementBillSerialNumber,
+  cancelSpotOrder,
+  completeSpotOrder,
+  confirmBill,
   type DataSource,
   type PaymentBill,
-  type PaymentQrCode,
   type SpotOrder,
-} from "@sast-shop/api"
-import { formatPrice } from "@sast-shop/domain"
-import { Button } from "@workspace/ui/components/button"
+} from "@sast-shop/api";
+import { formatPrice } from "@sast-shop/domain";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@workspace/ui/components/alert";
+import { Button } from "@workspace/ui/components/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "@workspace/ui/components/card"
+} from "@workspace/ui/components/card";
 import {
   Drawer,
   DrawerContent,
+  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
-} from "@workspace/ui/components/drawer"
-import { Input } from "@workspace/ui/components/input"
-import { Label } from "@workspace/ui/components/label"
+} from "@workspace/ui/components/drawer";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -40,25 +42,39 @@ import {
   ResponsiveDialogFooter,
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
-} from "@workspace/ui/components/responsive-dialog"
-import { Separator } from "@workspace/ui/components/separator"
-import { cn } from "@workspace/ui/lib/utils"
-import { toast } from "sonner"
+} from "@workspace/ui/components/responsive-dialog";
+import { Separator } from "@workspace/ui/components/separator";
+import { Spinner } from "@workspace/ui/components/spinner";
+import { cn } from "@workspace/ui/lib/utils";
+import { toast } from "sonner";
 
-import type { PaymentPlatform } from "@/lib/payment-preferences"
-import { PaymentDialog, type PaymentDialogStatus } from "./payment-dialog"
+import type { SpotOrderView } from "@/lib/order-filters";
+import {
+  hasPaymentRecipient,
+  reconcileSpotOrderUpdate,
+  resolveSpotOrderActions,
+} from "@/lib/spot-order-actions";
+import { ManagedImage } from "./managed-image";
+import { MobileFixedFooter } from "./mobile-fixed-footer";
+import {
+  PaymentSection,
+  SupplementSerialNumberDialog,
+  type PayablePaymentBill,
+} from "./payment-flow";
 
 export type SpotOrderDetailProps = {
-  dataSource: DataSource
-  connectBaseUrl: string
-  order: SpotOrder
-}
+  dataSource: DataSource;
+  connectBaseUrl: string;
+  order: SpotOrder;
+  view: SpotOrderView;
+};
 
+type VersionedPaymentBill = PaymentBill & { updatedAt: string };
 type OrderStep = {
-  label: string
-  isActive: boolean
-  isDone: boolean
-}
+  label: string;
+  isActive: boolean;
+  isDone: boolean;
+};
 
 const STATUS_STEP_INDEX: Record<SpotOrder["status"], number> = {
   pending_payment: 0,
@@ -66,104 +82,232 @@ const STATUS_STEP_INDEX: Record<SpotOrder["status"], number> = {
   completed: 2,
   cancelled: -1,
   unknown: -1,
-}
+};
 
-const STATUS_LABEL: Record<SpotOrder["status"], string> = {
-  pending_payment: "待支付",
-  paid: "处理中",
-  completed: "已完成",
-  cancelled: "已取消",
-  unknown: "未知",
-}
+const BUYER_STEP_LABELS = ["待支付", "处理中", "已完成"];
+const SELLER_STEP_LABELS = ["待收款", "后续处理", "已完成"];
 
-const STEP_LABELS = ["待支付", "处理中", "已完成"]
+function buildSteps(
+  status: SpotOrder["status"],
+  view: SpotOrderView,
+): OrderStep[] {
+  const activeIndex = STATUS_STEP_INDEX[status];
+  const labels = view === "seller" ? SELLER_STEP_LABELS : BUYER_STEP_LABELS;
 
-function buildSteps(status: SpotOrder["status"]): OrderStep[] {
-  const activeIndex = STATUS_STEP_INDEX[status]
-
-  return STEP_LABELS.map((label, index) => ({
+  return labels.map((label, index) => ({
     label,
     isDone: activeIndex > index,
     isActive: activeIndex === index,
-  }))
+  }));
 }
 
 export function SpotOrderDetail({
   dataSource,
   connectBaseUrl,
   order,
+  view,
 }: SpotOrderDetailProps) {
-  const router = useRouter()
-  const [paymentDrawerOpen, setPaymentDrawerOpen] = useState(false)
-  const [progressDrawerOpen, setProgressDrawerOpen] = useState(false)
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
+  const router = useRouter();
+  const [currentOrder, setCurrentOrder] = useState(order);
+  const [paymentDrawerOpen, setPaymentDrawerOpen] = useState(false);
+  const [progressDrawerOpen, setProgressDrawerOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const [confirmPaymentDialogOpen, setConfirmPaymentDialogOpen] =
+    useState(false);
+  const [supplementOpen, setSupplementOpen] = useState(false);
+  const [lifecyclePending, setLifecyclePending] = useState<
+    "cancel" | "complete" | "confirm-payment" | null
+  >(null);
+  const lifecyclePendingRef = useRef(false);
 
-  const steps = buildSteps(order.status)
-  const isCancelled = order.status === "cancelled"
-  const isPendingPayment = order.status === "pending_payment"
+  const resolvedOrder = reconcileSpotOrderUpdate(currentOrder, order);
+  const bill = resolvedOrder.bill;
+  const steps = buildSteps(resolvedOrder.status, view);
+  const isCancelled = resolvedOrder.status === "cancelled";
+  const actions = resolveSpotOrderActions(
+    view,
+    resolvedOrder.status,
+    bill?.status,
+  );
+  const versionedBill: VersionedPaymentBill | null = bill?.updatedAt
+    ? { ...bill, updatedAt: bill.updatedAt }
+    : null;
+  const payableBill: PayablePaymentBill | null =
+    versionedBill && hasPaymentRecipient(versionedBill) ? versionedBill : null;
+  const canSubmitPayment = actions.canPay && Boolean(payableBill);
+  const canSupplementSerialNumber =
+    actions.canSupplementSerialNumber && Boolean(versionedBill);
+  const canConfirmPayment = actions.canConfirmPayment && Boolean(versionedBill);
+  const showActionBar =
+    actions.canCancel ||
+    canSubmitPayment ||
+    canSupplementSerialNumber ||
+    canConfirmPayment ||
+    actions.canComplete;
+  const currentStatusLabel = getCurrentStatusLabel(
+    view,
+    resolvedOrder.status,
+    bill?.status,
+  );
+
+  async function handleLifecycleAction(
+    action: "cancel" | "complete" | "confirm-payment",
+  ) {
+    if (lifecyclePendingRef.current) return;
+    if (action === "confirm-payment" && !versionedBill) return;
+
+    lifecyclePendingRef.current = true;
+    setLifecyclePending(action);
+
+    try {
+      if (action === "cancel") {
+        const updatedOrder = await cancelSpotOrder(
+          { spotOrderId: resolvedOrder.id },
+          { dataSource, connectBaseUrl },
+        );
+        setCurrentOrder(updatedOrder);
+        setCancelDialogOpen(false);
+        toast.success("订单已取消");
+      } else if (action === "complete") {
+        const updatedOrder = await completeSpotOrder(
+          { spotOrderId: resolvedOrder.id },
+          { dataSource, connectBaseUrl },
+        );
+        setCurrentOrder(updatedOrder);
+        setCompleteDialogOpen(false);
+        toast.success("已确认收货");
+      } else {
+        const updatedBill = await confirmBill(
+          { billId: versionedBill!.id, updatedAt: versionedBill!.updatedAt },
+          { dataSource, connectBaseUrl },
+        );
+        setCurrentOrder({ ...resolvedOrder, bill: updatedBill });
+        setConfirmPaymentDialogOpen(false);
+        toast.success("已确认收款");
+      }
+
+      router.refresh();
+    } catch {
+      toast.error("操作失败，订单状态可能已更新，请刷新后重试");
+    } finally {
+      lifecyclePendingRef.current = false;
+      setLifecyclePending(null);
+    }
+  }
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="flex flex-1 flex-col gap-4 py-4">
-        <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => router.back()}
-            aria-label="返回"
-          >
-            <RiArrowLeftLine className="size-5" />
-          </Button>
-          <h1 className="text-lg font-semibold">订单详情</h1>
-        </div>
+      <div className={cn("flex flex-1 flex-col gap-4 py-4", showActionBar && "pb-24")}>
+        <h1 className="text-lg font-semibold">订单详情</h1>
 
         <OrderProgressBar
           steps={steps}
-          status={order.status}
+          currentLabel={currentStatusLabel}
           isCancelled={isCancelled}
           onExpand={() => setProgressDrawerOpen(true)}
         />
 
-        <OrderInfoCard order={order} />
+        <OrderInfoCard order={resolvedOrder} view={view} />
 
-        {order.status === "paid" && order.bill ? (
-          <PaidStatusSection bill={order.bill} />
+        {resolvedOrder.status === "paid" && bill ? (
+          <PaidStatusSection bill={bill} />
         ) : null}
 
-        {order.status === "completed" ? (
-          <div className="flex items-center gap-2 rounded-lg border bg-card p-4">
-            <RiCheckboxCircleLine className="size-5 shrink-0 text-green-600" />
-            <span className="text-sm font-medium">订单已完成</span>
-          </div>
+        {view === "buyer" &&
+        resolvedOrder.status === "pending_payment" &&
+        bill?.status === "submitted" ? (
+          <AwaitingPaymentConfirmation bill={bill} />
+        ) : null}
+
+        {view === "seller" &&
+        resolvedOrder.status === "pending_payment" &&
+        bill ? (
+          <SellerPaymentReview bill={bill} />
+        ) : null}
+
+        {view === "buyer" && actions.canPay && !payableBill ? (
+          <UnavailablePaymentBill />
+        ) : null}
+
+        {view === "seller" &&
+        resolvedOrder.status === "pending_payment" &&
+        bill?.status === "completed" ? (
+          <Alert>
+            <RiCheckboxCircleLine />
+            <AlertTitle>收款已确认</AlertTitle>
+            <AlertDescription>
+              订单状态正在同步，请稍后刷新查看。
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {resolvedOrder.status === "completed" ? (
+          <Alert>
+            <RiCheckboxCircleLine />
+            <AlertTitle>订单已完成</AlertTitle>
+            <AlertDescription>本次现货交易已完成。</AlertDescription>
+          </Alert>
         ) : null}
 
         {isCancelled ? (
-          <div className="flex items-center gap-2 rounded-lg border bg-card p-4">
-            <RiCloseCircleLine className="size-5 shrink-0 text-muted-foreground" />
-            <span className="text-sm font-medium text-muted-foreground">订单已取消</span>
-          </div>
+          <Alert>
+            <RiCloseCircleLine />
+            <AlertTitle>订单已取消</AlertTitle>
+            <AlertDescription>关联账单已关闭。</AlertDescription>
+          </Alert>
         ) : null}
       </div>
 
-      {isPendingPayment ? (
-        <div className="sticky bottom-0 flex gap-2 border-t bg-background px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3">
-          <Button
-            type="button"
-            variant="outline"
-            className="flex-1"
-            onClick={() => setCancelDialogOpen(true)}
-          >
-            取消订单
-          </Button>
-          <Button
-            type="button"
-            className="flex-1"
-            onClick={() => setPaymentDrawerOpen(true)}
-          >
-            去支付
-          </Button>
-        </div>
+      {showActionBar ? (
+        <MobileFixedFooter>
+          {actions.canCancel ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => setCancelDialogOpen(true)}
+            >
+              取消订单
+            </Button>
+          ) : null}
+          {canSubmitPayment ? (
+            <Button
+              type="button"
+              className="flex-1"
+              onClick={() => setPaymentDrawerOpen(true)}
+            >
+              去支付
+            </Button>
+          ) : null}
+          {canSupplementSerialNumber ? (
+            <Button
+              type="button"
+              className="flex-1"
+              onClick={() => setSupplementOpen(true)}
+            >
+              补充流水号
+            </Button>
+          ) : null}
+          {canConfirmPayment ? (
+            <Button
+              type="button"
+              className="flex-1"
+              onClick={() => setConfirmPaymentDialogOpen(true)}
+            >
+              确认收款
+            </Button>
+          ) : null}
+          {actions.canComplete ? (
+            <Button
+              type="button"
+              className="flex-1"
+              onClick={() => setCompleteDialogOpen(true)}
+            >
+              确认收货
+            </Button>
+          ) : null}
+        </MobileFixedFooter>
       ) : null}
 
       <OrderProgressDrawer
@@ -173,17 +317,33 @@ export function SpotOrderDetail({
         isCancelled={isCancelled}
       />
 
-      {isPendingPayment && order.bill ? (
+      {canSubmitPayment && payableBill ? (
         <PaymentSection
           open={paymentDrawerOpen}
           onOpenChange={setPaymentDrawerOpen}
-          order={order}
-          bill={order.bill}
+          bill={payableBill}
           dataSource={dataSource}
           connectBaseUrl={connectBaseUrl}
-          onSuccess={() => {
-            setPaymentDrawerOpen(false)
-            router.refresh()
+          onSuccess={(submittedBill) => {
+            setCurrentOrder({ ...resolvedOrder, bill: submittedBill });
+            setPaymentDrawerOpen(false);
+            router.refresh();
+          }}
+        />
+      ) : null}
+
+      {canSupplementSerialNumber && versionedBill ? (
+        <SupplementSerialNumberDialog
+          open={supplementOpen}
+          onOpenChange={setSupplementOpen}
+          billId={versionedBill.id}
+          billUpdatedAt={versionedBill.updatedAt}
+          dataSource={dataSource}
+          connectBaseUrl={connectBaseUrl}
+          onSuccess={(updatedBill) => {
+            setCurrentOrder({ ...resolvedOrder, bill: updatedBill });
+            setSupplementOpen(false);
+            router.refresh();
           }}
         />
       ) : null}
@@ -191,24 +351,47 @@ export function SpotOrderDetail({
       <CancelOrderDialog
         open={cancelDialogOpen}
         onOpenChange={setCancelDialogOpen}
+        hasSubmittedPayment={bill?.status === "submitted"}
+        pending={lifecyclePending === "cancel"}
+        onConfirm={() => void handleLifecycleAction("cancel")}
+      />
+
+      <LifecycleConfirmDialog
+        open={completeDialogOpen}
+        onOpenChange={setCompleteDialogOpen}
+        title="确认收货"
+        description="确认已经收到商品且无误吗？确认后订单将完成。"
+        confirmLabel="确认收货"
+        pending={lifecyclePending === "complete"}
+        onConfirm={() => void handleLifecycleAction("complete")}
+      />
+
+      <LifecycleConfirmDialog
+        open={confirmPaymentDialogOpen}
+        onOpenChange={setConfirmPaymentDialogOpen}
+        title="确认收款"
+        description={`请核对标识码 ${bill?.verifyCode ?? "-"} 和到账金额 ${formatPrice(
+          bill?.amountCents ?? resolvedOrder.totalAmountCents,
+        )}，确认实际到账后再继续。`}
+        confirmLabel="确认已到账"
+        pending={lifecyclePending === "confirm-payment"}
+        onConfirm={() => void handleLifecycleAction("confirm-payment")}
       />
     </div>
-  )
+  );
 }
 
 function OrderProgressBar({
   steps,
-  status,
+  currentLabel,
   isCancelled,
   onExpand,
 }: {
-  steps: OrderStep[]
-  status: SpotOrder["status"]
-  isCancelled: boolean
-  onExpand: () => void
+  steps: OrderStep[];
+  currentLabel: string;
+  isCancelled: boolean;
+  onExpand: () => void;
 }) {
-  const currentLabel = STATUS_LABEL[status]
-
   return (
     <button
       type="button"
@@ -229,14 +412,15 @@ function OrderProgressBar({
           <p className="text-sm font-medium">{currentLabel}</p>
           {!isCancelled ? (
             <p className="text-xs text-muted-foreground">
-              {steps.filter((s) => s.isDone || s.isActive).length} / {steps.length} 步骤
+              {steps.filter((s) => s.isDone || s.isActive).length} /{" "}
+              {steps.length} 步骤
             </p>
           ) : null}
         </div>
       </div>
       <RiQuestionLine className="size-4 text-muted-foreground" />
     </button>
-  )
+  );
 }
 
 function OrderProgressDrawer({
@@ -245,16 +429,19 @@ function OrderProgressDrawer({
   steps,
   isCancelled,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  steps: OrderStep[]
-  isCancelled: boolean
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  steps: OrderStep[];
+  isCancelled: boolean;
 }) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent>
         <DrawerHeader>
           <DrawerTitle>订单进度</DrawerTitle>
+          <DrawerDescription className="sr-only">
+            查看现货订单的处理进度
+          </DrawerDescription>
         </DrawerHeader>
         <div className="px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
           {isCancelled ? (
@@ -265,8 +452,12 @@ function OrderProgressDrawer({
                 </span>
               </div>
               <div className="pt-0.5">
-                <p className="text-sm font-medium text-muted-foreground">已取消</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">订单已取消</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  已取消
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  订单已取消
+                </p>
               </div>
             </div>
           ) : (
@@ -278,23 +469,25 @@ function OrderProgressDrawer({
                       className={cn(
                         "flex size-7 items-center justify-center rounded-full",
                         step.isDone
-                          ? "bg-green-100 text-green-600"
+                          ? "bg-primary/10 text-primary"
                           : step.isActive
                             ? "bg-primary/10 text-primary"
-                            : "bg-muted text-muted-foreground"
+                            : "bg-muted text-muted-foreground",
                       )}
                     >
                       {step.isDone ? (
                         <RiCheckboxCircleLine className="size-4" />
                       ) : (
-                        <span className="text-xs font-semibold">{index + 1}</span>
+                        <span className="text-xs font-semibold">
+                          {index + 1}
+                        </span>
                       )}
                     </span>
                     {index < steps.length - 1 ? (
                       <span
                         className={cn(
                           "my-1 w-0.5 flex-1",
-                          step.isDone ? "bg-green-200" : "bg-muted"
+                          step.isDone ? "bg-primary/30" : "bg-muted",
                         )}
                         style={{ minHeight: "1.5rem" }}
                       />
@@ -307,8 +500,8 @@ function OrderProgressDrawer({
                         step.isActive
                           ? "text-foreground"
                           : step.isDone
-                            ? "text-green-600"
-                            : "text-muted-foreground"
+                            ? "text-primary"
+                            : "text-muted-foreground",
                       )}
                     >
                       {step.label}
@@ -324,11 +517,40 @@ function OrderProgressDrawer({
         </div>
       </DrawerContent>
     </Drawer>
-  )
+  );
 }
 
-function OrderInfoCard({ order }: { order: SpotOrder }) {
-  const lineTotal = order.unitPriceCents * order.quantity
+function getCurrentStatusLabel(
+  view: SpotOrderView,
+  orderStatus: SpotOrder["status"],
+  billStatus?: PaymentBill["status"],
+): string {
+  if (orderStatus === "completed") return "已完成";
+  if (orderStatus === "cancelled") return "已取消";
+  if (orderStatus === "unknown") return "未知";
+
+  if (orderStatus === "paid") {
+    return view === "seller" ? "后续处理" : "处理中";
+  }
+
+  if (view === "seller") {
+    if (billStatus === "submitted") return "待确认收款";
+    if (billStatus === "completed") return "状态同步中";
+    return "等待买家付款";
+  }
+
+  return billStatus === "submitted" ? "等待收款确认" : "待支付";
+}
+
+function OrderInfoCard({
+  order,
+  view,
+}: {
+  order: SpotOrder;
+  view: SpotOrderView;
+}) {
+  const lineTotal = order.unitPriceCents * order.quantity;
+  const counterparty = view === "seller" ? order.bill?.payer : order.seller;
 
   return (
     <Card className="rounded-lg">
@@ -346,9 +568,21 @@ function OrderInfoCard({ order }: { order: SpotOrder }) {
             <span>{order.store.name}</span>
           </div>
         ) : null}
+        {counterparty ? (
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="text-muted-foreground">
+              {view === "seller" ? "买家" : "卖家"}
+            </span>
+            <span className="truncate">{counterparty.name}</span>
+          </div>
+        ) : null}
         <Separator />
         <div className="flex items-start gap-3">
-          <div className="size-16 shrink-0 overflow-hidden rounded-md bg-muted" />
+          <ManagedImage
+            src={order.productImageUrl}
+            alt={order.productTitle}
+            className="size-16 shrink-0 rounded-md"
+          />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <p className="truncate text-sm font-medium">{order.productTitle}</p>
             {order.productDescription ? (
@@ -373,7 +607,7 @@ function OrderInfoCard({ order }: { order: SpotOrder }) {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 function PaidStatusSection({ bill }: { bill: PaymentBill }) {
@@ -401,226 +635,184 @@ function PaidStatusSection({ bill }: { bill: PaymentBill }) {
         ) : null}
       </CardContent>
     </Card>
-  )
+  );
+}
+
+function AwaitingPaymentConfirmation({ bill }: { bill: PaymentBill }) {
+  return (
+    <Card className="rounded-lg">
+      <CardHeader>
+        <CardTitle className="text-base">等待收款确认</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <RiCheckboxCircleLine className="size-4 shrink-0 text-primary" />
+          已提交支付信息，请等待发布者核对款项。
+        </div>
+        <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2">
+          <span className="text-sm text-muted-foreground">付款标识码</span>
+          <span className="font-mono text-sm font-semibold">
+            {bill.verifyCode}
+          </span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SellerPaymentReview({ bill }: { bill: PaymentBill }) {
+  if (bill.status === "unpaid") {
+    return (
+      <Card className="rounded-lg">
+        <CardHeader>
+          <CardTitle className="text-base">等待买家付款</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground">
+          买家尚未提交支付信息，到账后再进行收款确认。
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (bill.status !== "submitted") return null;
+
+  return (
+    <Card className="rounded-lg">
+      <CardHeader>
+        <CardTitle className="text-base">核对收款信息</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2">
+          <span className="text-sm text-muted-foreground">付款标识码</span>
+          <span className="font-mono text-sm font-semibold">
+            {bill.verifyCode}
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <span className="text-muted-foreground">支付方式</span>
+          <span>
+            {bill.channel === "wechat"
+              ? "微信支付"
+              : bill.channel === "alipay"
+                ? "支付宝"
+                : "未填写"}
+          </span>
+        </div>
+        {bill.serialNumber ? (
+          <div className="flex min-w-0 items-start justify-between gap-3 text-sm">
+            <span className="shrink-0 text-muted-foreground">支付流水号</span>
+            <span className="min-w-0 break-all text-right font-mono text-xs">
+              {bill.serialNumber}
+            </span>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function UnavailablePaymentBill() {
+  return (
+    <Card className="rounded-lg">
+      <CardHeader>
+        <CardTitle className="text-base">账单暂不可支付</CardTitle>
+      </CardHeader>
+      <CardContent className="text-sm text-muted-foreground">
+        账单缺少最新状态或收款方信息，已停止支付。请返回订单列表后重试。
+      </CardContent>
+    </Card>
+  );
 }
 
 function CancelOrderDialog({
   open,
   onOpenChange,
+  hasSubmittedPayment,
+  pending,
+  onConfirm,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  hasSubmittedPayment: boolean;
+  pending: boolean;
+  onConfirm: () => void;
 }) {
   return (
-    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent>
-        <ResponsiveDialogHeader>
+    <ResponsiveDialog forceDrawer open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+        <ResponsiveDialogHeader className="px-0 text-left">
           <ResponsiveDialogTitle>取消订单</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            如需取消订单，请联系发布者或等待订单自动关闭。目前暂不支持在线取消。
+            {hasSubmittedPayment
+              ? "你已提交付款信息。取消订单不会自动退款，请先与卖家协商退款后再确认取消。"
+              : "取消后订单与关联账单将关闭，且无法恢复。确认继续吗？"}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
-        <ResponsiveDialogFooter>
-          <Button type="button" onClick={() => onOpenChange(false)}>
-            知道了
-          </Button>
-        </ResponsiveDialogFooter>
-      </ResponsiveDialogContent>
-    </ResponsiveDialog>
-  )
-}
-
-function SupplementSerialNumberDialog({
-  open,
-  onOpenChange,
-  billId,
-  billUpdatedAt,
-  dataSource,
-  connectBaseUrl,
-  onSuccess,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  billId: string
-  billUpdatedAt: string | null
-  dataSource: DataSource
-  connectBaseUrl: string
-  onSuccess: () => void
-}) {
-  const [serialNumber, setSerialNumber] = useState("")
-  const [submitting, setSubmitting] = useState(false)
-
-  async function handleSubmit() {
-    const trimmed = serialNumber.trim()
-
-    if (!trimmed) {
-      toast.error("请输入支付流水号")
-      return
-    }
-
-    setSubmitting(true)
-
-    try {
-      await supplementBillSerialNumber(
-        { billId, serialNumber: trimmed, updatedAt: billUpdatedAt ?? undefined },
-        { dataSource, connectBaseUrl }
-      )
-      toast.success("流水号已补充")
-      onOpenChange(false)
-      onSuccess()
-    } catch {
-      toast.error("提交失败，请稍后再试")
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent>
-        <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>补充支付流水号</ResponsiveDialogTitle>
-          <ResponsiveDialogDescription>
-            请在支付记录中找到流水号（交易单号），填写后发布者可以核对款项。
-          </ResponsiveDialogDescription>
-        </ResponsiveDialogHeader>
-        <div className="px-4 pb-2">
-          <Label htmlFor="serial-number" className="mb-1.5 block text-sm">
-            支付流水号
-          </Label>
-          <Input
-            id="serial-number"
-            value={serialNumber}
-            onChange={(e) => setSerialNumber(e.target.value)}
-            placeholder="请输入支付流水号"
-            className="font-mono"
-          />
-        </div>
         <ResponsiveDialogFooter>
           <Button
             type="button"
             variant="outline"
+            disabled={pending}
             onClick={() => onOpenChange(false)}
           >
-            取消
+            再想想
           </Button>
-          <Button type="button" disabled={submitting} onClick={handleSubmit}>
-            {submitting ? "提交中" : "确认提交"}
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={pending}
+            onClick={onConfirm}
+          >
+            {pending ? <Spinner data-icon="inline-start" /> : null}
+            {pending ? "取消中" : "确认取消"}
           </Button>
         </ResponsiveDialogFooter>
       </ResponsiveDialogContent>
     </ResponsiveDialog>
-  )
+  );
 }
 
-function PaymentSection({
+function LifecycleConfirmDialog({
   open,
   onOpenChange,
-  order,
-  bill,
-  dataSource,
-  connectBaseUrl,
-  onSuccess,
+  title,
+  description,
+  confirmLabel,
+  pending,
+  onConfirm,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  order: SpotOrder
-  bill: PaymentBill
-  dataSource: DataSource
-  connectBaseUrl: string
-  onSuccess: () => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description: string;
+  confirmLabel: string;
+  pending: boolean;
+  onConfirm: () => void;
 }) {
-  const [supplementOpen, setSupplementOpen] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [dialogStatus, setDialogStatus] = useState<PaymentDialogStatus>("loading")
-  const [qrCodes, setQrCodes] = useState<Partial<Record<PaymentPlatform, string>>>({})
-  const [errorMessage, setErrorMessage] = useState<string | undefined>()
-  const payeeId = bill.payee?.id
-  const loadCounterRef = useRef(0)
-
-  async function fetchQrCodes() {
-    const generation = ++loadCounterRef.current
-
-    setDialogStatus("loading")
-    setErrorMessage(undefined)
-
-    try {
-      const codes: PaymentQrCode[] = await listPaymentQrCodes(
-        { dataSource, connectBaseUrl, ownerId: payeeId }
-      )
-
-      if (generation !== loadCounterRef.current) return
-
-      const qrMap: Partial<Record<PaymentPlatform, string>> = {}
-
-      for (const code of codes) {
-        qrMap[code.channel] = code.content
-      }
-
-      setQrCodes(qrMap)
-      setDialogStatus("ready")
-    } catch {
-      if (generation !== loadCounterRef.current) return
-      setErrorMessage("获取收款码失败，请稍后重试")
-      setDialogStatus("error")
-    }
-  }
-
-  useEffect(() => {
-    if (!open) return
-    const timeoutId = window.setTimeout(() => {
-      void fetchQrCodes()
-    }, 0)
-    return () => window.clearTimeout(timeoutId)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, dataSource, connectBaseUrl, payeeId])
-
-  const defaultPlatform: PaymentPlatform =
-    (bill.channel as PaymentPlatform | null) ?? "wechat"
-
-  async function handlePay(platform: PaymentPlatform) {
-    setSubmitting(true)
-
-    try {
-      await payBill(
-        { billId: bill.id, channel: platform, updatedAt: bill.updatedAt ?? undefined },
-        { dataSource, connectBaseUrl }
-      )
-      setDialogStatus("submitted")
-      onSuccess()
-    } catch {
-      toast.error("提交支付失败，请稍后再试")
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
   return (
-    <>
-      <PaymentDialog
-        open={open}
-        onOpenChange={onOpenChange}
-        amountCents={order.totalAmountCents}
-        verifyCode={bill.verifyCode}
-        qrCodes={qrCodes}
-        defaultPlatform={defaultPlatform}
-        status={dialogStatus}
-        errorMessage={errorMessage}
-        submitting={submitting}
-        onPay={handlePay}
-        onCancelPayment={() => onOpenChange(false)}
-        onRetry={() => void fetchQrCodes()}
-      />
-
-      <SupplementSerialNumberDialog
-        open={supplementOpen}
-        onOpenChange={setSupplementOpen}
-        billId={bill.id}
-        billUpdatedAt={bill.updatedAt}
-        dataSource={dataSource}
-        connectBaseUrl={connectBaseUrl}
-        onSuccess={onSuccess}
-      />
-    </>
-  )
+    <ResponsiveDialog forceDrawer open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+        <ResponsiveDialogHeader className="px-0 text-left">
+          <ResponsiveDialogTitle>{title}</ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
+            {description}
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
+        <ResponsiveDialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending}
+            onClick={() => onOpenChange(false)}
+          >
+            返回核对
+          </Button>
+          <Button type="button" disabled={pending} onClick={onConfirm}>
+            {pending ? <Spinner data-icon="inline-start" /> : null}
+            {pending ? "处理中" : confirmLabel}
+          </Button>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
+  );
 }

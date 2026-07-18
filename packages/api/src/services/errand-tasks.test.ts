@@ -1,7 +1,14 @@
 import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest"
 import { FeatureUnavailableError, ValidationError } from "../errors"
 import {
+  cancelTask,
+  getCollectingPaymentDetail,
+  getDistributingTaskDetail,
+  getErrandTaskBrief,
+  getShoppingTaskDetail,
   listErrandTasks,
+  saveShoppingTaskItem,
+  transitionToPendingDistributing,
   type ErrandTaskBrief,
   type ErrandTaskStatusFilter,
 } from "./errand-tasks"
@@ -109,6 +116,315 @@ describe("listErrandTasks", () => {
       FeatureUnavailableError
     )
   })
+
+  it("finds a task beyond the first page", async () => {
+    let callCount = 0
+    const fetchMock = vi.fn(async () => {
+      callCount += 1
+      return stubJsonResponse(
+        callCount === 1
+          ? {
+              errandTasks: [],
+              currentPage: 1,
+              totalCount: 51,
+            }
+          : {
+              errandTasks: [
+                {
+                  taskId: "7051",
+                  storeId: "3001",
+                  storeName: "SAST 小卖部",
+                  status: "ERRAND_TASK_STATUS_COMPLETED",
+                  items: [],
+                },
+              ],
+              currentPage: 2,
+              totalCount: 51,
+            }
+      )
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    await expect(getErrandTaskBrief("7051", localOptions)).resolves.toMatchObject({
+      id: "7051",
+      status: "completed",
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    await expectConnectRequestAt(fetchMock, 1, {
+      path: "/sast.sastshopv2.errand.v1.ErrandTaskService/GetErrandTaskList",
+      body: { page: 2, pageSize: 50 },
+    })
+  })
+})
+
+describe("captain task detail facades", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it("maps shopping detail and preserves optional purchase state", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        errandTaskId: "7001",
+        storeId: "3001",
+        storeName: "SAST 小卖部",
+        taskItems: [
+          {
+            id: "7101",
+            productSnapshot: {
+              title: "矿泉水",
+              description: "550ml",
+              mainImageUrl: "https://example.test/water.png",
+              barcode: "690000000001",
+            },
+            requiredQuantity: 12,
+            actualUnitPriceCents: 200,
+            updatedAt: "2026-07-18T02:00:00Z",
+          },
+          {
+            id: "7102",
+            productSnapshot: { title: "三明治" },
+            requiredQuantity: 4,
+            purchasedQuantity: 0,
+            nonPurchaseReason: "缺货",
+            actualUnitPriceCents: 1100,
+          },
+        ],
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    await expect(getShoppingTaskDetail("7001", localOptions)).resolves.toEqual({
+      taskId: "7001",
+      storeId: "3001",
+      storeName: "SAST 小卖部",
+      taskItems: [
+        {
+          id: "7101",
+          productTitle: "矿泉水",
+          productDescription: "550ml",
+          productImageUrl: "https://example.test/water.png",
+          productBarcode: "690000000001",
+          requiredQuantity: 12,
+          purchasedQuantity: null,
+          nonPurchaseReason: null,
+          actualUnitPriceCents: 200,
+          updatedAt: "2026-07-18T02:00:00.000Z",
+        },
+        {
+          id: "7102",
+          productTitle: "三明治",
+          productDescription: "",
+          productImageUrl: "",
+          productBarcode: "",
+          requiredQuantity: 4,
+          purchasedQuantity: 0,
+          nonPurchaseReason: "缺货",
+          actualUnitPriceCents: 1100,
+          updatedAt: null,
+        },
+      ],
+    })
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.errand.v1.ErrandTaskService/GetShoppingTaskDetail",
+      body: { errandTaskId: "7001" },
+    })
+  })
+
+  it("maps distributing detail with requester concurrency fields", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        errandTaskId: "7002",
+        storeId: "3001",
+        storeName: "SAST 小卖部",
+        packagingFeeCents: 300,
+        distributingItems: [
+          {
+            errandTaskItemId: "7201",
+            titleSnapshot: "矿泉水",
+            descriptionSnapshot: "550ml",
+            imageUrlSnapshot: "https://example.test/water.png",
+            originUnitPriceCents: 200,
+            actualUnitPriceCents: 180,
+            requesters: [
+              {
+                purchaserId: "1001",
+                purchaserName: "李同学",
+                purchaserAvatarUrl: "https://example.test/li.png",
+                quantity: 6,
+                distributedQuantity: 0,
+                errandTaskAssignmentId: "8201",
+                errandDemandItemId: "6101",
+                errandTaskAssignmentUpdatedAt: "2026-07-17T08:00:00Z",
+              },
+            ],
+          },
+        ],
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    const detail = await getDistributingTaskDetail("7002", localOptions)
+
+    expect(detail).toMatchObject({
+      taskId: "7002",
+      storeId: "3001",
+      packagingFeeCents: 300,
+      items: [
+        {
+          errandTaskItemId: "7201",
+          actualUnitPriceCents: 180,
+          requesters: [
+            {
+              purchaserId: "1001",
+              errandTaskAssignmentId: "8201",
+              errandDemandItemId: "6101",
+              assignmentUpdatedAt: "2026-07-17T08:00:00.000Z",
+            },
+          ],
+        },
+      ],
+    })
+  })
+
+  it("maps collecting-payment bills and explainable amount fields", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        bills: [
+          {
+            requesterId: "1001",
+            requesterName: "李同学",
+            requesterAvatarUrl: "https://example.test/li.png",
+            paymentStatus: "BILL_STATUS_SUBMITTED",
+            bill: {
+              id: "9001",
+              billNo: "ER-001",
+              channel: "CHANNEL_WECHAT",
+              serialNumber: "WX-20260718-001",
+              verifyCode: "4821",
+              updatedAt: "2026-07-18T02:00:00Z",
+            },
+            items: [
+              {
+                errandDemandItemId: "6101",
+                titleSnapshot: "矿泉水",
+                requiredQuantity: 6,
+                purchasedQuantity: 6,
+                distributedQuantity: 6,
+                actualUnitPriceCents: 200,
+                productAmountCents: 1200,
+                serviceFeePerUnitCents: 25,
+                serviceFeeAmountCents: 150,
+                packagingFeeShareCents: 150,
+                subtotalCents: 1500,
+              },
+            ],
+            productAmountCents: 1200,
+            serviceFeeAmountCents: 150,
+            packagingFeeShareCents: 150,
+            totalAmountCents: 1500,
+          },
+        ],
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    const detail = await getCollectingPaymentDetail("7004", localOptions)
+
+    expect(detail).toEqual({
+      taskId: "7004",
+      bills: [
+        {
+          requesterId: "1001",
+          requesterName: "李同学",
+          requesterAvatarUrl: "https://example.test/li.png",
+          paymentStatus: "pending_confirmation",
+          billId: "9001",
+          billNo: "ER-001",
+          billUpdatedAt: "2026-07-18T02:00:00.000Z",
+          paymentChannel: "wechat",
+          serialNumber: "WX-20260718-001",
+          verifyCode: "4821",
+          items: [
+            {
+              errandDemandItemId: "6101",
+              title: "矿泉水",
+              requiredQuantity: 6,
+              purchasedQuantity: 6,
+              distributedQuantity: 6,
+              actualUnitPriceCents: 200,
+              productAmountCents: 1200,
+              serviceFeePerUnitCents: 25,
+              serviceFeeAmountCents: 150,
+              packagingFeeShareCents: 150,
+              subtotalCents: 1500,
+              nonPurchaseReason: null,
+            },
+          ],
+          productAmountCents: 1200,
+          serviceFeeAmountCents: 150,
+          packagingFeeShareCents: 150,
+          totalAmountCents: 1500,
+        },
+      ],
+    })
+  })
+
+  it("sends purchase mutations with optimistic concurrency timestamps", async () => {
+    const fetchMock = vi.fn(async () => stubJsonResponse({}))
+    vi.stubGlobal("fetch", fetchMock)
+
+    await saveShoppingTaskItem(
+      {
+        errandTaskId: "7001",
+        errandTaskItemId: "7101",
+        purchasedQuantity: 8,
+        itemUpdatedAt: "2026-07-18T02:00:00Z",
+      },
+      localOptions
+    )
+
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.errand.v1.ErrandTaskService/SaveShoppingTaskItem",
+      body: {
+        errandTaskId: "7001",
+        errandTaskItemId: "7101",
+        purchasedQuantity: 8,
+        errandTaskItemUpdatedAt: "2026-07-18T02:00:00Z",
+      },
+    })
+  })
+
+  it("uses dedicated task transition and cancel endpoints", async () => {
+    const fetchMock = vi.fn(async () => stubJsonResponse({}))
+    vi.stubGlobal("fetch", fetchMock)
+
+    await transitionToPendingDistributing("7001", null, localOptions)
+    await cancelTask("7001", null, localOptions)
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    await expectConnectRequestAt(fetchMock, 0, {
+      path: "/sast.sastshopv2.errand.v1.ErrandTaskService/TransitionToPendingDistributing",
+      body: { errandTaskId: "7001" },
+    })
+    await expectConnectRequestAt(fetchMock, 1, {
+      path: "/sast.sastshopv2.errand.v1.ErrandTaskService/CancelTask",
+      body: { errandTaskId: "7001" },
+    })
+  })
+
+  it("rejects invalid and overflowing task ids before a request", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    await expect(getShoppingTaskDetail("0", localOptions)).rejects.toBeInstanceOf(
+      ValidationError
+    )
+    await expect(
+      getShoppingTaskDetail("9223372036854775808", localOptions)
+    ).rejects.toBeInstanceOf(ValidationError)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
 })
 
 function stubJsonResponse(body: unknown, init: ResponseInit = {}) {
@@ -128,7 +444,18 @@ async function expectConnectRequest(
     body: Record<string, unknown>
   }
 ) {
-  const [input, init] = fetchMock.mock.calls[0] ?? []
+  await expectConnectRequestAt(fetchMock, 0, expected)
+}
+
+async function expectConnectRequestAt(
+  fetchMock: ReturnType<typeof vi.fn>,
+  index: number,
+  expected: {
+    path: string
+    body: Record<string, unknown>
+  }
+) {
+  const [input, init] = fetchMock.mock.calls[index] ?? []
   const url = typeof input === "string" ? input : (input as Request).url
   const body =
     typeof input === "string" ? init?.body : await (input as Request).clone().text()

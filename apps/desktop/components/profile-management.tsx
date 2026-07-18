@@ -1,6 +1,7 @@
 import { getProfileOverview, type ProfileOverview } from "@sast-shop/api"
 import { desktopAppConfig } from "@/lib/app-config"
 import { formatProfileOverviewError } from "@/lib/profile-view"
+import { getServerServiceOptions } from "@/lib/server-service-options"
 import { ProfileManagementClient } from "./profile-management-client"
 
 async function loadProfileOverview(): Promise<{
@@ -9,10 +10,7 @@ async function loadProfileOverview(): Promise<{
 }> {
   try {
     return {
-      overview: await getProfileOverview({
-        dataSource: desktopAppConfig.dataSource,
-        connectBaseUrl: desktopAppConfig.connectBaseUrl,
-      }),
+      overview: await getProfileOverview(await getServerServiceOptions()),
       error: null,
     }
   } catch {

@@ -1,9 +1,15 @@
-import { cookies } from "next/headers"
-import { type NextRequest, NextResponse } from "next/server"
+import { cookies } from "next/headers";
+import { type NextRequest, NextResponse } from "next/server";
 
-import { parseAuthMode } from "@/lib/auth-mode"
+import { getServerAuthMode } from "@/lib/auth-mode";
+import { getServerConnectBaseUrl } from "@/lib/server-service-options";
 
-const sessionCookieName = "sast_shop_session"
+const sessionCookieName = "sast_shop_session";
+const maxConnectRequestBodyBytes = 1024 * 1024;
+const serverOnlyAuthMethods = new Set([
+  "sast.sastshopv2.user.v1.AuthService/Login",
+  "sast.sastshopv2.user.v1.AuthService/GetJSAPIAuthConfig",
+]);
 
 const hopByHopHeaders = new Set([
   "connection",
@@ -14,120 +20,226 @@ const hopByHopHeaders = new Set([
   "trailer",
   "transfer-encoding",
   "upgrade",
-])
+]);
 
 const blockedRequestHeaders = new Set([
   ...hopByHopHeaders,
   "authorization",
   "content-length",
   "cookie",
+  "forwarded",
   "host",
-])
+  "x-forwarded-for",
+  "x-forwarded-host",
+  "x-forwarded-port",
+  "x-forwarded-proto",
+  "x-real-ip",
+]);
 
 const blockedResponseHeaders = new Set([
   ...hopByHopHeaders,
   "content-encoding",
   "content-length",
+  "location",
   "set-cookie",
-])
+  "access-control-allow-credentials",
+  "access-control-allow-headers",
+  "access-control-allow-methods",
+  "access-control-allow-origin",
+  "access-control-expose-headers",
+  "access-control-max-age",
+]);
 
 type ConnectRouteContext = {
   params: Promise<{
-    path?: string[]
-  }>
-}
+    path?: string[];
+  }>;
+};
 
-function resolveConnectBaseUrl(): string | null {
-  return (
-    process.env.CONNECT_BASE_URL ??
-    process.env.NEXT_PUBLIC_CONNECT_BASE_URL ??
-    null
-  )
+function isSameOriginRequest(request: NextRequest): boolean {
+  const requestOrigin = request.nextUrl.origin;
+  const origin = request.headers.get("origin");
+
+  if (origin) return origin === requestOrigin;
+
+  const referer = request.headers.get("referer");
+  if (!referer) return false;
+
+  try {
+    return new URL(referer).origin === requestOrigin;
+  } catch {
+    return false;
+  }
 }
 
 function normalizeBaseUrl(baseUrl: string): URL {
-  const url = new URL(baseUrl)
+  const url = new URL(baseUrl);
 
   if (!url.pathname.endsWith("/")) {
-    url.pathname = `${url.pathname}/`
+    url.pathname = `${url.pathname}/`;
   }
 
-  return url
+  return url;
 }
 
 function buildTargetUrl(baseUrl: string, path: string[], search: string): URL {
-  const encodedPath = path.map((part) => encodeURIComponent(part)).join("/")
+  if (path.some((part) => part === "." || part === "..")) {
+    throw new Error("Invalid Connect path");
+  }
 
-  return new URL(`${encodedPath}${search}`, normalizeBaseUrl(baseUrl))
+  const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
+  const encodedPath = path.map((part) => encodeURIComponent(part)).join("/");
+  const targetUrl = new URL(`${encodedPath}${search}`, normalizedBaseUrl);
+
+  if (
+    targetUrl.origin !== normalizedBaseUrl.origin ||
+    !targetUrl.pathname.startsWith(normalizedBaseUrl.pathname)
+  ) {
+    throw new Error("Invalid Connect target");
+  }
+
+  return targetUrl;
 }
 
 function buildRequestHeaders(
   requestHeaders: Headers,
   sessionToken: string | undefined,
 ): Headers {
-  const headers = new Headers()
+  const headers = new Headers();
 
   for (const [name, value] of requestHeaders) {
     if (!blockedRequestHeaders.has(name.toLowerCase())) {
-      headers.set(name, value)
+      headers.set(name, value);
     }
   }
 
   if (sessionToken) {
-    headers.set("authorization", `Bearer ${sessionToken}`)
+    headers.set("authorization", `Bearer ${sessionToken}`);
   }
 
-  return headers
+  return headers;
 }
 
 function buildResponseHeaders(responseHeaders: Headers): Headers {
-  const headers = new Headers()
+  const headers = new Headers();
 
   for (const [name, value] of responseHeaders) {
     if (!blockedResponseHeaders.has(name.toLowerCase())) {
-      headers.set(name, value)
+      headers.set(name, value);
     }
   }
 
-  return headers
+  return headers;
+}
+
+async function readBoundedRequestBody(request: NextRequest) {
+  const contentLength = Number(request.headers.get("content-length"));
+
+  if (
+    Number.isFinite(contentLength) &&
+    contentLength > maxConnectRequestBodyBytes
+  ) {
+    throw new RangeError("request body too large");
+  }
+
+  if (!request.body) {
+    return undefined;
+  }
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+
+    if (done) break;
+
+    totalBytes += value.byteLength;
+    if (totalBytes > maxConnectRequestBodyBytes) {
+      await reader.cancel();
+      throw new RangeError("request body too large");
+    }
+
+    chunks.push(value);
+  }
+
+  const body = new Uint8Array(totalBytes);
+  let offset = 0;
+
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return body.buffer as ArrayBuffer;
 }
 
 async function proxyConnectRequest(
   request: NextRequest,
   context: ConnectRouteContext,
 ) {
-  const authMode = parseAuthMode(process.env.AUTH_MODE)
-  const sessionToken = (await cookies()).get(sessionCookieName)?.value
+  const authMode = getServerAuthMode();
+  const sessionToken = (await cookies()).get(sessionCookieName)?.value;
 
   if (authMode === "required" && !sessionToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const connectBaseUrl = resolveConnectBaseUrl()
-
-  if (!connectBaseUrl) {
+  if (
+    authMode === "required" &&
+    request.method !== "GET" &&
+    request.method !== "HEAD" &&
+    !isSameOriginRequest(request)
+  ) {
     return NextResponse.json(
-      { error: "CONNECT_BASE_URL is not configured" },
-      { status: 500 },
-    )
+      { error: "Invalid request origin" },
+      { status: 403 },
+    );
   }
 
-  const { path = [] } = await context.params
-  let targetUrl: URL
+  let connectBaseUrl: string;
+  try {
+    connectBaseUrl = getServerConnectBaseUrl();
+  } catch {
+    return NextResponse.json(
+      { error: "CONNECT_BASE_URL is not configured or invalid" },
+      { status: 500 },
+    );
+  }
+
+  const { path = [] } = await context.params;
+  if (serverOnlyAuthMethods.has(path.join("/"))) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  let targetUrl: URL;
 
   try {
-    targetUrl = buildTargetUrl(connectBaseUrl, path, request.nextUrl.search)
+    targetUrl = buildTargetUrl(connectBaseUrl, path, request.nextUrl.search);
   } catch {
     return NextResponse.json(
       { error: "CONNECT_BASE_URL is invalid" },
       { status: 500 },
-    )
+    );
   }
 
-  const body =
-    request.method === "GET" || request.method === "HEAD"
-      ? undefined
-      : await request.arrayBuffer()
+  let body: ArrayBuffer | undefined;
+
+  try {
+    body =
+      request.method === "GET" || request.method === "HEAD"
+        ? undefined
+        : await readBoundedRequestBody(request);
+  } catch (error) {
+    if (error instanceof RangeError) {
+      return NextResponse.json(
+        { error: "Request body is too large" },
+        { status: 413 },
+      );
+    }
+
+    throw error;
+  }
   const upstreamResponse = await fetch(targetUrl, {
     method: request.method,
     headers: buildRequestHeaders(
@@ -136,17 +248,17 @@ async function proxyConnectRequest(
     ),
     body,
     redirect: "manual",
-  })
+  });
 
   return new NextResponse(upstreamResponse.body, {
     status: upstreamResponse.status,
     statusText: upstreamResponse.statusText,
     headers: buildResponseHeaders(upstreamResponse.headers),
-  })
+  });
 }
 
-export const GET = proxyConnectRequest
-export const POST = proxyConnectRequest
-export const PUT = proxyConnectRequest
-export const PATCH = proxyConnectRequest
-export const DELETE = proxyConnectRequest
+export const GET = proxyConnectRequest;
+export const POST = proxyConnectRequest;
+export const PUT = proxyConnectRequest;
+export const PATCH = proxyConnectRequest;
+export const DELETE = proxyConnectRequest;

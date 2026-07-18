@@ -20,7 +20,7 @@ export function MobileFixedFooter({
         className
       )}
     >
-      <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
+      <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 [&>[data-slot=button]]:min-h-11">
         {children}
       </div>
     </div>

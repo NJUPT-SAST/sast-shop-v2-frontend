@@ -19,8 +19,7 @@ stubs:
                 barcode: "690000000001"
                 updatedAt: "2026-06-09T00:00:00Z"
               requiredQuantity: 12
-              purchasedQuantity: 0
-              actualUnitPriceCents: 0
+              actualUnitPriceCents: 200
               updatedAt: "2026-06-09T00:00:00Z"
             - id: "7102"
               productSnapshot:
@@ -33,13 +32,162 @@ stubs:
                 barcode: "690000000002"
                 updatedAt: "2026-06-09T00:00:00Z"
               requiredQuantity: 4
-              purchasedQuantity: 0
-              actualUnitPriceCents: 0
+              purchasedQuantity: 4
+              actualUnitPriceCents: 1100
               updatedAt: "2026-06-09T00:00:00Z"
-          createdAt: "2026-06-09T09:00:00Z"
+          createdAt: "2026-07-18T02:00:00Z"
+        - taskId: "7002"
+          storeId: "3001"
+          storeName: SAST 小卖部
+          status: ERRAND_TASK_STATUS_PENDING_DISTRIBUTING
+          items:
+            - id: "7201"
+            - id: "7202"
+          createdAt: "2026-07-17T08:00:00Z"
+        - taskId: "7004"
+          storeId: "3001"
+          storeName: SAST 小卖部
+          status: ERRAND_TASK_STATUS_COLLECTING_PAYMENT
+          items:
+            - id: "7401"
+          createdAt: "2026-07-16T08:00:00Z"
+        - taskId: "7005"
+          storeId: "3001"
+          storeName: SAST 小卖部
+          status: ERRAND_TASK_STATUS_COMPLETED
+          items:
+            - id: "7501"
+          createdAt: "2026-07-15T08:00:00Z"
+        - taskId: "7006"
+          storeId: "3001"
+          storeName: SAST 小卖部
+          status: ERRAND_TASK_STATUS_CANCELLED
+          items:
+            - id: "7601"
+          createdAt: "2026-07-14T08:00:00Z"
       currentPage: 1
-      totalCount: 1
+      totalCount: 5
   - id: errand-task-create
     target: sast.sastshopv2.errand.v1.ErrandTaskService/CreateTask
     content:
+      errandTaskId: "7001"
+  - id: errand-task-get-shopping-detail
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/GetShoppingTaskDetail
+    content:
+      errandTaskId: "7001"
+      storeId: "3001"
+      storeName: SAST 小卖部
+      taskItems:
+        - id: "7101"
+          productSnapshot:
+            id: "4001"
+            title: 农夫山泉矿泉水
+            description: 550ml 瓶装水，适合活动采购
+            priceCents: 200
+            storeId: "3001"
+            mainImageUrl: https://images.unsplash.com/photo-1564419320461-6870880221ad?auto=format&fit=crop&w=640&q=80
+            barcode: "690000000001"
+          requiredQuantity: 12
+          actualUnitPriceCents: 200
+          updatedAt: "2026-07-18T02:00:00Z"
+        - id: "7102"
+          productSnapshot:
+            id: "4002"
+            title: 经典火腿三明治
+            description: 冷藏即食，采购后请尽快分发
+            priceCents: 1200
+            storeId: "3001"
+            mainImageUrl: https://images.unsplash.com/photo-1528736235302-52922df5c122?auto=format&fit=crop&w=640&q=80
+            barcode: "690000000002"
+          requiredQuantity: 4
+          purchasedQuantity: 4
+          actualUnitPriceCents: 1100
+          updatedAt: "2026-07-18T02:00:00Z"
+  - id: errand-task-save-shopping-item
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/SaveShoppingTaskItem
+    content: {}
+  - id: errand-task-transition-pending-distributing
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/TransitionToPendingDistributing
+    content: {}
+  - id: errand-task-get-distributing-detail
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/GetDistributingTaskDetail
+    content:
       errandTaskId: "7002"
+      storeId: "3001"
+      storeName: SAST 小卖部
+      packagingFeeCents: 300
+      distributingItems:
+        - errandTaskItemId: "7201"
+          productTemplateId: "4001"
+          titleSnapshot: 农夫山泉矿泉水
+          descriptionSnapshot: 550ml 瓶装水，适合活动采购
+          imageUrlSnapshot: https://images.unsplash.com/photo-1564419320461-6870880221ad?auto=format&fit=crop&w=640&q=80
+          originUnitPriceCents: 200
+          actualUnitPriceCents: 200
+          requesters:
+            - purchaserId: "1001"
+              purchaserName: 李同学
+              purchaserAvatarUrl: https://example.test/avatar/li.png
+              quantity: 6
+              distributedQuantity: 0
+              errandTaskAssignmentId: "8201"
+              errandDemandItemId: "6101"
+              errandTaskAssignmentUpdatedAt: "2026-07-17T08:00:00Z"
+            - purchaserId: "1002"
+              purchaserName: 王同学
+              purchaserAvatarUrl: https://example.test/avatar/wang.png
+              quantity: 6
+              distributedQuantity: 0
+              errandTaskAssignmentId: "8202"
+              errandDemandItemId: "6102"
+              errandTaskAssignmentUpdatedAt: "2026-07-17T08:00:00Z"
+  - id: errand-task-update-actual-price
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/UpdateActualPrice
+    content: {}
+  - id: errand-task-transition-distributing
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/TransitionToDistributing
+    content: {}
+  - id: errand-task-save-distributing-assignment
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/SaveDistributingTaskAssignment
+    content: {}
+  - id: errand-task-transition-collecting-payment
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/TransitionToCollectingPayment
+    content: {}
+  - id: errand-task-get-collecting-payment-detail
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/GetCollectingPaymentDetail
+    content:
+      bills:
+        - requesterId: "1001"
+          requesterName: 李同学
+          requesterAvatarUrl: https://example.test/avatar/li.png
+          paymentStatus: BILL_STATUS_SUBMITTED
+          bill:
+            id: "9001"
+            billNo: ER-20260718-001
+            status: BILL_STATUS_SUBMITTED
+            amountCents: 1500
+            verifyCode: "2718"
+            channel: CHANNEL_WECHAT
+            updatedAt: "2026-07-18T02:00:00Z"
+          items:
+            - errandDemandItemId: "6101"
+              titleSnapshot: 农夫山泉矿泉水
+              requiredQuantity: 6
+              purchasedQuantity: 6
+              distributedQuantity: 6
+              actualUnitPriceCents: 200
+              productAmountCents: 1200
+              serviceFeePerUnitCents: 25
+              serviceFeeAmountCents: 150
+              packagingFeeShareCents: 150
+              subtotalCents: 1500
+          productAmountCents: 1200
+          serviceFeeAmountCents: 150
+          packagingFeeShareCents: 150
+          totalAmountCents: 1500
+  - id: errand-task-transition-completed
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/TransitionToCompleted
+    content: {}
+  - id: errand-task-cancel
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/CancelTask
+    content: {}

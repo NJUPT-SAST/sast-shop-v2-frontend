@@ -1,47 +1,42 @@
-import { listSpotOrders } from "@sast-shop/api"
-import { RiShoppingBag3Line } from "@remixicon/react"
-import { Empty } from "@workspace/ui/components/empty"
+import { getSpotOrderDetail, ResourceNotFoundError } from "@sast-shop/api"
 import { notFound } from "next/navigation"
 
 import { SpotOrderDetail } from "@/components/spot-order-detail"
 import { mobileAppConfig } from "@/lib/app-config"
+import { isValidRouteId } from "@/lib/route-id"
+import { getServerServiceOptions } from "@/lib/server-service-options"
+import { parseSpotOrderView } from "@/lib/spot-order-route"
 
 type SpotOrderPageProps = {
   params: Promise<{
     id: string
   }>
+  searchParams: Promise<{
+    view?: string
+  }>
 }
 
-export default async function SpotOrderPage({ params }: SpotOrderPageProps) {
-  const { id } = await params
+export default async function SpotOrderPage({
+  params,
+  searchParams
+}: SpotOrderPageProps) {
+  const [{ id }, query] = await Promise.all([params, searchParams])
+  const view = parseSpotOrderView(query.view ?? null)
 
-  let order = null
-  let errorMessage: string | null = null
+  if (!isValidRouteId(id)) {
+    notFound()
+  }
+
+  let order
 
   try {
-    const orders = await listSpotOrders({
-      dataSource: mobileAppConfig.dataSource,
-      connectBaseUrl: mobileAppConfig.connectBaseUrl,
-    })
-    order = orders.find((o) => o.id === id) ?? null
-  } catch {
-    errorMessage = "加载订单失败，请稍后再试"
-  }
+    order = await getSpotOrderDetail(id, await getServerServiceOptions())
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      notFound()
+    }
 
-  if (errorMessage) {
-    return (
-      <div className="flex flex-1 items-center justify-center py-6">
-        <Empty
-          icon={<RiShoppingBag3Line className="size-5" />}
-          title="加载失败"
-          description={errorMessage}
-        />
-      </div>
-    )
-  }
-
-  if (!order) {
-    notFound()
+    throw error
   }
 
   return (
@@ -49,6 +44,7 @@ export default async function SpotOrderPage({ params }: SpotOrderPageProps) {
       dataSource={mobileAppConfig.dataSource}
       connectBaseUrl={mobileAppConfig.connectBaseUrl}
       order={order}
+      view={view}
     />
   )
 }

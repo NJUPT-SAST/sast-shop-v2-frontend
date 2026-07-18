@@ -43,7 +43,7 @@ export function ManagedImage({
   return (
     <div
       className={cn(
-        "relative flex items-center justify-center overflow-hidden bg-muted text-muted-foreground",
+        "relative flex items-center justify-center overflow-hidden bg-image-surface text-muted-foreground",
         className
       )}
     >

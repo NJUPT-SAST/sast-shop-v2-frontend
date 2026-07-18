@@ -1,7 +1,8 @@
 import { createClient } from "@connectrpc/connect"
 import {
+  timestampDate,
   timestampFromDate,
-  type Timestamp,
+  type Timestamp
 } from "@bufbuild/protobuf/wkt"
 import type { ProductTemplate } from "../gen/sast/sastshopv2/catalog/v1/product_template_pb"
 import type { Store as ProtoStore } from "../gen/sast/sastshopv2/catalog/v1/store_pb"
@@ -10,19 +11,18 @@ import type { SpotOrderDetail as ProtoSpotOrderDetail } from "../gen/sast/sastsh
 import type { SpotOrderBrief as ProtoSpotOrderBrief } from "../gen/sast/sastshopv2/spot/v1/spot_order_pb"
 import { SpotOrderService } from "../gen/sast/sastshopv2/spot/v1/spot_order_service_pb"
 import { SpotOrderStatus } from "../gen/sast/sastshopv2/spot/v1/spot_order_status_pb"
+import type { UserInfo } from "../gen/sast/sastshopv2/user/v1/user_info_pb"
 import { resolveDataSource, type ServiceOptions } from "../data-source"
 import { FeatureUnavailableError, ValidationError } from "../errors"
 import { createLocalTransport, requestLocal } from "../local-connect"
 import { listStores, type Store } from "./catalog"
 import { mapPaymentBill, type PaymentBill } from "./payment-bills"
 
+const MAX_SIGNED_INT64 = 9223372036854775807n
+
 export type SpotOrderPerspective = "purchaser" | "seller"
 export type SpotOrderStatusValue =
-  | "pending_payment"
-  | "paid"
-  | "completed"
-  | "cancelled"
-  | "unknown"
+  "pending_payment" | "paid" | "completed" | "cancelled" | "unknown"
 
 export interface SpotOrder {
   id: string
@@ -30,17 +30,34 @@ export interface SpotOrder {
   store: Store | null
   productTitle: string
   productDescription: string
+  productImageUrl: string
   quantity: number
   unitPriceCents: number
   totalAmountCents: number
   billId?: string
   bill?: PaymentBill
+  seller: SpotOrderSeller | null
   status: SpotOrderStatusValue
+  createdAt: string | null
+  paidAt: string | null
+  completedAt: string | null
+  cancelledAt: string | null
+}
+
+export interface SpotOrderSeller {
+  id: string
+  name: string
+  avatarUrl: string
 }
 
 export interface CreateSpotOrderInput {
   spotGoodsId: string
   quantity: number
+  updatedAt?: TimestampInput
+}
+
+export interface SpotOrderMutationInput {
+  spotOrderId: string
   updatedAt?: TimestampInput
 }
 
@@ -65,28 +82,34 @@ export async function listSpotOrders(
       stores.map((store) => listSpotOrdersByStore(store.id, options))
     )
 
-    return orders.flat()
+    return deduplicateSpotOrders(orders.flat())
   }
 
   throw new FeatureUnavailableError("listSpotOrders")
+}
+
+function deduplicateSpotOrders(orders: SpotOrder[]): SpotOrder[] {
+  const uniqueOrders = new Map<string, SpotOrder>()
+
+  for (const order of orders) {
+    if (!uniqueOrders.has(order.id)) uniqueOrders.set(order.id, order)
+  }
+
+  return [...uniqueOrders.values()]
 }
 
 export async function createSpotOrders(
   inputs: CreateSpotOrderInput[],
   options: ServiceOptions = {}
 ): Promise<SpotOrder[]> {
-  validateCreateSpotOrdersInput(inputs)
+  const spotOrders = validateCreateSpotOrdersInput(inputs)
   const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock" || dataSource === "local") {
     const client = createClient(SpotOrderService, createLocalTransport(options))
     const response = await requestLocal("createSpotOrders", () =>
       client.createSpotOrders({
-        spotOrders: inputs.map((input) => ({
-          spotListingId: parseInt64(input.spotGoodsId, "现货商品 ID 不正确"),
-          quantity: input.quantity,
-          updatedAt: parseTimestampInput(input.updatedAt),
-        })),
+        spotOrders
       })
     )
 
@@ -94,6 +117,75 @@ export async function createSpotOrders(
   }
 
   throw new FeatureUnavailableError("createSpotOrders")
+}
+
+export async function getSpotOrderDetail(
+  id: string,
+  options: ServiceOptions = {}
+): Promise<SpotOrder> {
+  const spotOrderId = parseInt64(id, "现货订单 ID 不正确")
+  const dataSource = resolveDataSource(options)
+
+  if (dataSource === "mock" || dataSource === "local") {
+    const client = createClient(SpotOrderService, createLocalTransport(options))
+    const response = await requestLocal("getSpotOrderDetail", () =>
+      client.getSpotOrderDetail({ spotOrderId })
+    )
+
+    if (!response.spotOrderDetail) {
+      throw new FeatureUnavailableError("getSpotOrderDetail")
+    }
+
+    return mapSpotOrderDetail(response.spotOrderDetail)
+  }
+
+  throw new FeatureUnavailableError("getSpotOrderDetail")
+}
+
+export async function cancelSpotOrder(
+  input: SpotOrderMutationInput,
+  options: ServiceOptions = {}
+): Promise<SpotOrder> {
+  const parsedInput = validateSpotOrderMutationInput(input)
+  const dataSource = resolveDataSource(options)
+
+  if (dataSource === "mock" || dataSource === "local") {
+    const client = createClient(SpotOrderService, createLocalTransport(options))
+    const response = await requestLocal("cancelSpotOrder", () =>
+      client.cancelSpotOrder(parsedInput)
+    )
+
+    if (!response.spotOrderDetail) {
+      throw new FeatureUnavailableError("cancelSpotOrder")
+    }
+
+    return mapSpotOrderDetail(response.spotOrderDetail)
+  }
+
+  throw new FeatureUnavailableError("cancelSpotOrder")
+}
+
+export async function completeSpotOrder(
+  input: SpotOrderMutationInput,
+  options: ServiceOptions = {}
+): Promise<SpotOrder> {
+  const parsedInput = validateSpotOrderMutationInput(input)
+  const dataSource = resolveDataSource(options)
+
+  if (dataSource === "mock" || dataSource === "local") {
+    const client = createClient(SpotOrderService, createLocalTransport(options))
+    const response = await requestLocal("completeSpotOrder", () =>
+      client.completeSpotOrder(parsedInput)
+    )
+
+    if (!response.spotOrderDetail) {
+      throw new FeatureUnavailableError("completeSpotOrder")
+    }
+
+    return mapSpotOrderDetail(response.spotOrderDetail)
+  }
+
+  throw new FeatureUnavailableError("completeSpotOrder")
 }
 
 async function listSpotOrdersByStore(
@@ -110,9 +202,11 @@ async function listSpotOrdersByStore(
     client.listSpotOrder({
       storeId: parseInt64(storeId, "店铺 ID 不正确"),
       perspective: mapPerspective(options.perspective ?? "purchaser"),
-      filterStatus: options.status ? mapStatusToProto(options.status) : undefined,
+      filterStatus: options.status
+        ? mapStatusToProto(options.status)
+        : undefined,
       page: options.page ?? 1,
-      pageSize: options.pageSize ?? 50,
+      pageSize: options.pageSize ?? 50
     })
   )
 
@@ -126,11 +220,17 @@ function mapSpotOrder(order: ProtoSpotOrderBrief): SpotOrder {
     store: mapStore(order.store),
     productTitle: mapTemplate(order.productSnapshot).title,
     productDescription: mapTemplate(order.productSnapshot).description,
+    productImageUrl: mapTemplate(order.productSnapshot).mainImageUrl,
     quantity: order.quantity,
     unitPriceCents: order.unitPriceCents,
     totalAmountCents: order.totalAmountCents,
     billId: mapOptionalId(order.billId),
+    seller: null,
     status: mapStatusFromProto(order.status),
+    createdAt: formatTimestamp(order.createdAt),
+    paidAt: null,
+    completedAt: null,
+    cancelledAt: null
   }
 }
 
@@ -141,12 +241,30 @@ function mapSpotOrderDetail(order: ProtoSpotOrderDetail): SpotOrder {
     store: mapStore(order.store),
     productTitle: mapTemplate(order.productSnapshot).title,
     productDescription: mapTemplate(order.productSnapshot).description,
+    productImageUrl: mapTemplate(order.productSnapshot).mainImageUrl,
     quantity: order.quantity,
     unitPriceCents: order.unitPriceCents,
     totalAmountCents: order.totalAmountCents,
     billId: mapOptionalId(order.billId),
     bill: order.bill ? mapPaymentBill(order.bill) : undefined,
+    seller: mapSeller(order.seller),
     status: mapStatusFromProto(order.status),
+    createdAt: formatTimestamp(order.createdAt),
+    paidAt: formatTimestamp(order.paidAt),
+    completedAt: formatTimestamp(order.completedAt),
+    cancelledAt: formatTimestamp(order.cancelledAt)
+  }
+}
+
+function mapSeller(seller?: UserInfo): SpotOrderSeller | null {
+  if (!seller) {
+    return null
+  }
+
+  return {
+    id: seller.id.toString(),
+    name: seller.name,
+    avatarUrl: seller.avatarUrl
   }
 }
 
@@ -160,7 +278,7 @@ function mapStore(store?: ProtoStore): Store | null {
     name: store.name,
     address: store.address,
     logoUrl: store.logoUrl,
-    themeColor: store.themeColor,
+    themeColor: store.themeColor
   }
 }
 
@@ -168,6 +286,7 @@ function mapTemplate(template?: ProductTemplate) {
   return {
     title: template?.title ?? "未命名商品",
     description: template?.description ?? "",
+    mainImageUrl: template?.mainImageUrl ?? ""
   }
 }
 
@@ -175,7 +294,9 @@ function mapOptionalId(id: bigint): string | undefined {
   return id > 0n ? id.toString() : undefined
 }
 
-function mapPerspective(perspective: SpotOrderPerspective): SpotGoodsPerspective {
+function mapPerspective(
+  perspective: SpotOrderPerspective
+): SpotGoodsPerspective {
   return perspective === "seller"
     ? SpotGoodsPerspective.SELLER
     : SpotGoodsPerspective.PURCHASER
@@ -189,7 +310,9 @@ function mapStatusFromProto(status: SpotOrderStatus): SpotOrderStatusValue {
   return "unknown"
 }
 
-function mapStatusToProto(status: SpotOrderStatusValue): SpotOrderStatus | undefined {
+function mapStatusToProto(
+  status: SpotOrderStatusValue
+): SpotOrderStatus | undefined {
   if (status === "pending_payment") return SpotOrderStatus.PENDING_PAYMENT
   if (status === "paid") return SpotOrderStatus.PAID
   if (status === "completed") return SpotOrderStatus.COMPLETED
@@ -204,12 +327,23 @@ function validateCreateSpotOrdersInput(inputs: CreateSpotOrderInput[]) {
     throw new ValidationError("现货订单不能为空")
   }
 
-  for (const input of inputs) {
-    parseInt64(input.spotGoodsId, "现货商品 ID 不正确")
-
+  return inputs.map((input) => {
     if (!Number.isInteger(input.quantity) || input.quantity <= 0) {
       throw new ValidationError("现货购买数量不正确")
     }
+
+    return {
+      spotListingId: parseInt64(input.spotGoodsId, "现货商品 ID 不正确"),
+      quantity: input.quantity,
+      updatedAt: parseTimestampInput(input.updatedAt)
+    }
+  })
+}
+
+function validateSpotOrderMutationInput(input: SpotOrderMutationInput) {
+  return {
+    spotOrderId: parseInt64(input.spotOrderId, "现货订单 ID 不正确"),
+    updatedAt: parseTimestampInput(input.updatedAt)
   }
 }
 
@@ -218,7 +352,13 @@ function parseInt64(value: string, message: string): bigint {
     throw new ValidationError(message)
   }
 
-  return BigInt(value)
+  const parsed = BigInt(value)
+
+  if (parsed > MAX_SIGNED_INT64) {
+    throw new ValidationError(message)
+  }
+
+  return parsed
 }
 
 function parseTimestampInput(input?: TimestampInput): Timestamp | undefined {
@@ -227,8 +367,18 @@ function parseTimestampInput(input?: TimestampInput): Timestamp | undefined {
   }
 
   if (typeof input === "string") {
-    return timestampFromDate(new Date(input))
+    const date = new Date(input)
+
+    if (Number.isNaN(date.getTime())) {
+      throw new ValidationError("现货订单更新时间不正确")
+    }
+
+    return timestampFromDate(date)
   }
 
   return input
+}
+
+function formatTimestamp(timestamp?: Timestamp): string | null {
+  return timestamp ? timestampDate(timestamp).toISOString() : null
 }

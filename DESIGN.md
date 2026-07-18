@@ -1,12 +1,12 @@
 ---
 version: alpha
-name: Apple-design-analysis
-description: A photography-first interface that turns marketing into a museum gallery. Edge-to-edge product tiles alternate light and dark canvases, framed by SF Pro Display headlines with negative letter-spacing and a single Action Blue (#0066cc) interactive color. UI chrome recedes so the product can speak — no decorative gradients, no shadows on chrome, only the one signature drop-shadow under product imagery resting on a surface.
+name: SAST Commerce
+description: A content-first marketplace interface with warm neutral surfaces, product-led imagery, clear status semantics, and a single energetic Action Coral (#c9431f) interactive color. UI chrome stays quiet so products, prices, order states, and primary actions remain easy to scan.
 
 colors:
-  primary: "#0066cc"
-  primary-focus: "#0071e3"
-  primary-on-dark: "#2997ff"
+  primary: "#c9431f"
+  primary-focus: "#b63a18"
+  primary-on-dark: "#ff9a78"
   ink: "#1d1d1f"
   body: "#1d1d1f"
   body-on-dark: "#ffffff"
@@ -284,7 +284,7 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
 **Key Characteristics:**
 - Photography-first presentation; UI recedes so the product can speak.
 - Alternating full-bleed tile sections: white/parchment ↔ near-black, with the color change itself acting as the section divider.
-- Single blue accent (`{colors.primary}` — #0066cc) carries every interactive element. No second brand color exists.
+- Single coral accent (`{colors.primary}` — #c9431f) carries every interactive element. No second brand color exists.
 - Two button grammars: tiny blue pill CTAs (`{rounded.pill}`) and compact utility rects (`{rounded.sm}`).
 - SF Pro Display + SF Pro Text — negative letter-spacing at display sizes for the signature "Apple tight" headline feel.
 - Whisper-soft elevation used only when a product image needs to breathe — exactly one drop-shadow in the entire system.
@@ -296,9 +296,9 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
 > **Source pages analyzed:** homepage, environment, store, iPhone 17 Pro buy page, accessories index. The color system is identical across all five surfaces; only the surface-mode mix differs.
 
 ### Brand & Accent
-- **Action Blue** (`{colors.primary}` — #0066cc): The single brand-level interactive color. All text links, all blue pill CTAs ("Learn more", "Buy"), and the focus ring root. This is Apple's quiet but universal "click me" signal. Press state shifts to a slightly darker variant via the active scale transform rather than a hex change.
-- **Focus Blue** (`{colors.primary-focus}` — #0071e3): A marginally brighter sibling of Action Blue, reserved for the keyboard focus ring on buttons (`outline: 2px solid`).
-- **Sky Link Blue** (`{colors.primary-on-dark}` — #2997ff): A brighter blue used on dark surfaces for in-copy links and inline callouts, where Action Blue would disappear against the tile background.
+- **Action Coral** (`{colors.primary}` — #c9431f): The single brand-level interactive color. All text links, all coral pill CTAs ("Learn more", "Buy"), and the focus ring root. This is Apple's quiet but universal "click me" signal. Press state shifts to a slightly darker variant via the active scale transform rather than a hex change.
+- **Focus Coral** (`{colors.primary-focus}` — #b63a18): A marginally brighter sibling of Action Coral, reserved for the keyboard focus ring on buttons (`outline: 2px solid`).
+- **Soft Coral** (`{colors.primary-on-dark}` — #ff9a78): A brighter coral used on dark surfaces for in-copy links and inline callouts, where Action Coral would disappear against the tile background.
 
 ### Surface
 - **Pure White** (`{colors.canvas}` — #ffffff): The dominant canvas. Content, utility cards, store tiles, configurator grids.
@@ -435,7 +435,7 @@ Apple's whitespace is the product's pedestal. Every tile begins with at least 64
 
 ### Buttons
 
-**`button-primary`** — The signature Apple action. Background `{colors.primary}` (Action Blue #0066cc), text `{colors.on-primary}` in `{typography.body}` (SF Pro Text 17px / 400), rounded `{rounded.pill}` (full pill — capsule-shaped), padding 11px × 22px. The full-pill radius IS the brand action signal.
+**`button-primary`** — The signature Apple action. Background `{colors.primary}` (Action Coral #c9431f), text `{colors.on-primary}` in `{typography.body}` (SF Pro Text 17px / 400), rounded `{rounded.pill}` (full pill — capsule-shaped), padding 11px × 22px. The full-pill radius IS the brand action signal.
 - Active state: `{component.button-primary-active}` — `transform: scale(0.95)` (the system-wide micro-interaction).
 - Focus state: `{component.button-primary-focus}` — 2px solid `{colors.primary-focus}` outline.
 
@@ -445,13 +445,13 @@ Apple's whitespace is the product's pedestal. Every tile begins with at least 64
 
 **`button-pearl-capsule`** — Product-card secondary button. Background `{colors.surface-pearl}` (#fafafc), text `{colors.ink-muted-80}` in `{typography.caption}` (14px), 3px solid `{colors.divider-soft}` border (functions as a soft ring rather than a visible line), rounded `{rounded.md}` (11px), padding 8px × 14px.
 
-**`button-store-hero`** — A larger primary CTA used on store hero surfaces. Same Action Blue + Paper White as `{component.button-primary}`, but with `{typography.button-large}` (18px / 300 — note the rare weight 300) and slightly more padding (14px × 28px). Used sparingly on the store landing.
+**`button-store-hero`** — A larger primary CTA used on store hero surfaces. Same Action Coral + Paper White as `{component.button-primary}`, but with `{typography.button-large}` (18px / 300 — note the rare weight 300) and slightly more padding (14px × 28px). Used sparingly on the store landing.
 
 **`button-icon-circular`** — Floats over photography. 44 × 44px, background `{colors.surface-chip-translucent}` at ~64% alpha, icon in `{colors.ink}`, rounded `{rounded.full}`. Used for carousel controls, close buttons, and in-image controls (product image thumbnails on the iPhone buy page).
 
-**`text-link`** — Inline body links in `{colors.primary}` (Action Blue). Underlined or non-underlined per context.
+**`text-link`** — Inline body links in `{colors.primary}` (Action Coral). Underlined or non-underlined per context.
 
-**`text-link-on-dark`** — Inline body links on dark tiles in `{colors.primary-on-dark}` (Sky Link Blue #2997ff) — Action Blue would disappear against `{colors.surface-tile-1}`.
+**`text-link-on-dark`** — Inline body links on dark tiles in `{colors.primary-on-dark}` (Soft Coral #ff9a78) — Action Coral would disappear against `{colors.surface-tile-1}`.
 
 ### Cards & Containers
 
@@ -459,7 +459,7 @@ Apple's whitespace is the product's pedestal. Every tile begins with at least 64
 
 **`product-tile-parchment`** — Same as `{component.product-tile-light}` but on `{colors.canvas-parchment}` (#f5f5f7). Used to break two consecutive white tiles.
 
-**`product-tile-dark`** — Full-bleed dark tile. Background `{colors.surface-tile-1}` (#272729), text `{colors.on-dark}`, rounded `{rounded.none}`, vertical padding `{spacing.section}` (80px). Same content stack as the light tile but with `{component.text-link-on-dark}` for inline copy and `{component.button-primary}` (Action Blue still works on the dark surface). Used on the homepage product grid as the alternating dark band.
+**`product-tile-dark`** — Full-bleed dark tile. Background `{colors.surface-tile-1}` (#272729), text `{colors.on-dark}`, rounded `{rounded.none}`, vertical padding `{spacing.section}` (80px). Same content stack as the light tile but with `{component.text-link-on-dark}` for inline copy and `{component.button-primary}` (Action Coral still works on the dark surface). Used on the homepage product grid as the alternating dark band.
 
 **`product-tile-dark-2`** — Variant on `{colors.surface-tile-2}` (#2a2a2c). Used where a dark tile sits directly above or below `{component.product-tile-dark}` to create the faintest separation through micro-step lightness change.
 
@@ -488,7 +488,7 @@ Error and validation states were not surfaced in the analyzed pages.
 ## Do's and Don'ts
 
 ### Do
-- Use `{colors.primary}` (Action Blue #0066cc) for every interactive element — links, pill CTAs, focus signals — and nothing else. The single accent is non-negotiable.
+- Use `{colors.primary}` (Action Coral #c9431f) for every interactive element — links, pill CTAs, focus signals — and nothing else. The single accent is non-negotiable.
 - Set headlines in `{typography.hero-display}` or `{typography.display-lg}` with negative letter-spacing (`-0.28 → -0.374px`) to get the signature "Apple tight" cadence.
 - Run body copy at `{typography.body}` (17px / 400 / 1.47 / -0.374px) — not 16px. The extra pixel defines the brand's reading pace.
 - Alternate `{component.product-tile-light}` (or parchment) and `{component.product-tile-dark}` for full-bleed section rhythm. The color change IS the divider.
@@ -498,14 +498,14 @@ Error and validation states were not surfaced in the analyzed pages.
 - Keep the global nav `{colors.surface-black}` (true black) — it's the only place pure black appears on most pages.
 
 ### Don't
-- Don't introduce a second accent color; every "click me" signal is `{colors.primary}` (Action Blue).
+- Don't introduce a second accent color; every "click me" signal is `{colors.primary}` (Action Coral).
 - Don't add shadows to cards, buttons, or text — shadow is reserved for product imagery.
 - Don't use gradients as decorative backgrounds; atmosphere comes from photography.
 - Don't set body copy at weight 500 — Apple's ladder is 300 / 400 / 600 / 700, with 500 deliberately absent. Body is always 400; strong inline is 600; display is 600.
 - Don't round full-bleed tiles — tiles are rectangular and edge-to-edge; the color change is the divider.
 - Don't tighten line-height below 1.47 for body copy — the editorial leading is part of the brand.
 - Don't mix radii grammars — use `{rounded.sm}` for compact utility, `{rounded.lg}` for utility cards, `{rounded.pill}` for pills, and nothing in between (except the rare `{rounded.md}` Pearl Button).
-- Don't use `{colors.primary-on-dark}` (Sky Link Blue) on light surfaces — it's the dark-tile-only variant. Action Blue is for light surfaces.
+- Don't use `{colors.primary-on-dark}` (Soft Coral) on light surfaces — it's the dark-tile-only variant. Action Coral is for light surfaces.
 
 ## Responsive Behavior
 

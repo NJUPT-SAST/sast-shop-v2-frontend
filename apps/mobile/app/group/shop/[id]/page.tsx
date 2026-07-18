@@ -9,6 +9,7 @@ import { Empty } from "@workspace/ui/components/empty"
 
 import { ErrandShop } from "@/components/errand-shop"
 import { mobileAppConfig } from "@/lib/app-config"
+import { getServerServiceOptions } from "@/lib/server-service-options"
 
 type GroupShopPageProps = {
   params: Promise<{
@@ -24,14 +25,11 @@ type StoreDetail = {
 
 async function loadStoreDetail(storeId: string): Promise<StoreDetail> {
   try {
+    const options = await getServerServiceOptions()
     const [stores, templates] = await Promise.all([
-      listStores({
-        dataSource: mobileAppConfig.dataSource,
-        connectBaseUrl: mobileAppConfig.connectBaseUrl,
-      }),
+      listStores(options),
       listProductTemplates({
-        dataSource: mobileAppConfig.dataSource,
-        connectBaseUrl: mobileAppConfig.connectBaseUrl,
+        ...options,
         storeId,
       }),
     ])
