@@ -38,8 +38,24 @@ export default async function ProfilePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex items-start justify-between gap-6">
+      <section className="flex items-center justify-between gap-6">
         <h1 className="text-3xl font-semibold leading-tight">我的资料</h1>
+        {overview ? (
+          <div className="flex min-w-0 items-center gap-3">
+            <Avatar className="size-12">
+              <AvatarImage
+                src={overview.user.avatarUrl}
+                alt={overview.user.name}
+              />
+              <AvatarFallback className="text-lg font-semibold">
+                {overview.user.name.slice(0, 1)}
+              </AvatarFallback>
+            </Avatar>
+            <p className="min-w-0 truncate text-lg font-semibold">
+              {overview.user.name}
+            </p>
+          </div>
+        ) : null}
       </section>
 
       {result.error ? (
@@ -52,24 +68,7 @@ export default async function ProfilePage() {
       ) : null}
 
       {overview ? (
-        <section className="grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-4">
-          <Card>
-            <CardContent className="flex items-center gap-4 p-6">
-              <Avatar className="size-14">
-                <AvatarImage
-                  src={overview.user.avatarUrl}
-                  alt={overview.user.name}
-                />
-                <AvatarFallback className="text-xl font-semibold">
-                  {overview.user.name.slice(0, 1)}
-                </AvatarFallback>
-              </Avatar>
-              <CardTitle className="min-w-0 break-words text-2xl leading-8">
-                {overview.user.name}
-              </CardTitle>
-            </CardContent>
-          </Card>
-
+        <section className="grid grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)] items-start gap-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-xl leading-7">收款码</CardTitle>
@@ -88,14 +87,12 @@ export default async function ProfilePage() {
                   </div>
                 ))
               ) : (
-                <p className="rounded-lg bg-muted p-3 text-sm leading-6 text-muted-foreground">
-                  暂无收款码。配置后可用于后续支付确认流程。
-                </p>
+                <p className="text-sm text-muted-foreground">暂无收款码</p>
               )}
             </CardContent>
           </Card>
 
-          <Card className="col-span-2">
+          <Card>
             <CardHeader>
               <CardTitle className="text-xl leading-7">地址簿</CardTitle>
             </CardHeader>

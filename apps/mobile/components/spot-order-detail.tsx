@@ -198,7 +198,12 @@ export function SpotOrderDetail({
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className={cn("flex flex-1 flex-col gap-4 py-4", showActionBar && "pb-24")}>
+      <div
+        className={cn(
+          "flex flex-1 flex-col gap-4 py-4",
+          showActionBar && "pb-24",
+        )}
+      >
         <h1 className="text-lg font-semibold">订单详情</h1>
 
         <OrderProgressBar
@@ -242,19 +247,10 @@ export function SpotOrderDetail({
           </Alert>
         ) : null}
 
-        {resolvedOrder.status === "completed" ? (
-          <Alert>
-            <RiCheckboxCircleLine />
-            <AlertTitle>订单已完成</AlertTitle>
-            <AlertDescription>本次现货交易已完成。</AlertDescription>
-          </Alert>
-        ) : null}
-
         {isCancelled ? (
           <Alert>
             <RiCloseCircleLine />
-            <AlertTitle>订单已取消</AlertTitle>
-            <AlertDescription>关联账单已关闭。</AlertDescription>
+            <AlertTitle>关联账单已关闭</AlertTitle>
           </Alert>
         ) : null}
       </div>
@@ -451,14 +447,9 @@ function OrderProgressDrawer({
                   <RiCloseCircleLine className="size-4 text-muted-foreground" />
                 </span>
               </div>
-              <div className="pt-0.5">
-                <p className="text-sm font-medium text-muted-foreground">
-                  已取消
-                </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  订单已取消
-                </p>
-              </div>
+              <p className="pt-0.5 text-sm font-medium text-muted-foreground">
+                已取消
+              </p>
             </div>
           ) : (
             <div className="flex flex-col gap-0">
@@ -623,7 +614,7 @@ function PaidStatusSection({ bill }: { bill: PaymentBill }) {
         </div>
         <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2">
           <span className="text-sm text-muted-foreground">标识码</span>
-          <span className="cursor-default select-none font-mono text-sm blur-sm transition-all hover:blur-0">
+          <span className="select-all font-mono text-sm font-semibold">
             {bill.verifyCode}
           </span>
         </div>

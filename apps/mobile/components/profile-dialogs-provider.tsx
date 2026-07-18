@@ -407,12 +407,13 @@ export function ProfileDialogsProvider({
               <ResponsiveDialogDescription className="sr-only">
                 查看和管理收货地址
               </ResponsiveDialogDescription>
-              {mutationError ? (
-                <ResponsiveDialogDescription className="text-destructive">
-                  {mutationError}
-                </ResponsiveDialogDescription>
-              ) : null}
             </ResponsiveDialogHeader>
+
+            {mutationError ? (
+              <p role="alert" className="text-sm text-destructive">
+                {mutationError}
+              </p>
+            ) : null}
 
             <div className="app-scrollbar -mx-4 min-h-0 flex-1 overflow-y-auto px-4">
               {profileLoadState === "idle" ? (
@@ -534,12 +535,13 @@ export function ProfileDialogsProvider({
               <ResponsiveDialogDescription className="sr-only">
                 查看和管理微信、支付宝收款码
               </ResponsiveDialogDescription>
-              {mutationError ? (
-                <ResponsiveDialogDescription className="text-destructive">
-                  {mutationError}
-                </ResponsiveDialogDescription>
-              ) : null}
             </ResponsiveDialogHeader>
+
+            {mutationError ? (
+              <p role="alert" className="text-sm text-destructive">
+                {mutationError}
+              </p>
+            ) : null}
 
             {profileLoadState === "idle" ? (
               <ProfileDrawerLoading />
@@ -1181,7 +1183,7 @@ function QrCodeItem({
           variant={uploaded ? "success" : "info"}
           className="absolute top-4 right-4"
         >
-          {uploaded ? "已上传" : "未上传"}
+          {pending ? "保存中" : uploaded ? "已上传" : "未上传"}
         </Badge>
         <div className="flex items-start gap-3">
           <div
@@ -1192,18 +1194,9 @@ function QrCodeItem({
           >
             <Icon data-icon="inline-start" />
           </div>
-          <div className="min-w-0 flex-1 pr-20">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-medium">{label}</span>
-            </div>
-            <p className="mt-1 text-sm leading-5 text-muted-foreground">
-              {pending
-                ? "保存中"
-                : uploaded
-                  ? "点击更改收款码"
-                  : "点击上传收款码"}
-            </p>
-          </div>
+          <span className="min-w-0 flex-1 truncate pr-20 font-medium">
+            {label}
+          </span>
         </div>
       </button>
 
@@ -1228,9 +1221,7 @@ function PaymentPreferenceChoices({
   const platforms: Array<{
     platform: PaymentPlatform;
     label: string;
-    description: string;
     selectedCardClassName: string;
-    selectedDescriptionClassName: string;
     selectedIconClassName: string;
     selectedRadioClassName: string;
     icon: typeof RiWechatPayLine;
@@ -1238,10 +1229,8 @@ function PaymentPreferenceChoices({
     {
       platform: "wechat",
       label: "微信支付",
-      description: "适合常用微信付款",
       selectedCardClassName:
         "border-[#07c160] bg-[#07c160]/8 hover:bg-[#07c160]/8",
-      selectedDescriptionClassName: "text-[#047a3d]",
       selectedIconClassName: "bg-[#07c160] text-white",
       selectedRadioClassName:
         "data-[state=checked]:border-[#07c160] data-[state=checked]:bg-[#07c160]",
@@ -1250,10 +1239,8 @@ function PaymentPreferenceChoices({
     {
       platform: "alipay",
       label: "支付宝",
-      description: "适合常用支付宝付款",
       selectedCardClassName:
         "border-[#1677ff] bg-[#1677ff]/8 hover:bg-[#1677ff]/8",
-      selectedDescriptionClassName: "text-[#0f5dcc]",
       selectedIconClassName: "bg-[#1677ff] text-white",
       selectedRadioClassName:
         "data-[state=checked]:border-[#1677ff] data-[state=checked]:bg-[#1677ff]",
@@ -1278,9 +1265,7 @@ function PaymentPreferenceChoices({
           ({
             platform,
             label,
-            description,
             selectedCardClassName,
-            selectedDescriptionClassName,
             selectedIconClassName,
             selectedRadioClassName,
             icon: Icon,
@@ -1311,11 +1296,6 @@ function PaymentPreferenceChoices({
                   </span>
                   <FieldContent>
                     <FieldTitle className="text-base">{label}</FieldTitle>
-                    <FieldDescription
-                      className={cn(selected && selectedDescriptionClassName)}
-                    >
-                      {description}
-                    </FieldDescription>
                   </FieldContent>
                   <RadioGroupItem
                     id={id}

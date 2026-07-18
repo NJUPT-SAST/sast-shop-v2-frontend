@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { useEffect, useMemo, useRef, useState } from "react"
-import { useRouter } from "next/navigation"
-import { zodResolver } from "@hookform/resolvers/zod"
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   RiAddLine,
   RiBarcodeLine,
@@ -10,10 +10,10 @@ import {
   RiFileList3Line,
   RiImageLine,
   RiSearchLine,
-} from "@remixicon/react"
-import { Controller, useForm } from "react-hook-form"
-import { toast } from "sonner"
-import * as z from "zod"
+} from "@remixicon/react";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
+import * as z from "zod";
 import {
   createProductTemplate,
   updateProductTemplate,
@@ -22,15 +22,15 @@ import {
   type ServiceOptions,
   type Store,
   ValidationError,
-} from "@sast-shop/api"
-import { formatPrice } from "@sast-shop/domain"
+} from "@sast-shop/api";
+import { formatPrice } from "@sast-shop/domain";
 import {
   Alert,
   AlertDescription,
   AlertTitle,
-} from "@workspace/ui/components/alert"
-import { Badge } from "@workspace/ui/components/badge"
-import { Button } from "@workspace/ui/components/button"
+} from "@workspace/ui/components/alert";
+import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
 import {
   Drawer,
   DrawerContent,
@@ -38,36 +38,36 @@ import {
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
-} from "@workspace/ui/components/drawer"
-import { Empty } from "@workspace/ui/components/empty"
+} from "@workspace/ui/components/drawer";
+import { Empty } from "@workspace/ui/components/empty";
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from "@workspace/ui/components/field"
-import { Input } from "@workspace/ui/components/input"
+} from "@workspace/ui/components/field";
+import { Input } from "@workspace/ui/components/input";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-} from "@workspace/ui/components/input-group"
+} from "@workspace/ui/components/input-group";
 import {
   Item,
   ItemActions,
   ItemContent,
   ItemDescription,
   ItemTitle,
-} from "@workspace/ui/components/item"
+} from "@workspace/ui/components/item";
 import {
   Select,
   SelectContent,
   SelectGroup,
   SelectItem,
   SelectTrigger,
-} from "@workspace/ui/components/select"
-import { Textarea } from "@workspace/ui/components/textarea"
+} from "@workspace/ui/components/select";
+import { Textarea } from "@workspace/ui/components/textarea";
 
 const templateSchema = z.object({
   storeId: z.string().min(1, "请选择店铺"),
@@ -89,22 +89,22 @@ const templateSchema = z.object({
     .trim()
     .refine(
       (value) => !value || (value.length <= 2048 && /^https:\/\//.test(value)),
-      "图片地址需要使用 HTTPS，且不能超过 2048 字符"
+      "图片地址需要使用 HTTPS，且不能超过 2048 字符",
     ),
-})
+});
 
-type TemplateFormValues = z.infer<typeof templateSchema>
+type TemplateFormValues = z.infer<typeof templateSchema>;
 
 type ProductTemplateManagerProps = {
-  dataSource: DataSource
-  connectBaseUrl: string
-  stores: Store[]
-  initialTemplates: ProductTemplate[]
-  selectedStoreId: string | null
-  prefillBarcode: string
-  startCreating: boolean
-  error: string | null
-}
+  dataSource: DataSource;
+  connectBaseUrl: string;
+  stores: Store[];
+  initialTemplates: ProductTemplate[];
+  selectedStoreId: string | null;
+  prefillBarcode: string;
+  startCreating: boolean;
+  error: string | null;
+};
 
 export function ProductTemplateManager({
   dataSource,
@@ -116,47 +116,48 @@ export function ProductTemplateManager({
   startCreating,
   error,
 }: ProductTemplateManagerProps) {
-  const router = useRouter()
-  const serviceOptions: ServiceOptions = { dataSource, connectBaseUrl }
-  const renderedStoreId = useRef(selectedStoreId)
-  const [templates, setTemplates] = useState(initialTemplates)
-  const [keyword, setKeyword] = useState("")
-  const [editingTemplate, setEditingTemplate] = useState<ProductTemplate | null>(
-    null
-  )
-  const [drawerOpen, setDrawerOpen] = useState(startCreating && Boolean(selectedStoreId))
-  const [submitting, setSubmitting] = useState(false)
+  const router = useRouter();
+  const serviceOptions: ServiceOptions = { dataSource, connectBaseUrl };
+  const renderedStoreId = useRef(selectedStoreId);
+  const [templates, setTemplates] = useState(initialTemplates);
+  const [keyword, setKeyword] = useState("");
+  const [editingTemplate, setEditingTemplate] =
+    useState<ProductTemplate | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(
+    startCreating && Boolean(selectedStoreId),
+  );
+  const [submitting, setSubmitting] = useState(false);
   const form = useForm<TemplateFormValues>({
     resolver: zodResolver(templateSchema),
     defaultValues: createDefaultValues(selectedStoreId, prefillBarcode),
-  })
+  });
 
   useEffect(() => {
-    if (renderedStoreId.current === selectedStoreId) return
+    if (renderedStoreId.current === selectedStoreId) return;
 
-    renderedStoreId.current = selectedStoreId
-    setTemplates(initialTemplates)
-  }, [initialTemplates, selectedStoreId])
+    renderedStoreId.current = selectedStoreId;
+    setTemplates(initialTemplates);
+  }, [initialTemplates, selectedStoreId]);
 
   const visibleTemplates = useMemo(() => {
-    const value = keyword.trim().toLowerCase()
-    if (!value) return templates
+    const value = keyword.trim().toLowerCase();
+    if (!value) return templates;
 
     return templates.filter((template) =>
       [template.title, template.description, template.barcode].some((field) =>
-        field.toLowerCase().includes(value)
-      )
-    )
-  }, [keyword, templates])
+        field.toLowerCase().includes(value),
+      ),
+    );
+  }, [keyword, templates]);
 
   function openCreateDrawer() {
-    setEditingTemplate(null)
-    form.reset(createDefaultValues(selectedStoreId, prefillBarcode))
-    setDrawerOpen(true)
+    setEditingTemplate(null);
+    form.reset(createDefaultValues(selectedStoreId, prefillBarcode));
+    setDrawerOpen(true);
   }
 
   function openEditDrawer(template: ProductTemplate) {
-    setEditingTemplate(template)
+    setEditingTemplate(template);
     form.reset({
       storeId: template.storeId,
       barcode: template.barcode,
@@ -164,14 +165,14 @@ export function ProductTemplateManager({
       description: template.description,
       price: template.priceCents / 100,
       mainImageUrl: template.mainImageUrl,
-    })
-    setDrawerOpen(true)
+    });
+    setDrawerOpen(true);
   }
 
   async function saveTemplate(values: TemplateFormValues) {
-    if (submitting) return
+    if (submitting) return;
 
-    setSubmitting(true)
+    setSubmitting(true);
 
     try {
       const payload = {
@@ -181,40 +182,35 @@ export function ProductTemplateManager({
         description: values.description,
         priceCents: Math.round(values.price * 100),
         mainImageUrl: values.mainImageUrl,
-      }
+      };
       const saved = editingTemplate
         ? await updateExistingTemplate(editingTemplate, payload, serviceOptions)
-        : await createProductTemplate(payload, serviceOptions)
+        : await createProductTemplate(payload, serviceOptions);
 
       if (saved.storeId === selectedStoreId) {
-        setTemplates((current) => upsertTemplate(current, saved))
+        setTemplates((current) => upsertTemplate(current, saved));
       } else {
         setTemplates((current) =>
-          current.filter((template) => template.id !== saved.id)
-        )
+          current.filter((template) => template.id !== saved.id),
+        );
       }
-      setDrawerOpen(false)
-      setEditingTemplate(null)
-      toast.success(editingTemplate ? "商品模板已更新" : "商品模板已创建")
-      router.refresh()
+      setDrawerOpen(false);
+      setEditingTemplate(null);
+      toast.success(editingTemplate ? "商品模板已更新" : "商品模板已创建");
+      router.refresh();
     } catch (caught) {
-      toast.error(readErrorMessage(caught))
+      toast.error(readErrorMessage(caught));
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
   }
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-5 py-6">
       <section className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-xl font-semibold leading-7 md:text-2xl">
-            商品模板
-          </h1>
-          <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            维护条码、店铺、规格与参考价，供跑腿采购和现货上架复用。
-          </p>
-        </div>
+        <h1 className="min-w-0 text-xl font-semibold leading-7 md:text-2xl">
+          商品模板
+        </h1>
         <Button
           type="button"
           size="sm"
@@ -241,8 +237,10 @@ export function ProductTemplateManager({
             <Select
               value={selectedStoreId ?? undefined}
               onValueChange={(value) => {
-                setKeyword("")
-                router.replace(`/group/templates?store=${encodeURIComponent(value)}`)
+                setKeyword("");
+                router.replace(
+                  `/group/templates?store=${encodeURIComponent(value)}`,
+                );
               }}
             >
               <SelectTrigger
@@ -285,7 +283,10 @@ export function ProductTemplateManager({
       ) : null}
 
       {visibleTemplates.length > 0 ? (
-        <section className="flex min-w-0 flex-col gap-3" aria-label="商品模板列表">
+        <section
+          className="flex min-w-0 flex-col gap-3"
+          aria-label="商品模板列表"
+        >
           {visibleTemplates.map((template) => (
             <TemplateItem
               key={template.id}
@@ -303,30 +304,30 @@ export function ProductTemplateManager({
               ? "换个商品名称、规格或条码试试。"
               : "新建模板后，跑腿采购和现货上架都可以按条码复用。"
           }
-          action={
-            selectedStoreId && !keyword ? (
-              <Button type="button" size="sm" onClick={openCreateDrawer}>
-                <RiAddLine />
-                新建模板
-              </Button>
-            ) : undefined
-          }
         />
       ) : null}
 
       <Drawer
         open={drawerOpen}
         onOpenChange={(open) => {
-          if (!submitting) setDrawerOpen(open)
+          if (!submitting) setDrawerOpen(open);
         }}
       >
         <DrawerContent className="max-h-[88dvh]">
           <DrawerHeader className="shrink-0 text-left">
-            <DrawerTitle>{editingTemplate ? "编辑商品模板" : "新建商品模板"}</DrawerTitle>
-            <DrawerDescription>
-              模板不记录库存和运费；保存后会供采购与上架流程复用。
+            <DrawerTitle>
+              {editingTemplate ? "编辑商品模板" : "新建商品模板"}
+            </DrawerTitle>
+            <DrawerDescription className="sr-only">
+              填写并保存商品模板
             </DrawerDescription>
           </DrawerHeader>
+
+          {editingTemplate && !editingTemplate.updatedAt ? (
+            <p className="px-4 text-sm text-destructive">
+              缺少模板版本，刷新页面后再编辑。
+            </p>
+          ) : null}
 
           <form
             id="product-template-form"
@@ -345,28 +346,30 @@ export function ProductTemplateManager({
               type="submit"
               form="product-template-form"
               size="lg"
-              disabled={submitting || (Boolean(editingTemplate) && !editingTemplate?.updatedAt)}
+              disabled={
+                submitting ||
+                (Boolean(editingTemplate) && !editingTemplate?.updatedAt)
+              }
             >
-              {submitting ? "保存中" : editingTemplate ? "保存修改" : "创建模板"}
+              {submitting
+                ? "保存中"
+                : editingTemplate
+                  ? "保存修改"
+                  : "创建模板"}
             </Button>
-            {editingTemplate && !editingTemplate.updatedAt ? (
-              <p className="text-center text-xs text-destructive">
-                缺少模板版本，刷新页面后再编辑。
-              </p>
-            ) : null}
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
     </div>
-  )
+  );
 }
 
 function TemplateItem({
   template,
   onEdit,
 }: {
-  template: ProductTemplate
-  onEdit: () => void
+  template: ProductTemplate;
+  onEdit: () => void;
 }) {
   return (
     <Item
@@ -377,8 +380,8 @@ function TemplateItem({
       onClick={onEdit}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault()
-          onEdit()
+          event.preventDefault();
+          onEdit();
         }
       }}
     >
@@ -405,7 +408,7 @@ function TemplateItem({
         <RiEditLine className="size-4 text-muted-foreground" />
       </ItemActions>
     </Item>
-  )
+  );
 }
 
 function TemplateFields({
@@ -413,9 +416,9 @@ function TemplateFields({
   stores,
   lockStore,
 }: {
-  form: ReturnType<typeof useForm<TemplateFormValues>>
-  stores: Store[]
-  lockStore: boolean
+  form: ReturnType<typeof useForm<TemplateFormValues>>;
+  stores: Store[];
+  lockStore: boolean;
 }) {
   return (
     <FieldGroup className="gap-5">
@@ -474,7 +477,6 @@ function TemplateFields({
               placeholder="输入条码编号"
               aria-invalid={fieldState.invalid}
             />
-            <FieldDescription>同一条码可属于不同店铺。</FieldDescription>
             <FieldError errors={[fieldState.error]} />
           </Field>
         )}
@@ -486,7 +488,11 @@ function TemplateFields({
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid}>
             <FieldLabel htmlFor={field.name}>商品名称</FieldLabel>
-            <Input {...field} id={field.name} aria-invalid={fieldState.invalid} />
+            <Input
+              {...field}
+              id={field.name}
+              aria-invalid={fieldState.invalid}
+            />
             <FieldError errors={[fieldState.error]} />
           </Field>
         )}
@@ -547,18 +553,17 @@ function TemplateFields({
               placeholder="https://example.com/image.jpg"
               aria-invalid={fieldState.invalid}
             />
-            <FieldDescription>当前接口只支持保存图片地址。</FieldDescription>
             <FieldError errors={[fieldState.error]} />
           </Field>
         )}
       />
     </FieldGroup>
-  )
+  );
 }
 
 function createDefaultValues(
   storeId: string | null,
-  barcode: string
+  barcode: string,
 ): TemplateFormValues {
   return {
     storeId: storeId ?? "",
@@ -567,44 +572,46 @@ function createDefaultValues(
     description: "",
     price: 0.01,
     mainImageUrl: "",
-  }
+  };
 }
 
 async function updateExistingTemplate(
   template: ProductTemplate,
   patch: {
-    barcode: string
-    title: string
-    description: string
-    priceCents: number
-    mainImageUrl: string
+    barcode: string;
+    title: string;
+    description: string;
+    priceCents: number;
+    mainImageUrl: string;
   },
-  options: ServiceOptions
+  options: ServiceOptions,
 ): Promise<ProductTemplate> {
   if (!template.updatedAt) {
-    throw new Error("缺少模板版本，刷新页面后再试")
+    throw new Error("缺少模板版本，刷新页面后再试");
   }
 
   return updateProductTemplate(
     { id: template.id, updatedAt: template.updatedAt, patch },
-    options
-  )
+    options,
+  );
 }
 
 function upsertTemplate(
   templates: ProductTemplate[],
-  saved: ProductTemplate
+  saved: ProductTemplate,
 ): ProductTemplate[] {
-  const index = templates.findIndex((template) => template.id === saved.id)
-  if (index === -1) return [saved, ...templates]
+  const index = templates.findIndex((template) => template.id === saved.id);
+  if (index === -1) return [saved, ...templates];
 
-  return templates.map((template) => (template.id === saved.id ? saved : template))
+  return templates.map((template) =>
+    template.id === saved.id ? saved : template,
+  );
 }
 
 function readErrorMessage(error: unknown): string {
   if (error instanceof ValidationError && error.message.trim()) {
-    return error.message
+    return error.message;
   }
 
-  return "保存商品模板失败，请稍后再试"
+  return "保存商品模板失败，请稍后再试";
 }

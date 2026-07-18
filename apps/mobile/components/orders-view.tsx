@@ -293,7 +293,10 @@ function OrderList({
   }
 
   return (
-    <section aria-label="订单列表" className="grid min-w-0 gap-3 md:grid-cols-2">
+    <section
+      aria-label="订单列表"
+      className="grid min-w-0 gap-3 md:grid-cols-2"
+    >
       {orders.map((order) => (
         <OrderCard key={order.id} order={order} />
       ))}
@@ -431,8 +434,8 @@ function mapErrandTaskBrief(task: ErrandTaskBrief): RenderableOrder {
     orderNo: task.id,
     type: "errand",
     view: "captain",
-    title: `${task.storeName}采购任务`,
-    store: task.storeName,
+    title: task.storeName,
+    store: "采购任务",
     status: task.status,
     amount: null,
     summary: `${task.itemCount} 种商品`,

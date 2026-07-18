@@ -72,8 +72,8 @@ export default async function GroupPage() {
         {storeError ? (
           <Card className="overflow-hidden rounded-lg p-1">
             <CardHeader className="gap-2">
-              <CardTitle className="text-lg leading-6">店铺暂不可用</CardTitle>
-              <CardDescription>{storeError}</CardDescription>
+              <CardTitle className="text-lg leading-6">店铺加载失败</CardTitle>
+              <CardDescription>请稍后再试</CardDescription>
             </CardHeader>
           </Card>
         ) : null}

@@ -95,7 +95,9 @@ export function BuyerErrandOrderDetailView({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <div className={`flex min-w-0 flex-1 flex-col gap-4 py-4 ${showActionBar ? "pb-24" : ""}`}>
+      <div
+        className={`flex min-w-0 flex-1 flex-col gap-4 py-4 ${showActionBar ? "pb-24" : ""}`}
+      >
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-lg font-semibold">跑腿订单详情</h1>
@@ -116,9 +118,7 @@ export function BuyerErrandOrderDetailView({
         >
           <span className="flex min-w-0 items-center gap-2">
             <RiTimeLine data-icon="inline-start" />
-            <span className="truncate">
-              当前进度：{getStatusLabel(resolvedOrder.status)}
-            </span>
+            <span className="truncate">关键时间</span>
           </span>
           <span className="shrink-0 text-muted-foreground">查看时间</span>
         </Button>
@@ -220,30 +220,6 @@ function StatusNotice({
     );
   }
 
-  if (paymentState === "completed" || order.status === "completed") {
-    return (
-      <Alert>
-        <RiCheckboxCircleLine />
-        <AlertTitle>订单已完成</AlertTitle>
-        <AlertDescription>
-          团长已确认收款，本次跑腿采购已完成。
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  if (order.status === "cancelled") {
-    return (
-      <Alert>
-        <RiCloseCircleLine />
-        <AlertTitle>订单已取消</AlertTitle>
-        <AlertDescription>
-          这笔订单不再继续处理，关联账单应已关闭。
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
   if (paymentState === "unavailable") {
     return (
       <Alert variant="destructive">
@@ -299,7 +275,6 @@ function CaptainCard({ order }: { order: BuyerErrandOrderDetail }) {
         </Avatar>
         <div className="min-w-0">
           <p className="truncate font-medium">{order.captain.name}</p>
-          <p className="text-sm text-muted-foreground">负责采购、分发与收款</p>
         </div>
       </CardContent>
     </Card>

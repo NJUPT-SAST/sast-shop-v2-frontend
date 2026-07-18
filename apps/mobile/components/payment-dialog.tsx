@@ -192,8 +192,10 @@ function PaymentDialogBody({
     <ResponsiveDialogContent className="max-h-[88dvh] overflow-hidden px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-md">
       <ResponsiveDialogHeader className="px-0 text-left">
         <ResponsiveDialogTitle className="text-lg">支付</ResponsiveDialogTitle>
-        <ResponsiveDialogDescription>
-          付款后点击“我已支付”
+        <ResponsiveDialogDescription
+          className={status === "ready" ? undefined : "sr-only"}
+        >
+          {status === "ready" ? "付款后点击“我已支付”" : "支付状态"}
         </ResponsiveDialogDescription>
       </ResponsiveDialogHeader>
 
@@ -303,20 +305,34 @@ function PaymentDialogBody({
         ) : null}
       </div>
 
-      <ResponsiveDialogFooter className="gap-2">
-        <Button type="button" variant="outline" onClick={onCancelPayment}>
-          <RiCloseCircleLine data-icon="inline-start" />
-          稍后支付
-        </Button>
-        <Button
-          type="button"
-          disabled={!hasQrCode || submitting || status !== "ready"}
-          onClick={handlePay}
-        >
-          <RiCheckboxCircleLine data-icon="inline-start" />
-          {submitting ? "提交中" : "我已支付"}
-        </Button>
-      </ResponsiveDialogFooter>
+      {status === "ready" ? (
+        <ResponsiveDialogFooter className="gap-2">
+          <Button type="button" variant="outline" onClick={onCancelPayment}>
+            <RiCloseCircleLine data-icon="inline-start" />
+            稍后支付
+          </Button>
+          <Button
+            type="button"
+            disabled={!hasQrCode || submitting}
+            onClick={handlePay}
+          >
+            <RiCheckboxCircleLine data-icon="inline-start" />
+            {submitting ? "提交中" : "我已支付"}
+          </Button>
+        </ResponsiveDialogFooter>
+      ) : status === "submitted" ? (
+        <ResponsiveDialogFooter>
+          <Button type="button" onClick={onCancelPayment}>
+            完成
+          </Button>
+        </ResponsiveDialogFooter>
+      ) : status === "error" ? (
+        <ResponsiveDialogFooter>
+          <Button type="button" variant="outline" onClick={onCancelPayment}>
+            关闭
+          </Button>
+        </ResponsiveDialogFooter>
+      ) : null}
     </ResponsiveDialogContent>
   );
 }

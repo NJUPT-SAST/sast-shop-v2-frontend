@@ -1,6 +1,4 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
-import { Button } from "@workspace/ui/components/button";
 import { DesktopNav } from "./desktop-nav";
 
 export function DesktopShell({ children }: { children: ReactNode }) {
@@ -18,14 +16,6 @@ export function DesktopShell({ children }: { children: ReactNode }) {
         </aside>
 
         <div className="flex min-w-0 flex-col">
-          <header className="sticky top-0 z-20 border-b border-border/80 bg-background/85 backdrop-blur-xl">
-            <div className="flex min-h-16 items-center justify-end px-8">
-              <Button asChild variant="outline" size="sm">
-                <Link href="/profile">我的资料</Link>
-              </Button>
-            </div>
-          </header>
-
           <main className="mx-auto w-full max-w-7xl px-8 py-6">{children}</main>
         </div>
       </div>

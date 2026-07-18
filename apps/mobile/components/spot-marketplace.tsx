@@ -528,9 +528,6 @@ export function SpotMarketplace({
             </div>
 
             <ResponsiveDialogFooter>
-              <Button type="button" variant="outline" onClick={closeDetail}>
-                取消
-              </Button>
               <Button
                 type="button"
                 disabled={isOutOfStock || submitting}

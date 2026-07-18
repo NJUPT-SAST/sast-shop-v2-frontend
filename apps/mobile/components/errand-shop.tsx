@@ -1,34 +1,33 @@
-"use client"
+"use client";
 
-import { useMemo, useRef, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   RiAddLine,
-  RiInformationLine,
   RiShoppingBag3Line,
   RiShoppingCartLine,
   RiStore2Line,
   RiSubtractLine,
-} from "@remixicon/react"
+} from "@remixicon/react";
 import {
   createErrandDemand,
   type DataSource,
   type ProductTemplate,
   type ServiceOptions,
   type Store,
-} from "@sast-shop/api"
-import { formatPrice } from "@sast-shop/domain"
-import { Badge } from "@workspace/ui/components/badge"
-import { Button } from "@workspace/ui/components/button"
-import { Card } from "@workspace/ui/components/card"
-import { Empty } from "@workspace/ui/components/empty"
-import { Input } from "@workspace/ui/components/input"
+} from "@sast-shop/api";
+import { formatPrice } from "@sast-shop/domain";
+import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
+import { Card } from "@workspace/ui/components/card";
+import { Empty } from "@workspace/ui/components/empty";
+import { Input } from "@workspace/ui/components/input";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
   InputGroupText,
-} from "@workspace/ui/components/input-group"
+} from "@workspace/ui/components/input-group";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -36,32 +35,32 @@ import {
   ResponsiveDialogFooter,
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
-} from "@workspace/ui/components/responsive-dialog"
-import { toast } from "sonner"
+} from "@workspace/ui/components/responsive-dialog";
+import { toast } from "sonner";
 
 import {
   getDefaultErrandDeadline,
   isValidErrandDeadline,
   toDateTimeLocalValue,
-} from "@/lib/errand-delivery-time"
-import { ManagedImage } from "./managed-image"
-import { MobileFixedFooter } from "./mobile-fixed-footer"
+} from "@/lib/errand-delivery-time";
+import { ManagedImage } from "./managed-image";
+import { MobileFixedFooter } from "./mobile-fixed-footer";
 
 type ErrandShopProps = {
-  dataSource: DataSource
-  connectBaseUrl: string
-  store: Store
-  templates: ProductTemplate[]
-}
+  dataSource: DataSource;
+  connectBaseUrl: string;
+  store: Store;
+  templates: ProductTemplate[];
+};
 
 type ErrandCartItem = {
-  template: ProductTemplate
-  quantity: number
-  serviceFeePerUnitCents: number
-}
+  template: ProductTemplate;
+  quantity: number;
+  serviceFeePerUnitCents: number;
+};
 
-const MAX_QUANTITY = 20
-const MONEY_DRAFT_PATTERN = /^\d*(?:\.\d{0,2})?$/
+const MAX_QUANTITY = 20;
+const MONEY_DRAFT_PATTERN = /^\d*(?:\.\d{0,2})?$/;
 
 export function ErrandShop({
   dataSource,
@@ -69,79 +68,82 @@ export function ErrandShop({
   store,
   templates,
 }: ErrandShopProps) {
-  const router = useRouter()
-  const submittingRef = useRef(false)
-  const [items, setItems] = useState<ErrandCartItem[]>([])
-  const [feeDrafts, setFeeDrafts] = useState<Record<string, string>>({})
-  const [cartOpen, setCartOpen] = useState(false)
+  const router = useRouter();
+  const submittingRef = useRef(false);
+  const [items, setItems] = useState<ErrandCartItem[]>([]);
+  const [feeDrafts, setFeeDrafts] = useState<Record<string, string>>({});
+  const [cartOpen, setCartOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] =
-    useState<ProductTemplate | null>(null)
+    useState<ProductTemplate | null>(null);
   const [deadlineValue, setDeadlineValue] = useState(() =>
-    toDateTimeLocalValue(getDefaultErrandDeadline())
-  )
-  const [submitting, setSubmitting] = useState(false)
+    toDateTimeLocalValue(getDefaultErrandDeadline()),
+  );
+  const [submitting, setSubmitting] = useState(false);
 
   const cartByTemplateId = useMemo(
     () => new Map(items.map((item) => [item.template.id, item])),
-    [items]
-  )
+    [items],
+  );
   const pricedItems = useMemo(
     () =>
       items.map((item) => ({
         ...item,
         serviceFeePerUnitCents: parseMoneyDraftToCents(
           feeDrafts[item.template.id] ??
-            formatYuanInput(item.serviceFeePerUnitCents)
+            formatYuanInput(item.serviceFeePerUnitCents),
         ),
       })),
-    [feeDrafts, items]
-  )
-  const totalCount = pricedItems.reduce((total, item) => total + item.quantity, 0)
+    [feeDrafts, items],
+  );
+  const totalCount = pricedItems.reduce(
+    (total, item) => total + item.quantity,
+    0,
+  );
   const totalOriginAmountCents = pricedItems.reduce(
     (total, item) => total + item.template.priceCents * item.quantity,
-    0
-  )
+    0,
+  );
   const totalServiceFeeCents = pricedItems.reduce(
     (total, item) => total + item.serviceFeePerUnitCents * item.quantity,
-    0
-  )
-  const estimatedTotalCents = totalOriginAmountCents + totalServiceFeeCents
+    0,
+  );
+  const estimatedTotalCents = totalOriginAmountCents + totalServiceFeeCents;
 
   const addItem = (template: ProductTemplate) => {
     setFeeDrafts((currentDrafts) =>
       template.id in currentDrafts
         ? currentDrafts
-        : { ...currentDrafts, [template.id]: "" }
-    )
+        : { ...currentDrafts, [template.id]: "" },
+    );
     setItems((currentItems) => {
       const existingItem = currentItems.find(
-        (item) => item.template.id === template.id
-      )
+        (item) => item.template.id === template.id,
+      );
 
       if (existingItem) {
         return currentItems.map((item) =>
           item.template.id === template.id
             ? { ...item, quantity: Math.min(item.quantity + 1, MAX_QUANTITY) }
-            : item
-        )
+            : item,
+        );
       }
 
       return [
         ...currentItems,
         { template, quantity: 1, serviceFeePerUnitCents: 0 },
-      ]
-    })
-  }
+      ];
+    });
+  };
 
   const updateQuantity = (templateId: string, nextQuantity: number) => {
     if (nextQuantity <= 0) {
       setFeeDrafts((currentDrafts) => {
-        const remainingDrafts = { ...currentDrafts }
+        const remainingDrafts = { ...currentDrafts };
 
-        delete remainingDrafts[templateId]
+        delete remainingDrafts[templateId];
 
-        return remainingDrafts
-      })
+        return remainingDrafts;
+      });
     }
 
     setItems((currentItems) =>
@@ -152,95 +154,92 @@ export function ErrandShop({
                 ...item,
                 quantity: Math.min(Math.max(nextQuantity, 0), MAX_QUANTITY),
               }
-            : item
+            : item,
         )
-        .filter((item) => item.quantity > 0)
-    )
-  }
+        .filter((item) => item.quantity > 0),
+    );
+  };
 
   const updateServiceFeeDraft = (templateId: string, yuanValue: string) => {
     if (!MONEY_DRAFT_PATTERN.test(yuanValue)) {
-      return
+      return;
     }
 
     setFeeDrafts((currentDrafts) => ({
       ...currentDrafts,
       [templateId]: yuanValue,
-    }))
-  }
+    }));
+  };
 
   const normalizeServiceFee = (templateId: string, yuanValue: string) => {
-    const nextCents = parseMoneyDraftToCents(yuanValue)
+    const nextCents = parseMoneyDraftToCents(yuanValue);
 
     setItems((currentItems) =>
       currentItems.map((item) =>
         item.template.id === templateId
           ? { ...item, serviceFeePerUnitCents: nextCents }
-          : item
-      )
-    )
+          : item,
+      ),
+    );
     setFeeDrafts((currentDrafts) => ({
       ...currentDrafts,
       [templateId]: yuanValue === "" ? "" : formatYuanInput(nextCents),
-    }))
-  }
+    }));
+  };
 
   const normalizeAllServiceFees = (): ErrandCartItem[] => {
     const normalizedItems = items.map((item) => {
       const draft =
         feeDrafts[item.template.id] ??
-        formatYuanInput(item.serviceFeePerUnitCents)
+        formatYuanInput(item.serviceFeePerUnitCents);
 
       return {
         ...item,
         serviceFeePerUnitCents: parseMoneyDraftToCents(draft),
-      }
-    })
+      };
+    });
     const normalizedDrafts = normalizedItems.reduce<Record<string, string>>(
       (drafts, item) => {
         const draft =
           feeDrafts[item.template.id] ??
-          formatYuanInput(item.serviceFeePerUnitCents)
+          formatYuanInput(item.serviceFeePerUnitCents);
 
         drafts[item.template.id] =
-          draft === "" ? "" : formatYuanInput(item.serviceFeePerUnitCents)
+          draft === "" ? "" : formatYuanInput(item.serviceFeePerUnitCents);
 
-        return drafts
+        return drafts;
       },
-      {}
-    )
+      {},
+    );
 
-    setItems(normalizedItems)
-    setFeeDrafts(normalizedDrafts)
+    setItems(normalizedItems);
+    setFeeDrafts(normalizedDrafts);
 
-    return normalizedItems
-  }
+    return normalizedItems;
+  };
 
   const submitDemand = async () => {
     if (submittingRef.current) {
-      return
+      return;
     }
 
     if (items.length === 0) {
-      toast.error("跑腿清单不能为空")
-      return
+      toast.error("跑腿清单不能为空");
+      return;
     }
 
-    const normalizedItems = normalizeAllServiceFees()
-    const deadline = new Date(deadlineValue)
+    const normalizedItems = normalizeAllServiceFees();
+    const deadline = new Date(deadlineValue);
 
-    if (
-      Number.isNaN(deadline.getTime()) ||
-      !isValidErrandDeadline(deadline)
-    ) {
-      toast.error("期望送达时间至少需要在 2 小时后")
-      return
+    if (Number.isNaN(deadline.getTime()) || !isValidErrandDeadline(deadline)) {
+      toast.error("期望送达时间至少需要在 2 小时后");
+      return;
     }
 
-    const serviceOptions: ServiceOptions = { dataSource, connectBaseUrl }
+    const serviceOptions: ServiceOptions = { dataSource, connectBaseUrl };
 
-    submittingRef.current = true
-    setSubmitting(true)
+    submittingRef.current = true;
+    setSubmitting(true);
     try {
       await createErrandDemand(
         {
@@ -253,20 +252,20 @@ export function ErrandShop({
             updatedAt: item.template.updatedAt,
           })),
         },
-        serviceOptions
-      )
-      toast.success("跑腿需求已发起")
-      setItems([])
-      setFeeDrafts({})
-      setCartOpen(false)
-      router.push("/orders?type=errand")
+        serviceOptions,
+      );
+      toast.success("跑腿需求已发起");
+      setItems([]);
+      setFeeDrafts({});
+      setCartOpen(false);
+      router.push("/orders?type=errand");
     } catch {
-      toast.error("跑腿需求提交失败，请稍后再试")
+      toast.error("跑腿需求提交失败，请稍后再试");
     } finally {
-      submittingRef.current = false
-      setSubmitting(false)
+      submittingRef.current = false;
+      setSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="flex flex-1 flex-col gap-5 py-5 pb-24">
@@ -294,23 +293,8 @@ export function ErrandShop({
         </div>
       </section>
 
-      <section className="sticky top-0 z-10 flex items-start gap-2 rounded-lg border bg-card p-3">
-        <RiInformationLine className="mt-0.5 size-4 shrink-0 text-primary" />
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold leading-5">发起跑腿需求</h2>
-          <p className="mt-0.5 text-sm leading-5 text-muted-foreground">
-            选择商品模板，设置数量、单件跑腿费与期望送达时间。
-          </p>
-        </div>
-      </section>
-
       <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-base font-semibold">商品模板</h2>
-          <span className="text-sm text-muted-foreground">
-            {templates.length} 个可选
-          </span>
-        </div>
+        <h2 className="text-base font-semibold">选择商品</h2>
 
         {templates.length === 0 ? (
           <Empty
@@ -321,7 +305,7 @@ export function ErrandShop({
         ) : (
           <div className="columns-1 gap-3 md:columns-2">
             {templates.map((template) => {
-              const cartItem = cartByTemplateId.get(template.id)
+              const cartItem = cartByTemplateId.get(template.id);
 
               return (
                 <Card
@@ -387,7 +371,7 @@ export function ErrandShop({
                     </div>
                   </div>
                 </Card>
-              )
+              );
             })}
           </div>
         )}
@@ -417,7 +401,7 @@ export function ErrandShop({
       <ResponsiveDialog
         open={selectedTemplate !== null}
         onOpenChange={(open) => {
-          if (!open) setSelectedTemplate(null)
+          if (!open) setSelectedTemplate(null);
         }}
       >
         {selectedTemplate ? (
@@ -426,8 +410,8 @@ export function ErrandShop({
               <ResponsiveDialogTitle>
                 {selectedTemplate.title}
               </ResponsiveDialogTitle>
-              <ResponsiveDialogDescription>
-                商品标价仅用于预估，最终金额以团长实际采购结果为准。
+              <ResponsiveDialogDescription className="sr-only">
+                商品详情
               </ResponsiveDialogDescription>
             </ResponsiveDialogHeader>
             <div className="min-h-0 overflow-y-auto">
@@ -446,7 +430,6 @@ export function ErrandShop({
                       店铺标价
                     </p>
                   </div>
-                  <Badge variant="secondary">商品模板</Badge>
                 </div>
                 <InfoRow
                   label="商品规格"
@@ -461,16 +444,9 @@ export function ErrandShop({
             <ResponsiveDialogFooter>
               <Button
                 type="button"
-                variant="outline"
-                onClick={() => setSelectedTemplate(null)}
-              >
-                关闭
-              </Button>
-              <Button
-                type="button"
                 onClick={() => {
-                  addItem(selectedTemplate)
-                  setSelectedTemplate(null)
+                  addItem(selectedTemplate);
+                  setSelectedTemplate(null);
                 }}
               >
                 <RiAddLine data-icon="inline-start" />
@@ -485,7 +461,7 @@ export function ErrandShop({
         forceDrawer
         open={cartOpen}
         onOpenChange={(open) => {
-          if (!submitting) setCartOpen(open)
+          if (!submitting) setCartOpen(open);
         }}
       >
         <ResponsiveDialogContent className="max-h-[88dvh] overflow-hidden px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-lg">
@@ -501,7 +477,7 @@ export function ErrandShop({
               <Empty
                 icon={<RiShoppingCartLine className="size-5" />}
                 title="跑腿清单不能为空"
-                description="先选择要采购的商品模板。"
+                description="先选择要采购的商品。"
               />
             ) : (
               <div className="flex flex-col gap-4 pb-2">
@@ -529,16 +505,10 @@ export function ErrandShop({
                           title={item.template.title}
                           quantity={item.quantity}
                           onDecrement={() =>
-                            updateQuantity(
-                              item.template.id,
-                              item.quantity - 1
-                            )
+                            updateQuantity(item.template.id, item.quantity - 1)
                           }
                           onIncrement={() =>
-                            updateQuantity(
-                              item.template.id,
-                              item.quantity + 1
-                            )
+                            updateQuantity(item.template.id, item.quantity + 1)
                           }
                         />
                       </div>
@@ -559,13 +529,13 @@ export function ErrandShop({
                             onChange={(event) =>
                               updateServiceFeeDraft(
                                 item.template.id,
-                                event.target.value
+                                event.target.value,
                               )
                             }
                             onBlur={(event) =>
                               normalizeServiceFee(
                                 item.template.id,
-                                event.target.value
+                                event.target.value,
                               )
                             }
                           />
@@ -609,7 +579,7 @@ export function ErrandShop({
               className="w-full"
               disabled={items.length === 0 || submitting}
               onClick={() => {
-                void submitDemand()
+                void submitDemand();
               }}
             >
               {submitting ? "正在提交" : "确认发起跑腿需求"}
@@ -618,7 +588,7 @@ export function ErrandShop({
         </ResponsiveDialogContent>
       </ResponsiveDialog>
     </div>
-  )
+  );
 }
 
 function QuantityControl({
@@ -627,10 +597,10 @@ function QuantityControl({
   onDecrement,
   onIncrement,
 }: {
-  title: string
-  quantity: number
-  onDecrement: () => void
-  onIncrement: () => void
+  title: string;
+  quantity: number;
+  onDecrement: () => void;
+  onIncrement: () => void;
 }) {
   return (
     <div className="flex shrink-0 items-center gap-1">
@@ -657,7 +627,7 @@ function QuantityControl({
         <RiAddLine />
       </Button>
     </div>
-  )
+  );
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
@@ -666,7 +636,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       <span className="shrink-0 text-muted-foreground">{label}</span>
       <span className="min-w-0 text-right font-medium">{value}</span>
     </div>
-  )
+  );
 }
 
 function TotalRow({
@@ -674,9 +644,9 @@ function TotalRow({
   value,
   strong = false,
 }: {
-  label: string
-  value: string
-  strong?: boolean
+  label: string;
+  value: string;
+  strong?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between gap-4 py-1">
@@ -685,23 +655,23 @@ function TotalRow({
         {value}
       </span>
     </div>
-  )
+  );
 }
 
 function formatYuanInput(cents: number): string {
   if (cents === 0) {
-    return "0"
+    return "0";
   }
 
-  return (cents / 100).toFixed(2)
+  return (cents / 100).toFixed(2);
 }
 
 function parseMoneyDraftToCents(value: string): number {
-  const parsedValue = Number(value)
+  const parsedValue = Number(value);
 
   if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
-    return 0
+    return 0;
   }
 
-  return Math.max(0, Math.round(parsedValue * 100))
+  return Math.max(0, Math.round(parsedValue * 100));
 }
