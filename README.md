@@ -75,14 +75,14 @@ cp apps/mobile/.env.example apps/mobile/.env.local
 cp apps/desktop/.env.example apps/desktop/.env.local
 ```
 
-非容器生产环境可复制为 `.env`，并至少配置 `NEXT_PUBLIC_DATA_SOURCE`、`NEXT_PUBLIC_APP_ORIGIN`、`NEXT_PUBLIC_FEISHU_APP_ID` 和私有 `CONNECT_BASE_URL`：
+非容器生产环境可复制为 `.env`，并至少配置 `NEXT_PUBLIC_DATA_SOURCE`、`NEXT_PUBLIC_APP_ORIGIN`、`NEXT_PUBLIC_FEISHU_APP_ID`、私有 `CONNECT_BASE_URL` 和 `CONNECT_HEALTH_URL`：
 
 ```bash
 cp apps/mobile/.env.example apps/mobile/.env
 cp apps/desktop/.env.example apps/desktop/.env
 ```
 
-`.env.local` 与 `.env` 不提交。本地 fauxrpc URL 写在 `.env.local` 的 `NEXT_PUBLIC_CONNECT_BASE_URL` 与 `CONNECT_BASE_URL` 中；生产 `CONNECT_BASE_URL` 必须是无内嵌凭据的 HTTPS URL。
+`.env.local` 与 `.env` 不提交。本地 fauxrpc URL 写在 `.env.local` 的 `NEXT_PUBLIC_CONNECT_BASE_URL` 与 `CONNECT_BASE_URL` 中；生产 `CONNECT_BASE_URL` 必须是无内嵌凭据的 HTTPS URL。`CONNECT_HEALTH_URL` 必须指向后端独立、无鉴权且返回 2xx 的 HTTPS 就绪检查端点，不能把业务 ConnectRPC 路由当作健康检查。
 
 Next.js 会把 `NEXT_PUBLIC_*` 变量内联到静态渲染和客户端 bundle 中，部署镜像构建时必须提供目标环境的公开值。`CONNECT_BASE_URL` 只在容器启动时由 docker-compose 注入，不能作为 Docker build arg。
 
@@ -106,23 +106,37 @@ Next App Router 默认使用 Server Components。若 proto message 只在服务�
 - `shop.example.com` -> mobile
 - `shop-admin.example.com` -> desktop
 
-GitHub Actions 使用 commit short hash 作为 Docker tag，并导出 Docker image tar 上传到服务器；不依赖外部镜像仓库。服务器侧只需要低权限 Linux 用户、服务目录和 `docker-compose.yml`。
+交付链路分为三个阶段：
 
-自动部署由 `CI` workflow 成功完成后触发；手动部署可通过 `workflow_dispatch` 触发。
+1. `CI` 在 PR、合并队列与 `main` push 上执行 Proto drift、依赖审计、Lint、类型检查、测试、构建和两套容器冒烟测试。
+2. `Publish Images` 只消费通过 CI 的 `main` commit，使用生产域名向 GHCR 发布 mobile/desktop 的 amd64 与 arm64 镜像、SBOM 和 provenance。不可变标签格式为 `sha-<完整提交 SHA>`。
+3. `Deploy` 仅允许从 `main` 手动选择服务和不可变镜像标签，并固定使用 `production` Environment。生产 Environment 应配置 required reviewers，部署失败会自动回滚并重新检查服务器保留的 `backup` 镜像。
+
+镜像地址：
+
+```text
+ghcr.io/njupt-sast/sast-shop-v2-frontend-mobile
+ghcr.io/njupt-sast/sast-shop-v2-frontend-desktop
+```
 
 ### GitHub Secrets
 
-仓库需要配置以下 Secrets：
+在 `production` GitHub Environment 中配置以下 Secrets：
 
 ```text
 SERVER_HOST
+SERVER_SSH_FINGERPRINT
 MOBILE_SERVER_USER
 MOBILE_SSH_PRIVATE_KEY
 DESKTOP_SERVER_USER
 DESKTOP_SSH_PRIVATE_KEY
+GHCR_USERNAME
+GHCR_READ_TOKEN
 ```
 
-推荐为 mobile 和 desktop 分别创建低权限 Linux 用户，只允许操作对应服务目录。
+`GHCR_READ_TOKEN` 只需要读取私有 package 的权限。推荐为 mobile 和 desktop 分别创建低权限 Linux 用户，只允许操作对应服务目录；若用户可直接访问 Docker daemon，应将它视为等同 root 的高权限账号，并进一步使用 rootless Docker 或受限的部署入口。
+
+仓库级 Secret 保留现有的 `NEXT_PUBLIC_FEISHU_APP_ID`，供镜像发布阶段读取。
 
 仓库还需要配置以下 Repository Variables，用于 Docker build 阶段注入公开配置：
 
@@ -130,10 +144,9 @@ DESKTOP_SSH_PRIVATE_KEY
 MOBILE_APP_ORIGIN=https://shop.example.com
 DESKTOP_APP_ORIGIN=https://shop-admin.example.com
 NEXT_PUBLIC_DATA_SOURCE=local
-NEXT_PUBLIC_FEISHU_APP_ID=cli_xxx
 ```
 
-`NEXT_PUBLIC_DATA_SOURCE` 必须显式配置为 `mock` 或 `local`；在 `remote` facade 真正接通前，CI/CD 会拒绝构建 `remote` 镜像。私有 `CONNECT_BASE_URL` 不配置为 Repository Variable，而是在服务器对应 compose 环境中注入。
+应用域名和数据源使用 Repository Variables，当前产物只面向 production；若增加 staging，必须为 staging 域名单独构建镜像，不能在运行时替换 `NEXT_PUBLIC_*`。`NEXT_PUBLIC_FEISHU_APP_ID` 虽会进入客户端 bundle，但当前沿用仓库已有的同名 Secret，避免在迁移时暴露或重填现有值。`NEXT_PUBLIC_DATA_SOURCE` 必须显式配置为 `mock` 或 `local`；在 `remote` facade 真正接通前，CI/CD 会拒绝构建 `remote` 镜像。私有服务端配置不进入 Repository Variables，而是在服务器对应 `.env` 中注入。两个应用域名未配置时，`Publish Images` 会安全跳过发布任务。
 
 ### 服务器目录
 
@@ -142,36 +155,28 @@ NEXT_PUBLIC_FEISHU_APP_ID=cli_xxx
 /data/sast-shop-desktop
 ```
 
-### docker-compose.yml 示例
+服务器分别复制仓库模板：
 
-`/data/sast-shop-mobile/docker-compose.yml`：
-
-```yaml
-services:
-  web:
-    image: sast/sast-shop-mobile:current
-    restart: unless-stopped
-    environment:
-      AUTH_MODE: required
-      CONNECT_BASE_URL: https://api.example.com
-      PORT: 3001
-    ports:
-      - "127.0.0.1:3001:3001"
+```bash
+cp deploy/compose.mobile.yml /data/sast-shop-mobile/docker-compose.yml
+cp deploy/compose.desktop.yml /data/sast-shop-desktop/docker-compose.yml
 ```
 
-`/data/sast-shop-desktop/docker-compose.yml`：
+每个目录创建权限为 `0600` 的 `.env`：
 
-```yaml
-services:
-  web:
-    image: sast/sast-shop-desktop:current
-    restart: unless-stopped
-    environment:
-      AUTH_MODE: required
-      CONNECT_BASE_URL: https://api.example.com
-      PORT: 3002
-    ports:
-      - "127.0.0.1:3002:3002"
+```dotenv
+CONNECT_BASE_URL=https://api.example.com
+CONNECT_HEALTH_URL=https://api.example.com/health/ready
+EVENTO_PICTURE_API_BASE_URL=https://evento.sast.fun/api
+EVENTO_PICTURE_DIR=sast-shop
+EVENTO_PICTURE_TOKEN=replace-me
+```
+
+先验证配置，再由 Deploy workflow 拉取并切换 GHCR 镜像：
+
+```bash
+cd /data/sast-shop-mobile
+docker compose config --quiet
 ```
 
 ### Caddy 示例
@@ -196,7 +201,7 @@ sudo systemctl reload caddy.service
 
 ### 回滚
 
-部署 workflow 会在加载新镜像前把 `current` 旋转为 `backup`。需要回滚时，在对应服务器目录执行：
+部署 workflow 会在启动新容器前把 `current` 旋转为 `backup`，并以应用 `/api/health/ready` 作为成功条件。需要手动回滚时，在对应服务器目录执行：
 
 ```bash
 docker image tag sast/sast-shop-mobile:backup sast/sast-shop-mobile:current

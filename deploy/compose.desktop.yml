@@ -1,0 +1,26 @@
+services:
+  web:
+    image: sast/sast-shop-desktop:current
+    container_name: sast-shop-desktop
+    restart: unless-stopped
+    init: true
+    env_file:
+      - .env
+    environment:
+      AUTH_MODE: required
+      PORT: 3002
+    ports:
+      - "127.0.0.1:3002:3002"
+    volumes:
+      - next-cache:/app/apps/desktop/.next/cache
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  next-cache:

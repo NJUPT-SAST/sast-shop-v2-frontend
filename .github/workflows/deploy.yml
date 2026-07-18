@@ -2,178 +2,139 @@ name: Deploy
 
 on:
   workflow_dispatch:
-  workflow_run:
-    workflows:
-      - CI
-    types:
-      - completed
-    branches:
-      - main
+    inputs:
+      service:
+        description: Service to deploy
+        required: true
+        type: choice
+        options:
+          - mobile
+          - desktop
+      image_tag:
+        description: GHCR tag produced by Publish Images, such as sha-<commit>
+        required: true
+        type: string
 
 permissions:
   contents: read
 
+concurrency:
+  group: deploy-production-${{ inputs.service }}
+  cancel-in-progress: false
+
 jobs:
   deploy:
-    name: Deploy ${{ matrix.service }}
+    name: Deploy ${{ inputs.service }} to production
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)
-
-    concurrency:
-      group: deploy-${{ matrix.service }}
-      cancel-in-progress: false
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - service: sast-shop-mobile
-            app_filter: "@sast-shop/mobile"
-            image: sast/sast-shop-mobile
-            data_dir: /data/sast-shop-mobile
-            port: 3001
-            app_origin_var: MOBILE_APP_ORIGIN
-            server_user_secret: MOBILE_SERVER_USER
-            ssh_key_secret: MOBILE_SSH_PRIVATE_KEY
-          - service: sast-shop-desktop
-            app_filter: "@sast-shop/desktop"
-            image: sast/sast-shop-desktop
-            data_dir: /data/sast-shop-desktop
-            port: 3002
-            app_origin_var: DESKTOP_APP_ORIGIN
-            server_user_secret: DESKTOP_SERVER_USER
-            ssh_key_secret: DESKTOP_SSH_PRIVATE_KEY
+    timeout-minutes: 15
+    environment: production
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
-
-      - name: Set image metadata
-        id: meta
+      - name: Validate deployment request
         env:
-          DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
         run: |
-          short_sha="${DEPLOY_SHA::12}"
-          tar_name="${{ matrix.service }}-${short_sha}.tar"
-          echo "short_sha=${short_sha}" >> "$GITHUB_OUTPUT"
-          echo "tar_name=${tar_name}" >> "$GITHUB_OUTPUT"
-
-      - name: Resolve app origin
-        id: app-origin
-        env:
-          APP_ORIGIN: ${{ vars[matrix.app_origin_var] }}
-        run: |
-          test -n "$APP_ORIGIN"
-          APP_ORIGIN="$APP_ORIGIN" node -e '
-            const url = new URL(process.env.APP_ORIGIN)
-            if (url.protocol !== "https:" || url.username || url.password || url.pathname !== "/" || url.search || url.hash) process.exit(1)
-          '
-          echo "value=${APP_ORIGIN}" >> "$GITHUB_OUTPUT"
-
-      - name: Resolve data source
-        id: data-source
-        env:
-          DATA_SOURCE: ${{ vars.NEXT_PUBLIC_DATA_SOURCE }}
-        run: |
-          test -n "$DATA_SOURCE"
-          value="$DATA_SOURCE"
-          case "$value" in
-            mock|local) ;;
-            remote) echo "NEXT_PUBLIC_DATA_SOURCE=remote is not connected" >&2; exit 1 ;;
-            *) echo "Invalid NEXT_PUBLIC_DATA_SOURCE: $value" >&2; exit 1 ;;
+          revision="${IMAGE_TAG#sha-}"
+          test "$IMAGE_TAG" = "sha-$revision"
+          test "${#revision}" -eq 40
+          case "$revision" in
+            *[!0-9a-f]*) echo "Deploy an immutable sha-<full commit> image tag" >&2; exit 1 ;;
           esac
-          echo "value=${value}" >> "$GITHUB_OUTPUT"
 
-      - name: Validate Feishu app ID
+      - name: Deploy immutable image
+        uses: appleboy/ssh-action@2ead5e36573f08b82fbfce1504f1a4b05a647c6f # v1.2.2
         env:
-          FEISHU_APP_ID: ${{ secrets.NEXT_PUBLIC_FEISHU_APP_ID }}
-        run: |
-          test -n "$FEISHU_APP_ID"
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image tar
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          build-args: |
-            APP_FILTER=${{ matrix.app_filter }}
-            NEXT_PUBLIC_DATA_SOURCE=${{ steps.data-source.outputs.value }}
-            NEXT_PUBLIC_APP_ORIGIN=${{ steps.app-origin.outputs.value }}
-            NEXT_PUBLIC_FEISHU_APP_ID=${{ secrets.NEXT_PUBLIC_FEISHU_APP_ID }}
-          tags: |
-            ${{ matrix.image }}:${{ steps.meta.outputs.short_sha }}
-            ${{ matrix.image }}:latest
-          outputs: type=docker,dest=/tmp/${{ steps.meta.outputs.tar_name }}
-
-      - name: Upload image tar
-        uses: appleboy/scp-action@v0.1.7
+          APP_NAME: ${{ inputs.service }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
         with:
           host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets[matrix.server_user_secret] }}
-          key: ${{ secrets[matrix.ssh_key_secret] }}
-          source: /tmp/${{ steps.meta.outputs.tar_name }}
-          target: /tmp
-          strip_components: 1
-
-      - name: Deploy on server
-        uses: appleboy/ssh-action@v1.2.2
-        env:
-          IMAGE_NAME: ${{ matrix.image }}
-          NEW_VERSION_TAG: ${{ steps.meta.outputs.short_sha }}
-          TAR_NAME: ${{ steps.meta.outputs.tar_name }}
-          DATA_DIR: ${{ matrix.data_dir }}
-          SERVICE_PORT: ${{ matrix.port }}
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets[matrix.server_user_secret] }}
-          key: ${{ secrets[matrix.ssh_key_secret] }}
-          envs: IMAGE_NAME,NEW_VERSION_TAG,TAR_NAME,DATA_DIR,SERVICE_PORT
+          username: ${{ secrets[inputs.service == 'mobile' && 'MOBILE_SERVER_USER' || 'DESKTOP_SERVER_USER'] }}
+          key: ${{ secrets[inputs.service == 'mobile' && 'MOBILE_SSH_PRIVATE_KEY' || 'DESKTOP_SSH_PRIVATE_KEY'] }}
+          fingerprint: ${{ secrets.SERVER_SSH_FINGERPRINT }}
+          envs: APP_NAME,IMAGE_TAG,GHCR_USERNAME,GHCR_READ_TOKEN
           script: |
-            set -euo pipefail
+            set -eu
 
-            cd "$DATA_DIR"
+            case "$APP_NAME" in
+              mobile)
+                service_name=sast-shop-mobile
+                service_port=3001
+                data_dir=/data/sast-shop-mobile
+                ;;
+              desktop)
+                service_name=sast-shop-desktop
+                service_port=3002
+                data_dir=/data/sast-shop-desktop
+                ;;
+              *) exit 1 ;;
+            esac
+
+            remote_image="ghcr.io/njupt-sast/sast-shop-v2-frontend-${APP_NAME}:${IMAGE_TAG}"
+            local_image="sast/${service_name}"
+
+            printf '%s' "$GHCR_READ_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
+            trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+
+            cd "$data_dir"
             test -f docker-compose.yml
+            test -f .env
             docker compose config --quiet
+            docker pull "$remote_image"
 
-            if docker image inspect "$IMAGE_NAME:current" >/dev/null 2>&1; then
-              docker image tag "$IMAGE_NAME:current" "$IMAGE_NAME:backup"
+            expected_revision="${IMAGE_TAG#sha-}"
+            actual_revision="$(docker image inspect "$remote_image" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
+            test "$actual_revision" = "$expected_revision"
+
+            if docker image inspect "$local_image:current" >/dev/null 2>&1; then
+              docker image tag "$local_image:current" "$local_image:backup"
             fi
 
             rollback() {
-              if docker image inspect "$IMAGE_NAME:backup" >/dev/null 2>&1; then
-                docker image tag "$IMAGE_NAME:backup" "$IMAGE_NAME:current"
-                docker compose up -d --remove-orphans --force-recreate || true
+              if docker image inspect "$local_image:backup" >/dev/null 2>&1; then
+                docker image tag "$local_image:backup" "$local_image:current"
+                if ! docker compose up -d --remove-orphans --force-recreate; then
+                  echo "Automatic rollback could not restart the previous image" >&2
+                  return 1
+                fi
+                rollback_attempt=1
+                while [ "$rollback_attempt" -le 30 ]; do
+                  if curl --fail --silent --show-error "http://127.0.0.1:${service_port}/api/health/ready" >/dev/null; then
+                    return 0
+                  fi
+                  rollback_attempt=$((rollback_attempt + 1))
+                  sleep 2
+                done
               fi
+              echo "Automatic rollback did not restore a ready service" >&2
+              return 1
             }
 
-            docker load -i "/tmp/$TAR_NAME"
-            docker image tag "$IMAGE_NAME:$NEW_VERSION_TAG" "$IMAGE_NAME:current"
-            if ! docker compose up -d --remove-orphans; then
+            docker image tag "$remote_image" "$local_image:current"
+            if ! docker compose up -d --remove-orphans --force-recreate; then
               docker compose logs --tail=100 || true
-              rollback
+              rollback || true
               exit 1
             fi
 
             ready=false
-            for attempt in $(seq 1 20); do
-              if curl --fail --silent --show-error \
-                "http://127.0.0.1:$SERVICE_PORT/api/health/ready" >/dev/null; then
+            attempt=1
+            while [ "$attempt" -le 30 ]; do
+              if curl --fail --silent --show-error "http://127.0.0.1:${service_port}/api/health/ready" >/dev/null; then
                 ready=true
                 break
               fi
+              attempt=$((attempt + 1))
               sleep 2
             done
 
             if [ "$ready" != true ]; then
               docker compose logs --tail=100 || true
-              rollback
+              rollback || true
               exit 1
             fi
 
-            rm -f "/tmp/$TAR_NAME"
-            docker rmi "$IMAGE_NAME:latest" "$IMAGE_NAME:$NEW_VERSION_TAG" || true
+            deployed_digest="$(docker image inspect "$remote_image" --format '{{index .RepoDigests 0}}')"
+            printf '%s %s %s\n' "$(date -u +%FT%TZ)" "$IMAGE_TAG" "$deployed_digest" > deployment-current.txt

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { parseConnectHealthUrl } from "../../../../../../config/connect-health-url";
 import { mobileAppConfig } from "@/lib/app-config";
 import { getServerAuthMode } from "@/lib/auth-mode";
-import { getServerConnectBaseUrl } from "@/lib/server-service-options";
 
 export async function GET() {
   try {
@@ -11,8 +11,10 @@ export async function GET() {
       if (!process.env.NEXT_PUBLIC_FEISHU_APP_ID?.trim()) throw new Error();
       if (mobileAppConfig.dataSource === "remote") throw new Error();
     }
-    const connectBaseUrl = getServerConnectBaseUrl();
-    const connectUrl = new URL(connectBaseUrl);
+    const connectHealthUrl = parseConnectHealthUrl(
+      process.env.CONNECT_HEALTH_URL,
+    );
+    const connectUrl = new URL(connectHealthUrl);
     const appUrl = new URL(mobileAppConfig.appOrigin);
     if (
       connectUrl.origin === appUrl.origin &&
@@ -21,13 +23,13 @@ export async function GET() {
       throw new Error();
     }
 
-    const upstream = await fetch(connectBaseUrl, {
+    const upstream = await fetch(connectHealthUrl, {
       cache: "no-store",
       redirect: "manual",
       signal: AbortSignal.timeout(3_000),
     });
     await upstream.body?.cancel();
-    if (upstream.status >= 500) throw new Error();
+    if (!upstream.ok) throw new Error();
 
     return NextResponse.json(
       { status: "ready" },

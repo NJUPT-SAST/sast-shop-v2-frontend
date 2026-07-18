@@ -1,0 +1,26 @@
+services:
+  web:
+    image: sast/sast-shop-mobile:current
+    container_name: sast-shop-mobile
+    restart: unless-stopped
+    init: true
+    env_file:
+      - .env
+    environment:
+      AUTH_MODE: required
+      PORT: 3001
+    ports:
+      - "127.0.0.1:3001:3001"
+    volumes:
+      - next-cache:/app/apps/mobile/.next/cache
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  next-cache:

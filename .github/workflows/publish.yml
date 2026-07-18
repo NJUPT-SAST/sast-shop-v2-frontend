@@ -1,0 +1,136 @@
+name: Publish Images
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: publish-${{ github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish ${{ matrix.app_name }}
+    if: >-
+      vars.MOBILE_APP_ORIGIN != '' && vars.DESKTOP_APP_ORIGIN != '' &&
+      vars.NEXT_PUBLIC_DATA_SOURCE != '' &&
+      ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app_name: mobile
+            app_filter: "@sast-shop/mobile"
+            app_port: 3001
+            app_origin_var: MOBILE_APP_ORIGIN
+          - app_name: desktop
+            app_filter: "@sast-shop/desktop"
+            app_port: 3002
+            app_origin_var: DESKTOP_APP_ORIGIN
+
+    steps:
+      - name: Resolve source revision
+        id: source
+        env:
+          WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          revision="${WORKFLOW_RUN_SHA:-$GITHUB_SHA}"
+          case "$revision" in
+            *[!0-9a-f]*|'') echo "Invalid source revision" >&2; exit 1 ;;
+          esac
+          test "${#revision}" -eq 40
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+
+      - name: Validate public build configuration
+        env:
+          APP_ORIGIN: ${{ vars[matrix.app_origin_var] }}
+          DATA_SOURCE: ${{ vars.NEXT_PUBLIC_DATA_SOURCE }}
+          FEISHU_APP_ID: ${{ secrets.NEXT_PUBLIC_FEISHU_APP_ID }}
+        run: |
+          test -n "$APP_ORIGIN"
+          test -n "$FEISHU_APP_ID"
+          case "$DATA_SOURCE" in
+            mock|local) ;;
+            remote) echo "NEXT_PUBLIC_DATA_SOURCE=remote is not connected" >&2; exit 1 ;;
+            *) echo "NEXT_PUBLIC_DATA_SOURCE must be mock or local" >&2; exit 1 ;;
+          esac
+          APP_ORIGIN="$APP_ORIGIN" node -e '
+            const url = new URL(process.env.APP_ORIGIN)
+            if (url.protocol !== "https:" || url.username || url.password || url.pathname !== "/" || url.search || url.hash) process.exit(1)
+          '
+
+      - name: Checkout validated revision
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ steps.source.outputs.revision }}
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image metadata
+        id: metadata
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
+        with:
+          images: ghcr.io/njupt-sast/sast-shop-v2-frontend-${{ matrix.app_name }}
+          tags: |
+            type=raw,value=sha-${{ steps.source.outputs.revision }}
+            type=raw,value=main
+          labels: |
+            org.opencontainers.image.revision=${{ steps.source.outputs.revision }}
+
+      - name: Build and publish multi-platform image
+        id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          build-args: |
+            APP_NAME=${{ matrix.app_name }}
+            APP_FILTER=${{ matrix.app_filter }}
+            APP_PORT=${{ matrix.app_port }}
+            BUILD_REVISION=${{ steps.source.outputs.revision }}
+            NEXT_PUBLIC_DATA_SOURCE=${{ vars.NEXT_PUBLIC_DATA_SOURCE }}
+            NEXT_PUBLIC_APP_ORIGIN=${{ vars[matrix.app_origin_var] }}
+            NEXT_PUBLIC_FEISHU_APP_ID=${{ secrets.NEXT_PUBLIC_FEISHU_APP_ID }}
+          cache-from: type=gha,scope=publish-${{ matrix.app_name }}
+          cache-to: type=gha,mode=max,scope=publish-${{ matrix.app_name }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Attest image provenance
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
+        with:
+          subject-name: ghcr.io/njupt-sast/sast-shop-v2-frontend-${{ matrix.app_name }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true

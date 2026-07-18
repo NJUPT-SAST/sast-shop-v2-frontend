@@ -5,18 +5,26 @@ on:
   push:
     branches:
       - main
+  merge_group:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  validate:
-    name: Validate
+  quality:
+    name: Quality
     runs-on: ubuntu-latest
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
 
       - name: Enable corepack
         run: corepack enable
@@ -25,19 +33,22 @@ jobs:
         run: corepack prepare pnpm@11.5.1 --activate
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --prefer-offline
 
       - name: Check generated proto
         run: |
           pnpm proto:generate
           status="$(git status --porcelain -- buf.gen.yaml packages/api/src/gen)"
           test -z "$status" || { echo "$status"; exit 1; }
+
+      - name: Audit production dependencies
+        run: pnpm audit:prod
 
       - name: Lint
         run: pnpm lint
@@ -49,8 +60,96 @@ jobs:
         run: pnpm test
 
       - name: Build
+        env:
+          AUTH_MODE: required
+          NEXT_PUBLIC_DATA_SOURCE: local
+          NEXT_PUBLIC_APP_ORIGIN: https://ci.example.invalid
+          NEXT_PUBLIC_FEISHU_APP_ID: cli_ci_validation
+          CONNECT_BASE_URL: https://backend.example.invalid
+          CONNECT_HEALTH_URL: https://backend.example.invalid/health
         run: pnpm build
 
       - name: Guard fonts and raw colors
         run: |
           ! rg "next/font/google|fonts.googleapis.com|fonts.gstatic.com|letter-spacing|bg-blue-|text-blue-|bg-red-|text-red-" apps packages
+
+  container:
+    name: Container ${{ matrix.app_name }}
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app_name: mobile
+            app_filter: "@sast-shop/mobile"
+            app_port: 3001
+            host_port: 3101
+          - app_name: desktop
+            app_filter: "@sast-shop/desktop"
+            app_port: 3002
+            host_port: 3102
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Build smoke image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: ./Dockerfile
+          load: true
+          push: false
+          tags: sast-shop-${{ matrix.app_name }}:ci
+          build-args: |
+            APP_NAME=${{ matrix.app_name }}
+            APP_FILTER=${{ matrix.app_filter }}
+            APP_PORT=${{ matrix.app_port }}
+            BUILD_REVISION=${{ github.sha }}
+            NEXT_PUBLIC_DATA_SOURCE=local
+            NEXT_PUBLIC_APP_ORIGIN=https://${{ matrix.app_name }}.ci.example.invalid
+            NEXT_PUBLIC_FEISHU_APP_ID=cli_ci_validation
+          cache-from: type=gha,scope=ci-${{ matrix.app_name }}
+          cache-to: type=gha,mode=max,scope=ci-${{ matrix.app_name }}
+
+      - name: Smoke test standalone container
+        env:
+          APP_NAME: ${{ matrix.app_name }}
+          APP_PORT: ${{ matrix.app_port }}
+          HOST_PORT: ${{ matrix.host_port }}
+        run: |
+          set -euo pipefail
+          container_name="sast-shop-${APP_NAME}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          cleanup() { docker rm -f "$container_name" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+
+          test "$(docker image inspect "sast-shop-${APP_NAME}:ci" --format '{{.Config.User}}')" = "nextjs"
+          docker run --detach \
+            --name "$container_name" \
+            --publish "127.0.0.1:${HOST_PORT}:${APP_PORT}" \
+            --env AUTH_MODE=required \
+            --env CONNECT_BASE_URL=https://backend.example.invalid \
+            --env CONNECT_HEALTH_URL=https://backend.example.invalid/health \
+            --env EVENTO_PICTURE_API_BASE_URL=https://pictures.example.invalid/api \
+            --env EVENTO_PICTURE_DIR=sast-shop-ci \
+            --env EVENTO_PICTURE_TOKEN=ci-not-a-secret \
+            "sast-shop-${APP_NAME}:ci"
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error \
+              "http://127.0.0.1:${HOST_PORT}/api/health/live" >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          docker logs "$container_name"
+          exit 1
