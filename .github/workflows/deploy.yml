@@ -86,13 +86,11 @@ jobs:
           esac
           echo "value=${value}" >> "$GITHUB_OUTPUT"
 
-      - name: Resolve Feishu app ID
-        id: feishu-app-id
+      - name: Validate Feishu app ID
         env:
-          FEISHU_APP_ID: ${{ vars.NEXT_PUBLIC_FEISHU_APP_ID }}
+          FEISHU_APP_ID: ${{ secrets.NEXT_PUBLIC_FEISHU_APP_ID }}
         run: |
           test -n "$FEISHU_APP_ID"
-          echo "value=${FEISHU_APP_ID}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -106,7 +104,7 @@ jobs:
             APP_FILTER=${{ matrix.app_filter }}
             NEXT_PUBLIC_DATA_SOURCE=${{ steps.data-source.outputs.value }}
             NEXT_PUBLIC_APP_ORIGIN=${{ steps.app-origin.outputs.value }}
-            NEXT_PUBLIC_FEISHU_APP_ID=${{ steps.feishu-app-id.outputs.value }}
+            NEXT_PUBLIC_FEISHU_APP_ID=${{ secrets.NEXT_PUBLIC_FEISHU_APP_ID }}
           tags: |
             ${{ matrix.image }}:${{ steps.meta.outputs.short_sha }}
             ${{ matrix.image }}:latest
