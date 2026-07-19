@@ -1,9 +1,10 @@
 import {
-  listBuyerErrandOrders,
-  listErrandTasks,
-  listSpotOrders,
+  listBuyerErrandOrdersPage,
+  listErrandTasksPage,
+  listSpotOrdersPage,
 } from "@sast-shop/api";
 import { OrdersView } from "@/components/orders-view";
+import { mobileAppConfig } from "@/lib/app-config";
 import { getOrderFiltersFromParams } from "@/lib/order-filters";
 import { getServerServiceOptions } from "@/lib/server-service-options";
 
@@ -19,21 +20,27 @@ async function getOrders() {
     buyerErrandResult,
     errandTaskResult,
   ] = await Promise.allSettled([
-    listSpotOrders({ ...options, perspective: "purchaser" }),
-    listSpotOrders({ ...options, perspective: "seller" }),
-    listBuyerErrandOrders(options),
-    listErrandTasks(options),
+    listSpotOrdersPage({
+      ...options,
+      perspective: "purchaser",
+      page: 1,
+      pageSize: 20,
+    }),
+    listSpotOrdersPage({
+      ...options,
+      perspective: "seller",
+      page: 1,
+      pageSize: 20,
+    }),
+    listBuyerErrandOrdersPage({ ...options, page: 1, pageSize: 20 }),
+    listErrandTasksPage({ ...options, page: 1, pageSize: 20 }),
   ]);
 
   return {
-    spotBuyerOrders:
-      spotBuyerResult.status === "fulfilled" ? spotBuyerResult.value : [],
-    spotSellerOrders:
-      spotSellerResult.status === "fulfilled" ? spotSellerResult.value : [],
-    buyerErrandOrders:
-      buyerErrandResult.status === "fulfilled" ? buyerErrandResult.value : [],
-    errandTasks:
-      errandTaskResult.status === "fulfilled" ? errandTaskResult.value : [],
+    spotBuyerPage: pageOrEmpty(spotBuyerResult, 20),
+    spotSellerPage: pageOrEmpty(spotSellerResult, 20),
+    buyerErrandPage: pageOrEmpty(buyerErrandResult, 20),
+    errandTaskPage: pageOrEmpty(errandTaskResult, 20),
     errors: {
       spotBuyer: spotBuyerResult.status === "rejected",
       spotSeller: spotSellerResult.status === "rejected",
@@ -50,7 +57,29 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   ]);
   const initialFilters = getOrderFiltersFromParams(toURLSearchParams(params));
 
-  return <OrdersView {...result} initialFilters={initialFilters} />;
+  return (
+    <OrdersView
+      {...result}
+      dataSource={mobileAppConfig.dataSource}
+      connectBaseUrl={mobileAppConfig.connectBaseUrl}
+      initialFilters={initialFilters}
+    />
+  );
+}
+
+function pageOrEmpty<T>(
+  result: PromiseSettledResult<import("@sast-shop/api").PageResult<T>>,
+  pageSize: number,
+) {
+  return result.status === "fulfilled"
+    ? result.value
+    : {
+        items: [],
+        currentPage: 1,
+        pageSize,
+        totalCount: 0,
+        hasMore: false,
+      };
 }
 
 function toURLSearchParams(

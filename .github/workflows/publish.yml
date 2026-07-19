@@ -26,7 +26,6 @@ jobs:
     if: >-
       vars.MOBILE_APP_ORIGIN != '' && vars.DESKTOP_APP_ORIGIN != '' &&
       vars.NEXT_PUBLIC_DATA_SOURCE != '' &&
-      vars.NEXT_PUBLIC_FEEDBACK_FORM_URL != '' &&
       ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
       (github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
@@ -70,7 +69,6 @@ jobs:
         run: |
           test -n "$APP_ORIGIN"
           test -n "$FEISHU_APP_ID"
-          test -n "$FEEDBACK_FORM_URL"
           case "$DATA_SOURCE" in
             mock|local) ;;
             remote) echo "NEXT_PUBLIC_DATA_SOURCE=remote is not connected" >&2; exit 1 ;;
@@ -78,11 +76,13 @@ jobs:
           esac
           APP_ORIGIN="$APP_ORIGIN" FEEDBACK_FORM_URL="$FEEDBACK_FORM_URL" node -e '
             const appOrigin = new URL(process.env.APP_ORIGIN)
-            const feedbackFormUrl = new URL(process.env.FEEDBACK_FORM_URL)
             const allowedFeedbackHosts = ["feishu.cn", "larksuite.com"]
             if (appOrigin.protocol !== "https:" || appOrigin.username || appOrigin.password || appOrigin.pathname !== "/" || appOrigin.search || appOrigin.hash) process.exit(1)
-            if (feedbackFormUrl.protocol !== "https:" || feedbackFormUrl.username || feedbackFormUrl.password) process.exit(1)
-            if (!allowedFeedbackHosts.some((root) => feedbackFormUrl.hostname === root || feedbackFormUrl.hostname.endsWith(`.${root}`))) process.exit(1)
+            if (process.env.FEEDBACK_FORM_URL) {
+              const feedbackFormUrl = new URL(process.env.FEEDBACK_FORM_URL)
+              if (feedbackFormUrl.protocol !== "https:" || feedbackFormUrl.username || feedbackFormUrl.password) process.exit(1)
+              if (!allowedFeedbackHosts.some((root) => feedbackFormUrl.hostname === root || feedbackFormUrl.hostname.endsWith(`.${root}`))) process.exit(1)
+            }
           '
 
       - name: Checkout validated revision

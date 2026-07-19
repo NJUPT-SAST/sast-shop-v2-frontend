@@ -21,6 +21,18 @@ import {
 import type { RememberedOrderViews } from "./order-filters";
 
 describe("order filters", () => {
+  it("uses responsibility-aware labels for spot sellers", () => {
+    expect(getStatusOptions("spot", "seller")).toEqual(
+      expect.arrayContaining([
+        { value: "pending_payment", label: "待收款" },
+        { value: "processing", label: "后续处理" },
+      ]),
+    );
+    expect(getStatusLabel("pending_payment", "seller")).toBe("待收款");
+    expect(getStatusLabel("paid", "seller")).toBe("后续处理");
+    expect(getStatusLabel("pending_payment", "buyer")).toBe("待支付");
+  });
+
   it("defines default type and remembered view options", () => {
     expect(orderTypeOptions).toEqual([
       { value: "spot", label: "现货" },
@@ -93,8 +105,8 @@ describe("order filters", () => {
   it("returns spot seller status options", () => {
     expect(getStatusOptions("spot", "seller")).toEqual([
       { value: "all", label: "全部" },
-      { value: "pending_payment", label: "待支付" },
-      { value: "processing", label: "处理中" },
+      { value: "pending_payment", label: "待收款" },
+      { value: "processing", label: "后续处理" },
       { value: "completed", label: "已完成" },
       { value: "cancelled", label: "已取消" },
     ]);
@@ -259,7 +271,7 @@ describe("order filters", () => {
       rememberedViews: DEFAULT_REMEMBERED_ORDER_VIEWS,
     });
 
-    expect(next.toString()).toBe("dialog=address&view=seller&page=2");
+    expect(next.toString()).toBe("dialog=address&view=seller");
   });
 
   it("falls back when remembered view is invalid for changed type", () => {

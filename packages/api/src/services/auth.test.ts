@@ -6,7 +6,12 @@ import {
   FeatureUnavailableError,
 } from "../errors";
 import type { AuthSession, CurrentUser, JSAPIAuthConfig } from "./auth";
-import { getCurrentUser, getJSAPIAuthConfig, loginWithLarkCode } from "./auth";
+import {
+  getCurrentUser,
+  getJSAPIAuthConfig,
+  loginWithLarkCode,
+  validateSessionUser,
+} from "./auth";
 
 describe("auth service", () => {
   afterEach(() => {
@@ -150,6 +155,52 @@ describe("auth service", () => {
       path: "/sast.sastshopv2.user.v1.UserService/GetUserInfo",
       body: { userId: "10001" },
     });
+  });
+
+  it("validates the OAuth session against its returned user ID", async () => {
+    const fetchMock = vi.fn(async () =>
+      Response.json({
+        userInfo: {
+          id: "42",
+          name: "OAuth 用户",
+          avatarUrl: "https://example.test/oauth-user.png",
+        },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      validateSessionUser("42", {
+        dataSource: "local",
+        connectBaseUrl: "http://127.0.0.1:6660",
+      }),
+    ).resolves.toBeUndefined();
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.user.v1.UserService/GetUserInfo",
+      body: { userId: "42" },
+    });
+  });
+
+  it("rejects a session probe that resolves to another user", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({
+          userInfo: {
+            id: "10001",
+            name: "其他用户",
+            avatarUrl: "",
+          },
+        }),
+      ),
+    );
+
+    await expect(
+      validateSessionUser("42", {
+        dataSource: "local",
+        connectBaseUrl: "http://127.0.0.1:6660",
+      }),
+    ).rejects.toBeInstanceOf(AuthRequiredError);
   });
 
   it("uses the authenticated user returned by OAuth without another RPC", async () => {

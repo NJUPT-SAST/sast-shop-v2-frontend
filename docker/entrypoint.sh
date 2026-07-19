@@ -5,7 +5,6 @@ set -eu
 : "${PORT:?PORT is required}"
 : "${NEXT_PUBLIC_FEISHU_APP_ID:?NEXT_PUBLIC_FEISHU_APP_ID is required}"
 : "${NEXT_PUBLIC_APP_ORIGIN:?NEXT_PUBLIC_APP_ORIGIN is required}"
-: "${NEXT_PUBLIC_FEEDBACK_FORM_URL:?NEXT_PUBLIC_FEEDBACK_FORM_URL is required}"
 : "${SESSION_COOKIE_SECRET:?SESSION_COOKIE_SECRET is required}"
 : "${CONNECT_BASE_URL:?CONNECT_BASE_URL is required}"
 : "${CONNECT_HEALTH_URL:?CONNECT_HEALTH_URL is required}"
@@ -56,8 +55,11 @@ node -e '
     ["CONNECT_BASE_URL", process.env.CONNECT_BASE_URL, false, false],
     ["CONNECT_HEALTH_URL", process.env.CONNECT_HEALTH_URL, false, false],
     ["NEXT_PUBLIC_APP_ORIGIN", process.env.NEXT_PUBLIC_APP_ORIGIN, true, false],
-    ["NEXT_PUBLIC_FEEDBACK_FORM_URL", process.env.NEXT_PUBLIC_FEEDBACK_FORM_URL, false, true],
   ];
+  const feedbackFormUrl = process.env.NEXT_PUBLIC_FEEDBACK_FORM_URL;
+  if (feedbackFormUrl) {
+    urls.push(["NEXT_PUBLIC_FEEDBACK_FORM_URL", feedbackFormUrl, false, true]);
+  }
   for (const [name, value, originOnly, allowQueryAndHash] of urls) {
     const url = new URL(value);
     if (url.protocol !== "https:" || url.username || url.password) throw new Error(name);

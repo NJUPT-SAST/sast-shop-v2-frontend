@@ -35,6 +35,8 @@ export default function RootLayout({
         <AuthBootstrap
           enabled={authRequired}
           appId={process.env.NEXT_PUBLIC_FEISHU_APP_ID ?? ""}
+          dataSource={mobileAppConfig.dataSource}
+          connectBaseUrl={mobileAppConfig.connectBaseUrl}
         >
           <ProfileDialogsProvider
             dataSource={mobileAppConfig.dataSource}

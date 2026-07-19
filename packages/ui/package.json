@@ -17,6 +17,7 @@
     "./components/card": "./src/components/card.tsx",
     "./components/radio-group": "./src/components/radio-group.tsx",
     "./components/select": "./src/components/select.tsx",
+    "./hooks/*": "./src/hooks/*.ts",
     "./lib/*": "./src/lib/*.ts",
     "./lib/utils": "./src/lib/utils.ts"
   },

@@ -22,6 +22,8 @@ import {
 } from "@workspace/ui/components/card";
 import { Empty } from "@workspace/ui/components/empty";
 import { ManagedImage } from "@/components/managed-image";
+import { StoreCreateDialog } from "@/components/store-create-dialog";
+import { mobileAppConfig } from "@/lib/app-config";
 import { getActiveErrandTasks } from "@/lib/errand-task-route";
 import { getStatusBadgeVariant, getStatusLabel } from "@/lib/order-filters";
 import { isValidRouteId } from "@/lib/route-id";
@@ -36,7 +38,7 @@ async function loadGroupOverview(): Promise<{
   const options = await getServerServiceOptions();
   const [storeResult, taskResult] = await Promise.allSettled([
     listStores(options),
-    listErrandTasks(options),
+    listErrandTasks({ ...options, page: 1, pageSize: 2 }),
   ]);
 
   return {
@@ -105,15 +107,20 @@ export default async function GroupPage() {
           <h2 className="min-w-0 text-xl font-semibold leading-7 md:text-2xl">
             我要拼单
           </h2>
-          <Button asChild variant="ghost" size="icon-touch">
-            <Link
-              href="/group/stores/new?returnTo=%2Fgroup"
+          <StoreCreateDialog
+            dataSource={mobileAppConfig.dataSource}
+            connectBaseUrl={mobileAppConfig.connectBaseUrl}
+            returnTo="/group"
+          >
+            <Button
+              variant="ghost"
+              size="icon-touch"
               aria-label="创建店铺"
               title="创建店铺"
             >
               <RiStore2Line />
-            </Link>
-          </Button>
+            </Button>
+          </StoreCreateDialog>
         </div>
 
         {stores.length > 0 ? (
@@ -140,9 +147,13 @@ export default async function GroupPage() {
             icon={<RiStore2Line className="size-5" />}
             title="还没有店铺"
             action={
-              <Button asChild>
-                <Link href="/group/stores/new?returnTo=%2Fgroup">创建店铺</Link>
-              </Button>
+              <StoreCreateDialog
+                dataSource={mobileAppConfig.dataSource}
+                connectBaseUrl={mobileAppConfig.connectBaseUrl}
+                returnTo="/group"
+              >
+                <Button>创建店铺</Button>
+              </StoreCreateDialog>
             }
           />
         ) : null}

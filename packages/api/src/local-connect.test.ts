@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { createConnectTransport } = vi.hoisted(() => ({
   createConnectTransport: vi.fn(() => ({ kind: "transport" })),
@@ -6,11 +6,18 @@ const { createConnectTransport } = vi.hoisted(() => ({
 
 vi.mock("@connectrpc/connect-web", () => ({ createConnectTransport }));
 
-import { createLocalTransport } from "./local-connect";
+import { Code, ConnectError } from "@connectrpc/connect";
+
+import { AuthRequiredError, ResourceNotFoundError } from "./errors";
+import { createLocalTransport, requestLocal } from "./local-connect";
 
 describe("local Connect transport", () => {
   beforeEach(() => {
     createConnectTransport.mockClear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("applies a bounded default timeout", () => {
@@ -26,5 +33,27 @@ describe("local Connect transport", () => {
       defaultTimeoutMs: 15_000,
       fetch: customFetch,
     });
+  });
+
+  it("turns unauthenticated responses into an auth recovery signal", async () => {
+    const dispatchEvent = vi.fn();
+    vi.stubGlobal("window", { dispatchEvent });
+
+    await expect(
+      requestLocal("getCurrentUser", () =>
+        Promise.reject(new ConnectError("expired", Code.Unauthenticated)),
+      ),
+    ).rejects.toBeInstanceOf(AuthRequiredError);
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: AuthRequiredError.browserEventName }),
+    );
+  });
+
+  it("keeps not-found responses distinct from authentication failures", async () => {
+    await expect(
+      requestLocal("getStore", () =>
+        Promise.reject(new ConnectError("missing", Code.NotFound)),
+      ),
+    ).rejects.toBeInstanceOf(ResourceNotFoundError);
   });
 });

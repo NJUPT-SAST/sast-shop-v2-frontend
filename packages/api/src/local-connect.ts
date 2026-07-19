@@ -1,7 +1,11 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 import { resolveConnectBaseUrl, type ServiceOptions } from "./data-source";
-import { ApiRequestError, ResourceNotFoundError } from "./errors";
+import {
+  ApiRequestError,
+  AuthRequiredError,
+  ResourceNotFoundError,
+} from "./errors";
 
 export function createLocalTransport(options: ServiceOptions = {}) {
   return createConnectTransport({
@@ -18,7 +22,16 @@ export async function requestLocal<T>(
   try {
     return await request();
   } catch (error) {
-    if (ConnectError.from(error).code === Code.NotFound) {
+    const connectError = ConnectError.from(error);
+
+    if (connectError.code === Code.Unauthenticated) {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event(AuthRequiredError.browserEventName));
+      }
+      throw new AuthRequiredError();
+    }
+
+    if (connectError.code === Code.NotFound) {
       throw new ResourceNotFoundError(feature);
     }
 

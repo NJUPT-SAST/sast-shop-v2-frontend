@@ -12,6 +12,14 @@ export function getDefaultErrandDeadline(now = new Date()): Date {
   return deadline
 }
 
+export function getMinimumErrandDeadline(now = new Date()): Date {
+  const deadline = new Date(now.getTime() + MIN_LEAD_TIME_MS)
+  if (deadline.getSeconds() !== 0 || deadline.getMilliseconds() !== 0) {
+    deadline.setMinutes(deadline.getMinutes() + 1, 0, 0)
+  }
+  return deadline
+}
+
 export function isValidErrandDeadline(
   deadline: Date,
   now = new Date(),

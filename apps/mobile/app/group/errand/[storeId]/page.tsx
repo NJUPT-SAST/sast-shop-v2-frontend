@@ -1,13 +1,9 @@
-import {
-  getErrandDemandDetails,
-  listStores,
-  type ErrandDemandDetailGroup,
-} from "@sast-shop/api";
-import { RiStore2Line } from "@remixicon/react";
-import { Empty } from "@workspace/ui/components/empty";
+import { getErrandDemandDetails, listStores } from "@sast-shop/api";
+import { notFound } from "next/navigation";
 
 import { ErrandDemandDetail } from "@/components/errand-demand-detail";
 import { mobileAppConfig } from "@/lib/app-config";
+import { isValidRouteId } from "@/lib/route-id";
 import { getServerServiceOptions } from "@/lib/server-service-options";
 
 type ErrandDemandDetailPageProps = {
@@ -16,57 +12,26 @@ type ErrandDemandDetailPageProps = {
   }>;
 };
 
-type DemandDetailResult = {
-  details: ErrandDemandDetailGroup[];
-  storeName: string;
-  error: string | null;
-};
-
-async function loadDemandDetails(storeId: string): Promise<DemandDetailResult> {
-  try {
-    const options = await getServerServiceOptions();
-    const details = await getErrandDemandDetails({ storeId }, options);
-    const stores = await listStores(options).catch(() => []);
-
-    return {
-      details,
-      storeName:
-        stores.find((store) => store.id === storeId)?.name ?? "店铺需求",
-      error: null,
-    };
-  } catch {
-    return {
-      details: [],
-      storeName: "店铺需求",
-      error: "跑腿需求详情暂不可用，请稍后再试",
-    };
-  }
-}
-
 export default async function ErrandDemandDetailPage({
   params,
 }: ErrandDemandDetailPageProps) {
   const { storeId } = await params;
-  const { details, storeName, error } = await loadDemandDetails(storeId);
+  if (!isValidRouteId(storeId)) notFound();
 
-  if (error) {
-    return (
-      <div className="flex flex-1 items-center justify-center py-6">
-        <Empty
-          icon={<RiStore2Line className="size-5" />}
-          title="需求详情暂不可用"
-          description={error}
-        />
-      </div>
-    );
-  }
+  const options = await getServerServiceOptions();
+  const [details, stores] = await Promise.all([
+    getErrandDemandDetails({ storeId }, options),
+    listStores(options),
+  ]);
+  const store = stores.find((candidate) => candidate.id === storeId);
+  if (!store) notFound();
 
   return (
     <ErrandDemandDetail
       dataSource={mobileAppConfig.dataSource}
       connectBaseUrl={mobileAppConfig.connectBaseUrl}
       storeId={storeId}
-      storeName={storeName}
+      storeName={store.name}
       details={details}
     />
   );

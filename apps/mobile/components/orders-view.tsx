@@ -11,9 +11,14 @@ import {
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { RiFileList3Line, RiSearchLine } from "@remixicon/react";
-import type {
+import {
+  listBuyerErrandOrdersPage,
+  listErrandTasksPage,
+  listSpotOrdersPage,
   BuyerErrandOrder,
+  type DataSource,
   ErrandTaskBrief,
+  type PageResult,
   SpotOrder,
 } from "@sast-shop/api";
 import { formatPrice } from "@sast-shop/domain";
@@ -28,6 +33,7 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card";
 import { Empty } from "@workspace/ui/components/empty";
+import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
 import {
   InputGroup,
   InputGroupAddon,
@@ -40,7 +46,9 @@ import {
   ToggleGroupItem,
 } from "@workspace/ui/components/toggle-group";
 import { Spinner } from "@workspace/ui/components/spinner";
+import { Skeleton } from "@workspace/ui/components/skeleton";
 import { toast } from "sonner";
+import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
 
 import { getBuyerErrandOrderAmountCents } from "@/lib/buyer-errand-order-detail";
 import { buildBuyerErrandOrderDetailHref } from "@/lib/buyer-errand-order-route";
@@ -96,11 +104,13 @@ const orderDateFormatter = new Intl.DateTimeFormat("zh-CN", {
 });
 
 type OrdersViewProps = {
+  dataSource: DataSource;
+  connectBaseUrl: string;
   initialFilters: OrderFilters;
-  spotBuyerOrders: SpotOrder[];
-  spotSellerOrders: SpotOrder[];
-  buyerErrandOrders: BuyerErrandOrder[];
-  errandTasks: ErrandTaskBrief[];
+  spotBuyerPage: PageResult<SpotOrder>;
+  spotSellerPage: PageResult<SpotOrder>;
+  buyerErrandPage: PageResult<BuyerErrandOrder>;
+  errandTaskPage: PageResult<ErrandTaskBrief>;
   errors: {
     spotBuyer: boolean;
     spotSeller: boolean;
@@ -110,11 +120,13 @@ type OrdersViewProps = {
 };
 
 export function OrdersView({
+  dataSource,
+  connectBaseUrl,
   initialFilters,
-  spotBuyerOrders,
-  spotSellerOrders,
-  buyerErrandOrders,
-  errandTasks,
+  spotBuyerPage,
+  spotSellerPage,
+  buyerErrandPage,
+  errandTaskPage,
   errors,
 }: OrdersViewProps) {
   const router = useRouter();
@@ -141,22 +153,107 @@ export function OrdersView({
     canScrollLeft: false,
     canScrollRight: false,
   });
+  const loadSpotBuyerPage = useCallback(
+    (page: number) =>
+      listSpotOrdersPage({
+        dataSource,
+        connectBaseUrl,
+        perspective: "purchaser",
+        page,
+        pageSize: spotBuyerPage.pageSize,
+      }),
+    [connectBaseUrl, dataSource, spotBuyerPage.pageSize],
+  );
+  const loadSpotSellerPage = useCallback(
+    (page: number) =>
+      listSpotOrdersPage({
+        dataSource,
+        connectBaseUrl,
+        perspective: "seller",
+        page,
+        pageSize: spotSellerPage.pageSize,
+      }),
+    [connectBaseUrl, dataSource, spotSellerPage.pageSize],
+  );
+  const loadBuyerErrandPage = useCallback(
+    (page: number) =>
+      listBuyerErrandOrdersPage({
+        dataSource,
+        connectBaseUrl,
+        page,
+        pageSize: buyerErrandPage.pageSize,
+      }),
+    [buyerErrandPage.pageSize, connectBaseUrl, dataSource],
+  );
+  const loadErrandTaskPage = useCallback(
+    (page: number) =>
+      listErrandTasksPage({
+        dataSource,
+        connectBaseUrl,
+        page,
+        pageSize: errandTaskPage.pageSize,
+      }),
+    [connectBaseUrl, dataSource, errandTaskPage.pageSize],
+  );
+  const spotBuyerFeed = useInfinitePage({
+    initialPage: spotBuyerPage,
+    loadPage: loadSpotBuyerPage,
+    getKey: getOrderKey,
+    identity: `${dataSource}:${connectBaseUrl}:spot:buyer`,
+  });
+  const spotSellerFeed = useInfinitePage({
+    initialPage: spotSellerPage,
+    loadPage: loadSpotSellerPage,
+    getKey: getOrderKey,
+    identity: `${dataSource}:${connectBaseUrl}:spot:seller`,
+  });
+  const buyerErrandFeed = useInfinitePage({
+    initialPage: buyerErrandPage,
+    loadPage: loadBuyerErrandPage,
+    getKey: getOrderKey,
+    identity: `${dataSource}:${connectBaseUrl}:errand:participant`,
+  });
+  const errandTaskFeed = useInfinitePage({
+    initialPage: errandTaskPage,
+    loadPage: loadErrandTaskPage,
+    getKey: getOrderKey,
+    identity: `${dataSource}:${connectBaseUrl}:errand:captain`,
+  });
   const statusOptions = getStatusOptions(filters.type, filters.view);
   const viewOptions = getViewOptions(filters.type);
   const orders = useMemo<RenderableOrder[]>(
     () => [
-      ...spotBuyerOrders.map((order) => mapSpotOrder(order, "buyer")),
-      ...spotSellerOrders.map((order) => mapSpotOrder(order, "seller")),
-      ...buyerErrandOrders.map(mapBuyerErrandOrder),
-      ...errandTasks.map(mapErrandTaskBrief),
+      ...spotBuyerFeed.items.map((order) => mapSpotOrder(order, "buyer")),
+      ...spotSellerFeed.items.map((order) => mapSpotOrder(order, "seller")),
+      ...buyerErrandFeed.items.map(mapBuyerErrandOrder),
+      ...errandTaskFeed.items.map(mapErrandTaskBrief),
     ],
-    [buyerErrandOrders, errandTasks, spotBuyerOrders, spotSellerOrders],
+    [
+      buyerErrandFeed.items,
+      errandTaskFeed.items,
+      spotBuyerFeed.items,
+      spotSellerFeed.items,
+    ],
   );
   const filteredOrders = useMemo(
     () => filterOrders(orders, filters),
     [filters, orders],
   );
   const currentError = getCurrentError(filters, errors);
+  const currentFeed =
+    filters.type === "spot"
+      ? filters.view === "seller"
+        ? spotSellerFeed
+        : spotBuyerFeed
+      : filters.view === "captain"
+        ? errandTaskFeed
+        : buyerErrandFeed;
+  const {
+    hasMore: currentFeedHasMore,
+    loadingMore: currentFeedLoadingMore,
+    loadMoreError: currentFeedLoadMoreError,
+    loadMore: loadMoreCurrentFeed,
+  } = currentFeed;
   const currentViewIndex = viewOptions.findIndex(
     (option) => option.value === filters.view,
   );
@@ -210,6 +307,33 @@ export function OrdersView({
       window.removeEventListener("resize", updateStatusScrollState);
     };
   }, [filters.type, filters.view, updateStatusScrollState]);
+
+  useEffect(() => {
+    const shouldContinueSearching = filters.query.trim().length > 0;
+    const shouldFillEmptyFilter = filteredOrders.length === 0;
+
+    if (
+      (!shouldContinueSearching && !shouldFillEmptyFilter) ||
+      !currentFeedHasMore ||
+      currentFeedLoadingMore ||
+      currentFeedLoadMoreError
+    ) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void loadMoreCurrentFeed();
+    }, 150);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    currentFeedHasMore,
+    currentFeedLoadMoreError,
+    currentFeedLoadingMore,
+    filteredOrders.length,
+    filters.query,
+    loadMoreCurrentFeed,
+  ]);
 
   function updateFilters(
     updates: {
@@ -275,7 +399,7 @@ export function OrdersView({
       }, 250);
     } else {
       pendingSearchHrefRef.current = null;
-      router.replace(nextHref, { scroll: false });
+      window.history.replaceState(window.history.state, "", nextHref);
     }
   }
 
@@ -287,7 +411,9 @@ export function OrdersView({
 
     const pendingHref = pendingSearchHrefRef.current;
     pendingSearchHrefRef.current = null;
-    if (pendingHref) router.replace(pendingHref, { scroll: false });
+    if (pendingHref) {
+      window.history.replaceState(window.history.state, "", pendingHref);
+    }
   }
 
   function cancelPendingSearchRoute() {
@@ -460,8 +586,20 @@ export function OrdersView({
           filters={filters}
           orders={filteredOrders}
           hasError={currentError}
+          showEmpty={!currentFeed.loadingMore && !currentFeed.hasMore}
           onRetry={() => router.refresh()}
         />
+        {!currentError ? (
+          <InfiniteListStatus
+            hasMore={currentFeed.hasMore}
+            loading={currentFeed.loadingMore}
+            error={currentFeed.loadMoreError}
+            hasItems={currentFeed.totalCount > 0}
+            onLoadMore={() => void currentFeed.loadMore()}
+            loadingFallback={<OrderLoadingSkeletons />}
+            endMessage={`已经到底，共 ${currentFeed.items.length} 笔订单`}
+          />
+        ) : null}
       </div>
 
       {nextViewOption ? (
@@ -513,11 +651,13 @@ function OrderList({
   filters,
   orders,
   hasError,
+  showEmpty,
   onRetry,
 }: {
   filters: OrderFilters;
   orders: RenderableOrder[];
   hasError: boolean;
+  showEmpty: boolean;
   onRetry: () => void;
 }) {
   if (hasError) {
@@ -534,7 +674,7 @@ function OrderList({
     );
   }
 
-  if (orders.length === 0) {
+  if (orders.length === 0 && showEmpty) {
     return (
       <Empty
         icon={<RiFileList3Line className="size-5" />}
@@ -542,6 +682,8 @@ function OrderList({
       />
     );
   }
+
+  if (orders.length === 0) return null;
 
   return (
     <section
@@ -553,6 +695,32 @@ function OrderList({
       ))}
     </section>
   );
+}
+
+function OrderLoadingSkeletons() {
+  return (
+    <div
+      className="grid min-w-0 gap-3 md:grid-cols-2"
+      aria-label="正在加载更多订单"
+    >
+      {Array.from({ length: 2 }, (_, index) => (
+        <Card key={index} aria-hidden="true">
+          <CardHeader className="gap-3">
+            <Skeleton className="h-5 w-3/5" />
+            <Skeleton className="h-4 w-2/5" />
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="h-10 w-full" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function getOrderKey(order: { id: string }) {
+  return order.id;
 }
 
 function OrderCard({ order }: { order: RenderableOrder }) {
@@ -603,7 +771,7 @@ function OrderCard({ order }: { order: RenderableOrder }) {
             variant={getStatusBadgeVariant(order.status)}
             className="shrink-0"
           >
-            {getStatusLabel(order.status)}
+            {getStatusLabel(order.status, order.view)}
           </Badge>
         </div>
         {order.store || order.orderNo ? (

@@ -1,6 +1,7 @@
 import {
-  listProductTemplates,
+  listProductTemplatesPage,
   listStores,
+  type PageResult,
   type ProductTemplate,
   type Store,
 } from "@sast-shop/api";
@@ -19,16 +20,19 @@ export default async function ProductTemplatesPage({
   const query: Record<string, string | string[] | undefined> =
     await (searchParams ?? Promise.resolve({}));
   const data = await loadPageData(firstValue(query.store));
+  const prefillBarcode = firstValue(query.barcode) ?? "";
+  const startCreating = firstValue(query.create) === "1";
 
   return (
     <ProductTemplateManager
+      key={`${data.selectedStoreId ?? "none"}:${startCreating}:${prefillBarcode}`}
       dataSource={desktopAppConfig.dataSource}
       connectBaseUrl={desktopAppConfig.connectBaseUrl}
       stores={data.stores}
-      initialTemplates={data.templates}
+      initialPage={data.templatePage}
       selectedStoreId={data.selectedStoreId}
-      prefillBarcode={firstValue(query.barcode) ?? ""}
-      startCreating={firstValue(query.create) === "1"}
+      prefillBarcode={prefillBarcode}
+      startCreating={startCreating}
       error={data.error}
     />
   );
@@ -36,7 +40,7 @@ export default async function ProductTemplatesPage({
 
 async function loadPageData(requestedStoreId: string | undefined): Promise<{
   stores: Store[];
-  templates: ProductTemplate[];
+  templatePage: PageResult<ProductTemplate>;
   selectedStoreId: string | null;
   error: string | null;
 }> {
@@ -48,18 +52,33 @@ async function loadPageData(requestedStoreId: string | undefined): Promise<{
     )
       ? requestedStoreId!
       : (stores[0]?.id ?? null);
-    const templates = selectedStoreId
-      ? await listProductTemplates({ ...options, storeId: selectedStoreId })
-      : [];
-    return { stores, templates, selectedStoreId, error: null };
+    const templatePage = selectedStoreId
+      ? await listProductTemplatesPage({
+          ...options,
+          storeId: selectedStoreId,
+          page: 1,
+          pageSize: 24,
+        })
+      : emptyTemplatePage(24);
+    return { stores, templatePage, selectedStoreId, error: null };
   } catch {
     return {
       stores: [],
-      templates: [],
+      templatePage: emptyTemplatePage(24),
       selectedStoreId: null,
       error: "请稍后重试",
     };
   }
+}
+
+function emptyTemplatePage(pageSize: number): PageResult<ProductTemplate> {
+  return {
+    items: [],
+    currentPage: 1,
+    pageSize,
+    totalCount: 0,
+    hasMore: false,
+  };
 }
 
 function firstValue(value: string | string[] | undefined): string | undefined {

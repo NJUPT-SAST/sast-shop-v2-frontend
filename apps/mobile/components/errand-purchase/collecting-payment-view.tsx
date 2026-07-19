@@ -59,10 +59,10 @@ function getStatusBadge(status: CollectingPaymentBill["paymentStatus"]) {
           已收款
         </Badge>
       );
-    case "problem":
+    case "closed":
       return (
-        <Badge variant="destructive" className="shrink-0">
-          问题
+        <Badge variant="outline" className="shrink-0">
+          已关闭
         </Badge>
       );
     default:
@@ -163,10 +163,12 @@ export function CollectingPaymentView({
   );
   const unpaid = bills.filter((b) => b.paymentStatus === "pending");
   const confirmed = bills.filter((b) => b.paymentStatus === "confirmed");
+  const closed = bills.filter((b) => b.paymentStatus === "closed");
 
   const confirmedCount = confirmed.length;
+  const settledCount = confirmedCount + closed.length;
   const totalCount = bills.length;
-  const allConfirmed = confirmedCount === totalCount && totalCount > 0;
+  const allSettled = settledCount === totalCount && totalCount > 0;
 
   const updateBill = (
     requesterId: string,
@@ -364,6 +366,7 @@ export function CollectingPaymentView({
       {renderBillSection(pendingConfirmation, "待确认")}
       {renderBillSection(unpaid, "未支付")}
       {renderBillSection(confirmed, "已收款")}
+      {renderBillSection(closed, "已关闭")}
 
       {bills.length === 0 && (
         <Empty
@@ -377,13 +380,13 @@ export function CollectingPaymentView({
         <MobileFixedFooter>
           <Button
             type="button"
-            disabled={!allConfirmed}
+            disabled={!allSettled}
             className="h-12 w-full"
             onClick={() => setDialog({ type: "confirm_complete" })}
           >
-            {allConfirmed
+            {allSettled
               ? "完成订单"
-              : `还有 ${totalCount - confirmedCount} 笔账单待处理`}
+              : `还有 ${totalCount - settledCount} 笔账单待处理`}
           </Button>
         </MobileFixedFooter>
       ) : null}

@@ -55,6 +55,31 @@ export async function getCurrentUser(
   throw new FeatureUnavailableError("getCurrentUser");
 }
 
+export async function validateSessionUser(
+  userId: string,
+  options: ServiceOptions = {},
+): Promise<void> {
+  if (!/^\d+$/.test(userId)) throw new ValidationError("用户 ID 不正确");
+  const parsedUserId = BigInt(userId);
+  if (parsedUserId <= 0n || parsedUserId > 9_223_372_036_854_775_807n) {
+    throw new ValidationError("用户 ID 不正确");
+  }
+
+  const dataSource = resolveDataSource(options);
+  if (dataSource === "mock" || dataSource === "local") {
+    const client = createClient(UserService, createLocalTransport(options));
+    const response = await requestLocal("validateSessionUser", () =>
+      client.getUserInfo({ userId: parsedUserId }),
+    );
+    if (!response.userInfo || response.userInfo.id !== parsedUserId) {
+      throw new AuthRequiredError();
+    }
+    return;
+  }
+
+  throw new FeatureUnavailableError("validateSessionUser");
+}
+
 export async function loginWithLarkCode(
   code: string,
   options: ServiceOptions = {},

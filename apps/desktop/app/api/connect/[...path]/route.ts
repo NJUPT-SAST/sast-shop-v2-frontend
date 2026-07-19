@@ -1,10 +1,13 @@
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
+import {
+  createConnectProxyAbort,
+  sessionCookieName,
+} from "@sast-shop/api/server";
 
 import { getServerAuthMode } from "@/lib/auth-mode";
 import { getServerConnectBaseUrl } from "@/lib/server-service-options";
 
-const sessionCookieName = "sast_shop_session";
 const maxBodyBytes = 1024 * 1024;
 const serverOnlyAuthMethods = new Set([
   "sast.sastshopv2.user.v1.AuthService/Login",
@@ -60,22 +63,36 @@ function isSameOrigin(request: NextRequest) {
   }
 }
 
-async function readBody(request: NextRequest) {
+async function readBody(request: NextRequest, signal: AbortSignal) {
   const length = Number(request.headers.get("content-length"));
   if (Number.isFinite(length) && length > maxBodyBytes) throw new RangeError();
   if (!request.body) return undefined;
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
   let size = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    size += value.byteLength;
-    if (size > maxBodyBytes) {
-      await reader.cancel();
-      throw new RangeError();
+  const cancelReader = () => {
+    void reader.cancel(signal.reason).catch(() => undefined);
+  };
+  signal.addEventListener("abort", cancelReader, { once: true });
+  if (signal.aborted) {
+    cancelReader();
+    signal.removeEventListener("abort", cancelReader);
+    throw signal.reason;
+  }
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (signal.aborted) throw signal.reason;
+      if (done) break;
+      size += value.byteLength;
+      if (size > maxBodyBytes) {
+        await reader.cancel();
+        throw new RangeError();
+      }
+      chunks.push(value);
     }
-    chunks.push(value);
+  } finally {
+    signal.removeEventListener("abort", cancelReader);
   }
   const result = new Uint8Array(size);
   let offset = 0;
@@ -98,7 +115,10 @@ async function proxy(request: NextRequest, context: Context) {
   const authMode = getServerAuthMode();
   const sessionToken = (await cookies()).get(sessionCookieName)?.value;
   if (authMode === "required" && !sessionToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401, headers: { "cache-control": "no-store" } },
+    );
   }
   if (
     request.method !== "GET" &&
@@ -148,6 +168,7 @@ async function proxy(request: NextRequest, context: Context) {
     );
   }
 
+  const upstreamAbort = createConnectProxyAbort(request.signal);
   try {
     const headers = copyHeaders(request.headers, blockedRequestHeaders);
     if (authMode === "required" && sessionToken) {
@@ -159,13 +180,21 @@ async function proxy(request: NextRequest, context: Context) {
       body:
         request.method === "GET" || request.method === "HEAD"
           ? undefined
-          : await readBody(request),
+          : await readBody(request, upstreamAbort.signal),
       redirect: "manual",
+      signal: upstreamAbort.signal,
     });
+    const responseHeaders = copyHeaders(
+      upstream.headers,
+      blockedResponseHeaders,
+    );
+    if (upstream.status === 401) {
+      responseHeaders.set("cache-control", "no-store");
+    }
     return new NextResponse(upstream.body, {
       status: upstream.status,
       statusText: upstream.statusText,
-      headers: copyHeaders(upstream.headers, blockedResponseHeaders),
+      headers: responseHeaders,
     });
   } catch (error) {
     if (error instanceof RangeError) {
@@ -174,7 +203,15 @@ async function proxy(request: NextRequest, context: Context) {
         { status: 413 },
       );
     }
+    if (upstreamAbort.didTimeout()) {
+      return NextResponse.json(
+        { code: "deadline_exceeded", message: "Upstream request timed out" },
+        { status: 504, headers: { "cache-control": "no-store" } },
+      );
+    }
     throw error;
+  } finally {
+    upstreamAbort.dispose();
   }
 }
 

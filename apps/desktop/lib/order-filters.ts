@@ -63,6 +63,14 @@ const spotBuyerStatuses: OrderOption<OrderStatus>[] = [
   { value: "cancelled", label: "已取消" },
 ];
 
+const spotSellerStatuses: OrderOption<OrderStatus>[] = [
+  { value: "all", label: "全部" },
+  { value: "pending_payment", label: "待收款" },
+  { value: "processing", label: "后续处理" },
+  { value: "completed", label: "已完成" },
+  { value: "cancelled", label: "已取消" },
+];
+
 const errandParticipantStatuses: OrderOption<OrderStatus>[] = [
   { value: "all", label: "全部" },
   { value: "open", label: "未接单" },
@@ -86,6 +94,7 @@ const errandCaptainStatuses: OrderOption<OrderStatus>[] = [
 
 const allStatusOptions = [
   ...spotBuyerStatuses,
+  ...spotSellerStatuses,
   ...errandParticipantStatuses,
   ...errandCaptainStatuses,
 ];
@@ -98,7 +107,7 @@ export function getStatusOptions(
   type: OrderType,
   view: OrderView,
 ): OrderOption<OrderStatus>[] {
-  if (type === "spot" && view === "seller") return spotBuyerStatuses;
+  if (type === "spot" && view === "seller") return spotSellerStatuses;
   if (type === "errand" && view === "captain") return errandCaptainStatuses;
   if (type === "errand") return errandParticipantStatuses;
   return spotBuyerStatuses;
@@ -169,11 +178,18 @@ export function updateOrderFilterParams(
   setParam(params, "view", view, DEFAULT_REMEMBERED_ORDER_VIEWS[type]);
   setParam(params, "status", status, "all");
   setParam(params, "q", query, "");
+  params.delete("page");
 
   return params;
 }
 
-export function getStatusLabel(status: RenderableOrderStatus): string {
+export function getStatusLabel(
+  status: RenderableOrderStatus,
+  view?: OrderView,
+): string {
+  if (view === "seller" && status === "pending_payment") return "待收款";
+  if (view === "seller" && (status === "paid" || status === "processing"))
+    return "后续处理";
   if (status === "paid") return "处理中";
 
   return (

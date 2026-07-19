@@ -1,7 +1,13 @@
 "use client";
 
-import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import {
+  type ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -23,10 +29,12 @@ import {
   configureLarkJsapi,
   createProductTemplate,
   isLarkScanCancelledError,
+  listProductTemplatesPage,
   scanLarkBarcode,
   updateProductTemplate,
   type DataSource,
   type ProductTemplate,
+  type PageResult,
   type ServiceOptions,
   type Store,
   ValidationError,
@@ -49,6 +57,7 @@ import {
   DrawerTitle,
 } from "@workspace/ui/components/drawer";
 import { Empty } from "@workspace/ui/components/empty";
+import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
 import {
   Field,
   FieldDescription,
@@ -78,10 +87,13 @@ import {
   SelectTrigger,
 } from "@workspace/ui/components/select";
 import { Spinner } from "@workspace/ui/components/spinner";
+import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Textarea } from "@workspace/ui/components/textarea";
+import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
 
 import { ManagedImage } from "@/components/managed-image";
 import { MobileFloatingAction } from "@/components/mobile-floating-action";
+import { StoreCreateDialog } from "@/components/store-create-dialog";
 import { useFeishuUiEnvironment } from "@/hooks/use-feishu-ui-environment";
 import { isJsapiAuthConfig } from "@/lib/jsapi-config";
 import { uploadProductImage } from "@/lib/product-image-upload";
@@ -116,7 +128,7 @@ type ProductTemplateManagerProps = {
   dataSource: DataSource;
   connectBaseUrl: string;
   stores: Store[];
-  initialTemplates: ProductTemplate[];
+  initialPage: PageResult<ProductTemplate>;
   selectedStoreId: string | null;
   prefillBarcode: string;
   startCreating: boolean;
@@ -127,7 +139,7 @@ export function ProductTemplateManager({
   dataSource,
   connectBaseUrl,
   stores,
-  initialTemplates,
+  initialPage,
   selectedStoreId,
   prefillBarcode,
   startCreating,
@@ -135,8 +147,33 @@ export function ProductTemplateManager({
 }: ProductTemplateManagerProps) {
   const router = useRouter();
   const serviceOptions: ServiceOptions = { dataSource, connectBaseUrl };
-  const renderedStoreId = useRef(selectedStoreId);
-  const [templates, setTemplates] = useState(initialTemplates);
+  const loadPage = useCallback(
+    (page: number) => {
+      if (!selectedStoreId) return Promise.resolve(initialPage);
+      return listProductTemplatesPage({
+        dataSource,
+        connectBaseUrl,
+        storeId: selectedStoreId,
+        page,
+        pageSize: initialPage.pageSize,
+      });
+    },
+    [connectBaseUrl, dataSource, initialPage, selectedStoreId],
+  );
+  const {
+    items: templates,
+    setItems: setTemplates,
+    loadingMore,
+    loadMoreError,
+    hasMore,
+    totalCount,
+    loadMore,
+  } = useInfinitePage({
+    initialPage,
+    loadPage,
+    getKey: getTemplateKey,
+    identity: `${dataSource}:${connectBaseUrl}:${selectedStoreId ?? "none"}`,
+  });
   const [keyword, setKeyword] = useState("");
   const [editingTemplate, setEditingTemplate] =
     useState<ProductTemplate | null>(null);
@@ -147,18 +184,14 @@ export function ProductTemplateManager({
   const [scanningBarcode, setScanningBarcode] = useState(false);
   const scanningBarcodeRef = useRef(false);
   const showFeishuEntry = useFeishuUiEnvironment();
-  const createStoreHref = buildCreateStoreHref(prefillBarcode, startCreating);
+  const createStoreReturnTo = buildCreateStoreReturnTo(
+    prefillBarcode,
+    startCreating,
+  );
   const form = useForm<TemplateFormValues>({
     resolver: zodResolver(templateSchema),
     defaultValues: createDefaultValues(selectedStoreId, prefillBarcode),
   });
-
-  useEffect(() => {
-    if (renderedStoreId.current === selectedStoreId) return;
-
-    renderedStoreId.current = selectedStoreId;
-    setTemplates(initialTemplates);
-  }, [initialTemplates, selectedStoreId]);
 
   const visibleTemplates = useMemo(() => {
     const value = keyword.trim().toLowerCase();
@@ -170,6 +203,12 @@ export function ProductTemplateManager({
       ),
     );
   }, [keyword, templates]);
+
+  useEffect(() => {
+    if (!keyword.trim() || !hasMore || loadMoreError) return;
+    const timeout = window.setTimeout(() => void loadMore(), 250);
+    return () => window.clearTimeout(timeout);
+  }, [hasMore, keyword, loadMore, loadMoreError]);
 
   function openCreateDrawer() {
     setEditingTemplate(null);
@@ -276,15 +315,21 @@ export function ProductTemplateManager({
           商品模板
         </h1>
         {stores.length > 0 ? (
-          <Button asChild type="button" size="icon-touch" variant="ghost">
-            <Link
-              href="/group/stores/new?returnTo=%2Fgroup%2Ftemplates"
+          <StoreCreateDialog
+            dataSource={dataSource}
+            connectBaseUrl={connectBaseUrl}
+            returnTo={createStoreReturnTo}
+          >
+            <Button
+              type="button"
+              size="icon-touch"
+              variant="ghost"
               aria-label="创建店铺"
               title="创建店铺"
             >
               <RiStore2Line />
-            </Link>
-          </Button>
+            </Button>
+          </StoreCreateDialog>
         ) : null}
       </section>
 
@@ -366,7 +411,7 @@ export function ProductTemplateManager({
             />
           ))}
         </section>
-      ) : !error ? (
+      ) : !error && !loadingMore && !hasMore ? (
         <Empty
           icon={
             stores.length === 0 ? (
@@ -384,14 +429,30 @@ export function ProductTemplateManager({
           }
           action={
             stores.length === 0 ? (
-              <Button asChild type="button">
-                <Link href={createStoreHref}>
+              <StoreCreateDialog
+                dataSource={dataSource}
+                connectBaseUrl={connectBaseUrl}
+                returnTo={createStoreReturnTo}
+              >
+                <Button type="button">
                   <RiStore2Line data-icon="inline-start" />
                   创建店铺
-                </Link>
-              </Button>
+                </Button>
+              </StoreCreateDialog>
             ) : undefined
           }
+        />
+      ) : null}
+
+      {!error && selectedStoreId ? (
+        <InfiniteListStatus
+          hasMore={hasMore}
+          loading={loadingMore}
+          error={loadMoreError}
+          hasItems={totalCount > 0}
+          onLoadMore={() => void loadMore()}
+          loadingFallback={<TemplateLoadingSkeletons />}
+          endMessage={`已经到底，共 ${templates.length} 个商品模板`}
         />
       ) : null}
 
@@ -431,6 +492,7 @@ export function ProductTemplateManager({
           <form
             id="product-template-form"
             className="app-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-2"
+            noValidate
             onSubmit={form.handleSubmit(saveTemplate)}
           >
             <TemplateFields
@@ -464,6 +526,26 @@ export function ProductTemplateManager({
       </Drawer>
     </div>
   );
+}
+
+function TemplateLoadingSkeletons() {
+  return (
+    <div className="flex flex-col gap-3" aria-label="正在加载更多商品模板">
+      {Array.from({ length: 3 }, (_, index) => (
+        <Item key={index} variant="outline" aria-hidden="true">
+          <Skeleton className="size-14 shrink-0 rounded-lg" />
+          <ItemContent className="gap-2">
+            <Skeleton className="h-5 w-2/5" />
+            <Skeleton className="h-4 w-3/4" />
+          </ItemContent>
+        </Item>
+      ))}
+    </div>
+  );
+}
+
+function getTemplateKey(template: ProductTemplate) {
+  return template.id;
 }
 
 function TemplateItem({
@@ -828,16 +910,14 @@ function readErrorMessage(error: unknown): string {
   return "保存商品模板失败，请稍后再试";
 }
 
-function buildCreateStoreHref(
+function buildCreateStoreReturnTo(
   barcode: string,
   continueCreatingTemplate: boolean,
 ): string {
   const params = new URLSearchParams();
   if (continueCreatingTemplate) params.set("create", "1");
   if (barcode.trim()) params.set("barcode", barcode.trim());
-  const returnTo = params.size
+  return params.size
     ? `/group/templates?${params.toString()}`
     : "/group/templates";
-
-  return `/group/stores/new?returnTo=${encodeURIComponent(returnTo)}`;
 }

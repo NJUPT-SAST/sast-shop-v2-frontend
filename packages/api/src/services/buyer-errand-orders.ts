@@ -11,6 +11,7 @@ import { ErrandDemandStatus } from "../gen/sast/sastshopv2/errand/v1/errand_dema
 import type { UserInfo } from "../gen/sast/sastshopv2/user/v1/user_info_pb";
 import { resolveDataSource, type ServiceOptions } from "../data-source";
 import { FeatureUnavailableError, ValidationError } from "../errors";
+import { createPageResult, type PageResult } from "../pagination";
 import { createLocalTransport, requestLocal } from "../local-connect";
 import type { Store } from "./catalog";
 import { mapPaymentBill, type PaymentBill } from "./payment-bills";
@@ -92,6 +93,18 @@ export async function listBuyerErrandOrders(
     pageSize?: number;
   } = {},
 ): Promise<BuyerErrandOrder[]> {
+  const result = await listBuyerErrandOrdersPage(options);
+  return result.items;
+}
+
+export async function listBuyerErrandOrdersPage(
+  options: ServiceOptions & {
+    storeId?: string;
+    status?: BuyerErrandOrderStatusFilter;
+    page?: number;
+    pageSize?: number;
+  } = {},
+): Promise<PageResult<BuyerErrandOrder>> {
   const request = parseListBuyerErrandOrdersOptions(options);
   const dataSource = resolveDataSource(options);
 
@@ -104,7 +117,14 @@ export async function listBuyerErrandOrders(
       client.getBuyerErrandOrderBrief(request),
     );
 
-    return response.orders.map(mapBuyerErrandOrder);
+    return createPageResult({
+      items: response.orders.map(mapBuyerErrandOrder),
+      currentPage: response.currentPage,
+      pageSize: request.pageSize,
+      totalCount: response.totalCount,
+      expectedPage: request.page,
+      feature: "listBuyerErrandOrders",
+    });
   }
 
   throw new FeatureUnavailableError("listBuyerErrandOrders");

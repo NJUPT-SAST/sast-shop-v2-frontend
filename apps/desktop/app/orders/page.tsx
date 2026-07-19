@@ -1,10 +1,11 @@
 import {
-  listBuyerErrandOrders,
-  listErrandTasks,
-  listSpotOrders,
+  listBuyerErrandOrdersPage,
+  listErrandTasksPage,
+  listSpotOrdersPage,
 } from "@sast-shop/api";
 
 import { OrdersView } from "@/components/orders-view";
+import { desktopAppConfig } from "@/lib/app-config";
 import { getServerServiceOptions } from "@/lib/server-service-options";
 import { getOrderFiltersFromParams } from "@/lib/order-filters";
 
@@ -25,25 +26,31 @@ export default async function OrdersPage({
   );
   const options = await getServerServiceOptions();
   const results = await Promise.allSettled([
-    listSpotOrders({ ...options, perspective: "purchaser" }),
-    listSpotOrders({ ...options, perspective: "seller" }),
-    listBuyerErrandOrders(options),
-    listErrandTasks(options),
+    listSpotOrdersPage({
+      ...options,
+      perspective: "purchaser",
+      page: 1,
+      pageSize: 24,
+    }),
+    listSpotOrdersPage({
+      ...options,
+      perspective: "seller",
+      page: 1,
+      pageSize: 24,
+    }),
+    listBuyerErrandOrdersPage({ ...options, page: 1, pageSize: 24 }),
+    listErrandTasksPage({ ...options, page: 1, pageSize: 24 }),
   ]);
-  const buyerSpotOrders =
-    results[0].status === "fulfilled" ? results[0].value : [];
-  const sellerSpotOrders =
-    results[1].status === "fulfilled" ? results[1].value : [];
 
   return (
     <OrdersView
+      dataSource={desktopAppConfig.dataSource}
+      connectBaseUrl={desktopAppConfig.connectBaseUrl}
       initialFilters={filters}
-      spotBuyerOrders={buyerSpotOrders}
-      spotSellerOrders={sellerSpotOrders}
-      buyerErrandOrders={
-        results[2].status === "fulfilled" ? results[2].value : []
-      }
-      errandTasks={results[3].status === "fulfilled" ? results[3].value : []}
+      spotBuyerPage={pageOrEmpty(results[0], 24)}
+      spotSellerPage={pageOrEmpty(results[1], 24)}
+      buyerErrandPage={pageOrEmpty(results[2], 24)}
+      errandTaskPage={pageOrEmpty(results[3], 24)}
       errors={{
         spotBuyer: results[0].status === "rejected",
         spotSeller: results[1].status === "rejected",
@@ -52,4 +59,19 @@ export default async function OrdersPage({
       }}
     />
   );
+}
+
+function pageOrEmpty<T>(
+  result: PromiseSettledResult<import("@sast-shop/api").PageResult<T>>,
+  pageSize: number,
+) {
+  return result.status === "fulfilled"
+    ? result.value
+    : {
+        items: [],
+        currentPage: 1,
+        pageSize,
+        totalCount: 0,
+        hasMore: false,
+      };
 }

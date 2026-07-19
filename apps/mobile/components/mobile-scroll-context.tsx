@@ -4,11 +4,14 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useRef,
   useState,
+  useTransition,
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import { resolveCurrentRoutePress } from "../lib/current-route-press";
 
 const REFRESH_DEBOUNCE_MS = 2500;
 const REFRESH_VISIBLE_MS = 800;
@@ -24,7 +27,7 @@ interface MobileScrollContextValue {
   setPullDistance: (distance: number) => void;
   syncScrollState: () => void;
   scrollToTop: () => void;
-  refresh: (options?: RefreshOptions) => void;
+  refresh: (options?: RefreshOptions) => boolean;
   handleCurrentRoutePress: () => void;
 }
 
@@ -37,9 +40,12 @@ export function MobileScrollProvider({ children }: { children: ReactNode }) {
   const viewportRef = useRef<HTMLElement | null>(null);
   const lastRefreshAtRef = useRef(0);
   const refreshingRef = useRef(false);
+  const refreshStartedAtRef = useRef(0);
+  const refreshEndTimerRef = useRef<number | null>(null);
   const [isAtTop, setIsAtTop] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
+  const [refreshPending, startRefreshTransition] = useTransition();
 
   const syncScrollState = useCallback(() => {
     const viewport = viewportRef.current;
@@ -66,7 +72,7 @@ export function MobileScrollProvider({ children }: { children: ReactNode }) {
         refreshingRef.current ||
         now - lastRefreshAtRef.current < REFRESH_DEBOUNCE_MS
       ) {
-        return;
+        return false;
       }
 
       refreshingRef.current = true;
@@ -74,23 +80,39 @@ export function MobileScrollProvider({ children }: { children: ReactNode }) {
       setIsRefreshing(true);
       setPullDistance(autoPull ? 56 : 48);
       viewportRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-      router.refresh();
-
-      window.setTimeout(() => {
-        refreshingRef.current = false;
-        setIsRefreshing(false);
-        setPullDistance(0);
-        syncScrollState();
-      }, REFRESH_VISIBLE_MS);
+      refreshStartedAtRef.current = now;
+      startRefreshTransition(() => router.refresh());
+      return true;
     },
-    [router, syncScrollState],
+    [router],
   );
+
+  useEffect(() => {
+    if (!isRefreshing || refreshPending) return;
+
+    const elapsed = Date.now() - refreshStartedAtRef.current;
+    const remaining = Math.max(REFRESH_VISIBLE_MS - elapsed, 0);
+    refreshEndTimerRef.current = window.setTimeout(() => {
+      refreshingRef.current = false;
+      refreshEndTimerRef.current = null;
+      setIsRefreshing(false);
+      setPullDistance(0);
+      syncScrollState();
+    }, remaining);
+
+    return () => {
+      if (refreshEndTimerRef.current !== null) {
+        window.clearTimeout(refreshEndTimerRef.current);
+        refreshEndTimerRef.current = null;
+      }
+    };
+  }, [isRefreshing, refreshPending, syncScrollState]);
 
   const handleCurrentRoutePress = useCallback(() => {
     const viewport = viewportRef.current;
-    const atTop = !viewport || viewport.scrollTop <= 2;
+    const action = resolveCurrentRoutePress(viewport?.scrollTop ?? 0, isAtTop);
 
-    if (!atTop || !isAtTop) {
+    if (action === "scroll-to-top") {
       scrollToTop();
       return;
     }

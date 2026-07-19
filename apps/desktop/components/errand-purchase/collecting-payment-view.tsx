@@ -57,15 +57,54 @@ export function CollectingPaymentView({
     useState<CollectingPaymentBill | null>(null);
   const [completeOpen, setCompleteOpen] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [expandedBillKey, setExpandedBillKey] = useState<string | null>(null);
   const confirmedCount = bills.filter(
     (bill) => bill.paymentStatus === "confirmed",
   ).length;
-  const allConfirmed = bills.length > 0 && confirmedCount === bills.length;
+  const closedCount = bills.filter(
+    (bill) => bill.paymentStatus === "closed",
+  ).length;
+  const settledCount = confirmedCount + closedCount;
+  const allSettled = bills.length > 0 && settledCount === bills.length;
   const totalAmount = bills.reduce(
     (total, bill) => total + bill.totalAmountCents,
     0,
   );
   const serviceOptions = { dataSource, connectBaseUrl };
+  const billGroups = [
+    {
+      key: "pending_confirmation",
+      title: "待确认",
+      description: "买家已提交支付信息，请核对实际到账记录。",
+      bills: bills.filter(
+        (bill) => bill.paymentStatus === "pending_confirmation",
+      ),
+    },
+    {
+      key: "pending",
+      title: "未支付",
+      description: "等待买家完成付款并提交支付信息。",
+      bills: bills.filter((bill) => bill.paymentStatus === "pending"),
+    },
+    {
+      key: "confirmed",
+      title: "已收款",
+      description: "已经核对并确认到账的账单。",
+      bills: bills.filter((bill) => bill.paymentStatus === "confirmed"),
+    },
+    {
+      key: "closed",
+      title: "已关闭",
+      description: "已关闭的终态账单，不再等待付款。",
+      bills: bills.filter((bill) => bill.paymentStatus === "closed"),
+    },
+    {
+      key: "unknown",
+      title: "状态异常",
+      description: "暂时无法识别状态，请刷新后重试。",
+      bills: bills.filter((bill) => bill.paymentStatus === "unknown"),
+    },
+  ];
 
   async function confirmPayment(bill: CollectingPaymentBill) {
     if (!bill.billId || !bill.billUpdatedAt || confirmingRef.current) {
@@ -98,7 +137,7 @@ export function CollectingPaymentView({
   }
 
   async function completeTask() {
-    if (!allConfirmed || completingRef.current) return;
+    if (!allSettled || completingRef.current) return;
     completingRef.current = true;
     setCompleting(true);
     try {
@@ -130,17 +169,13 @@ export function CollectingPaymentView({
             </h1>
           </div>
         </div>
-        <Button disabled={!allConfirmed} onClick={() => setCompleteOpen(true)}>
-          <RiCheckboxCircleLine data-icon="inline-start" />
-          完成跑腿任务
-        </Button>
       </section>
 
       <Card>
         <CardContent className="grid grid-cols-2 gap-6 p-5">
           <Metric
             label={`共 ${bills.length} 笔账单`}
-            value={`${confirmedCount} 笔已确认`}
+            value={`${confirmedCount} 笔已收款 · ${closedCount} 笔已关闭`}
           />
           <Metric
             label="账单总额"
@@ -150,16 +185,66 @@ export function CollectingPaymentView({
         </CardContent>
       </Card>
 
-      <section className="grid min-w-0 gap-4 xl:grid-cols-2">
-        {bills.map((bill) => (
-          <BillCard
-            key={bill.billId ?? bill.requesterId}
-            bill={bill}
-            confirming={confirmingId === bill.requesterId}
-            onConfirm={() => setBillToConfirm(bill)}
-          />
-        ))}
-      </section>
+      {billGroups.map((group) => (
+        <section key={group.key} className="space-y-3">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold">{group.title}</h2>
+              <p className="text-sm text-muted-foreground">
+                {group.description}
+              </p>
+            </div>
+            <Badge variant="neutral">{group.bills.length} 笔</Badge>
+          </div>
+          {group.bills.length ? (
+            <div className="grid min-w-0 gap-4 xl:grid-cols-2">
+              {group.bills.map((bill) => {
+                const billKey = bill.billId ?? bill.requesterId;
+                return (
+                  <BillCard
+                    key={billKey}
+                    bill={bill}
+                    expanded={expandedBillKey === billKey}
+                    confirming={confirmingId === bill.requesterId}
+                    onToggle={() =>
+                      setExpandedBillKey((current) =>
+                        current === billKey ? null : billKey,
+                      )
+                    }
+                    onConfirm={() => setBillToConfirm(bill)}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="p-4 text-sm text-muted-foreground">
+                当前没有{group.title}账单。
+              </CardContent>
+            </Card>
+          )}
+        </section>
+      ))}
+
+      {bills.length ? (
+        <Card className="sticky bottom-4 z-10 border-primary/20 shadow-lg">
+          <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4">
+            <div>
+              <p className="text-sm text-muted-foreground">账单处理进度</p>
+              <p className="mt-1 font-semibold tabular-nums">
+                {settledCount}/{bills.length} 笔已结束
+              </p>
+            </div>
+            <Button
+              disabled={!allSettled}
+              onClick={() => setCompleteOpen(true)}
+            >
+              <RiCheckboxCircleLine data-icon="inline-start" />
+              完成跑腿任务
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Dialog
         open={completeOpen}
@@ -169,7 +254,7 @@ export function CollectingPaymentView({
           <DialogHeader>
             <DialogTitle>完成跑腿任务</DialogTitle>
             <DialogDescription>
-              所有 {bills.length} 笔账单均已确认到账，完成后不可继续修改。
+              {confirmedCount} 笔已确认到账，{closedCount} 笔已关闭。完成后不可继续修改。
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -181,7 +266,7 @@ export function CollectingPaymentView({
               返回检查
             </Button>
             <Button
-              disabled={completing || !allConfirmed}
+              disabled={completing || !allSettled}
               onClick={completeTask}
             >
               {completing ? <Spinner /> : null}完成任务
@@ -337,11 +422,15 @@ function PaymentItemBreakdown({
 
 function BillCard({
   bill,
+  expanded,
   confirming,
+  onToggle,
   onConfirm,
 }: {
   bill: CollectingPaymentBill;
+  expanded: boolean;
   confirming: boolean;
+  onToggle: () => void;
   onConfirm: () => void;
 }) {
   return (
@@ -376,20 +465,32 @@ function BillCard({
         </div>
       </CardHeader>
       <CardContent className="grid gap-3 border-t pt-4">
-        <div className="grid gap-3">
-          {bill.items.map((item) => (
-            <PaymentItemBreakdown key={item.errandDemandItemId} item={item} />
-          ))}
+        <div className="flex justify-end">
+          <Button variant="ghost" size="sm" onClick={onToggle}>
+            {expanded ? "收起明细" : "查看明细"}
+          </Button>
         </div>
-        <Separator />
-        <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 text-sm">
-          <dt className="text-muted-foreground">商品费</dt>
-          <dd>{formatPrice(bill.productAmountCents)}</dd>
-          <dt className="text-muted-foreground">跑腿费</dt>
-          <dd>{formatPrice(bill.serviceFeeAmountCents)}</dd>
-          <dt className="text-muted-foreground">包装费</dt>
-          <dd>{formatPrice(bill.packagingFeeShareCents)}</dd>
-        </dl>
+        {expanded ? (
+          <>
+            <div className="grid gap-3">
+              {bill.items.map((item) => (
+                <PaymentItemBreakdown
+                  key={item.errandDemandItemId}
+                  item={item}
+                />
+              ))}
+            </div>
+            <Separator />
+            <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 text-sm">
+              <dt className="text-muted-foreground">商品费</dt>
+              <dd>{formatPrice(bill.productAmountCents)}</dd>
+              <dt className="text-muted-foreground">跑腿费</dt>
+              <dd>{formatPrice(bill.serviceFeeAmountCents)}</dd>
+              <dt className="text-muted-foreground">包装费</dt>
+              <dd>{formatPrice(bill.packagingFeeShareCents)}</dd>
+            </dl>
+          </>
+        ) : null}
         {bill.paymentStatus === "pending_confirmation" ? (
           <Button
             className="mt-1"
@@ -413,7 +514,7 @@ function PaymentStatusBadge({
     return <Badge variant="attention">待确认</Badge>;
   if (status === "pending") return <Badge variant="payment">未支付</Badge>;
   if (status === "confirmed") return <Badge variant="success">已收款</Badge>;
-  if (status === "problem") return <Badge variant="danger">问题账单</Badge>;
+  if (status === "closed") return <Badge variant="neutral">已关闭</Badge>;
   return <Badge variant="neutral">状态异常</Badge>;
 }
 

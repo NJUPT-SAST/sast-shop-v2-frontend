@@ -9,6 +9,7 @@ import {
   createErrandDemand,
   getErrandDemandDetails,
   listErrandDemandStores,
+  listErrandDemandStoresPage,
   type CreateErrandDemandInput,
   type CreateErrandDemandResult,
   type ErrandDemandDetailGroup,
@@ -53,6 +54,9 @@ describe("errand demand service", () => {
   it("exposes stable captain demand return types", () => {
     expectTypeOf<ReturnType<typeof listErrandDemandStores>>().toEqualTypeOf<
       Promise<ErrandDemandStoreSummary[]>
+    >();
+    expectTypeOf<ReturnType<typeof listErrandDemandStoresPage>>().toEqualTypeOf<
+      Promise<import("../pagination").PageResult<ErrandDemandStoreSummary>>
     >();
     expectTypeOf<ReturnType<typeof getErrandDemandDetails>>().toEqualTypeOf<
       Promise<ErrandDemandDetailGroup[]>
@@ -147,6 +151,20 @@ describe("errand demand service", () => {
         localOptions,
       ),
     ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      createErrandDemand(
+        {
+          ...validInput,
+          items: [
+            {
+              ...validInput.items[0],
+              serviceFeePerUnitCents: 2_147_483_648,
+            },
+          ],
+        },
+        localOptions,
+      ),
+    ).rejects.toBeInstanceOf(ValidationError);
 
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -173,11 +191,19 @@ describe("errand demand service", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const demands = await listErrandDemandStores({
+    const page = await listErrandDemandStoresPage({
       ...localOptions,
       storeName: "SAST",
       page: 1,
       pageSize: 20,
+    });
+    const demands = page.items;
+
+    expect(page).toMatchObject({
+      currentPage: 1,
+      pageSize: 20,
+      totalCount: 1,
+      hasMore: false,
     });
 
     expect(demands).toEqual([

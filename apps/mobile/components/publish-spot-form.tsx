@@ -85,6 +85,7 @@ import {
   shouldApplyBarcodeResult,
 } from "@/lib/product-template-flow";
 import { useProfileDialogs } from "./profile-dialogs-provider";
+import { StoreCreateDialog } from "./store-create-dialog";
 
 const formSchema = z.object({
   barcode: z
@@ -139,6 +140,7 @@ export function PublishSpotForm({
     useState<ProductTemplateMatch | null>(null);
   const [pendingMatchId, setPendingMatchId] = useState("");
   const [choiceOpen, setChoiceOpen] = useState(false);
+  const [storeDialogOpen, setStoreDialogOpen] = useState(false);
   const [needsQrCode, setNeedsQrCode] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -368,7 +370,7 @@ export function PublishSpotForm({
   const createTemplateHref = `/group/templates?create=1&barcode=${encodeURIComponent(
     barcode.trim(),
   )}`;
-  const createStoreHref = buildCreateStoreHref(barcode);
+  const createStoreReturnTo = buildCreateStoreReturnTo(barcode);
   const showEntryForm =
     manualEntry ||
     !showFeishuEntry ||
@@ -496,7 +498,7 @@ export function PublishSpotForm({
         {selectedMatch ? (
           <SelectedTemplateItem
             match={selectedMatch}
-            createStoreHref={createStoreHref}
+            onCreateStore={() => setStoreDialogOpen(true)}
           />
         ) : null}
       </section>
@@ -580,7 +582,10 @@ export function PublishSpotForm({
         value={pendingMatchId}
         onValueChange={setPendingMatchId}
         onOpenChange={setChoiceOpen}
-        createStoreHref={createStoreHref}
+        onCreateStore={() => {
+          setChoiceOpen(false);
+          window.setTimeout(() => setStoreDialogOpen(true), 240);
+        }}
         onConfirm={() => {
           const next = matches.find(
             (match) => match.productTemplate.id === pendingMatchId,
@@ -594,6 +599,14 @@ export function PublishSpotForm({
           setLookupStatus("selected");
           setChoiceOpen(false);
         }}
+      />
+
+      <StoreCreateDialog
+        open={storeDialogOpen}
+        onOpenChange={setStoreDialogOpen}
+        dataSource={dataSource}
+        connectBaseUrl={connectBaseUrl}
+        returnTo={createStoreReturnTo}
       />
 
       <Drawer open={needsQrCode} onOpenChange={setNeedsQrCode}>
@@ -637,10 +650,10 @@ export function PublishSpotForm({
 
 function SelectedTemplateItem({
   match,
-  createStoreHref,
+  onCreateStore,
 }: {
   match: ProductTemplateMatch;
-  createStoreHref: string;
+  onCreateStore: () => void;
 }) {
   const template = match.productTemplate;
 
@@ -664,8 +677,13 @@ function SelectedTemplateItem({
       </ItemContent>
       {!match.store ? (
         <ItemActions>
-          <Button asChild type="button" size="sm" variant="outline">
-            <Link href={createStoreHref}>创建店铺</Link>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={onCreateStore}
+          >
+            创建店铺
           </Button>
         </ItemActions>
       ) : null}
@@ -680,7 +698,7 @@ function StoreChoiceDrawer({
   onValueChange,
   onOpenChange,
   onConfirm,
-  createStoreHref,
+  onCreateStore,
 }: {
   open: boolean;
   matches: ProductTemplateMatch[];
@@ -688,7 +706,7 @@ function StoreChoiceDrawer({
   onValueChange: (value: string) => void;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
-  createStoreHref: string;
+  onCreateStore: () => void;
 }) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -736,8 +754,13 @@ function StoreChoiceDrawer({
                   <ItemDescription>未找到店铺信息</ItemDescription>
                 </ItemContent>
                 <ItemActions>
-                  <Button asChild type="button" size="sm" variant="outline">
-                    <Link href={createStoreHref}>创建店铺</Link>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={onCreateStore}
+                  >
+                    创建店铺
                   </Button>
                 </ItemActions>
               </Item>
@@ -785,10 +808,8 @@ function TemplateActionItem({
   );
 }
 
-function buildCreateStoreHref(barcode: string): string {
-  const returnTo = `/group/templates?create=1&barcode=${encodeURIComponent(
+function buildCreateStoreReturnTo(barcode: string): string {
+  return `/group/templates?create=1&barcode=${encodeURIComponent(
     barcode.trim(),
   )}`;
-
-  return `/group/stores/new?returnTo=${encodeURIComponent(returnTo)}`;
 }

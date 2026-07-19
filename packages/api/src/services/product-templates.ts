@@ -5,6 +5,7 @@ import { ProductTemplateService } from "../gen/sast/sastshopv2/catalog/v1/produc
 import type { Store as ProtoStore } from "../gen/sast/sastshopv2/catalog/v1/store_pb";
 import { resolveDataSource, type ServiceOptions } from "../data-source";
 import { FeatureUnavailableError, ValidationError } from "../errors";
+import { createPageResult, type PageResult } from "../pagination";
 import { createLocalTransport, requestLocal } from "../local-connect";
 import { formatProtoTimestamp, parseProtoTimestamp } from "../proto-timestamp";
 import { listStores, type Store } from "./catalog";
@@ -63,19 +64,51 @@ export async function listProductTemplates(
     pageSize?: number;
   } = {},
 ): Promise<ProductTemplate[]> {
+  const result = await listProductTemplatesPage(options);
+  return result.items;
+}
+
+export async function listProductTemplatesPage(
+  options: ServiceOptions & {
+    storeId?: string;
+    page?: number;
+    pageSize?: number;
+  } = {},
+): Promise<PageResult<ProductTemplate>> {
   const dataSource = resolveDataSource(options);
+  const page = parsePositiveInteger(options.page ?? 1, "页码不正确");
+  const pageSize = parsePositiveInteger(
+    options.pageSize ?? 50,
+    "每页数量不正确",
+  );
 
   if (dataSource === "mock" || dataSource === "local") {
     if (options.storeId !== undefined) {
-      return listTemplatesByStore(options.storeId, options);
+      return listTemplatesByStorePage(options.storeId, {
+        ...options,
+        page,
+        pageSize,
+      });
     }
 
     const stores = await listStores(options);
-    const templates = await Promise.all(
-      stores.map((store) => listTemplatesByStore(store.id, options)),
+    const pages = await Promise.all(
+      stores.map((store) =>
+        listTemplatesByStorePage(store.id, { ...options, page, pageSize }),
+      ),
     );
 
-    return templates.flat();
+    return createPageResult({
+      items: pages.flatMap((result) => result.items),
+      currentPage: page,
+      pageSize,
+      totalCount: pages.reduce((total, result) => total + result.totalCount, 0),
+      expectedPage: page,
+      feature: "listProductTemplates",
+      hasMore: pages.some((result) => result.hasMore),
+      maxItems: pageSize * stores.length,
+      validateOffset: false,
+    });
   }
 
   throw new FeatureUnavailableError("listProductTemplates");
@@ -179,10 +212,10 @@ export async function updateProductTemplate(
   throw new FeatureUnavailableError("updateProductTemplate");
 }
 
-async function listTemplatesByStore(
+async function listTemplatesByStorePage(
   storeId: string,
   options: ServiceOptions & { page?: number; pageSize?: number },
-): Promise<ProductTemplate[]> {
+): Promise<PageResult<ProductTemplate>> {
   const parsedStoreId = parseInt64(storeId, "店铺 ID 不正确");
   const page = parsePositiveInteger(options.page ?? 1, "页码不正确");
   const pageSize = parsePositiveInteger(
@@ -200,8 +233,16 @@ async function listTemplatesByStore(
       pageSize,
     }),
   );
+  const items = response.productTemplates.map(mapTemplate);
 
-  return response.productTemplates.map(mapTemplate);
+  return createPageResult({
+    items,
+    currentPage: response.currentPage,
+    pageSize,
+    totalCount: response.totalCount,
+    expectedPage: page,
+    feature: "listProductTemplates",
+  });
 }
 
 function validateCreateProductTemplateInput(input: CreateProductTemplateInput) {

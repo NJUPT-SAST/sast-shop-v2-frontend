@@ -24,7 +24,7 @@ import {
   type DistributingTaskDetail,
   type DistributingTaskItem,
 } from "@sast-shop/api";
-import { formatPrice } from "@sast-shop/domain";
+import { formatPrice, parseYuanToCents } from "@sast-shop/domain";
 import {
   Avatar,
   AvatarFallback,
@@ -80,16 +80,8 @@ function formatYuan(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
-function parseToCents(value: string): number {
-  const n = Number(value);
-  if (!Number.isFinite(n) || n < 0) return 0;
-  return Math.max(0, Math.round(n * 100));
-}
-
 function isItemFullyDistributed(item: DistributingTaskItem): boolean {
-  return item.requesters.every(
-    (r) => r.distributedQuantity > 0 || r.distributedQuantity === -1,
-  );
+  return item.requesters.every((r) => r.distributedQuantity >= 0);
 }
 
 export function DistributingTaskView({
@@ -212,7 +204,7 @@ export function DistributingTaskView({
         {
           errandTaskItemId: item.errandTaskItemId,
           errandTaskAssignmentId: requester.errandTaskAssignmentId,
-          distributedQuantity: 0,
+          distributedQuantity: -1,
           assignmentUpdatedAt: requester.assignmentUpdatedAt,
         },
         serviceOptions,
@@ -220,7 +212,7 @@ export function DistributingTaskView({
       updateRequester(
         item.errandTaskItemId,
         requester.errandTaskAssignmentId,
-        0,
+        -1,
       );
       if (dataSource === "local") {
         try {
@@ -247,8 +239,12 @@ export function DistributingTaskView({
   const handleUpdatePrice = async () => {
     if (dialog.type !== "edit_price") return;
     if (submittingRef.current) return;
+    const cents = parseYuanToCents(dialog.draft);
+    if (cents === null) {
+      toast.error("请输入不超过两位小数且未超出上限的实际单价");
+      return;
+    }
     submittingRef.current = true;
-    const cents = parseToCents(dialog.draft);
     try {
       await updateActualPrice(
         detail.taskId,
@@ -268,9 +264,13 @@ export function DistributingTaskView({
 
   const handleStartDistributing = async () => {
     if (submittingRef.current) return;
+    const feeCents = parseYuanToCents(packagingFee);
+    if (feeCents === null) {
+      toast.error("请输入不超过两位小数且未超出上限的包装费");
+      return;
+    }
     submittingRef.current = true;
     setSubmitting(true);
-    const feeCents = parseToCents(packagingFee);
     try {
       await transitionToDistributing(
         detail.taskId,
@@ -445,7 +445,7 @@ export function DistributingTaskView({
                             })
                           }
                           onSkip={() =>
-                            void handleSaveAssignment(item, requester, -1)
+                            void handleSaveAssignment(item, requester, 0)
                           }
                           onRevoke={() =>
                             void handleRevokeAssignment(item, requester)
@@ -510,6 +510,11 @@ export function DistributingTaskView({
             <p className="text-xs text-muted-foreground">
               将按购买金额比例分摊到每位买家，除不尽时向上取整
             </p>
+            {parseYuanToCents(packagingFee) === null ? (
+              <p className="text-xs text-destructive">
+                请输入不超过两位小数且未超出金额上限的包装费
+              </p>
+            ) : null}
           </label>
         </section>
       )}
@@ -523,6 +528,7 @@ export function DistributingTaskView({
         {mode === "pending_distributing" ? (
           <Button
             type="button"
+            disabled={parseYuanToCents(packagingFee) === null}
             className="h-12 w-full"
             onClick={() => setDialog({ type: "confirm_start" })}
           >
@@ -577,6 +583,11 @@ export function DistributingTaskView({
                   placeholder="0.00"
                 />
               </InputGroup>
+              {parseYuanToCents(dialog.draft) === null ? (
+                <p className="text-xs text-destructive">
+                  请输入不超过两位小数且未超出金额上限的单价
+                </p>
+              ) : null}
             </Field>
           )}
           <ResponsiveDialogFooter>
@@ -587,7 +598,14 @@ export function DistributingTaskView({
             >
               取消
             </Button>
-            <Button type="button" onClick={() => void handleUpdatePrice()}>
+            <Button
+              type="button"
+              disabled={
+                dialog.type !== "edit_price" ||
+                parseYuanToCents(dialog.draft) === null
+              }
+              onClick={() => void handleUpdatePrice()}
+            >
               确认
             </Button>
           </ResponsiveDialogFooter>
@@ -674,7 +692,7 @@ export function DistributingTaskView({
             <ResponsiveDialogTitle>确认开始分发</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
               开始分发后将无法修改商品单价，包装费为{" "}
-              {formatPrice(parseToCents(packagingFee))}。
+              {formatPrice(parseYuanToCents(packagingFee) ?? 0)}。
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
           <ResponsiveDialogFooter>
@@ -783,7 +801,7 @@ function RequesterRow({
   onRevoke: () => void;
 }) {
   const isDone = requester.distributedQuantity > 0;
-  const isSkipped = requester.distributedQuantity === -1;
+  const isSkipped = requester.distributedQuantity === 0;
   const [actionOpen, setActionOpen] = useState(false);
   const pointerStartXRef = useRef<number | null>(null);
   const pointerStartYRef = useRef<number | null>(null);

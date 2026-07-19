@@ -2,6 +2,7 @@ import { loginWithLarkCode } from "@sast-shop/api";
 import {
   createSessionUserCookie,
   getSessionCookieSecret,
+  loginExchangeGuard,
   readSessionUserCookie,
   sessionCookieName,
   sessionUserCookieName,
@@ -127,6 +128,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const permit = loginExchangeGuard.tryAcquire();
+  if (!permit.allowed) {
+    return NextResponse.json(
+      { error: "Too many login attempts" },
+      {
+        status: 429,
+        headers: {
+          "cache-control": "no-store",
+          "retry-after": String(permit.retryAfterSeconds),
+        },
+      },
+    );
+  }
+
   let session;
   let sessionUserCookie: string;
   try {
@@ -145,6 +160,8 @@ export async function POST(request: NextRequest) {
       { error: "Authorization code exchange failed" },
       { status: 401 },
     );
+  } finally {
+    permit.release();
   }
 
   const expires = new Date(session.expiresAt);

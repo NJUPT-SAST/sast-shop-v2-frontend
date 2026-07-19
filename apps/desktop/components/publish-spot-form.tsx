@@ -18,7 +18,7 @@ import {
   type ProductTemplateMatch,
   type ServiceOptions,
 } from "@sast-shop/api";
-import { formatPrice } from "@sast-shop/domain";
+import { formatPrice, parseYuanToCents } from "@sast-shop/domain";
 import {
   Alert,
   AlertAction,
@@ -61,6 +61,7 @@ import {
   resolveProductTemplateMatches,
   shouldApplyBarcodeResult,
 } from "@/lib/product-template-flow";
+import { StoreCreateDialog } from "@/components/store-create-dialog";
 
 type LookupStatus =
   "idle" | "loading" | "empty" | "choose" | "selected" | "error";
@@ -84,6 +85,7 @@ export function PublishSpotForm({
   const [selectedMatch, setSelectedMatch] =
     useState<ProductTemplateMatch | null>(null);
   const [choiceOpen, setChoiceOpen] = useState(false);
+  const [storeDialogOpen, setStoreDialogOpen] = useState(false);
   const [pendingMatchId, setPendingMatchId] = useState("");
   const [price, setPrice] = useState("0.01");
   const [stock, setStock] = useState("1");
@@ -98,6 +100,7 @@ export function PublishSpotForm({
   );
   const barcodeError =
     barcodeIntent.kind === "invalid" ? barcodeIntent.message : null;
+  const createStoreReturnTo = buildCreateStoreReturnTo(barcode);
 
   const lookupTemplates = useCallback(
     async (requestedBarcode: string) => {
@@ -189,14 +192,18 @@ export function PublishSpotForm({
 
   async function submit() {
     if (submittingRef.current || !selectedMatch) return;
-    const priceValue = Number(price);
+    const priceCents = parseYuanToCents(price);
     const stockValue = Number(stock);
-    if (!Number.isFinite(priceValue) || priceValue < 0.01) {
-      setFormError("售卖单价至少为 0.01 元");
+    if (priceCents === null || priceCents < 1) {
+      setFormError("售卖单价应为不超过 21474836.47 元的两位小数");
       return;
     }
-    if (!Number.isInteger(stockValue) || stockValue < 1) {
-      setFormError("初始库存必须是大于 0 的整数");
+    if (
+      !Number.isInteger(stockValue) ||
+      stockValue < 1 ||
+      stockValue > 2_147_483_647
+    ) {
+      setFormError("初始库存必须是 1 至 2147483647 的整数");
       return;
     }
     if (!selectedMatch.store) {
@@ -230,7 +237,7 @@ export function PublishSpotForm({
         await createSpotGoods(
           {
             productTemplateId: selectedMatch.productTemplate.id,
-            salePriceCents: Math.round(priceValue * 100),
+            salePriceCents: priceCents,
             stockTotal: stockValue,
             productTemplateUpdatedAt: selectedMatch.productTemplate.updatedAt,
           },
@@ -375,8 +382,13 @@ export function PublishSpotForm({
                   </ItemDescription>
                 </ItemContent>
                 {!selectedMatch.store ? (
-                  <Button asChild type="button" size="sm" variant="outline">
-                    <Link href={buildCreateStoreHref(barcode)}>创建店铺</Link>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setStoreDialogOpen(true)}
+                  >
+                    创建店铺
                   </Button>
                 ) : null}
               </Item>
@@ -395,6 +407,7 @@ export function PublishSpotForm({
                         id="desktop-spot-price"
                         type="number"
                         min="0.01"
+                        max="21474836.47"
                         step="0.01"
                         value={price}
                         onChange={(event) => setPrice(event.target.value)}
@@ -410,6 +423,7 @@ export function PublishSpotForm({
                         id="desktop-spot-stock"
                         type="number"
                         min="1"
+                        max="2147483647"
                         step="1"
                         value={stock}
                         onChange={(event) => setStock(event.target.value)}
@@ -481,8 +495,16 @@ export function PublishSpotForm({
                     <ItemTitle>{match.productTemplate.title}</ItemTitle>
                     <ItemDescription>未找到店铺信息</ItemDescription>
                   </ItemContent>
-                  <Button asChild type="button" size="sm" variant="outline">
-                    <Link href={buildCreateStoreHref(barcode)}>创建店铺</Link>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setChoiceOpen(false);
+                      window.setTimeout(() => setStoreDialogOpen(true), 200);
+                    }}
+                  >
+                    创建店铺
                   </Button>
                 </Item>
               ),
@@ -504,6 +526,14 @@ export function PublishSpotForm({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <StoreCreateDialog
+        open={storeDialogOpen}
+        onOpenChange={setStoreDialogOpen}
+        dataSource={dataSource}
+        connectBaseUrl={connectBaseUrl}
+        returnTo={createStoreReturnTo}
+      />
 
       <Dialog open={needsQrCode} onOpenChange={setNeedsQrCode}>
         <DialogContent>
@@ -527,10 +557,8 @@ export function PublishSpotForm({
   );
 }
 
-function buildCreateStoreHref(barcode: string): string {
-  const returnTo = `/group/templates?create=1&barcode=${encodeURIComponent(
+function buildCreateStoreReturnTo(barcode: string): string {
+  return `/group/templates?create=1&barcode=${encodeURIComponent(
     barcode.trim(),
   )}`;
-
-  return `/group/stores/new?returnTo=${encodeURIComponent(returnTo)}`;
 }

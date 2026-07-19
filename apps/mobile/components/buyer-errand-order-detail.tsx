@@ -419,8 +419,9 @@ function BillCard({ bill }: { bill: PaymentBill }) {
           {bill.verifyCode ? (
             <>
               <dt className="text-muted-foreground">付款标识码</dt>
-              <dd className="break-all text-right font-mono font-semibold">
-                {bill.verifyCode}
+              <dd className="flex min-w-0 items-center justify-end gap-1 font-mono font-semibold">
+                <span className="break-all text-right">{bill.verifyCode}</span>
+                <CopyButton value={bill.verifyCode} label="付款标识码" />
               </dd>
             </>
           ) : null}

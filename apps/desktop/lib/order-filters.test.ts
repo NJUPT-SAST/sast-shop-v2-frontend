@@ -2,10 +2,24 @@ import { describe, expect, it } from "vitest";
 
 import {
   getOrderFiltersFromParams,
+  getStatusLabel,
+  getStatusOptions,
   updateOrderFilterParams,
 } from "./order-filters";
 
 describe("desktop order filters", () => {
+  it("uses responsibility-aware labels for spot sellers", () => {
+    expect(getStatusOptions("spot", "seller")).toEqual(
+      expect.arrayContaining([
+        { value: "pending_payment", label: "待收款" },
+        { value: "processing", label: "后续处理" },
+      ]),
+    );
+    expect(getStatusLabel("pending_payment", "seller")).toBe("待收款");
+    expect(getStatusLabel("paid", "seller")).toBe("后续处理");
+    expect(getStatusLabel("pending_payment", "buyer")).toBe("待支付");
+  });
+
   it("restores a valid errand captain view from the URL", () => {
     expect(
       getOrderFiltersFromParams(

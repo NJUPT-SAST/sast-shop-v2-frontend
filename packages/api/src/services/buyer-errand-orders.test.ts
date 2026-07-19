@@ -8,6 +8,7 @@ import {
   getBuyerErrandOrderCaptainContact,
   getBuyerErrandOrderDetail,
   listBuyerErrandOrders,
+  listBuyerErrandOrdersPage,
   type BuyerErrandOrder,
   type BuyerErrandOrderDetail,
   type BuyerErrandOrderStatusFilter,
@@ -26,6 +27,9 @@ describe("buyer errand order service", () => {
   it("exposes a stable buyer errand order return type", () => {
     expectTypeOf<ReturnType<typeof listBuyerErrandOrders>>().toEqualTypeOf<
       Promise<BuyerErrandOrder[]>
+    >();
+    expectTypeOf<ReturnType<typeof listBuyerErrandOrdersPage>>().toEqualTypeOf<
+      Promise<import("../pagination").PageResult<BuyerErrandOrder>>
     >();
     expectTypeOf<ReturnType<typeof getBuyerErrandOrderDetail>>().toEqualTypeOf<
       Promise<BuyerErrandOrderDetail>
@@ -394,12 +398,20 @@ describe("buyer errand order service", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const orders = await listBuyerErrandOrders({
+    const page = await listBuyerErrandOrdersPage({
       ...localOptions,
       storeId: "3001",
       status: "open",
       page: 1,
       pageSize: 20,
+    });
+    const orders = page.items;
+
+    expect(page).toMatchObject({
+      currentPage: 1,
+      pageSize: 20,
+      totalCount: 1,
+      hasMore: false,
     });
 
     expect(orders).toEqual([

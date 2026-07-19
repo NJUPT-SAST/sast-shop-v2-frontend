@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RiSearchLine, RiShoppingBag3Line } from "@remixicon/react";
 import {
@@ -16,14 +9,9 @@ import {
   listSpotGoods,
   type DataSource,
   type ListSpotGoodsResult,
+  type SpotGoodsBrief,
 } from "@sast-shop/api";
-import {
-  formatPrice,
-  hasMoreSpotGoods,
-  mergeSpotGoodsPages,
-  resolveNextSpotGoodsPage,
-  type SpotGoodsLoadTrigger,
-} from "@sast-shop/domain";
+import { formatPrice, hasMoreSpotGoods } from "@sast-shop/domain";
 import {
   Avatar,
   AvatarFallback,
@@ -40,6 +28,7 @@ import {
   DialogTitle,
 } from "@workspace/ui/components/dialog";
 import { Empty } from "@workspace/ui/components/empty";
+import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
 import {
   InputGroup,
   InputGroupAddon,
@@ -49,6 +38,7 @@ import { Spinner } from "@workspace/ui/components/spinner";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { QuantityStepper } from "@workspace/ui/components/quantity-stepper";
 import { toast } from "sonner";
+import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
 
 import {
   clampPurchaseQuantity,
@@ -72,18 +62,47 @@ export function SpotMarketplace({
   error: string | null;
 }) {
   const router = useRouter();
-  const [loadedGoods, setLoadedGoods] = useState(initialPage.goods);
-  const [currentPage, setCurrentPage] = useState(initialPage.currentPage);
-  const [totalCount, setTotalCount] = useState(initialPage.totalCount);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [loadMoreError, setLoadMoreError] = useState(false);
-  const loadingMoreRef = useRef(false);
-  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
-  const autoLoadSupported = useSyncExternalStore(
-    emptySubscribe,
-    () => "IntersectionObserver" in window,
-    () => true,
+  const firstPage = useMemo(
+    () => ({
+      items: initialPage.goods,
+      currentPage: initialPage.currentPage,
+      pageSize: initialPage.pageSize,
+      totalCount: initialPage.totalCount,
+      hasMore: hasMoreSpotGoods(initialPage),
+    }),
+    [initialPage],
   );
+  const loadPage = useCallback(
+    async (page: number) => {
+      const result = await listSpotGoods({
+        dataSource,
+        connectBaseUrl,
+        page,
+        pageSize: initialPage.pageSize,
+      });
+      return {
+        items: result.goods,
+        currentPage: result.currentPage,
+        pageSize: result.pageSize,
+        totalCount: result.totalCount,
+        hasMore: hasMoreSpotGoods(result),
+      };
+    },
+    [connectBaseUrl, dataSource, initialPage.pageSize],
+  );
+  const {
+    items: loadedGoods,
+    loadingMore,
+    loadMoreError,
+    hasMore,
+    totalCount,
+    loadMore,
+  } = useInfinitePage({
+    initialPage: firstPage,
+    loadPage,
+    getKey: getSpotGoodsKey,
+    identity: `${dataSource}:${connectBaseUrl}`,
+  });
 
   const products = useMemo(
     () => mapSpotProductBriefs(loadedGoods),
@@ -105,84 +124,13 @@ export function SpotMarketplace({
     () => filterSpotProducts(products, query),
     [products, query],
   );
-  const hasMore = hasMoreSpotGoods({
-    currentPage,
-    pageSize: initialPage.pageSize,
-    totalCount,
-  });
-
-  const loadNextPage = useCallback(
-    async (trigger: SpotGoodsLoadTrigger) => {
-      const nextPageNumber = resolveNextSpotGoodsPage({
-        currentPage,
-        pageSize: initialPage.pageSize,
-        totalCount,
-        loading: loadingMoreRef.current,
-        loadMoreError,
-        trigger,
-        query,
-      });
-      if (nextPageNumber === null) return;
-
-      loadingMoreRef.current = true;
-      setLoadingMore(true);
-      setLoadMoreError(false);
-
-      try {
-        const nextPage = await listSpotGoods({
-          dataSource,
-          connectBaseUrl,
-          page: nextPageNumber,
-          pageSize: initialPage.pageSize,
-        });
-        setLoadedGoods((current) =>
-          mergeSpotGoodsPages(current, nextPage.goods),
-        );
-        setCurrentPage(nextPage.currentPage);
-        setTotalCount(nextPage.totalCount);
-      } catch {
-        setLoadMoreError(true);
-      } finally {
-        loadingMoreRef.current = false;
-        setLoadingMore(false);
-      }
-    },
-    [
-      connectBaseUrl,
-      currentPage,
-      dataSource,
-      initialPage.pageSize,
-      loadMoreError,
-      query,
-      totalCount,
-    ],
-  );
-
   useEffect(() => {
     if (!query.trim() || !hasMore || loadMoreError) return;
     const timeout = window.setTimeout(() => {
-      void loadNextPage("search");
+      void loadMore();
     }, 250);
     return () => window.clearTimeout(timeout);
-  }, [hasMore, loadMoreError, loadNextPage, query]);
-
-  useEffect(() => {
-    const sentinel = loadMoreSentinelRef.current;
-    if (!sentinel || !hasMore || loadMoreError || !autoLoadSupported) {
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          void loadNextPage("viewport");
-        }
-      },
-      { rootMargin: "320px 0px" },
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [autoLoadSupported, hasMore, loadMoreError, loadNextPage]);
+  }, [hasMore, loadMore, loadMoreError, query]);
 
   function setDialogOpen(open: boolean) {
     if (!open && !submitting) {
@@ -332,53 +280,20 @@ export function SpotMarketplace({
         </section>
       )}
 
-      {!error && loadingMore ? <SpotGoodsLoadingSkeletons /> : null}
-
-      {!error && hasMore && !loadMoreError ? (
-        <div
-          ref={loadMoreSentinelRef}
-          className="h-px w-full"
-          aria-hidden="true"
+      {!error ? (
+        <InfiniteListStatus
+          hasMore={hasMore}
+          loading={loadingMore}
+          error={loadMoreError}
+          hasItems={totalCount > 0}
+          onLoadMore={() => void loadMore()}
+          loadingFallback={<SpotGoodsLoadingSkeletons />}
+          endMessage={
+            query.trim()
+              ? `搜索完成，共找到 ${filtered.length} 件商品`
+              : `已经到底，共 ${loadedGoods.length} 件商品`
+          }
         />
-      ) : null}
-
-      {!error && hasMore && !loadMoreError && !autoLoadSupported ? (
-        <div className="flex justify-center">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={loadingMore}
-            onClick={() => void loadNextPage("manual")}
-          >
-            {loadingMore ? <Spinner /> : null}
-            加载更多
-          </Button>
-        </div>
-      ) : null}
-
-      {!error && loadMoreError ? (
-        <div className="flex justify-center">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={loadingMore}
-            onClick={() => void loadNextPage("manual")}
-          >
-            {loadingMore ? <Spinner /> : null}
-            重新加载
-          </Button>
-        </div>
-      ) : null}
-
-      {!error && totalCount > 0 && !hasMore && !loadingMore ? (
-        <p
-          className="text-center text-sm text-muted-foreground"
-          aria-live="polite"
-        >
-          {query.trim()
-            ? `搜索完成，共找到 ${filtered.length} 件商品`
-            : `已展示全部 ${loadedGoods.length} 件商品`}
-        </p>
       ) : null}
 
       <Dialog open={Boolean(selectedBrief)} onOpenChange={setDialogOpen}>
@@ -525,6 +440,6 @@ function SpotGoodsLoadingSkeletons() {
   );
 }
 
-function emptySubscribe() {
-  return () => {};
+function getSpotGoodsKey(goods: SpotGoodsBrief) {
+  return goods.id;
 }

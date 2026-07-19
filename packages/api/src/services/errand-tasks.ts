@@ -16,9 +16,11 @@ import { BillStatus } from "../gen/sast/sastshopv2/payment/v1/bill_pb";
 import { Channel } from "../gen/sast/sastshopv2/payment/v1/channel_pb";
 import { resolveDataSource, type ServiceOptions } from "../data-source";
 import { FeatureUnavailableError, ValidationError } from "../errors";
+import { createPageResult, type PageResult } from "../pagination";
 import { createLocalTransport, requestLocal } from "../local-connect";
 
 const MAX_SIGNED_INT64 = 9223372036854775807n;
+const MAX_SIGNED_INT32 = 2_147_483_647;
 
 export type ErrandTaskStatusValue =
   | "shopping"
@@ -83,30 +85,13 @@ export async function createErrandTask(
 export async function listErrandTasks(
   options: ListErrandTasksOptions = {},
 ): Promise<ErrandTaskBrief[]> {
-  const result = await listErrandTaskPage(options);
-  return result.tasks;
+  const result = await listErrandTasksPage(options);
+  return result.items;
 }
 
-export async function getErrandTaskBrief(
-  taskId: string,
-  options: ServiceOptions = {},
-): Promise<ErrandTaskBrief | null> {
-  const normalizedTaskId = parseInt64(taskId, "任务 ID 不正确").toString();
-  const pageSize = 50;
-  let page = 1;
-
-  while (true) {
-    const result = await listErrandTaskPage({ ...options, page, pageSize });
-    const task = result.tasks.find((item) => item.id === normalizedTaskId);
-
-    if (task) return task;
-    if (page * pageSize >= result.totalCount) return null;
-
-    page += 1;
-  }
-}
-
-async function listErrandTaskPage(options: ListErrandTasksOptions) {
+export async function listErrandTasksPage(
+  options: ListErrandTasksOptions = {},
+): Promise<PageResult<ErrandTaskBrief>> {
   const request = {
     page: parsePositiveInteger(options.page ?? 1, "页码不正确"),
     pageSize: parsePositiveInteger(options.pageSize ?? 50, "每页数量不正确"),
@@ -125,13 +110,36 @@ async function listErrandTaskPage(options: ListErrandTasksOptions) {
       client.getErrandTaskList(request),
     );
 
-    return {
-      tasks: response.errandTasks.map(mapErrandTask),
+    return createPageResult({
+      items: response.errandTasks.map(mapErrandTask),
+      currentPage: response.currentPage,
+      pageSize: request.pageSize,
       totalCount: response.totalCount,
-    };
+      expectedPage: request.page,
+      feature: "listErrandTasks",
+    });
   }
 
   throw new FeatureUnavailableError("listErrandTasks");
+}
+
+export async function getErrandTaskBrief(
+  taskId: string,
+  options: ServiceOptions = {},
+): Promise<ErrandTaskBrief | null> {
+  const normalizedTaskId = parseInt64(taskId, "任务 ID 不正确").toString();
+  const pageSize = 50;
+  let page = 1;
+
+  while (true) {
+    const result = await listErrandTasksPage({ ...options, page, pageSize });
+    const task = result.items.find((item) => item.id === normalizedTaskId);
+
+    if (task) return task;
+    if (page * pageSize >= result.totalCount) return null;
+
+    page += 1;
+  }
 }
 
 function parseCreateErrandTaskInput(input: CreateErrandTaskInput) {
@@ -214,6 +222,30 @@ function parseInt64(value: string, message: string): bigint {
 
 function parsePositiveInteger(value: number, message: string): number {
   if (!Number.isInteger(value) || value <= 0) {
+    throw new ValidationError(message);
+  }
+
+  return value;
+}
+
+function parseOperationQuantity(value: number, message: string): number {
+  if (
+    !Number.isInteger(value) ||
+    value < -1 ||
+    value > MAX_SIGNED_INT32
+  ) {
+    throw new ValidationError(message);
+  }
+
+  return value;
+}
+
+function parseNonNegativeInt32(value: number, message: string): number {
+  if (
+    !Number.isInteger(value) ||
+    value < 0 ||
+    value > MAX_SIGNED_INT32
+  ) {
     throw new ValidationError(message);
   }
 
@@ -331,7 +363,7 @@ export interface CollectingPaymentBill {
   requesterName: string;
   requesterAvatarUrl: string;
   paymentStatus:
-    "pending" | "pending_confirmation" | "confirmed" | "problem" | "unknown";
+    "pending" | "pending_confirmation" | "confirmed" | "closed" | "unknown";
   billId: string | null;
   billNo: string | null;
   billUpdatedAt: string | null;
@@ -397,6 +429,10 @@ export async function saveShoppingTaskItem(
   options: ServiceOptions = {},
 ): Promise<void> {
   const dataSource = resolveDataSource(options);
+  const purchasedQuantity = parseOperationQuantity(
+    input.purchasedQuantity,
+    "采购数量不正确",
+  );
 
   if (dataSource === "mock" || dataSource === "local") {
     const client = createClient(
@@ -410,7 +446,7 @@ export async function saveShoppingTaskItem(
           input.errandTaskItemId,
           "任务商品 ID 不正确",
         ),
-        purchasedQuantity: input.purchasedQuantity,
+        purchasedQuantity,
         ...(input.nonPurchaseReason != null
           ? { nonPurchaseReason: input.nonPurchaseReason }
           : {}),
@@ -498,6 +534,10 @@ export async function updateActualPrice(
   options: ServiceOptions = {},
 ): Promise<void> {
   const dataSource = resolveDataSource(options);
+  const actualUnitPriceCents = parseNonNegativeInt32(
+    priceCents,
+    "实际单价不正确",
+  );
 
   if (dataSource === "mock" || dataSource === "local") {
     const client = createClient(
@@ -508,7 +548,7 @@ export async function updateActualPrice(
       client.updateActualPrice({
         errandTaskId: parseInt64(taskId, "跑腿任务 ID 不正确"),
         errandTaskItemId: parseInt64(taskItemId, "任务商品 ID 不正确"),
-        actualUnitPriceCents: priceCents,
+        actualUnitPriceCents,
         ...(itemUpdatedAt != null
           ? {
               errandTaskItemUpdatedAt: parseOptionalTimestampString(
@@ -533,6 +573,10 @@ export async function transitionToDistributing(
 ): Promise<void> {
   const errandTaskId = parseInt64(taskId, "跑腿任务 ID 不正确");
   const dataSource = resolveDataSource(options);
+  const normalizedPackagingFeeCents = parseNonNegativeInt32(
+    packagingFeeCents,
+    "包装费不正确",
+  );
 
   if (dataSource === "mock" || dataSource === "local") {
     const client = createClient(
@@ -542,7 +586,7 @@ export async function transitionToDistributing(
     await requestLocal("transitionToDistributing", () =>
       client.transitionToDistributing({
         errandTaskId,
-        packagingFeeCents,
+        packagingFeeCents: normalizedPackagingFeeCents,
         ...(updatedAt != null
           ? {
               updatedAt: parseOptionalTimestampString(
@@ -564,6 +608,10 @@ export async function saveDistributingAssignment(
   options: ServiceOptions = {},
 ): Promise<void> {
   const dataSource = resolveDataSource(options);
+  const distributedQuantity = parseOperationQuantity(
+    input.distributedQuantity,
+    "分发数量不正确",
+  );
 
   if (dataSource === "mock" || dataSource === "local") {
     const client = createClient(
@@ -580,7 +628,7 @@ export async function saveDistributingAssignment(
           input.errandTaskAssignmentId,
           "分发明细 ID 不正确",
         ),
-        distributedQuantity: input.distributedQuantity,
+        distributedQuantity,
         ...(input.assignmentUpdatedAt != null
           ? {
               errandTaskAssignmentUpdatedAt: parseOptionalTimestampString(
@@ -726,7 +774,10 @@ function mapErrandTaskItem(item: ErrandTaskItem): ShoppingTaskItem {
     productImageUrl: item.productSnapshot?.mainImageUrl ?? "",
     productBarcode: item.productSnapshot?.barcode ?? "",
     requiredQuantity: item.requiredQuantity,
-    purchasedQuantity: item.purchasedQuantity ?? null,
+    purchasedQuantity:
+      item.purchasedQuantity == null || item.purchasedQuantity === -1
+        ? null
+        : item.purchasedQuantity,
     nonPurchaseReason: item.nonPurchaseReason ?? null,
     actualUnitPriceCents: item.actualUnitPriceCents,
     updatedAt: formatTimestamp(item.updatedAt),
@@ -785,7 +836,7 @@ function mapBillStatus(
   if (status === BillStatus.UNPAID) return "pending";
   if (status === BillStatus.SUBMITTED) return "pending_confirmation";
   if (status === BillStatus.COMPLETED) return "confirmed";
-  if (status === BillStatus.CLOSED) return "problem";
+  if (status === BillStatus.CLOSED) return "closed";
   return "unknown";
 }
 

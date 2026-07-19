@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   RiAddLine,
@@ -10,17 +10,21 @@ import {
 } from "@remixicon/react";
 import {
   createErrandDemand,
+  listProductTemplatesPage,
   type DataSource,
+  type PageResult,
   type ProductTemplate,
   type ServiceOptions,
   type Store,
 } from "@sast-shop/api";
-import { formatPrice } from "@sast-shop/domain";
+import { formatPrice, parseYuanToCents } from "@sast-shop/domain";
 import { Button } from "@workspace/ui/components/button";
 import { Card } from "@workspace/ui/components/card";
 import { Empty } from "@workspace/ui/components/empty";
+import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
 import { Input } from "@workspace/ui/components/input";
 import { QuantityStepper } from "@workspace/ui/components/quantity-stepper";
+import { Skeleton } from "@workspace/ui/components/skeleton";
 import {
   InputGroup,
   InputGroupAddon,
@@ -36,9 +40,11 @@ import {
   ResponsiveDialogTitle,
 } from "@workspace/ui/components/responsive-dialog";
 import { toast } from "sonner";
+import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
 
 import {
   getDefaultErrandDeadline,
+  getMinimumErrandDeadline,
   isValidErrandDeadline,
   toDateTimeLocalValue,
 } from "@/lib/errand-delivery-time";
@@ -49,7 +55,7 @@ type ErrandShopProps = {
   dataSource: DataSource;
   connectBaseUrl: string;
   store: Store;
-  templates: ProductTemplate[];
+  initialPage: PageResult<ProductTemplate>;
 };
 
 type ErrandCartItem = {
@@ -65,9 +71,33 @@ export function ErrandShop({
   dataSource,
   connectBaseUrl,
   store,
-  templates,
+  initialPage,
 }: ErrandShopProps) {
   const router = useRouter();
+  const loadPage = useCallback(
+    (page: number) =>
+      listProductTemplatesPage({
+        dataSource,
+        connectBaseUrl,
+        storeId: store.id,
+        page,
+        pageSize: initialPage.pageSize,
+      }),
+    [connectBaseUrl, dataSource, initialPage.pageSize, store.id],
+  );
+  const {
+    items: templates,
+    loadingMore,
+    loadMoreError,
+    hasMore,
+    totalCount: availableTotalCount,
+    loadMore,
+  } = useInfinitePage({
+    initialPage,
+    loadPage,
+    getKey: getTemplateKey,
+    identity: `${dataSource}:${connectBaseUrl}:${store.id}`,
+  });
   const submittingRef = useRef(false);
   const [items, setItems] = useState<ErrandCartItem[]>([]);
   const [feeDrafts, setFeeDrafts] = useState<Record<string, string>>({});
@@ -76,6 +106,9 @@ export function ErrandShop({
     useState<ProductTemplate | null>(null);
   const [deadlineValue, setDeadlineValue] = useState(() =>
     toDateTimeLocalValue(getDefaultErrandDeadline()),
+  );
+  const minimumDeadlineValue = toDateTimeLocalValue(
+    getMinimumErrandDeadline(),
   );
   const [submitting, setSubmitting] = useState(false);
 
@@ -87,12 +120,20 @@ export function ErrandShop({
     () =>
       items.map((item) => ({
         ...item,
-        serviceFeePerUnitCents: parseMoneyDraftToCents(
-          feeDrafts[item.template.id] ??
-            formatYuanInput(item.serviceFeePerUnitCents),
-        ),
+        serviceFeePerUnitCents:
+          parseServiceFeeDraft(
+            feeDrafts[item.template.id] ??
+              formatYuanInput(item.serviceFeePerUnitCents),
+          ) ?? 0,
       })),
     [feeDrafts, items],
+  );
+  const hasInvalidServiceFee = items.some(
+    (item) =>
+      parseServiceFeeDraft(
+        feeDrafts[item.template.id] ??
+          formatYuanInput(item.serviceFeePerUnitCents),
+      ) === null,
   );
   const totalCount = pricedItems.reduce(
     (total, item) => total + item.quantity,
@@ -171,7 +212,8 @@ export function ErrandShop({
   };
 
   const normalizeServiceFee = (templateId: string, yuanValue: string) => {
-    const nextCents = parseMoneyDraftToCents(yuanValue);
+    const nextCents = parseServiceFeeDraft(yuanValue);
+    if (nextCents === null) return;
 
     setItems((currentItems) =>
       currentItems.map((item) =>
@@ -186,17 +228,19 @@ export function ErrandShop({
     }));
   };
 
-  const normalizeAllServiceFees = (): ErrandCartItem[] => {
-    const normalizedItems = items.map((item) => {
+  const normalizeAllServiceFees = (): ErrandCartItem[] | null => {
+    const normalizedItems: ErrandCartItem[] = [];
+    for (const item of items) {
       const draft =
         feeDrafts[item.template.id] ??
         formatYuanInput(item.serviceFeePerUnitCents);
-
-      return {
+      const serviceFeePerUnitCents = parseServiceFeeDraft(draft);
+      if (serviceFeePerUnitCents === null) return null;
+      normalizedItems.push({
         ...item,
-        serviceFeePerUnitCents: parseMoneyDraftToCents(draft),
-      };
-    });
+        serviceFeePerUnitCents,
+      });
+    }
     const normalizedDrafts = normalizedItems.reduce<Record<string, string>>(
       (drafts, item) => {
         const draft =
@@ -228,6 +272,10 @@ export function ErrandShop({
     }
 
     const normalizedItems = normalizeAllServiceFees();
+    if (normalizedItems === null) {
+      toast.error("跑腿费应为不超过 21474836.47 元的两位小数");
+      return;
+    }
     const deadline = new Date(deadlineValue);
 
     if (Number.isNaN(deadline.getTime()) || !isValidErrandDeadline(deadline)) {
@@ -288,12 +336,12 @@ export function ErrandShop({
       <section className="flex flex-col gap-3">
         <h2 className="text-base font-semibold">选择商品</h2>
 
-        {templates.length === 0 ? (
+        {templates.length === 0 && !loadingMore && !hasMore ? (
           <Empty
             icon={<RiShoppingBag3Line className="size-5" />}
             title="此店铺暂无可用商品模板"
           />
-        ) : (
+        ) : templates.length > 0 ? (
           <div className="columns-1 gap-3 md:columns-2">
             {templates.map((template) => {
               const cartItem = cartByTemplateId.get(template.id);
@@ -363,7 +411,17 @@ export function ErrandShop({
               );
             })}
           </div>
-        )}
+        ) : null}
+
+        <InfiniteListStatus
+          hasMore={hasMore}
+          loading={loadingMore}
+          error={loadMoreError}
+          hasItems={availableTotalCount > 0}
+          onLoadMore={() => void loadMore()}
+          loadingFallback={<TemplateLoadingSkeletons />}
+          endMessage={`已经到底，共 ${templates.length} 个可选商品`}
+        />
       </section>
 
       <MobileFixedFooter>
@@ -522,6 +580,14 @@ export function ErrandShop({
                             }
                           />
                         </InputGroup>
+                        {parseServiceFeeDraft(
+                          feeDrafts[item.template.id] ??
+                            formatYuanInput(item.serviceFeePerUnitCents),
+                        ) === null ? (
+                          <span className="text-xs font-normal text-destructive">
+                            金额过高，请输入不超过两位小数的有效金额
+                          </span>
+                        ) : null}
                       </label>
                     </div>
                   ))}
@@ -531,6 +597,7 @@ export function ErrandShop({
                   期望送达时间
                   <Input
                     type="datetime-local"
+                    min={minimumDeadlineValue}
                     value={deadlineValue}
                     onChange={(event) => setDeadlineValue(event.target.value)}
                   />
@@ -559,7 +626,9 @@ export function ErrandShop({
             <Button
               type="button"
               className="w-full"
-              disabled={items.length === 0 || submitting}
+              disabled={
+                items.length === 0 || hasInvalidServiceFee || submitting
+              }
               onClick={() => {
                 void submitDemand();
               }}
@@ -571,6 +640,27 @@ export function ErrandShop({
       </ResponsiveDialog>
     </div>
   );
+}
+
+function TemplateLoadingSkeletons() {
+  return (
+    <div className="grid gap-3" aria-label="正在加载更多可选商品">
+      {Array.from({ length: 2 }, (_, index) => (
+        <Card key={index} className="flex gap-3 p-3" aria-hidden="true">
+          <Skeleton className="size-20 shrink-0 rounded-lg" />
+          <div className="flex flex-1 flex-col gap-3">
+            <Skeleton className="h-5 w-3/5" />
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="h-8 w-2/5" />
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function getTemplateKey(template: ProductTemplate) {
+  return template.id;
 }
 
 function QuantityControl({
@@ -637,12 +727,6 @@ function formatYuanInput(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
-function parseMoneyDraftToCents(value: string): number {
-  const parsedValue = Number(value);
-
-  if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
-    return 0;
-  }
-
-  return Math.max(0, Math.round(parsedValue * 100));
+function parseServiceFeeDraft(value: string): number | null {
+  return value === "" ? 0 : parseYuanToCents(value);
 }

@@ -11,10 +11,12 @@ import type { ErrandDemandDetailRequester as ProtoErrandDemandDetailRequester } 
 import { ErrandDemandService } from "../gen/sast/sastshopv2/errand/v1/errand_demand_service_pb";
 import { resolveDataSource, type ServiceOptions } from "../data-source";
 import { FeatureUnavailableError, ValidationError } from "../errors";
+import { createPageResult, type PageResult } from "../pagination";
 import { createLocalTransport, requestLocal } from "../local-connect";
 import type { ProductTemplate } from "./product-templates";
 
 const MAX_SIGNED_INT64 = 9223372036854775807n;
+const MAX_SIGNED_INT32 = 2_147_483_647;
 
 export interface CreateErrandDemandInput {
   storeId: string;
@@ -88,6 +90,22 @@ export async function listErrandDemandStores(
     pageSize?: number;
   } = {},
 ): Promise<ErrandDemandStoreSummary[]> {
+  const result = await listErrandDemandStoresPage(options);
+  return result.items;
+}
+
+export async function listErrandDemandStoresPage(
+  options: ServiceOptions & {
+    storeName?: string;
+    page?: number;
+    pageSize?: number;
+  } = {},
+): Promise<PageResult<ErrandDemandStoreSummary>> {
+  const page = parsePositiveInteger(options.page ?? 1, "页码不正确");
+  const pageSize = parsePositiveInteger(
+    options.pageSize ?? 50,
+    "每页数量不正确",
+  );
   const dataSource = resolveDataSource(options);
 
   if (dataSource === "mock" || dataSource === "local") {
@@ -97,18 +115,22 @@ export async function listErrandDemandStores(
     );
     const response = await requestLocal("listErrandDemandStores", () =>
       client.getDemandList({
-        page: parsePositiveInteger(options.page ?? 1, "页码不正确"),
-        pageSize: parsePositiveInteger(
-          options.pageSize ?? 50,
-          "每页数量不正确",
-        ),
+        page,
+        pageSize,
         ...(options.storeName?.trim()
           ? { storeName: options.storeName.trim() }
           : {}),
       }),
     );
 
-    return response.demands.map(mapErrandDemandStore);
+    return createPageResult({
+      items: response.demands.map(mapErrandDemandStore),
+      currentPage: response.currentPage,
+      pageSize,
+      totalCount: response.totalCount,
+      expectedPage: page,
+      feature: "listErrandDemandStores",
+    });
   }
 
   throw new FeatureUnavailableError("listErrandDemandStores");
@@ -279,7 +301,7 @@ function parseTimestamp(value: string, message: string): Timestamp {
 }
 
 function parsePositiveInteger(value: number, message: string): number {
-  if (!Number.isInteger(value) || value <= 0) {
+  if (!Number.isInteger(value) || value <= 0 || value > MAX_SIGNED_INT32) {
     throw new ValidationError(message);
   }
 
@@ -287,7 +309,7 @@ function parsePositiveInteger(value: number, message: string): number {
 }
 
 function parseNonNegativeInteger(value: number, message: string): number {
-  if (!Number.isInteger(value) || value < 0) {
+  if (!Number.isInteger(value) || value < 0 || value > MAX_SIGNED_INT32) {
     throw new ValidationError(message);
   }
 

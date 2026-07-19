@@ -1,6 +1,7 @@
 import {
-  listProductTemplates,
+  listProductTemplatesPage,
   listStores,
+  type PageResult,
   type ProductTemplate,
   type Store,
 } from "@sast-shop/api";
@@ -14,7 +15,7 @@ type ProductTemplatesPageProps = {
 
 type TemplatePageData = {
   stores: Store[];
-  templates: ProductTemplate[];
+  templatePage: PageResult<ProductTemplate>;
   selectedStoreId: string | null;
   error: string | null;
 };
@@ -25,16 +26,19 @@ export default async function ProductTemplatesPage({
   const query: Record<string, string | string[] | undefined> =
     await (searchParams ?? Promise.resolve({}));
   const data = await loadTemplatePageData(firstValue(query.store));
+  const prefillBarcode = firstValue(query.barcode) ?? "";
+  const startCreating = firstValue(query.create) === "1";
 
   return (
     <ProductTemplateManager
+      key={`${data.selectedStoreId ?? "none"}:${startCreating}:${prefillBarcode}`}
       dataSource={mobileAppConfig.dataSource}
       connectBaseUrl={mobileAppConfig.connectBaseUrl}
       stores={data.stores}
-      initialTemplates={data.templates}
+      initialPage={data.templatePage}
       selectedStoreId={data.selectedStoreId}
-      prefillBarcode={firstValue(query.barcode) ?? ""}
-      startCreating={firstValue(query.create) === "1"}
+      prefillBarcode={prefillBarcode}
+      startCreating={startCreating}
       error={data.error}
     />
   );
@@ -51,19 +55,34 @@ async function loadTemplatePageData(
     )
       ? requestedStoreId!
       : (stores[0]?.id ?? null);
-    const templates = selectedStoreId
-      ? await listProductTemplates({ ...options, storeId: selectedStoreId })
-      : [];
+    const templatePage = selectedStoreId
+      ? await listProductTemplatesPage({
+          ...options,
+          storeId: selectedStoreId,
+          page: 1,
+          pageSize: 20,
+        })
+      : emptyTemplatePage(20);
 
-    return { stores, templates, selectedStoreId, error: null };
+    return { stores, templatePage, selectedStoreId, error: null };
   } catch {
     return {
       stores: [],
-      templates: [],
+      templatePage: emptyTemplatePage(20),
       selectedStoreId: null,
       error: "商品模板暂不可用，请稍后再试",
     };
   }
+}
+
+function emptyTemplatePage(pageSize: number): PageResult<ProductTemplate> {
+  return {
+    items: [],
+    currentPage: 1,
+    pageSize,
+    totalCount: 0,
+    hasMore: false,
+  };
 }
 
 function firstValue(value: string | string[] | undefined): string | undefined {

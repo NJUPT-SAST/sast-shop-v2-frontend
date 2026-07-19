@@ -1,14 +1,15 @@
 import {
-  listProductTemplates,
+  listProductTemplatesPage,
   listStores,
+  type PageResult,
   type ProductTemplate,
   type Store,
 } from "@sast-shop/api";
-import { RiStore2Line } from "@remixicon/react";
-import { Empty } from "@workspace/ui/components/empty";
+import { notFound } from "next/navigation";
 
 import { ErrandShop } from "@/components/errand-shop";
 import { mobileAppConfig } from "@/lib/app-config";
+import { isValidRouteId } from "@/lib/route-id";
 import { getServerServiceOptions } from "@/lib/server-service-options";
 
 type GroupShopPageProps = {
@@ -19,57 +20,40 @@ type GroupShopPageProps = {
 
 type StoreDetail = {
   store: Store | null;
-  templates: ProductTemplate[];
-  error: string | null;
+  templatePage: PageResult<ProductTemplate>;
 };
 
 async function loadStoreDetail(storeId: string): Promise<StoreDetail> {
-  try {
-    const options = await getServerServiceOptions();
-    const [stores, templates] = await Promise.all([
-      listStores(options),
-      listProductTemplates({
-        ...options,
-        storeId,
-      }),
-    ]);
+  const options = await getServerServiceOptions();
+  const [stores, templatePage] = await Promise.all([
+    listStores(options),
+    listProductTemplatesPage({
+      ...options,
+      storeId,
+      page: 1,
+      pageSize: 20,
+    }),
+  ]);
 
-    return {
-      store: stores.find((store) => store.id === storeId) ?? null,
-      templates,
-      error: null,
-    };
-  } catch {
-    return {
-      store: null,
-      templates: [],
-      error: "店铺商品暂不可用，请稍后再试",
-    };
-  }
+  return {
+    store: stores.find((store) => store.id === storeId) ?? null,
+    templatePage,
+  };
 }
 
 export default async function GroupShopPage({ params }: GroupShopPageProps) {
   const { id } = await params;
-  const { store, templates, error } = await loadStoreDetail(id);
+  if (!isValidRouteId(id)) notFound();
+  const { store, templatePage } = await loadStoreDetail(id);
 
-  if (error || !store) {
-    return (
-      <div className="flex flex-1 items-center justify-center py-6">
-        <Empty
-          icon={<RiStore2Line className="size-5" />}
-          title="店铺暂不可用"
-          description={error ?? "没有找到对应店铺。"}
-        />
-      </div>
-    );
-  }
+  if (!store) notFound();
 
   return (
     <ErrandShop
       dataSource={mobileAppConfig.dataSource}
       connectBaseUrl={mobileAppConfig.connectBaseUrl}
       store={store}
-      templates={templates}
+      initialPage={templatePage}
     />
   );
 }

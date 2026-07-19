@@ -13,6 +13,7 @@ import {
   getSpotOrderDetail,
   getSpotOrderSellerContact,
   listSpotOrders,
+  listSpotOrdersPage,
   type CreateSpotOrderInput,
   type SpotOrder,
 } from "./spot-orders";
@@ -42,6 +43,9 @@ describe("spot order service", () => {
   it("exposes stable spot order return types", () => {
     expectTypeOf<ReturnType<typeof listSpotOrders>>().toEqualTypeOf<
       Promise<SpotOrder[]>
+    >();
+    expectTypeOf<ReturnType<typeof listSpotOrdersPage>>().toEqualTypeOf<
+      Promise<import("../pagination").PageResult<SpotOrder>>
     >();
     expectTypeOf<ReturnType<typeof createSpotOrders>>().toEqualTypeOf<
       Promise<SpotOrder[]>
@@ -89,6 +93,7 @@ describe("spot order service", () => {
         });
       }
 
+      const storeRequestIndex = fetchMock.mock.calls.length - 1;
       return stubJsonResponse({
         spotOrders: [
           {
@@ -102,14 +107,107 @@ describe("spot order service", () => {
             status: "SPOT_ORDER_STATUS_PENDING_PAYMENT",
           },
         ],
+        currentPage: 1,
+        totalCount: storeRequestIndex === 1 ? 51 : 1,
       });
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const orders = await listSpotOrders(localOptions);
+    const page = await listSpotOrdersPage(localOptions);
 
-    expect(orders.map((order) => order.id)).toEqual(["5001"]);
+    expect(page.items.map((order) => order.id)).toEqual(["5001"]);
+    expect(page).toMatchObject({
+      currentPage: 1,
+      pageSize: 50,
+      totalCount: 52,
+      hasMore: true,
+    });
     expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("continues an aggregate page when only one store has more orders", async () => {
+    const fetchMock = vi.fn(async (input: string | Request) => {
+      const url = typeof input === "string" ? input : input.url;
+      const pathname = new URL(url).pathname;
+
+      if (pathname.includes("GetStoreList")) {
+        return stubJsonResponse({
+          stores: [
+            { id: "3001", name: "SAST 小卖部" },
+            { id: "3002", name: "南邮校园超市" },
+          ],
+        });
+      }
+
+      const storeRequestIndex = fetchMock.mock.calls.length - 1;
+      const hasOrders = storeRequestIndex === 2;
+      return stubJsonResponse({
+        spotOrders: hasOrders
+          ? [
+              {
+                id: "5051",
+                orderNo: "SO-5051",
+                store: { id: "3002", name: "南邮校园超市" },
+                productSnapshot: { title: "矿泉水" },
+                quantity: 1,
+                unitPriceCents: 200,
+                totalAmountCents: 200,
+                status: "SPOT_ORDER_STATUS_PAID",
+              },
+            ]
+          : [],
+        currentPage: 2,
+        totalCount: hasOrders ? 101 : 1,
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await listSpotOrdersPage({
+      ...localOptions,
+      page: 2,
+      pageSize: 50,
+    });
+
+    expect(page.items.map((order) => order.id)).toEqual(["5051"]);
+    expect(page).toMatchObject({
+      currentPage: 2,
+      totalCount: 102,
+      hasMore: true,
+    });
+  });
+
+  it("rejects a non-empty aggregate store page past its declared total", async () => {
+    const fetchMock = vi.fn(async (input: string | Request) => {
+      const pathname = new URL(
+        typeof input === "string" ? input : input.url,
+      ).pathname;
+      if (pathname.includes("GetStoreList")) {
+        return stubJsonResponse({
+          stores: [{ id: "3001", name: "SAST 小卖部" }],
+        });
+      }
+      return stubJsonResponse({
+        spotOrders: [
+          {
+            id: "5051",
+            orderNo: "SO-5051",
+            store: { id: "3001", name: "SAST 小卖部" },
+            productSnapshot: { title: "矿泉水" },
+            quantity: 1,
+            unitPriceCents: 200,
+            totalAmountCents: 200,
+            status: "SPOT_ORDER_STATUS_PAID",
+          },
+        ],
+        currentPage: 2,
+        totalCount: 1,
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      listSpotOrdersPage({ ...localOptions, page: 2, pageSize: 50 }),
+    ).rejects.toThrow("listSpotOrders.pagination");
   });
 
   it.each([

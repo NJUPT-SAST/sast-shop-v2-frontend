@@ -1,10 +1,13 @@
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
+import {
+  createConnectProxyAbort,
+  sessionCookieName,
+} from "@sast-shop/api/server";
 
 import { getServerAuthMode } from "@/lib/auth-mode";
 import { getServerConnectBaseUrl } from "@/lib/server-service-options";
 
-const sessionCookieName = "sast_shop_session";
 const maxConnectRequestBodyBytes = 1024 * 1024;
 const serverOnlyAuthMethods = new Set([
   "sast.sastshopv2.user.v1.AuthService/Login",
@@ -132,7 +135,10 @@ function buildResponseHeaders(responseHeaders: Headers): Headers {
   return headers;
 }
 
-async function readBoundedRequestBody(request: NextRequest) {
+async function readBoundedRequestBody(
+  request: NextRequest,
+  signal: AbortSignal,
+) {
   const contentLength = Number(request.headers.get("content-length"));
 
   if (
@@ -149,19 +155,33 @@ async function readBoundedRequestBody(request: NextRequest) {
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
   let totalBytes = 0;
+  const cancelReader = () => {
+    void reader.cancel(signal.reason).catch(() => undefined);
+  };
+  signal.addEventListener("abort", cancelReader, { once: true });
+  if (signal.aborted) {
+    cancelReader();
+    signal.removeEventListener("abort", cancelReader);
+    throw signal.reason;
+  }
 
-  while (true) {
-    const { done, value } = await reader.read();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
 
-    if (done) break;
+      if (signal.aborted) throw signal.reason;
+      if (done) break;
 
-    totalBytes += value.byteLength;
-    if (totalBytes > maxConnectRequestBodyBytes) {
-      await reader.cancel();
-      throw new RangeError("request body too large");
+      totalBytes += value.byteLength;
+      if (totalBytes > maxConnectRequestBodyBytes) {
+        await reader.cancel();
+        throw new RangeError("request body too large");
+      }
+
+      chunks.push(value);
     }
-
-    chunks.push(value);
+  } finally {
+    signal.removeEventListener("abort", cancelReader);
   }
 
   const body = new Uint8Array(totalBytes);
@@ -183,7 +203,10 @@ async function proxyConnectRequest(
   const sessionToken = (await cookies()).get(sessionCookieName)?.value;
 
   if (authMode === "required" && !sessionToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401, headers: { "cache-control": "no-store" } },
+    );
   }
 
   if (
@@ -223,13 +246,33 @@ async function proxyConnectRequest(
     );
   }
 
-  let body: ArrayBuffer | undefined;
-
+  const upstreamAbort = createConnectProxyAbort(request.signal);
   try {
-    body =
+    const body =
       request.method === "GET" || request.method === "HEAD"
         ? undefined
-        : await readBoundedRequestBody(request);
+        : await readBoundedRequestBody(request, upstreamAbort.signal);
+    const upstreamResponse = await fetch(targetUrl, {
+      method: request.method,
+      headers: buildRequestHeaders(
+        request.headers,
+        authMode === "required" ? sessionToken : undefined,
+      ),
+      body,
+      redirect: "manual",
+      signal: upstreamAbort.signal,
+    });
+
+    const responseHeaders = buildResponseHeaders(upstreamResponse.headers);
+    if (upstreamResponse.status === 401) {
+      responseHeaders.set("cache-control", "no-store");
+    }
+
+    return new NextResponse(upstreamResponse.body, {
+      status: upstreamResponse.status,
+      statusText: upstreamResponse.statusText,
+      headers: responseHeaders,
+    });
   } catch (error) {
     if (error instanceof RangeError) {
       return NextResponse.json(
@@ -237,24 +280,16 @@ async function proxyConnectRequest(
         { status: 413 },
       );
     }
-
+    if (upstreamAbort.didTimeout()) {
+      return NextResponse.json(
+        { code: "deadline_exceeded", message: "Upstream request timed out" },
+        { status: 504, headers: { "cache-control": "no-store" } },
+      );
+    }
     throw error;
+  } finally {
+    upstreamAbort.dispose();
   }
-  const upstreamResponse = await fetch(targetUrl, {
-    method: request.method,
-    headers: buildRequestHeaders(
-      request.headers,
-      authMode === "required" ? sessionToken : undefined,
-    ),
-    body,
-    redirect: "manual",
-  });
-
-  return new NextResponse(upstreamResponse.body, {
-    status: upstreamResponse.status,
-    statusText: upstreamResponse.statusText,
-    headers: buildResponseHeaders(upstreamResponse.headers),
-  });
 }
 
 export const GET = proxyConnectRequest;

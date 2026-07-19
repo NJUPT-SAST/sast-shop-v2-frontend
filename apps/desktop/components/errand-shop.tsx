@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -11,14 +11,18 @@ import {
 } from "@remixicon/react";
 import {
   createErrandDemand,
+  listProductTemplatesPage,
   type DataSource,
+  type PageResult,
   type ProductTemplate,
   type Store,
 } from "@sast-shop/api";
 import {
   formatPrice,
   getDefaultErrandDeadline,
+  getMinimumErrandDeadline,
   isValidErrandDeadline,
+  parseYuanToCents,
   toDateTimeLocalValue,
 } from "@sast-shop/domain";
 import { Button } from "@workspace/ui/components/button";
@@ -38,9 +42,11 @@ import {
   DialogTitle,
 } from "@workspace/ui/components/dialog";
 import { Empty } from "@workspace/ui/components/empty";
+import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { QuantityStepper } from "@workspace/ui/components/quantity-stepper";
+import { Skeleton } from "@workspace/ui/components/skeleton";
 import {
   InputGroup,
   InputGroupAddon,
@@ -48,6 +54,7 @@ import {
   InputGroupText,
 } from "@workspace/ui/components/input-group";
 import { toast } from "sonner";
+import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
 
 import { ManagedImage } from "@/components/managed-image";
 
@@ -64,21 +71,50 @@ export function ErrandShop({
   dataSource,
   connectBaseUrl,
   store,
-  templates,
+  initialPage,
   error,
 }: {
   dataSource: DataSource;
   connectBaseUrl?: string;
   store: Store | null;
-  templates: ProductTemplate[];
+  initialPage: PageResult<ProductTemplate>;
   error: string | null;
 }) {
   const router = useRouter();
+  const loadPage = useCallback(
+    (page: number) => {
+      if (!store) return Promise.resolve(initialPage);
+      return listProductTemplatesPage({
+        dataSource,
+        connectBaseUrl,
+        storeId: store.id,
+        page,
+        pageSize: initialPage.pageSize,
+      });
+    },
+    [connectBaseUrl, dataSource, initialPage, store],
+  );
+  const {
+    items: templates,
+    loadingMore,
+    loadMoreError,
+    hasMore,
+    totalCount: availableTotalCount,
+    loadMore,
+  } = useInfinitePage({
+    initialPage,
+    loadPage,
+    getKey: getTemplateKey,
+    identity: `${dataSource}:${connectBaseUrl}:${store?.id ?? "none"}`,
+  });
   const submittingRef = useRef(false);
   const [items, setItems] = useState<CartItem[]>([]);
   const [feeDrafts, setFeeDrafts] = useState<Record<string, string>>({});
   const [deadlineValue, setDeadlineValue] = useState(() =>
     toDateTimeLocalValue(getDefaultErrandDeadline()),
+  );
+  const minimumDeadlineValue = toDateTimeLocalValue(
+    getMinimumErrandDeadline(),
   );
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -91,12 +127,20 @@ export function ErrandShop({
     () =>
       items.map((item) => ({
         ...item,
-        serviceFeePerUnitCents: parseMoneyDraftToCents(
-          feeDrafts[item.template.id] ??
-            formatYuanInput(item.serviceFeePerUnitCents),
-        ),
+        serviceFeePerUnitCents:
+          parseServiceFeeDraft(
+            feeDrafts[item.template.id] ??
+              formatYuanInput(item.serviceFeePerUnitCents),
+          ) ?? 0,
       })),
     [feeDrafts, items],
+  );
+  const hasInvalidServiceFee = items.some(
+    (item) =>
+      parseServiceFeeDraft(
+        feeDrafts[item.template.id] ??
+          formatYuanInput(item.serviceFeePerUnitCents),
+      ) === null,
   );
   const totalQuantity = normalizedItems.reduce(
     (total, item) => total + item.quantity,
@@ -164,6 +208,10 @@ export function ErrandShop({
   function openConfirmation() {
     if (items.length === 0) {
       toast.error("请先选择商品");
+      return;
+    }
+    if (hasInvalidServiceFee) {
+      toast.error("跑腿费应为不超过 21474836.47 元的两位小数");
       return;
     }
     const deadline = new Date(deadlineValue);
@@ -241,12 +289,12 @@ export function ErrandShop({
       <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
         <section className="min-w-0 space-y-4">
           <h2 className="text-xl font-semibold">选择商品</h2>
-          {templates.length === 0 ? (
+          {templates.length === 0 && !loadingMore && !hasMore ? (
             <Empty
               icon={<RiShoppingBag3Line className="size-5" />}
               title="此店铺暂无可选商品"
             />
-          ) : (
+          ) : templates.length > 0 ? (
             <div className="grid min-w-0 gap-4 lg:grid-cols-2">
               {templates.map((template) => {
                 const cartItem = cartById.get(template.id);
@@ -299,7 +347,17 @@ export function ErrandShop({
                 );
               })}
             </div>
-          )}
+          ) : null}
+
+          <InfiniteListStatus
+            hasMore={hasMore}
+            loading={loadingMore}
+            error={loadMoreError}
+            hasItems={availableTotalCount > 0}
+            onLoadMore={() => void loadMore()}
+            loadingFallback={<TemplateLoadingSkeletons />}
+            endMessage={`已经到底，共 ${templates.length} 个可选商品`}
+          />
         </section>
 
         <aside className="min-w-0">
@@ -370,6 +428,14 @@ export function ErrandShop({
                             }
                           />
                         </InputGroup>
+                        {parseServiceFeeDraft(
+                          feeDrafts[item.template.id] ??
+                            formatYuanInput(item.serviceFeePerUnitCents),
+                        ) === null ? (
+                          <p className="text-xs text-destructive">
+                            金额过高，请输入不超过两位小数的有效金额
+                          </p>
+                        ) : null}
                       </Field>
                     </div>
                   ))}
@@ -381,6 +447,7 @@ export function ErrandShop({
                 <Input
                   id="errand-deadline"
                   type="datetime-local"
+                  min={minimumDeadlineValue}
                   value={deadlineValue}
                   onChange={(event) => setDeadlineValue(event.target.value)}
                 />
@@ -402,7 +469,9 @@ export function ErrandShop({
               <Button
                 type="button"
                 className="w-full"
-                disabled={items.length === 0 || submitting}
+                disabled={
+                  items.length === 0 || hasInvalidServiceFee || submitting
+                }
                 onClick={openConfirmation}
               >
                 确认发起需求
@@ -446,6 +515,32 @@ export function ErrandShop({
       </Dialog>
     </div>
   );
+}
+
+function TemplateLoadingSkeletons() {
+  return (
+    <div
+      className="grid min-w-0 gap-4 lg:grid-cols-2"
+      aria-label="正在加载更多可选商品"
+    >
+      {Array.from({ length: 2 }, (_, index) => (
+        <Card key={index} aria-hidden="true">
+          <CardContent className="flex gap-4 p-4">
+            <Skeleton className="size-24 shrink-0 rounded-lg" />
+            <div className="flex flex-1 flex-col gap-3">
+              <Skeleton className="h-5 w-3/5" />
+              <Skeleton className="h-4 w-4/5" />
+              <Skeleton className="h-8 w-2/5" />
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function getTemplateKey(template: ProductTemplate) {
+  return template.id;
 }
 
 function QuantityControl({
@@ -497,7 +592,6 @@ function formatYuanInput(cents: number): string {
   return cents === 0 ? "0" : (cents / 100).toFixed(2);
 }
 
-function parseMoneyDraftToCents(value: string): number {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed * 100) : 0;
+function parseServiceFeeDraft(value: string): number | null {
+  return value === "" ? 0 : parseYuanToCents(value);
 }

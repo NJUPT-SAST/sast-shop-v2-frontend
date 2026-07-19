@@ -16,6 +16,7 @@ import { mapWithConcurrency } from "../concurrency";
 import { resolveDataSource, type ServiceOptions } from "../data-source";
 import { FeatureUnavailableError, ValidationError } from "../errors";
 import { createLocalTransport, requestLocal } from "../local-connect";
+import { createPageResult, type PageResult } from "../pagination";
 import { listStores, type Store } from "./catalog";
 import { mapPaymentBill, type PaymentBill } from "./payment-bills";
 
@@ -71,19 +72,54 @@ export async function listSpotOrders(
     pageSize?: number;
   } = {},
 ): Promise<SpotOrder[]> {
+  const result = await listSpotOrdersPage(options);
+  return result.items;
+}
+
+export async function listSpotOrdersPage(
+  options: ServiceOptions & {
+    storeId?: string;
+    perspective?: SpotOrderPerspective;
+    status?: SpotOrderStatusValue;
+    page?: number;
+    pageSize?: number;
+  } = {},
+): Promise<PageResult<SpotOrder>> {
   const dataSource = resolveDataSource(options);
+  const page = parsePositiveInteger(options.page ?? 1, "页码不正确");
+  const pageSize = parsePositiveInteger(
+    options.pageSize ?? 50,
+    "每页数量不正确",
+  );
 
   if (dataSource === "mock" || dataSource === "local") {
     if (options.storeId) {
-      return listSpotOrdersByStore(options.storeId, options);
+      return listSpotOrdersByStorePage(options.storeId, {
+        ...options,
+        page,
+        pageSize,
+      });
     }
 
     const stores = await listStores(options);
-    const orders = await mapWithConcurrency(stores, 4, (store) =>
-      listSpotOrdersByStore(store.id, options),
+    const pages = await mapWithConcurrency(stores, 4, (store) =>
+      listSpotOrdersByStorePage(store.id, { ...options, page, pageSize }),
+    );
+    const orders = deduplicateSpotOrders(
+      pages.flatMap((result) => result.items),
     );
 
-    return deduplicateSpotOrders(orders.flat());
+    return createPageResult({
+      items: orders,
+      currentPage: page,
+      pageSize,
+      totalCount: pages.reduce((total, result) => total + result.totalCount, 0),
+      expectedPage: page,
+      feature: "listSpotOrders",
+      hasMore: pages.some((result) => result.hasMore),
+      maxItems: pageSize * stores.length,
+      validateOffset: false,
+    });
   }
 
   throw new FeatureUnavailableError("listSpotOrders");
@@ -228,7 +264,7 @@ export async function completeSpotOrder(
   throw new FeatureUnavailableError("completeSpotOrder");
 }
 
-async function listSpotOrdersByStore(
+async function listSpotOrdersByStorePage(
   storeId: string,
   options: ServiceOptions & {
     perspective?: SpotOrderPerspective;
@@ -236,7 +272,12 @@ async function listSpotOrdersByStore(
     page?: number;
     pageSize?: number;
   },
-): Promise<SpotOrder[]> {
+): Promise<PageResult<SpotOrder>> {
+  const page = parsePositiveInteger(options.page ?? 1, "页码不正确");
+  const pageSize = parsePositiveInteger(
+    options.pageSize ?? 50,
+    "每页数量不正确",
+  );
   const client = createClient(SpotOrderService, createLocalTransport(options));
   const response = await requestLocal("listSpotOrders", () =>
     client.listSpotOrder({
@@ -245,12 +286,20 @@ async function listSpotOrdersByStore(
       filterStatus: options.status
         ? mapStatusToProto(options.status)
         : undefined,
-      page: options.page ?? 1,
-      pageSize: options.pageSize ?? 50,
+      page,
+      pageSize,
     }),
   );
+  const items = response.spotOrders.map(mapSpotOrder);
 
-  return response.spotOrders.map(mapSpotOrder);
+  return createPageResult({
+    items,
+    currentPage: response.currentPage,
+    pageSize,
+    totalCount: response.totalCount,
+    expectedPage: page,
+    feature: "listSpotOrders",
+  });
 }
 
 function mapSpotOrder(order: ProtoSpotOrderBrief): SpotOrder {
@@ -403,6 +452,14 @@ function parseInt64(value: string, message: string): bigint {
   }
 
   return parsed;
+}
+
+function parsePositiveInteger(value: number, message: string): number {
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new ValidationError(message);
+  }
+
+  return value;
 }
 
 function parseTimestampInput(input?: TimestampInput): Timestamp | undefined {

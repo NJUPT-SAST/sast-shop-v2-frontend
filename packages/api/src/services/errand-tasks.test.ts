@@ -7,8 +7,12 @@ import {
   getErrandTaskBrief,
   getShoppingTaskDetail,
   listErrandTasks,
+  listErrandTasksPage,
+  saveDistributingAssignment,
   saveShoppingTaskItem,
+  transitionToDistributing,
   transitionToPendingDistributing,
+  updateActualPrice,
   type ErrandTaskBrief,
   type ErrandTaskStatusFilter,
 } from "./errand-tasks";
@@ -36,14 +40,17 @@ describe("listErrandTasks", () => {
             createdAt: "2026-06-09T08:30:00Z",
           },
         ],
-        currentPage: 1,
-        totalCount: 1,
+        currentPage: 2,
+        totalCount: 21,
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
 
     expectTypeOf<ReturnType<typeof listErrandTasks>>().toEqualTypeOf<
       Promise<ErrandTaskBrief[]>
+    >();
+    expectTypeOf<ReturnType<typeof listErrandTasksPage>>().toEqualTypeOf<
+      Promise<import("../pagination").PageResult<ErrandTaskBrief>>
     >();
 
     const tasks = await listErrandTasks({
@@ -71,6 +78,29 @@ describe("listErrandTasks", () => {
         pageSize: 20,
         filterStatus: "ERRAND_TASK_STATUS_SHOPPING",
       },
+    });
+  });
+
+  it("preserves errand task page metadata", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        stubJsonResponse({
+          errandTasks: [],
+          currentPage: 1,
+          totalCount: 51,
+        }),
+      ),
+    );
+
+    await expect(
+      listErrandTasksPage({ ...localOptions, page: 1, pageSize: 50 }),
+    ).resolves.toEqual({
+      items: [],
+      currentPage: 1,
+      pageSize: 50,
+      totalCount: 51,
+      hasMore: true,
     });
   });
 
@@ -182,6 +212,7 @@ describe("captain task detail facades", () => {
               barcode: "690000000001",
             },
             requiredQuantity: 12,
+            purchasedQuantity: -1,
             actualUnitPriceCents: 200,
             updatedAt: "2026-07-18T02:00:00Z",
           },
@@ -374,6 +405,25 @@ describe("captain task detail facades", () => {
     });
   });
 
+  it("maps closed bills to an explicit terminal state", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        bills: [
+          {
+            requesterId: "1002",
+            requesterName: "王同学",
+            paymentStatus: "BILL_STATUS_CLOSED",
+          },
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const detail = await getCollectingPaymentDetail("7004", localOptions);
+
+    expect(detail.bills[0]?.paymentStatus).toBe("closed");
+  });
+
   it("sends purchase mutations with optimistic concurrency timestamps", async () => {
     const fetchMock = vi.fn(async () => stubJsonResponse({}));
     vi.stubGlobal("fetch", fetchMock);
@@ -397,6 +447,96 @@ describe("captain task detail facades", () => {
         errandTaskItemUpdatedAt: "2026-07-18T02:00:00Z",
       },
     });
+  });
+
+  it("uses -1 to restore purchase and distribution rows to unprocessed", async () => {
+    const fetchMock = vi.fn(async () => stubJsonResponse({}));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await saveShoppingTaskItem(
+      {
+        errandTaskId: "7001",
+        errandTaskItemId: "7101",
+        purchasedQuantity: -1,
+      },
+      localOptions,
+    );
+    await saveDistributingAssignment(
+      {
+        errandTaskItemId: "7101",
+        errandTaskAssignmentId: "8101",
+        distributedQuantity: -1,
+      },
+      localOptions,
+    );
+
+    await expectConnectRequestAt(fetchMock, 0, {
+      path: "/sast.sastshopv2.errand.v1.ErrandTaskService/SaveShoppingTaskItem",
+      body: {
+        errandTaskId: "7001",
+        errandTaskItemId: "7101",
+        purchasedQuantity: -1,
+      },
+    });
+    await expectConnectRequestAt(fetchMock, 1, {
+      path: "/sast.sastshopv2.errand.v1.ErrandTaskService/SaveDistributingTaskAssignment",
+      body: {
+        errandTaskItemId: "7101",
+        errandTaskAssignmentId: "8101",
+        distributedQuantity: -1,
+      },
+    });
+  });
+
+  it("rejects operation quantities below the unprocessed sentinel", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      saveShoppingTaskItem(
+        {
+          errandTaskId: "7001",
+          errandTaskItemId: "7101",
+          purchasedQuantity: -2,
+        },
+        localOptions,
+      ),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      saveDistributingAssignment(
+        {
+          errandTaskItemId: "7101",
+          errandTaskAssignmentId: "8101",
+          distributedQuantity: -2,
+        },
+        localOptions,
+      ),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects overflowing monetary fields before a request", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      updateActualPrice(
+        "7001",
+        "7101",
+        2_147_483_648,
+        null,
+        localOptions,
+      ),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      transitionToDistributing(
+        "7001",
+        2_147_483_648,
+        null,
+        localOptions,
+      ),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("uses dedicated task transition and cancel endpoints", async () => {

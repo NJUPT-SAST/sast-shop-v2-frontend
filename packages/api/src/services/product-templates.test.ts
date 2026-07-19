@@ -10,6 +10,7 @@ import {
   createProductTemplate,
   getProductTemplatesByBarcode,
   listProductTemplates,
+  listProductTemplatesPage,
   updateProductTemplate,
   type CreateProductTemplateInput,
   type ProductTemplate,
@@ -46,6 +47,129 @@ describe("product template service", () => {
     expectTypeOf<typeof getProductTemplatesByBarcode>().returns.toEqualTypeOf<
       Promise<ProductTemplateMatch[]>
     >();
+    expectTypeOf<typeof listProductTemplates>().returns.toEqualTypeOf<
+      Promise<ProductTemplate[]>
+    >();
+    expectTypeOf<typeof listProductTemplatesPage>().returns.toEqualTypeOf<
+      Promise<import("../pagination").PageResult<ProductTemplate>>
+    >();
+  });
+
+  it("lists a product template page with preserved metadata", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        productTemplates: [
+          {
+            id: "4001",
+            title: "矿泉水",
+            priceCents: 200,
+            storeId: "3001",
+            barcode: "690000000001",
+          },
+        ],
+        currentPage: 1,
+        totalCount: 21,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await listProductTemplatesPage({
+      ...localOptions,
+      storeId: "3001",
+      page: 1,
+      pageSize: 20,
+    });
+
+    expect(page).toMatchObject({
+      currentPage: 1,
+      pageSize: 20,
+      totalCount: 21,
+      hasMore: true,
+    });
+    expect(page.items.map((template) => template.id)).toEqual(["4001"]);
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateList",
+      body: { storeId: "3001", page: 1, pageSize: 20 },
+    });
+  });
+
+  it("continues an aggregate page when only one store has more templates", async () => {
+    const fetchMock = vi.fn(async (input: string | Request) => {
+      const url = typeof input === "string" ? input : input.url;
+      const pathname = new URL(url).pathname;
+
+      if (pathname.includes("GetStoreList")) {
+        return stubJsonResponse({
+          stores: [
+            { id: "3001", name: "SAST 小卖部" },
+            { id: "3002", name: "南邮校园超市" },
+          ],
+        });
+      }
+
+      const storeRequestIndex = fetchMock.mock.calls.length - 1;
+      const hasTemplates = storeRequestIndex === 2;
+      return stubJsonResponse({
+        productTemplates: hasTemplates
+          ? [
+              {
+                id: "4051",
+                title: "矿泉水",
+                priceCents: 200,
+                storeId: "3002",
+                barcode: "690000000051",
+              },
+            ]
+          : [],
+        currentPage: 2,
+        totalCount: hasTemplates ? 101 : 1,
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await listProductTemplatesPage({
+      ...localOptions,
+      page: 2,
+      pageSize: 50,
+    });
+
+    expect(page.items.map((template) => template.id)).toEqual(["4051"]);
+    expect(page).toMatchObject({
+      currentPage: 2,
+      totalCount: 102,
+      hasMore: true,
+    });
+  });
+
+  it("rejects a non-empty aggregate store page past its declared total", async () => {
+    const fetchMock = vi.fn(async (input: string | Request) => {
+      const pathname = new URL(
+        typeof input === "string" ? input : input.url,
+      ).pathname;
+      if (pathname.includes("GetStoreList")) {
+        return stubJsonResponse({
+          stores: [{ id: "3001", name: "SAST 小卖部" }],
+        });
+      }
+      return stubJsonResponse({
+        productTemplates: [
+          {
+            id: "4051",
+            title: "矿泉水",
+            priceCents: 200,
+            storeId: "3001",
+            barcode: "690000000051",
+          },
+        ],
+        currentPage: 2,
+        totalCount: 1,
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      listProductTemplatesPage({ ...localOptions, page: 2, pageSize: 50 }),
+    ).rejects.toThrow("listProductTemplates.pagination");
   });
 
   it("creates a normalized product template and maps the complete response", async () => {

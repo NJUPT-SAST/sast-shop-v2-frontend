@@ -69,6 +69,17 @@ export function ShoppingTaskView({
   const processedCount = items.filter(
     (item) => item.purchasedQuantity !== null,
   ).length;
+  const pendingItems = items.filter((item) => item.purchasedQuantity === null);
+  const processedItems = items.filter(
+    (item) => item.purchasedQuantity !== null,
+  );
+  const purchasedItems = processedItems.filter(
+    (item) => (item.purchasedQuantity ?? 0) > 0,
+  );
+  const purchasedQuantity = purchasedItems.reduce(
+    (total, item) => total + (item.purchasedQuantity ?? 0),
+    0,
+  );
   const allProcessed = processedCount === items.length && items.length > 0;
   const productAmount = items.reduce(
     (total, item) =>
@@ -101,7 +112,9 @@ export function ShoppingTaskView({
       );
       setItems(refreshed.taskItems);
       setDialog({ type: "none" });
-      toast.success("采购结果已保存");
+      toast.success(
+        purchasedQuantity === -1 ? "已撤销采购结果" : "采购结果已保存",
+      );
     } catch {
       toast.error("保存失败，任务状态可能已变化");
     } finally {
@@ -145,6 +158,51 @@ export function ShoppingTaskView({
       pendingRef.current = false;
       setPending(false);
     }
+  }
+
+  function renderItemGroup(
+    title: string,
+    description: string,
+    groupItems: ShoppingTaskItem[],
+  ) {
+    return (
+      <section className="space-y-3">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold">{title}</h2>
+            <p className="text-sm text-muted-foreground">{description}</p>
+          </div>
+          <Badge variant="neutral">{groupItems.length} 种</Badge>
+        </div>
+        {groupItems.length ? (
+          <div className="grid min-w-0 gap-4 xl:grid-cols-2">
+            {groupItems.map((item) => (
+              <ShoppingItemCard
+                key={item.id}
+                item={item}
+                disabled={pending}
+                onBuyAll={() => void saveItem(item, item.requiredQuantity)}
+                onBuyPartial={() => {
+                  setPartialQuantity("");
+                  setDialog({ type: "partial", item });
+                }}
+                onSkip={() => {
+                  setSkipReason("");
+                  setDialog({ type: "skip", item });
+                }}
+                onRevoke={() => void saveItem(item, -1)}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="p-4 text-sm text-muted-foreground">
+              当前没有{title}商品。
+            </CardContent>
+          </Card>
+        )}
+      </section>
+    );
   }
 
   return (
@@ -197,24 +255,16 @@ export function ShoppingTaskView({
         </CardContent>
       </Card>
 
-      <section className="grid min-w-0 gap-4 xl:grid-cols-2">
-        {items.map((item) => (
-          <ShoppingItemCard
-            key={item.id}
-            item={item}
-            disabled={pending}
-            onBuyAll={() => void saveItem(item, item.requiredQuantity)}
-            onBuyPartial={() => {
-              setPartialQuantity("");
-              setDialog({ type: "partial", item });
-            }}
-            onSkip={() => {
-              setSkipReason("");
-              setDialog({ type: "skip", item });
-            }}
-          />
-        ))}
-      </section>
+      {renderItemGroup(
+        "待处理",
+        "请记录全部购买、部分购买或不购买。",
+        pendingItems,
+      )}
+      {renderItemGroup(
+        "已处理",
+        "已保存的采购结果将在下一阶段用于核对价格和分发。",
+        processedItems,
+      )}
 
       <Dialog
         open={dialog.type === "partial"}
@@ -313,7 +363,7 @@ export function ShoppingTaskView({
       <ConfirmationDialog
         open={dialog.type === "complete"}
         title="完成采购"
-        description="所有商品的采购结果都已记录。完成后进入实际价格与分发设置。"
+        description={`已记录 ${processedCount} 种，实际采购 ${purchasedItems.length} 种、${purchasedQuantity} 件，当前商品金额 ${formatPrice(productAmount)}。完成后进入实际价格与分发设置。`}
         confirmLabel="完成采购"
         pending={pending}
         onCancel={() => setDialog({ type: "none" })}
@@ -339,12 +389,14 @@ function ShoppingItemCard({
   onBuyAll,
   onBuyPartial,
   onSkip,
+  onRevoke,
 }: {
   item: ShoppingTaskItem;
   disabled: boolean;
   onBuyAll: () => void;
   onBuyPartial: () => void;
   onSkip: () => void;
+  onRevoke: () => void;
 }) {
   const processed = item.purchasedQuantity !== null;
   const status =
@@ -405,7 +457,18 @@ function ShoppingItemCard({
           ) : null}
         </div>
       </CardHeader>
-      {processed ? null : (
+      {processed ? (
+        <CardContent className="flex justify-end border-t pt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={disabled}
+            onClick={onRevoke}
+          >
+            撤销处理结果
+          </Button>
+        </CardContent>
+      ) : (
         <CardContent className="flex flex-wrap justify-end gap-2 border-t pt-4">
           <Button
             variant="outline"

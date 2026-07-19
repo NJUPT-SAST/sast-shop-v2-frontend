@@ -31,6 +31,8 @@ export default function RootLayout({
         <AuthBootstrap
           enabled={authRequired}
           appId={process.env.NEXT_PUBLIC_FEISHU_APP_ID ?? ""}
+          dataSource={desktopAppConfig.dataSource}
+          connectBaseUrl={desktopAppConfig.connectBaseUrl}
         >
           <DesktopShell>{children}</DesktopShell>
         </AuthBootstrap>

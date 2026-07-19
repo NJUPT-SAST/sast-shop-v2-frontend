@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -10,7 +10,12 @@ import {
   RiStore2Line,
   RiUser3Line,
 } from "@remixicon/react";
-import type { ErrandDemandStoreSummary } from "@sast-shop/api";
+import {
+  listErrandDemandStoresPage,
+  type DataSource,
+  type ErrandDemandStoreSummary,
+  type PageResult,
+} from "@sast-shop/api";
 import { formatErrandDisplayCount, formatPrice } from "@sast-shop/domain";
 import {
   Avatar,
@@ -26,11 +31,14 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card";
 import { Empty } from "@workspace/ui/components/empty";
+import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from "@workspace/ui/components/input-group";
+import { Skeleton } from "@workspace/ui/components/skeleton";
+import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
 
 import { parsePositiveInt64RouteId } from "@/lib/route-id";
 
@@ -44,14 +52,41 @@ const updatedAtFormatter = new Intl.DateTimeFormat("zh-CN", {
 });
 
 export function ErrandDemandHall({
-  demands,
+  dataSource,
+  connectBaseUrl,
+  initialPage,
   error,
 }: {
-  demands: ErrandDemandStoreSummary[];
+  dataSource: DataSource;
+  connectBaseUrl: string;
+  initialPage: PageResult<ErrandDemandStoreSummary>;
   error: string | null;
 }) {
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
+  const loadPage = useCallback(
+    (page: number) =>
+      listErrandDemandStoresPage({
+        dataSource,
+        connectBaseUrl,
+        page,
+        pageSize: initialPage.pageSize,
+      }),
+    [connectBaseUrl, dataSource, initialPage.pageSize],
+  );
+  const {
+    items: demands,
+    loadingMore,
+    loadMoreError,
+    hasMore,
+    totalCount,
+    loadMore,
+  } = useInfinitePage({
+    initialPage,
+    loadPage,
+    getKey: getDemandKey,
+    identity: `${dataSource}:${connectBaseUrl}`,
+  });
   const filtered = useMemo(() => {
     const query = keyword.trim().toLocaleLowerCase("zh-CN");
     return query
@@ -60,6 +95,12 @@ export function ErrandDemandHall({
         )
       : demands;
   }, [demands, keyword]);
+
+  useEffect(() => {
+    if (!keyword.trim() || !hasMore || loadMoreError) return;
+    const timeout = window.setTimeout(() => void loadMore(), 250);
+    return () => window.clearTimeout(timeout);
+  }, [hasMore, keyword, loadMore, loadMoreError]);
 
   return (
     <div className="space-y-6">
@@ -99,7 +140,7 @@ export function ErrandDemandHall({
             </Button>
           }
         />
-      ) : filtered.length === 0 ? (
+      ) : filtered.length === 0 && !loadingMore && !hasMore ? (
         <Empty
           icon={<RiStore2Line className="size-5" />}
           title={keyword.trim() ? "没有匹配的店铺需求" : "暂无待接单需求"}
@@ -111,15 +152,52 @@ export function ErrandDemandHall({
             ) : undefined
           }
         />
-      ) : (
+      ) : filtered.length > 0 ? (
         <section className="grid min-w-0 gap-4 lg:grid-cols-2">
           {filtered.map((demand) => (
             <DemandCard key={demand.storeId} demand={demand} />
           ))}
         </section>
-      )}
+      ) : null}
+
+      {!error ? (
+        <InfiniteListStatus
+          hasMore={hasMore}
+          loading={loadingMore}
+          error={loadMoreError}
+          hasItems={totalCount > 0}
+          onLoadMore={() => void loadMore()}
+          loadingFallback={<DemandLoadingSkeletons />}
+          endMessage={`已经到底，共 ${demands.length} 个店铺需求`}
+        />
+      ) : null}
     </div>
   );
+}
+
+function DemandLoadingSkeletons() {
+  return (
+    <div
+      className="grid min-w-0 gap-4 lg:grid-cols-2"
+      aria-label="正在加载更多跑腿需求"
+    >
+      {Array.from({ length: 2 }, (_, index) => (
+        <Card key={index} aria-hidden="true">
+          <CardHeader className="gap-3">
+            <Skeleton className="h-5 w-2/5" />
+            <Skeleton className="h-4 w-3/4" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-12 w-full" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function getDemandKey(demand: ErrandDemandStoreSummary) {
+  return demand.storeId;
 }
 
 function DemandCard({ demand }: { demand: ErrandDemandStoreSummary }) {

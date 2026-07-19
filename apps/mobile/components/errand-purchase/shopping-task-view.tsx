@@ -142,7 +142,7 @@ export function ShoppingTaskView({
         {
           errandTaskId: detail.taskId,
           errandTaskItemId: item.id,
-          purchasedQuantity: 0,
+          purchasedQuantity: -1,
           nonPurchaseReason: null,
           itemUpdatedAt: item.updatedAt,
         },

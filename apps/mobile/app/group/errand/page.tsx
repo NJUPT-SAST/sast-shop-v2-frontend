@@ -1,22 +1,30 @@
-import {
-  listErrandDemandStores,
-  type ErrandDemandStoreSummary,
-} from "@sast-shop/api";
+import { listErrandDemandStoresPage, type PageResult } from "@sast-shop/api";
 import { ErrandDemandHall } from "@/components/errand-demand-hall";
+import { mobileAppConfig } from "@/lib/app-config";
 import { getServerServiceOptions } from "@/lib/server-service-options";
 
 async function loadErrandDemandStores(): Promise<{
-  demands: ErrandDemandStoreSummary[];
+  page: PageResult<import("@sast-shop/api").ErrandDemandStoreSummary>;
   error: string | null;
 }> {
   try {
     return {
-      demands: await listErrandDemandStores(await getServerServiceOptions()),
+      page: await listErrandDemandStoresPage({
+        ...(await getServerServiceOptions()),
+        page: 1,
+        pageSize: 20,
+      }),
       error: null,
     };
   } catch {
     return {
-      demands: [],
+      page: {
+        items: [],
+        currentPage: 1,
+        pageSize: 20,
+        totalCount: 0,
+        hasMore: false,
+      },
       error: "跑腿需求暂不可用，请稍后再试",
     };
   }
@@ -25,5 +33,12 @@ async function loadErrandDemandStores(): Promise<{
 export default async function ErrandDemandHallPage() {
   const result = await loadErrandDemandStores();
 
-  return <ErrandDemandHall demands={result.demands} error={result.error} />;
+  return (
+    <ErrandDemandHall
+      dataSource={mobileAppConfig.dataSource}
+      connectBaseUrl={mobileAppConfig.connectBaseUrl}
+      initialPage={result.page}
+      error={result.error}
+    />
+  );
 }

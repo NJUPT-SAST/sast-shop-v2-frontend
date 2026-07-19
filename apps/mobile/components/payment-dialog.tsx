@@ -13,6 +13,7 @@ import {
 } from "@remixicon/react";
 import { formatPrice } from "@sast-shop/domain";
 import { Button } from "@workspace/ui/components/button";
+import { CopyButton } from "@workspace/ui/components/copy-button";
 import { Empty } from "@workspace/ui/components/empty";
 import {
   ResponsiveDialog,
@@ -443,15 +444,20 @@ function PaymentBillSummary({
           <RiKey2Line className="size-4" />
           付款标识码
         </span>
-        <span
-          className={cn(
-            "min-w-0 break-all text-right font-mono font-semibold tabular-nums",
-            isShortVerifyCode
-              ? "text-2xl tracking-[0.2em]"
-              : "text-base leading-6 tracking-normal",
-          )}
-        >
-          {verifyCode}
+        <span className="flex min-w-0 items-center justify-end gap-1">
+          <span
+            className={cn(
+              "min-w-0 break-all text-right font-mono font-semibold tabular-nums",
+              isShortVerifyCode
+                ? "text-2xl tracking-[0.2em]"
+                : "text-base leading-6 tracking-normal",
+            )}
+          >
+            {verifyCode}
+          </span>
+          {verifyCode ? (
+            <CopyButton value={verifyCode} label="付款标识码" />
+          ) : null}
         </span>
       </div>
     </div>

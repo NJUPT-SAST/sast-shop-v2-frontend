@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getDefaultErrandDeadline,
+  getMinimumErrandDeadline,
   isValidErrandDeadline,
   toDateTimeLocalValue,
 } from "./errand-delivery-time";
@@ -38,6 +39,14 @@ describe("errand delivery time", () => {
       false,
     );
     expect(isValidErrandDeadline(new Date(2026, 5, 9, 12, 0), now)).toBe(true);
+  });
+
+  it("rounds the datetime-local minimum up to a selectable minute", () => {
+    const now = new Date(2026, 5, 9, 10, 30, 45, 123);
+
+    expect(toDateTimeLocalValue(getMinimumErrandDeadline(now))).toBe(
+      "2026-06-09T12:31",
+    );
   });
 
   it("formats datetime-local values at local date and minute precision", () => {

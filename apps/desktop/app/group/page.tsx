@@ -25,6 +25,8 @@ import {
 } from "@workspace/ui/components/item";
 
 import { ManagedImage } from "@/components/managed-image";
+import { StoreCreateDialog } from "@/components/store-create-dialog";
+import { desktopAppConfig } from "@/lib/app-config";
 import { getActiveErrandTasks } from "@/lib/errand-task-route";
 import { getStatusBadgeVariant, getStatusLabel } from "@/lib/order-filters";
 import { parsePositiveInt64RouteId } from "@/lib/route-id";
@@ -34,7 +36,7 @@ export default async function GroupPage() {
   const options = await getServerServiceOptions();
   const [storesResult, tasksResult] = await Promise.allSettled([
     listStores(options),
-    listErrandTasks(options),
+    listErrandTasks({ ...options, page: 1, pageSize: 4 }),
   ]);
   const stores = storesResult.status === "fulfilled" ? storesResult.value : [];
   const tasks =
@@ -58,12 +60,16 @@ export default async function GroupPage() {
         <section className="min-w-0 space-y-4">
           <div className="flex items-end justify-between gap-4">
             <h2 className="text-xl font-semibold">选择店铺</h2>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/group/stores/new?returnTo=%2Fgroup">
+            <StoreCreateDialog
+              dataSource={desktopAppConfig.dataSource}
+              connectBaseUrl={desktopAppConfig.connectBaseUrl}
+              returnTo="/group"
+            >
+              <Button variant="outline" size="sm">
                 <RiStore2Line data-icon="inline-start" />
                 创建店铺
-              </Link>
-            </Button>
+              </Button>
+            </StoreCreateDialog>
           </div>
 
           {storesResult.status === "rejected" ? (
@@ -81,11 +87,13 @@ export default async function GroupPage() {
               icon={<RiStore2Line className="size-5" />}
               title="还没有店铺"
               action={
-                <Button asChild>
-                  <Link href="/group/stores/new?returnTo=%2Fgroup">
-                    创建店铺
-                  </Link>
-                </Button>
+                <StoreCreateDialog
+                  dataSource={desktopAppConfig.dataSource}
+                  connectBaseUrl={desktopAppConfig.connectBaseUrl}
+                  returnTo="/group"
+                >
+                  <Button>创建店铺</Button>
+                </StoreCreateDialog>
               }
             />
           ) : (

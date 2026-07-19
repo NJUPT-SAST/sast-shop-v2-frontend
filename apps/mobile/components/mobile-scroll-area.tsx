@@ -12,7 +12,9 @@ import { usePathname } from "next/navigation";
 import { Spinner } from "@workspace/ui/components/spinner";
 import { cn } from "@workspace/ui/lib/utils";
 import {
+  PULL_REFRESH_THRESHOLD,
   resolvePullGestureAxis,
+  shouldRefreshAfterPull,
   type PullGestureAxis,
 } from "../lib/pull-gesture";
 import { useMobileScroll } from "./mobile-scroll-context";
@@ -24,7 +26,6 @@ interface ScrollbarState {
 }
 
 const SCROLLBAR_TRACK_INSET = 8;
-const PULL_REFRESH_THRESHOLD = 52;
 const MAX_PULL_DISTANCE = 72;
 
 export function MobileScrollArea({
@@ -158,19 +159,31 @@ export function MobileScrollArea({
     [isRefreshing, updatePullDistance],
   );
 
+  const finishPullGesture = useCallback(
+    (cancelled: boolean) => {
+      const completedDistance = activePullDistanceRef.current;
+      activePullDistanceRef.current = 0;
+      touchStartXRef.current = null;
+      touchStartYRef.current = null;
+      gestureAxisRef.current = "undetermined";
+      setIsPulling(false);
+
+      if (shouldRefreshAfterPull(completedDistance, cancelled)) {
+        if (refresh()) return;
+      }
+
+      setPullDistance(0);
+    },
+    [refresh, setPullDistance],
+  );
+
   const handleTouchEnd = useCallback(() => {
-    touchStartXRef.current = null;
-    touchStartYRef.current = null;
-    gestureAxisRef.current = "undetermined";
-    setIsPulling(false);
+    finishPullGesture(false);
+  }, [finishPullGesture]);
 
-    if (activePullDistanceRef.current >= PULL_REFRESH_THRESHOLD) {
-      refresh();
-      return;
-    }
-
-    updatePullDistance(0);
-  }, [refresh, updatePullDistance]);
+  const handleTouchCancel = useCallback(() => {
+    finishPullGesture(true);
+  }, [finishPullGesture]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -206,7 +219,8 @@ export function MobileScrollArea({
     >
       {showRefreshIndicator ? (
         <div
-          aria-hidden="true"
+          role="status"
+          aria-live="polite"
           className="pointer-events-none absolute inset-x-0 top-2 z-30 flex justify-center"
           style={{
             opacity: Math.min(visualPullDistance / PULL_REFRESH_THRESHOLD, 1),
@@ -233,7 +247,7 @@ export function MobileScrollArea({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        onTouchCancel={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
       >
         {children}
       </main>

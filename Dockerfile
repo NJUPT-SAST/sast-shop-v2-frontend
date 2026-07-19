@@ -35,8 +35,7 @@ RUN case "$APP_NAME" in mobile|desktop) ;; *) exit 1 ;; esac \
     && test -n "$APP_PORT" \
     && test -n "$NEXT_PUBLIC_DATA_SOURCE" \
     && test -n "$NEXT_PUBLIC_APP_ORIGIN" \
-    && test -n "$NEXT_PUBLIC_FEISHU_APP_ID" \
-    && test -n "$NEXT_PUBLIC_FEEDBACK_FORM_URL"
+    && test -n "$NEXT_PUBLIC_FEISHU_APP_ID"
 COPY . .
 RUN pnpm --filter "$APP_FILTER" build
 

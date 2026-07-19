@@ -21,7 +21,7 @@ import {
   type DistributingTaskDetail,
   type DistributingTaskItem,
 } from "@sast-shop/api";
-import { formatPrice } from "@sast-shop/domain";
+import { formatPrice, parseYuanToCents } from "@sast-shop/domain";
 import {
   Avatar,
   AvatarFallback,
@@ -60,7 +60,6 @@ import { ManagedImage } from "@/components/managed-image";
 
 type Confirmation = "start" | "finish" | "cancel" | null;
 const moneyPattern = /^\d*(?:\.\d{0,2})?$/;
-const maxInt32 = 2_147_483_647;
 
 export function DistributingTaskView({
   dataSource,
@@ -104,6 +103,7 @@ export function DistributingTaskView({
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
   const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState(false);
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const serviceOptions = { dataSource, connectBaseUrl };
   const requesters = useMemo(
     () => items.flatMap((item) => item.requesters),
@@ -112,6 +112,34 @@ export function DistributingTaskView({
   const processedCount = requesters.filter(isRequesterProcessed).length;
   const allProcessed =
     requesters.length > 0 && processedCount === requesters.length;
+  const distributionGroups =
+    mode === "pending_distributing"
+      ? [
+          {
+            key: "pricing",
+            title: "待核价",
+            description: "核对每种商品的实际单价后开始分发。",
+            items,
+          },
+        ]
+      : [
+          {
+            key: "pending",
+            title: "待分发",
+            description: "仍有参与者尚未记录分发结果。",
+            items: items.filter(
+              (item) => !item.requesters.every(isRequesterProcessed),
+            ),
+          },
+          {
+            key: "completed",
+            title: "已分发",
+            description: "所有参与者的分发结果均已记录。",
+            items: items.filter((item) =>
+              item.requesters.every(isRequesterProcessed),
+            ),
+          },
+        ];
   const allPricesSaved = items.every(
     (item) =>
       parseCents(priceDrafts[item.errandTaskItemId] ?? "") ===
@@ -204,7 +232,7 @@ export function DistributingTaskView({
           ),
         ),
       );
-      toast.success(quantity === 0 ? "已撤销分发结果" : "分发结果已保存");
+      toast.success(quantity === -1 ? "已撤销分发结果" : "分发结果已保存");
     } catch {
       toast.error("分发结果保存失败，请刷新后重试");
     } finally {
@@ -342,8 +370,18 @@ export function DistributingTaskView({
         </Card>
       )}
 
-      <section className="grid min-w-0 gap-4">
-        {items.map((item) => (
+      {distributionGroups.map((group) => (
+        <section key={group.key} className="grid min-w-0 gap-4">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold">{group.title}</h2>
+              <p className="text-sm text-muted-foreground">
+                {group.description}
+              </p>
+            </div>
+            <Badge variant="neutral">{group.items.length} 种</Badge>
+          </div>
+          {group.items.map((item) => (
           <Card key={item.errandTaskItemId} className="min-w-0 overflow-hidden">
             <CardHeader className="flex-row items-start gap-4">
               <ManagedImage
@@ -369,8 +407,9 @@ export function DistributingTaskView({
                   件
                 </p>
               </div>
-              {mode === "pending_distributing" ? (
-                <div className="flex w-64 shrink-0 items-end gap-2">
+              <div className="flex shrink-0 items-end gap-2">
+                {mode === "pending_distributing" ? (
+                  <div className="flex w-64 items-end gap-2">
                   <Field>
                     <FieldLabel
                       htmlFor={`actual-price-${item.errandTaskItemId}`}
@@ -410,21 +449,41 @@ export function DistributingTaskView({
                     )}
                     保存
                   </Button>
-                </div>
-              ) : (
-                <Badge
-                  variant={
-                    item.requesters.every(isRequesterProcessed)
-                      ? "success"
-                      : "neutral"
-                  }
-                >
-                  {item.requesters.filter(isRequesterProcessed).length}/
-                  {item.requesters.length} 已处理
-                </Badge>
-              )}
+                  </div>
+                ) : (
+                  <Badge
+                    variant={
+                      item.requesters.every(isRequesterProcessed)
+                        ? "success"
+                        : "neutral"
+                    }
+                  >
+                    {item.requesters.filter(isRequesterProcessed).length}/
+                    {item.requesters.length} 已处理
+                  </Badge>
+                )}
+                {mode === "distributing" ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setExpandedItemId((current) =>
+                        current === item.errandTaskItemId
+                          ? null
+                          : item.errandTaskItemId,
+                      )
+                    }
+                    aria-expanded={expandedItemId === item.errandTaskItemId}
+                  >
+                    {expandedItemId === item.errandTaskItemId
+                      ? "收起"
+                      : "展开"}
+                  </Button>
+                ) : null}
+              </div>
             </CardHeader>
-            {mode === "distributing" ? (
+            {mode === "distributing" &&
+            expandedItemId === item.errandTaskItemId ? (
               <CardContent className="grid gap-2 border-t pt-4">
                 {item.requesters.map((requester) => (
                   <RequesterRow
@@ -448,8 +507,16 @@ export function DistributingTaskView({
               </CardContent>
             ) : null}
           </Card>
-        ))}
-      </section>
+          ))}
+          {group.items.length === 0 ? (
+            <Card>
+              <CardContent className="p-4 text-sm text-muted-foreground">
+                当前没有{group.title}商品。
+              </CardContent>
+            </Card>
+          ) : null}
+        </section>
+      ))}
 
       <ConfirmationDialog
         open={confirmation !== null}
@@ -515,7 +582,7 @@ function RequesterRow({
         <p className="text-xs text-muted-foreground">
           应分 {requester.quantity} 件 ·{" "}
           {processed
-            ? requester.distributedQuantity === -1
+            ? requester.distributedQuantity === 0
               ? "不分发"
               : `已分 ${requester.distributedQuantity} 件`
             : "待处理"}
@@ -526,7 +593,7 @@ function RequesterRow({
           variant="outline"
           size="sm"
           disabled={busy}
-          onClick={() => onSave(0)}
+          onClick={() => onSave(-1)}
         >
           撤销
         </Button>
@@ -545,7 +612,7 @@ function RequesterRow({
             variant="outline"
             size="sm"
             disabled={busy}
-            onClick={() => onSave(-1)}
+            onClick={() => onSave(0)}
           >
             <RiCloseCircleLine data-icon="inline-start" />
             不分发
@@ -616,9 +683,7 @@ function ConfirmationDialog({
 }
 
 function isRequesterProcessed(requester: DistributingRequester): boolean {
-  return (
-    requester.distributedQuantity > 0 || requester.distributedQuantity === -1
-  );
+  return requester.distributedQuantity >= 0;
 }
 
 function formatYuan(cents: number): string {
@@ -626,9 +691,5 @@ function formatYuan(cents: number): string {
 }
 
 function parseCents(value: string): number | null {
-  if (!value || !/^\d+(?:\.\d{1,2})?$/.test(value)) return null;
-  const cents = Math.round(Number(value) * 100);
-  return Number.isSafeInteger(cents) && cents >= 0 && cents <= maxInt32
-    ? cents
-    : null;
+  return parseYuanToCents(value);
 }
