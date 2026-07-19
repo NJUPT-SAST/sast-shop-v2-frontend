@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:22-alpine AS base
+FROM node:26-alpine AS base
 WORKDIR /app
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -39,7 +39,7 @@ RUN case "$APP_NAME" in mobile|desktop) ;; *) exit 1 ;; esac \
 COPY . .
 RUN pnpm --filter "$APP_FILTER" build
 
-FROM node:22-alpine AS runner
+FROM node:26-alpine AS runner
 WORKDIR /app
 ARG APP_NAME
 ARG APP_PORT
