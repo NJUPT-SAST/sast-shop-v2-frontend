@@ -335,7 +335,7 @@ export function SpotOrderDetail({
         title="确认收款"
         description={
           bill?.verifyCode
-            ? `请核对标识码 ${bill.verifyCode} 和到账金额 ${formatPrice(bill.amountCents)}，确认实际到账后再继续。`
+            ? `请核对付款标识码 ${bill.verifyCode} 和到账金额 ${formatPrice(bill.amountCents)}，确认实际到账后再继续。`
             : `请核对到账金额 ${formatPrice(bill?.amountCents ?? resolvedOrder.totalAmountCents)}，确认实际到账后再继续。`
         }
         confirmLabel="确认已到账"

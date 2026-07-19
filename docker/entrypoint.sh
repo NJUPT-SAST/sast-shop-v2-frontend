@@ -5,6 +5,8 @@ set -eu
 : "${PORT:?PORT is required}"
 : "${NEXT_PUBLIC_FEISHU_APP_ID:?NEXT_PUBLIC_FEISHU_APP_ID is required}"
 : "${NEXT_PUBLIC_APP_ORIGIN:?NEXT_PUBLIC_APP_ORIGIN is required}"
+: "${NEXT_PUBLIC_FEEDBACK_FORM_URL:?NEXT_PUBLIC_FEEDBACK_FORM_URL is required}"
+: "${SESSION_COOKIE_SECRET:?SESSION_COOKIE_SECRET is required}"
 : "${CONNECT_BASE_URL:?CONNECT_BASE_URL is required}"
 : "${CONNECT_HEALTH_URL:?CONNECT_HEALTH_URL is required}"
 
@@ -44,16 +46,27 @@ case "${NEXT_PUBLIC_FORCE_FEISHU_UI:-false}" in
     ;;
 esac
 
+if [ "${#SESSION_COOKIE_SECRET}" -lt 32 ]; then
+  echo "SESSION_COOKIE_SECRET must contain at least 32 characters" >&2
+  exit 1
+fi
+
 node -e '
   const urls = [
-    ["CONNECT_BASE_URL", process.env.CONNECT_BASE_URL, false],
-    ["CONNECT_HEALTH_URL", process.env.CONNECT_HEALTH_URL, false],
-    ["NEXT_PUBLIC_APP_ORIGIN", process.env.NEXT_PUBLIC_APP_ORIGIN, true],
+    ["CONNECT_BASE_URL", process.env.CONNECT_BASE_URL, false, false],
+    ["CONNECT_HEALTH_URL", process.env.CONNECT_HEALTH_URL, false, false],
+    ["NEXT_PUBLIC_APP_ORIGIN", process.env.NEXT_PUBLIC_APP_ORIGIN, true, false],
+    ["NEXT_PUBLIC_FEEDBACK_FORM_URL", process.env.NEXT_PUBLIC_FEEDBACK_FORM_URL, false, true],
   ];
-  for (const [name, value, originOnly] of urls) {
+  for (const [name, value, originOnly, allowQueryAndHash] of urls) {
     const url = new URL(value);
-    if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash) throw new Error(name);
+    if (url.protocol !== "https:" || url.username || url.password) throw new Error(name);
+    if (!allowQueryAndHash && (url.search || url.hash)) throw new Error(name);
     if (originOnly && url.pathname !== "/") throw new Error(name);
+    if (name === "NEXT_PUBLIC_FEEDBACK_FORM_URL") {
+      const allowedHosts = ["feishu.cn", "larksuite.com"];
+      if (!allowedHosts.some((root) => url.hostname === root || url.hostname.endsWith(`.${root}`))) throw new Error(name);
+    }
   }
 ' || {
   echo "production URLs must use HTTPS and must not contain credentials" >&2

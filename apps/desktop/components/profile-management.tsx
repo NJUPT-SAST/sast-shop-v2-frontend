@@ -8,6 +8,7 @@ import {
   RiDeleteBinLine,
   RiEditLine,
   RiMapPinLine,
+  RiQuestionLine,
   RiQrCodeLine,
   RiStarLine,
   RiUpload2Line,
@@ -77,11 +78,13 @@ export function ProfileManagement({
   error,
   dataSource,
   connectBaseUrl,
+  feedbackFormUrl,
 }: {
   initialOverview: ProfileOverview | null;
   error: string | null;
   dataSource: DataSource;
   connectBaseUrl: string;
+  feedbackFormUrl: string | null;
 }) {
   const router = useRouter();
   const serviceOptions: ServiceOptions = useMemo(
@@ -270,6 +273,15 @@ export function ProfileManagement({
             </Card>
           </button>
         </section>
+      ) : null}
+
+      {feedbackFormUrl ? (
+        <Button variant="ghost" className="w-full justify-start" asChild>
+          <a href={feedbackFormUrl} target="_blank" rel="noopener noreferrer">
+            <RiQuestionLine data-icon="inline-start" />
+            帮助与反馈
+          </a>
+        </Button>
       ) : null}
 
       <Dialog open={qrOpen} onOpenChange={setQrOpen}>

@@ -1,12 +1,16 @@
 import "server-only";
 
 import type { ServiceOptions } from "@sast-shop/api";
+import {
+  getSessionCookieSecret,
+  readSessionUserCookie,
+  sessionCookieName,
+  sessionUserCookieName,
+} from "@sast-shop/api/server";
 import { cookies } from "next/headers";
 
 import { mobileAppConfig } from "@/lib/app-config";
 import { getServerAuthMode } from "@/lib/auth-mode";
-
-const sessionCookieName = "sast_shop_session";
 
 export async function getServerServiceOptions(): Promise<ServiceOptions> {
   const options = {
@@ -16,8 +20,14 @@ export async function getServerServiceOptions(): Promise<ServiceOptions> {
 
   if (getServerAuthMode() !== "required") return options;
 
-  const sessionToken = (await cookies()).get(sessionCookieName)?.value;
-  if (!sessionToken) return options;
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get(sessionCookieName)?.value;
+  const currentUser = await readSessionUserCookie(
+    cookieStore.get(sessionUserCookieName)?.value,
+    sessionToken,
+    getSessionCookieSecret(),
+  );
+  if (!sessionToken) return { ...options, requiresAuthenticatedUser: true };
 
   const connectUrl = new URL("/api/connect", mobileAppConfig.appOrigin);
   const connectPath = connectUrl.pathname.endsWith("/")
@@ -26,6 +36,8 @@ export async function getServerServiceOptions(): Promise<ServiceOptions> {
 
   return {
     ...options,
+    currentUser: currentUser ?? undefined,
+    requiresAuthenticatedUser: true,
     connectBaseUrl: connectUrl.href.replace(/\/$/, ""),
     fetch: async (input, init) => {
       const target = new URL(
@@ -59,9 +71,18 @@ export async function getServerServiceOptions(): Promise<ServiceOptions> {
 
 export async function getDirectServerServiceOptions(): Promise<ServiceOptions> {
   const connectBaseUrl = getServerConnectBaseUrl();
-  const sessionToken = (await cookies()).get(sessionCookieName)?.value;
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get(sessionCookieName)?.value;
+  const authRequired = getServerAuthMode() === "required";
+  const currentUser = authRequired
+    ? await readSessionUserCookie(
+        cookieStore.get(sessionUserCookieName)?.value,
+        sessionToken,
+        getSessionCookieSecret(),
+      )
+    : null;
 
-  if (getServerAuthMode() === "required" && !sessionToken) {
+  if (authRequired && !sessionToken) {
     throw new Error("Authentication required");
   }
 
@@ -73,6 +94,8 @@ export async function getDirectServerServiceOptions(): Promise<ServiceOptions> {
   return {
     dataSource: mobileAppConfig.dataSource,
     connectBaseUrl,
+    currentUser: currentUser ?? undefined,
+    requiresAuthenticatedUser: authRequired,
     fetch: async (input, init) => {
       const target = new URL(
         typeof input === "string"

@@ -26,6 +26,7 @@ jobs:
     if: >-
       vars.MOBILE_APP_ORIGIN != '' && vars.DESKTOP_APP_ORIGIN != '' &&
       vars.NEXT_PUBLIC_DATA_SOURCE != '' &&
+      vars.NEXT_PUBLIC_FEEDBACK_FORM_URL != '' &&
       ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
       (github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
@@ -65,17 +66,23 @@ jobs:
           APP_ORIGIN: ${{ vars[matrix.app_origin_var] }}
           DATA_SOURCE: ${{ vars.NEXT_PUBLIC_DATA_SOURCE }}
           FEISHU_APP_ID: ${{ secrets.NEXT_PUBLIC_FEISHU_APP_ID }}
+          FEEDBACK_FORM_URL: ${{ vars.NEXT_PUBLIC_FEEDBACK_FORM_URL }}
         run: |
           test -n "$APP_ORIGIN"
           test -n "$FEISHU_APP_ID"
+          test -n "$FEEDBACK_FORM_URL"
           case "$DATA_SOURCE" in
             mock|local) ;;
             remote) echo "NEXT_PUBLIC_DATA_SOURCE=remote is not connected" >&2; exit 1 ;;
             *) echo "NEXT_PUBLIC_DATA_SOURCE must be mock or local" >&2; exit 1 ;;
           esac
-          APP_ORIGIN="$APP_ORIGIN" node -e '
-            const url = new URL(process.env.APP_ORIGIN)
-            if (url.protocol !== "https:" || url.username || url.password || url.pathname !== "/" || url.search || url.hash) process.exit(1)
+          APP_ORIGIN="$APP_ORIGIN" FEEDBACK_FORM_URL="$FEEDBACK_FORM_URL" node -e '
+            const appOrigin = new URL(process.env.APP_ORIGIN)
+            const feedbackFormUrl = new URL(process.env.FEEDBACK_FORM_URL)
+            const allowedFeedbackHosts = ["feishu.cn", "larksuite.com"]
+            if (appOrigin.protocol !== "https:" || appOrigin.username || appOrigin.password || appOrigin.pathname !== "/" || appOrigin.search || appOrigin.hash) process.exit(1)
+            if (feedbackFormUrl.protocol !== "https:" || feedbackFormUrl.username || feedbackFormUrl.password) process.exit(1)
+            if (!allowedFeedbackHosts.some((root) => feedbackFormUrl.hostname === root || feedbackFormUrl.hostname.endsWith(`.${root}`))) process.exit(1)
           '
 
       - name: Checkout validated revision
@@ -123,6 +130,7 @@ jobs:
             NEXT_PUBLIC_DATA_SOURCE=${{ vars.NEXT_PUBLIC_DATA_SOURCE }}
             NEXT_PUBLIC_APP_ORIGIN=${{ vars[matrix.app_origin_var] }}
             NEXT_PUBLIC_FEISHU_APP_ID=${{ secrets.NEXT_PUBLIC_FEISHU_APP_ID }}
+            NEXT_PUBLIC_FEEDBACK_FORM_URL=${{ vars.NEXT_PUBLIC_FEEDBACK_FORM_URL }}
           cache-from: type=gha,scope=publish-${{ matrix.app_name }}
           cache-to: type=gha,mode=max,scope=publish-${{ matrix.app_name }}
           provenance: mode=max

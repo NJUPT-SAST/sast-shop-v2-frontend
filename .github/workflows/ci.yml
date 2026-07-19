@@ -65,6 +65,8 @@ jobs:
           NEXT_PUBLIC_DATA_SOURCE: local
           NEXT_PUBLIC_APP_ORIGIN: https://ci.example.invalid
           NEXT_PUBLIC_FEISHU_APP_ID: cli_ci_validation
+          NEXT_PUBLIC_FEEDBACK_FORM_URL: https://example.feishu.cn/share/base/form/ci
+          SESSION_COOKIE_SECRET: ci-session-cookie-secret-at-least-32-bytes
           CONNECT_BASE_URL: https://backend.example.invalid
           CONNECT_HEALTH_URL: https://backend.example.invalid/health
         run: pnpm build
@@ -117,6 +119,7 @@ jobs:
             NEXT_PUBLIC_DATA_SOURCE=local
             NEXT_PUBLIC_APP_ORIGIN=https://${{ matrix.app_name }}.ci.example.invalid
             NEXT_PUBLIC_FEISHU_APP_ID=cli_ci_validation
+            NEXT_PUBLIC_FEEDBACK_FORM_URL=https://example.feishu.cn/share/base/form/ci
           cache-from: type=gha,scope=ci-${{ matrix.app_name }}
           cache-to: type=gha,mode=max,scope=ci-${{ matrix.app_name }}
 
@@ -136,6 +139,7 @@ jobs:
             --name "$container_name" \
             --publish "127.0.0.1:${HOST_PORT}:${APP_PORT}" \
             --env AUTH_MODE=required \
+            --env SESSION_COOKIE_SECRET=ci-session-cookie-secret-at-least-32-bytes \
             --env CONNECT_BASE_URL=https://backend.example.invalid \
             --env CONNECT_HEALTH_URL=https://backend.example.invalid/health \
             "sast-shop-${APP_NAME}:ci"

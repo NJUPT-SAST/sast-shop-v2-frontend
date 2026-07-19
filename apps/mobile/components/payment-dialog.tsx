@@ -441,7 +441,7 @@ function PaymentBillSummary({
       <div className="flex min-h-12 items-center justify-between gap-4 py-2.5">
         <span className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
           <RiKey2Line className="size-4" />
-          标识码
+          付款标识码
         </span>
         <span
           className={cn(

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import {
   ApiConfigurationError,
   ApiRequestError,
+  AuthRequiredError,
   FeatureUnavailableError,
 } from "../errors";
 import type { AuthSession, CurrentUser, JSAPIAuthConfig } from "./auth";
@@ -149,6 +150,34 @@ describe("auth service", () => {
       path: "/sast.sastshopv2.user.v1.UserService/GetUserInfo",
       body: { userId: "10001" },
     });
+  });
+
+  it("uses the authenticated user returned by OAuth without another RPC", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const currentUser = {
+      id: "42",
+      name: "OAuth 用户",
+      avatarUrl: "https://example.test/oauth-user.png",
+    };
+
+    await expect(
+      getCurrentUser({
+        dataSource: "local",
+        currentUser,
+        requiresAuthenticatedUser: true,
+      }),
+    ).resolves.toEqual(currentUser);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not fall back to the smoke user for an authenticated deployment", async () => {
+    await expect(
+      getCurrentUser({
+        dataSource: "local",
+        requiresAuthenticatedUser: true,
+      }),
+    ).rejects.toBeInstanceOf(AuthRequiredError);
   });
 
   it("returns a login session from the local Connect backend", async () => {

@@ -170,14 +170,14 @@ describe("order filters", () => {
     expect(getStatusLabel("unknown")).toBe("状态异常");
   });
 
-  it("returns compact labels for mobile filters", () => {
+  it("keeps unambiguous labels for mobile filters", () => {
     expect(getCompactViewLabel("buyer")).toBe("买");
     expect(getCompactViewLabel("seller")).toBe("卖");
     expect(getCompactViewLabel("participant")).toBe("拼");
     expect(getCompactViewLabel("captain")).toBe("团");
-    expect(getCompactStatusLabel("pending_distributing")).toBe("待发");
-    expect(getCompactStatusLabel("pending_payment")).toBe("待付");
-    expect(getCompactStatusLabel("completed")).toBe("完成");
+    expect(getCompactStatusLabel("pending_distributing")).toBe("待分发");
+    expect(getCompactStatusLabel("pending_payment")).toBe("待支付");
+    expect(getCompactStatusLabel("completed")).toBe("已完成");
   });
 
   it.each([

@@ -53,6 +53,7 @@ import {
   type RenderableOrderStatus,
 } from "@/lib/order-filters";
 import { parsePositiveInt64RouteId } from "@/lib/route-id";
+import { ManagedImage } from "./managed-image";
 
 type RenderableOrder = {
   id: string;
@@ -64,8 +65,23 @@ type RenderableOrder = {
   status: RenderableOrderStatus;
   amount: number | null;
   summary: string;
+  imageUrls: string[];
+  unitPriceCents: number | null;
+  quantity: number | null;
+  itemCount: number;
+  createdAt: string | null;
   href: string | null;
 };
+
+const orderDateFormatter = new Intl.DateTimeFormat("zh-CN", {
+  timeZone: "Asia/Shanghai",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
 
 type OrdersViewProps = {
   initialFilters: OrderFilters;
@@ -283,6 +299,7 @@ function OrderItem({ order }: { order: RenderableOrder }) {
       variant="outline"
       className="min-w-0 p-4 transition-colors hover:bg-muted/40"
     >
+      <OrderThumbnails order={order} />
       <ItemContent className="min-w-0">
         <div className="flex min-w-0 items-center gap-2">
           <ItemTitle className="min-w-0 truncate text-base">
@@ -306,6 +323,18 @@ function OrderItem({ order }: { order: RenderableOrder }) {
             ) : null}
           </ItemDescription>
         ) : null}
+        <ItemDescription className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {order.unitPriceCents !== null ? (
+            <span className="tabular-nums">
+              {formatPrice(order.unitPriceCents)}
+              {order.quantity !== null ? ` × ${order.quantity}` : null}
+            </span>
+          ) : null}
+          {order.itemCount > 1 ? <span>{order.itemCount} 种商品</span> : null}
+          {formatOrderDate(order.createdAt) ? (
+            <span>创建于 {formatOrderDate(order.createdAt)}</span>
+          ) : null}
+        </ItemDescription>
       </ItemContent>
       <div className="grid min-w-0 shrink-0 grid-cols-[minmax(7rem,11rem)_8rem] items-center gap-6 text-right">
         <span className="truncate text-sm text-muted-foreground">
@@ -335,6 +364,39 @@ function OrderItem({ order }: { order: RenderableOrder }) {
   );
 }
 
+function OrderThumbnails({ order }: { order: RenderableOrder }) {
+  const imageUrls = order.imageUrls.slice(0, 3);
+
+  if (imageUrls.length <= 1) {
+    return (
+      <ManagedImage
+        src={imageUrls[0]}
+        alt={order.title}
+        className="size-14 shrink-0 rounded-lg"
+      />
+    );
+  }
+
+  return (
+    <div className="flex shrink-0 -space-x-3" aria-label="商品图片">
+      {imageUrls.map((src, index) => (
+        <ManagedImage
+          key={`${src}-${index}`}
+          src={src}
+          alt={`${order.title} 商品 ${index + 1}`}
+          className="size-12 rounded-lg border-2 border-card"
+        />
+      ))}
+    </div>
+  );
+}
+
+function formatOrderDate(value: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : orderDateFormatter.format(date);
+}
+
 function mapSpotOrder(
   order: SpotOrder,
   view: "buyer" | "seller",
@@ -351,6 +413,11 @@ function mapSpotOrder(
     status: order.status,
     amount: order.totalAmountCents,
     summary: `现货 × ${order.quantity}`,
+    imageUrls: order.productImageUrl ? [order.productImageUrl] : [],
+    unitPriceCents: order.unitPriceCents,
+    quantity: order.quantity,
+    itemCount: 1,
+    createdAt: order.createdAt,
     href: id
       ? `/orders/spot/${id}?view=${view}&returnTo=${encodeURIComponent(returnTo)}`
       : null,
@@ -377,6 +444,13 @@ function mapBuyerErrandOrder(order: BuyerErrandOrder): RenderableOrder {
       (order.totalActualAmountCents ?? order.totalOriginAmountCents) +
       order.totalServiceFeeCents,
     summary: `${order.productTotalCount} 种商品 · 跑腿费 ${formatPrice(order.totalServiceFeeCents)}`,
+    imageUrls: order.productTemplates
+      .map((template) => template.mainImageUrl)
+      .filter(Boolean),
+    unitPriceCents: null,
+    quantity: null,
+    itemCount: order.productTotalCount,
+    createdAt: order.createdAt,
     href: id ? `/orders/errand/${id}` : null,
   };
 }
@@ -393,6 +467,11 @@ function mapErrandTask(task: ErrandTaskBrief): RenderableOrder {
     status: task.status,
     amount: null,
     summary: `${task.itemCount} 种商品`,
+    imageUrls: [],
+    unitPriceCents: null,
+    quantity: null,
+    itemCount: task.itemCount,
+    createdAt: task.createdAt,
     href: id ? `/group/purchase/${id}` : null,
   };
 }

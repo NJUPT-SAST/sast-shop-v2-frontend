@@ -2,17 +2,21 @@ import { createClient } from "@connectrpc/connect";
 import { AuthService } from "../gen/sast/sastshopv2/user/v1/auth_service_pb";
 import type { UserInfo } from "../gen/sast/sastshopv2/user/v1/user_info_pb";
 import { UserService } from "../gen/sast/sastshopv2/user/v1/user_service_pb";
-import { resolveDataSource, type ServiceOptions } from "../data-source";
-import { FeatureUnavailableError, ValidationError } from "../errors";
+import {
+  resolveDataSource,
+  type CurrentUser,
+  type ServiceOptions,
+} from "../data-source";
+import {
+  AuthRequiredError,
+  FeatureUnavailableError,
+  ValidationError,
+} from "../errors";
 import { createLocalTransport, requestLocal } from "../local-connect";
 
 const LOCAL_SMOKE_USER_ID = 10001n;
 
-export interface CurrentUser {
-  id: string;
-  name: string;
-  avatarUrl: string;
-}
+export type { CurrentUser } from "../data-source";
 
 export interface AuthSession {
   sessionToken: string;
@@ -30,6 +34,9 @@ export interface JSAPIAuthConfig {
 export async function getCurrentUser(
   options: ServiceOptions = {},
 ): Promise<CurrentUser> {
+  if (options.currentUser) return options.currentUser;
+  if (options.requiresAuthenticatedUser) throw new AuthRequiredError();
+
   const dataSource = resolveDataSource(options);
 
   if (dataSource === "mock" || dataSource === "local") {

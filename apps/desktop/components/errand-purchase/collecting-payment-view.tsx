@@ -11,7 +11,7 @@ import {
   type CollectingPaymentDetail,
   type DataSource,
 } from "@sast-shop/api";
-import { formatPrice } from "@sast-shop/domain";
+import { formatPrice, getQuantityMismatchLabel } from "@sast-shop/domain";
 import {
   Avatar,
   AvatarFallback,
@@ -238,7 +238,7 @@ export function CollectingPaymentView({
               ) : null}
               {billToConfirm.verifyCode ? (
                 <>
-                  <dt className="text-muted-foreground">核验码</dt>
+                  <dt className="text-muted-foreground">付款标识码</dt>
                   <dd className="text-right font-mono font-semibold tracking-widest">
                     {billToConfirm.verifyCode}
                   </dd>
@@ -275,6 +275,64 @@ function formatPaymentChannel(
   if (channel === "wechat") return "微信支付";
   if (channel === "alipay") return "支付宝";
   return "未选择";
+}
+
+function PaymentItemBreakdown({
+  item,
+}: {
+  item: CollectingPaymentBill["items"][number];
+}) {
+  const mismatchLabel = getQuantityMismatchLabel(item);
+
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <p className="min-w-0 flex-1 text-sm font-medium">{item.title}</p>
+        {mismatchLabel ? (
+          <Badge variant="warning" className="shrink-0">
+            {mismatchLabel}
+          </Badge>
+        ) : null}
+      </div>
+      <dl className="mt-3 grid grid-cols-3 gap-2 text-center text-xs tabular-nums">
+        <div className="rounded-md bg-background px-2 py-2">
+          <dt className="text-muted-foreground">需求</dt>
+          <dd className="mt-1 font-medium">{item.requiredQuantity}</dd>
+        </div>
+        <div className="rounded-md bg-background px-2 py-2">
+          <dt className="text-muted-foreground">采购</dt>
+          <dd className="mt-1 font-medium">{item.purchasedQuantity}</dd>
+        </div>
+        <div className="rounded-md bg-background px-2 py-2">
+          <dt className="text-muted-foreground">分发</dt>
+          <dd className="mt-1 font-medium">{item.distributedQuantity}</dd>
+        </div>
+      </dl>
+      <dl className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1.5 text-sm tabular-nums">
+        <dt className="text-muted-foreground">实际单价</dt>
+        <dd className="text-right">{formatPrice(item.actualUnitPriceCents)}</dd>
+        <dt className="text-muted-foreground">商品金额</dt>
+        <dd className="text-right">{formatPrice(item.productAmountCents)}</dd>
+        <dt className="text-muted-foreground">跑腿费</dt>
+        <dd className="text-right">
+          {formatPrice(item.serviceFeeAmountCents)}
+        </dd>
+        <dt className="text-muted-foreground">包装费分摊</dt>
+        <dd className="text-right">
+          {formatPrice(item.packagingFeeShareCents)}
+        </dd>
+        <dt className="font-medium">小计</dt>
+        <dd className="text-right font-semibold">
+          {formatPrice(item.subtotalCents)}
+        </dd>
+      </dl>
+      {item.nonPurchaseReason ? (
+        <p className="mt-3 rounded-md bg-warning/10 px-3 py-2 text-xs text-warning-foreground">
+          未采购原因：{item.nonPurchaseReason}
+        </p>
+      ) : null}
+    </div>
+  );
 }
 
 function BillCard({
@@ -318,19 +376,9 @@ function BillCard({
         </div>
       </CardHeader>
       <CardContent className="grid gap-3 border-t pt-4">
-        <div className="grid gap-2">
+        <div className="grid gap-3">
           {bill.items.map((item) => (
-            <div
-              key={item.errandDemandItemId}
-              className="flex min-w-0 items-center justify-between gap-3 text-sm"
-            >
-              <span className="min-w-0 truncate text-muted-foreground">
-                {item.title} × {item.distributedQuantity}
-              </span>
-              <span className="shrink-0 font-medium">
-                {formatPrice(item.subtotalCents)}
-              </span>
-            </div>
+            <PaymentItemBreakdown key={item.errandDemandItemId} item={item} />
           ))}
         </div>
         <Separator />

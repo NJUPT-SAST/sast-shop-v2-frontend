@@ -8,6 +8,7 @@ import {
   isLarkScanCancelledError,
   requestLarkAuthorizationCode,
   scanLarkBarcode,
+  waitForLarkReady,
   type LarkClientApi,
   type LarkH5Sdk,
 } from "./lark-client";
@@ -24,6 +25,26 @@ describe("Lark client adapter", () => {
     expect(requestAccess).toHaveBeenCalledWith(
       expect.objectContaining({ appID: "cli_test", scopeList: [] }),
     );
+  });
+
+  it("resolves when the Lark SDK becomes ready", async () => {
+    await expect(
+      waitForLarkReady({ ready: (callback) => callback() }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("rejects when the Lark SDK never becomes ready", async () => {
+    vi.useFakeTimers();
+    try {
+      const expectation = expect(
+        waitForLarkReady({ ready: () => undefined }),
+      ).rejects.toThrow("初始化超时");
+
+      await vi.advanceTimersByTimeAsync(15_000);
+      await expectation;
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("configures only the scanCode JSAPI", async () => {

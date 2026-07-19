@@ -9,6 +9,7 @@ import {
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { loadProfileOverview } from "@/lib/profile-overview";
+import { mobileAppConfig } from "@/lib/app-config";
 import { ProfileManagement } from "@/components/profile-management";
 
 async function getProfilePageOverview(): Promise<{
@@ -66,7 +67,7 @@ export default async function ProfilePage() {
         </div>
       ) : null}
 
-      <ProfileManagement />
+      <ProfileManagement feedbackFormUrl={mobileAppConfig.feedbackFormUrl} />
     </div>
   );
 }

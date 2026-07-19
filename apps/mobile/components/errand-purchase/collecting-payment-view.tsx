@@ -10,7 +10,7 @@ import {
   type CollectingPaymentDetail,
   type DataSource,
 } from "@sast-shop/api";
-import { formatPrice } from "@sast-shop/domain";
+import { formatPrice, getQuantityMismatchLabel } from "@sast-shop/domain";
 import {
   Avatar,
   AvatarFallback,
@@ -38,7 +38,10 @@ export type CollectingPaymentViewProps = {
   taskId: string;
 };
 
-type DialogState = { type: "none" } | { type: "confirm_complete" };
+type DialogState =
+  | { type: "none" }
+  | { type: "confirm_bill"; bill: CollectingPaymentBill }
+  | { type: "confirm_complete" };
 
 function getStatusBadge(status: CollectingPaymentBill["paymentStatus"]) {
   switch (status) {
@@ -71,6 +74,72 @@ function getStatusBadge(status: CollectingPaymentBill["paymentStatus"]) {
   }
 }
 
+function PaymentItemBreakdown({
+  item,
+}: {
+  item: CollectingPaymentBill["items"][number];
+}) {
+  const mismatchLabel = getQuantityMismatchLabel(item);
+
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <p className="min-w-0 flex-1 text-sm font-medium">{item.title}</p>
+        {mismatchLabel ? (
+          <Badge variant="warning" className="shrink-0">
+            {mismatchLabel}
+          </Badge>
+        ) : null}
+      </div>
+      <dl className="mt-3 grid grid-cols-3 gap-2 text-center text-xs tabular-nums">
+        <div className="rounded-md bg-background px-2 py-2">
+          <dt className="text-muted-foreground">需求</dt>
+          <dd className="mt-1 font-medium">{item.requiredQuantity}</dd>
+        </div>
+        <div className="rounded-md bg-background px-2 py-2">
+          <dt className="text-muted-foreground">采购</dt>
+          <dd className="mt-1 font-medium">{item.purchasedQuantity}</dd>
+        </div>
+        <div className="rounded-md bg-background px-2 py-2">
+          <dt className="text-muted-foreground">分发</dt>
+          <dd className="mt-1 font-medium">{item.distributedQuantity}</dd>
+        </div>
+      </dl>
+      <dl className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1.5 text-sm tabular-nums">
+        <dt className="text-muted-foreground">实际单价</dt>
+        <dd className="text-right">{formatPrice(item.actualUnitPriceCents)}</dd>
+        <dt className="text-muted-foreground">商品金额</dt>
+        <dd className="text-right">{formatPrice(item.productAmountCents)}</dd>
+        <dt className="text-muted-foreground">跑腿费</dt>
+        <dd className="text-right">
+          {formatPrice(item.serviceFeeAmountCents)}
+        </dd>
+        <dt className="text-muted-foreground">包装费分摊</dt>
+        <dd className="text-right">
+          {formatPrice(item.packagingFeeShareCents)}
+        </dd>
+        <dt className="font-medium">小计</dt>
+        <dd className="text-right font-semibold">
+          {formatPrice(item.subtotalCents)}
+        </dd>
+      </dl>
+      {item.nonPurchaseReason ? (
+        <p className="mt-3 rounded-md bg-warning/10 px-3 py-2 text-xs text-warning-foreground">
+          未采购原因：{item.nonPurchaseReason}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function formatPaymentChannel(
+  channel: CollectingPaymentBill["paymentChannel"],
+): string {
+  if (channel === "wechat") return "微信支付";
+  if (channel === "alipay") return "支付宝";
+  return "未选择";
+}
+
 export function CollectingPaymentView({
   dataSource,
   connectBaseUrl,
@@ -85,6 +154,7 @@ export function CollectingPaymentView({
   const [dialog, setDialog] = useState<DialogState>({ type: "none" });
   const [submitting, setSubmitting] = useState(false);
   const [confirmingBillId, setConfirmingBillId] = useState<string | null>(null);
+  const billToConfirm = dialog.type === "confirm_bill" ? dialog.bill : null;
 
   const serviceOptions = { dataSource, connectBaseUrl };
 
@@ -127,6 +197,8 @@ export function CollectingPaymentView({
         serviceOptions,
       );
       updateBill(bill.requesterId, "confirmed");
+      setDialog({ type: "none" });
+      toast.success("已确认到账");
     } catch {
       toast.error("确认收款失败，请稍后再试");
     } finally {
@@ -213,19 +285,12 @@ export function CollectingPaymentView({
                     id={`payment-bill-${expandKey}`}
                     className="border-t px-3 pb-3"
                   >
-                    <div className="mt-3 flex flex-col gap-2 tabular-nums">
+                    <div className="mt-3 flex flex-col gap-3 tabular-nums">
                       {bill.items.map((item) => (
-                        <div
+                        <PaymentItemBreakdown
                           key={item.errandDemandItemId}
-                          className="flex items-center justify-between gap-3 text-sm"
-                        >
-                          <span className="min-w-0 truncate text-muted-foreground">
-                            {item.title} × {item.distributedQuantity}
-                          </span>
-                          <span className="shrink-0 font-medium">
-                            {formatPrice(item.subtotalCents)}
-                          </span>
-                        </div>
+                          item={item}
+                        />
                       ))}
                       <div className="mt-1 border-t pt-2 flex flex-col gap-1 text-sm">
                         <div className="flex justify-between">
@@ -267,8 +332,14 @@ export function CollectingPaymentView({
                           type="button"
                           size="touch"
                           className="w-full"
-                          onClick={() => void handleConfirmBill(bill)}
-                          disabled={confirmingBillId === bill.requesterId}
+                          onClick={() =>
+                            setDialog({ type: "confirm_bill", bill })
+                          }
+                          disabled={
+                            confirmingBillId === bill.requesterId ||
+                            !bill.billId ||
+                            !bill.billUpdatedAt
+                          }
                         >
                           {confirmingBillId === bill.requesterId
                             ? "处理中"
@@ -316,6 +387,88 @@ export function CollectingPaymentView({
           </Button>
         </MobileFixedFooter>
       ) : null}
+
+      <ResponsiveDialog
+        open={billToConfirm !== null}
+        onOpenChange={(open) => {
+          if (!open && !confirmingRef.current) setDialog({ type: "none" });
+        }}
+      >
+        <ResponsiveDialogContent
+          className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm"
+          showCloseButton={confirmingBillId === null}
+        >
+          <ResponsiveDialogHeader className="px-0 text-left">
+            <ResponsiveDialogTitle>确认这笔款项已到账？</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
+              这是不可逆的财务确认，请与实际收款记录逐项核对。
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          {billToConfirm ? (
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 rounded-lg border bg-muted/30 p-4 text-sm">
+              <dt className="text-muted-foreground">付款人</dt>
+              <dd className="truncate text-right font-medium">
+                {billToConfirm.requesterName}
+              </dd>
+              <dt className="text-muted-foreground">金额</dt>
+              <dd className="text-right font-semibold text-primary">
+                {formatPrice(billToConfirm.totalAmountCents)}
+              </dd>
+              {billToConfirm.billNo ? (
+                <>
+                  <dt className="text-muted-foreground">账单号</dt>
+                  <dd className="truncate text-right font-mono text-xs">
+                    {billToConfirm.billNo}
+                  </dd>
+                </>
+              ) : null}
+              {billToConfirm.paymentChannel ? (
+                <>
+                  <dt className="text-muted-foreground">支付渠道</dt>
+                  <dd className="text-right">
+                    {formatPaymentChannel(billToConfirm.paymentChannel)}
+                  </dd>
+                </>
+              ) : null}
+              {billToConfirm.serialNumber ? (
+                <>
+                  <dt className="text-muted-foreground">支付流水号</dt>
+                  <dd className="break-all text-right">
+                    {billToConfirm.serialNumber}
+                  </dd>
+                </>
+              ) : null}
+              {billToConfirm.verifyCode ? (
+                <>
+                  <dt className="text-muted-foreground">付款标识码</dt>
+                  <dd className="text-right font-mono font-semibold tracking-widest">
+                    {billToConfirm.verifyCode}
+                  </dd>
+                </>
+              ) : null}
+            </dl>
+          ) : null}
+          <ResponsiveDialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={confirmingBillId !== null}
+              onClick={() => setDialog({ type: "none" })}
+            >
+              返回检查
+            </Button>
+            <Button
+              type="button"
+              disabled={!billToConfirm || confirmingBillId !== null}
+              onClick={() =>
+                billToConfirm && void handleConfirmBill(billToConfirm)
+              }
+            >
+              {confirmingBillId !== null ? "确认中" : "确认已到账"}
+            </Button>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
 
       <ResponsiveDialog
         open={dialog.type === "confirm_complete"}

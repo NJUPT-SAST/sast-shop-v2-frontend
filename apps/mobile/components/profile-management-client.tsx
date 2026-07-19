@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import {
   RiArrowRightSLine,
+  RiQuestionLine,
   RiMapPinLine,
   RiQrCodeLine,
   RiWallet3Line,
@@ -11,7 +12,11 @@ import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
 import { useProfileDialogs } from "./profile-dialogs-provider";
 
-export function ProfileManagementClient() {
+export function ProfileManagementClient({
+  feedbackFormUrl,
+}: {
+  feedbackFormUrl: string | null;
+}) {
   const { openAddressDialog, openPaymentPreferenceDialog, openQrCodeDialog } =
     useProfileDialogs();
 
@@ -34,9 +39,44 @@ export function ProfileManagementClient() {
         title="默认支付方式"
         icon={<RiWallet3Line className="size-4" />}
         onClick={openPaymentPreferenceDialog}
-        last
+        border={Boolean(feedbackFormUrl)}
+        last={!feedbackFormUrl}
       />
+      {feedbackFormUrl ? (
+        <ProfileMenuLink
+          title="帮助与反馈"
+          icon={<RiQuestionLine className="size-4" />}
+          href={feedbackFormUrl}
+        />
+      ) : null}
     </div>
+  );
+}
+
+function ProfileMenuLink({
+  title,
+  icon,
+  href,
+}: {
+  title: string;
+  icon: ReactNode;
+  href: string;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="lg"
+      className="h-auto min-h-16 w-full justify-start gap-4 rounded-t-none rounded-b-xl px-4 py-3.5"
+      asChild
+    >
+      <a href={href} target="_blank" rel="noopener noreferrer">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+          {icon}
+        </span>
+        <span className="flex-1 text-left font-medium">{title}</span>
+        <RiArrowRightSLine className="size-5 text-muted-foreground" />
+      </a>
+    </Button>
   );
 }
 

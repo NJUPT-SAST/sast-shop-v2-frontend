@@ -439,7 +439,7 @@ function BillCard({ bill }: { bill: PaymentBill }) {
           ) : null}
           {bill.verifyCode ? (
             <>
-              <dt className="text-muted-foreground">核验码</dt>
+              <dt className="text-muted-foreground">付款标识码</dt>
               <dd className="break-all text-right font-mono font-semibold">
                 {bill.verifyCode}
               </dd>
@@ -540,7 +540,7 @@ function PaymentDialog({
         <DialogHeader>
           <DialogTitle>扫码支付 {formatPrice(bill.amountCents)}</DialogTitle>
           <DialogDescription>
-            请核对收款人和核验码，扫码完成后再提交支付状态。
+            请核对收款人、金额和付款标识码，扫码完成后再提交支付状态。
           </DialogDescription>
         </DialogHeader>
         <Tabs
@@ -567,7 +567,7 @@ function PaymentDialog({
         </div>
         {bill.verifyCode ? (
           <div className="flex items-center justify-between rounded-lg bg-muted px-4 py-3 text-sm">
-            <span className="text-muted-foreground">核验码</span>
+            <span className="text-muted-foreground">付款标识码</span>
             <span className="font-mono text-lg font-semibold tracking-widest">
               {bill.verifyCode}
             </span>

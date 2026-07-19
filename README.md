@@ -56,6 +56,7 @@ pnpm mock:generate:user
 NEXT_PUBLIC_DATA_SOURCE=mock
 NEXT_PUBLIC_APP_ORIGIN=http://localhost:3001
 NEXT_PUBLIC_CONNECT_BASE_URL=http://127.0.0.1:6660
+NEXT_PUBLIC_FEEDBACK_FORM_URL=https://example.feishu.cn/share/base/form/example
 ```
 
 `NEXT_PUBLIC_DATA_SOURCE` 可选值：
@@ -66,6 +67,8 @@ NEXT_PUBLIC_CONNECT_BASE_URL=http://127.0.0.1:6660
 
 `NEXT_PUBLIC_APP_ORIGIN` 用于声明当前应用访问源，例如本地开发地址或线上子域名。
 
+`NEXT_PUBLIC_FEEDBACK_FORM_URL` 用于配置个人中心“帮助与反馈”入口跳转的飞书问卷地址。仅接受 `feishu.cn` / `larksuite.com` 及其子域下、不含内嵌凭据的 HTTPS URL；本地留空或配置无效时不展示入口，生产镜像构建时必须提供。
+
 移动端本地视觉验收可临时设置 `NEXT_PUBLIC_FORCE_FEISHU_UI=true`，以展示飞书移动端专属入口。该开关不会注入或模拟飞书 JSAPI，实际调用仍要求真实 SDK 环境；生产环境应保持关闭。
 
 `NEXT_PUBLIC_CONNECT_BASE_URL` 只用于本地 `mock` / `local` 开发。生产应用统一通过同源 `/api/connect` 代理访问后端，私有上游地址使用服务端变量 `CONNECT_BASE_URL`，不会进入客户端 bundle。每个 app 都提交 `.env.example` 作为模板，实际使用时复制成目标环境文件：
@@ -75,14 +78,14 @@ cp apps/mobile/.env.example apps/mobile/.env.local
 cp apps/desktop/.env.example apps/desktop/.env.local
 ```
 
-非容器生产环境可复制为 `.env`，并至少配置 `NEXT_PUBLIC_DATA_SOURCE`、`NEXT_PUBLIC_APP_ORIGIN`、`NEXT_PUBLIC_FEISHU_APP_ID`、私有 `CONNECT_BASE_URL` 和 `CONNECT_HEALTH_URL`：
+非容器生产环境可复制为 `.env`，并至少配置 `NEXT_PUBLIC_DATA_SOURCE`、`NEXT_PUBLIC_APP_ORIGIN`、`NEXT_PUBLIC_FEISHU_APP_ID`、`NEXT_PUBLIC_FEEDBACK_FORM_URL`、私有 `SESSION_COOKIE_SECRET`、`CONNECT_BASE_URL` 和 `CONNECT_HEALTH_URL`：
 
 ```bash
 cp apps/mobile/.env.example apps/mobile/.env
 cp apps/desktop/.env.example apps/desktop/.env
 ```
 
-`.env.local` 与 `.env` 不提交。本地 fauxrpc URL 写在 `.env.local` 的 `NEXT_PUBLIC_CONNECT_BASE_URL` 与 `CONNECT_BASE_URL` 中；生产 `CONNECT_BASE_URL` 必须是无内嵌凭据的 HTTPS URL。`CONNECT_HEALTH_URL` 必须指向后端独立、无鉴权且返回 2xx 的 HTTPS 就绪检查端点，不能把业务 ConnectRPC 路由当作健康检查。
+`.env.local` 与 `.env` 不提交。本地 fauxrpc URL 写在 `.env.local` 的 `NEXT_PUBLIC_CONNECT_BASE_URL` 与 `CONNECT_BASE_URL` 中；生产 `CONNECT_BASE_URL` 必须是无内嵌凭据的 HTTPS URL。`SESSION_COOKIE_SECRET` 是至少 32 字符的服务端随机密钥，用于签署 OAuth 返回的用户会话缓存，移动端和桌面端应分别配置且不得进入 `NEXT_PUBLIC_*`。`CONNECT_HEALTH_URL` 必须指向后端独立、无鉴权且返回 2xx 的 HTTPS 就绪检查端点，不能把业务 ConnectRPC 路由当作健康检查。
 
 Next.js 会把 `NEXT_PUBLIC_*` 变量内联到静态渲染和客户端 bundle 中，部署镜像构建时必须提供目标环境的公开值。`CONNECT_BASE_URL` 只在容器启动时由 docker-compose 注入，不能作为 Docker build arg。
 
@@ -90,7 +93,7 @@ Next.js 会把 `NEXT_PUBLIC_*` 变量内联到静态渲染和客户端 bundle �
 
 当前 runtime API client 通过 `packages/api` facade 调用 Protobuf-ES 生成物，并用 fauxrpc mock backend/tooling 提供本地数据。
 
-Connect Web 使用 Buf 生成的 service definition，并通过 `@connectrpc/connect` 的 `createClient` 与 `@connectrpc/connect-web` 的 `createConnectTransport({ baseUrl })` 创建 web client。本地 `mock` 与 `local` 访问 `NEXT_PUBLIC_CONNECT_BASE_URL` 指向的 fauxrpc/local Connect 服务；生产浏览器只访问同源代理，由代理读取私有 `CONNECT_BASE_URL`。`remote` facade 尚未实现，部署工作流会明确拒绝该值。`getCurrentUser` 当前仍是 smoke path，会读取 fauxrpc stub 中的 `10001` 用户；真实 session-aware 当前用户逻辑需要后端提供对应接口后接入。
+Connect Web 使用 Buf 生成的 service definition，并通过 `@connectrpc/connect` 的 `createClient` 与 `@connectrpc/connect-web` 的 `createConnectTransport({ baseUrl })` 创建 web client。本地 `mock` 与 `local` 访问 `NEXT_PUBLIC_CONNECT_BASE_URL` 指向的 fauxrpc/local Connect 服务；生产浏览器只访问同源代理，由代理读取私有 `CONNECT_BASE_URL`。`remote` facade 尚未实现，部署工作流会明确拒绝该值。生产当前用户来自 OAuth `LoginResponse.member`，并与后端 session token 一起由 `SESSION_COOKIE_SECRET` 签署后保存在 HttpOnly Cookie；本地关闭鉴权时才使用 fauxrpc 的 `10001` smoke 用户。
 
 Next App Router 默认使用 Server Components。若 proto message 只在服务端使用，不涉及 client serialization；若要跨 Server Component/Client Component 边界传递，需要注意 JSON/React serializability，必要时使用 `@bufbuild/protobuf` 的 `toJson`/`fromJson` 在边界处转换。
 
@@ -144,6 +147,7 @@ GHCR_READ_TOKEN
 MOBILE_APP_ORIGIN=https://shop.example.com
 DESKTOP_APP_ORIGIN=https://shop-admin.example.com
 NEXT_PUBLIC_DATA_SOURCE=local
+NEXT_PUBLIC_FEEDBACK_FORM_URL=https://example.feishu.cn/share/base/form/example
 ```
 
 应用域名和数据源使用 Repository Variables，当前产物只面向 production；若增加 staging，必须为 staging 域名单独构建镜像，不能在运行时替换 `NEXT_PUBLIC_*`。`NEXT_PUBLIC_FEISHU_APP_ID` 虽会进入客户端 bundle，但当前沿用仓库已有的同名 Secret，避免在迁移时暴露或重填现有值。`NEXT_PUBLIC_DATA_SOURCE` 必须显式配置为 `mock` 或 `local`；在 `remote` facade 真正接通前，CI/CD 会拒绝构建 `remote` 镜像。私有服务端配置不进入 Repository Variables，而是在服务器对应 `.env` 中注入。两个应用域名未配置时，`Publish Images` 会安全跳过发布任务。
@@ -167,6 +171,7 @@ cp deploy/compose.desktop.yml /data/sast-shop-desktop/docker-compose.yml
 ```dotenv
 CONNECT_BASE_URL=https://api.example.com
 CONNECT_HEALTH_URL=https://api.example.com/health/ready
+SESSION_COOKIE_SECRET=replace-with-a-random-value-of-at-least-32-characters
 ```
 
 商品图片由前端同源代理上传到 `CONNECT_BASE_URL` 对应后端的 `/api/uploads/product-image`，不需要额外图床地址或图床令牌。

@@ -35,6 +35,8 @@ export {
   type PaymentPlatform,
 } from "./payments/platforms";
 export { resolveStoreCreateReturnPath } from "./navigation/store-create-return";
+export { resolveFeedbackFormUrl } from "./navigation/feedback-form-url";
+export { getQuantityMismatchLabel } from "./errand/quantity-mismatch";
 export {
   hasMoreSpotGoods,
   mergeSpotGoodsPages,

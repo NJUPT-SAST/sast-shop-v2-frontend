@@ -1,4 +1,11 @@
 import { loginWithLarkCode } from "@sast-shop/api";
+import {
+  createSessionUserCookie,
+  getSessionCookieSecret,
+  readSessionUserCookie,
+  sessionCookieName,
+  sessionUserCookieName,
+} from "@sast-shop/api/server";
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -6,7 +13,6 @@ import { mobileAppConfig } from "@/lib/app-config";
 import { getServerAuthMode } from "@/lib/auth-mode";
 import { getServerConnectBaseUrl } from "@/lib/server-service-options";
 
-const sessionCookieName = "sast_shop_session";
 const maxCodeLength = 4096;
 const maxBodyBytes = 16 * 1024;
 
@@ -18,10 +24,15 @@ export async function GET() {
     );
   }
 
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get(sessionCookieName)?.value;
+  const user = await readSessionUserCookie(
+    cookieStore.get(sessionUserCookieName)?.value,
+    sessionToken,
+    getSessionCookieSecret(),
+  );
   return NextResponse.json(
-    {
-      authenticated: Boolean((await cookies()).get(sessionCookieName)?.value),
-    },
+    { authenticated: Boolean(sessionToken && user), user },
     { headers: { "cache-control": "no-store" } },
   );
 }
@@ -105,8 +116,10 @@ export async function POST(request: NextRequest) {
   }
 
   let connectBaseUrl: string;
+  let sessionSecret: string;
   try {
     connectBaseUrl = getServerConnectBaseUrl();
+    sessionSecret = getSessionCookieSecret();
   } catch {
     return NextResponse.json(
       { error: "Authentication service is not configured" },
@@ -115,11 +128,18 @@ export async function POST(request: NextRequest) {
   }
 
   let session;
+  let sessionUserCookie: string;
   try {
     session = await loginWithLarkCode(code.trim(), {
       dataSource: mobileAppConfig.dataSource,
       connectBaseUrl,
     });
+    sessionUserCookie = await createSessionUserCookie(
+      session.user,
+      session.sessionToken,
+      session.expiresAt,
+      sessionSecret,
+    );
   } catch {
     return NextResponse.json(
       { error: "Authorization code exchange failed" },
@@ -128,13 +148,16 @@ export async function POST(request: NextRequest) {
   }
 
   const expires = new Date(session.expiresAt);
-  (await cookies()).set(sessionCookieName, session.sessionToken, {
+  const cookieOptions = {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
     expires,
-  });
+  } as const;
+  const cookieStore = await cookies();
+  cookieStore.set(sessionCookieName, session.sessionToken, cookieOptions);
+  cookieStore.set(sessionUserCookieName, sessionUserCookie, cookieOptions);
 
   return NextResponse.json(
     {
@@ -154,13 +177,16 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
-  (await cookies()).set(sessionCookieName, "", {
+  const expiredCookieOptions = {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
     expires: new Date(0),
-  });
+  } as const;
+  const cookieStore = await cookies();
+  cookieStore.set(sessionCookieName, "", expiredCookieOptions);
+  cookieStore.set(sessionUserCookieName, "", expiredCookieOptions);
 
   return NextResponse.json(
     { authenticated: false },

@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useCallback,
   useMemo,
   useRef,
   useState,
@@ -21,6 +22,7 @@ import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
   Card,
+  CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -64,6 +66,7 @@ import {
 import { buildSpotOrderDetailHref } from "@/lib/spot-order-route";
 import { resolveTabSwipe } from "@/lib/tab-swipe";
 import { MobileFloatingAction } from "./mobile-floating-action";
+import { ManagedImage } from "./managed-image";
 
 type RenderableOrder = {
   id: string;
@@ -75,8 +78,22 @@ type RenderableOrder = {
   status: RenderableOrderStatus;
   amount: number | null;
   summary: string;
+  imageUrls: string[];
+  unitPriceCents: number | null;
+  quantity: number | null;
+  itemCount: number;
+  createdAt: string | null;
   href: string | null;
 };
+
+const orderDateFormatter = new Intl.DateTimeFormat("zh-CN", {
+  timeZone: "Asia/Shanghai",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
 
 type OrdersViewProps = {
   initialFilters: OrderFilters;
@@ -112,12 +129,17 @@ export function OrdersView({
       ),
   );
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const statusScrollRef = useRef<HTMLDivElement | null>(null);
   const lastSwipeAtRef = useRef(0);
   const searchRouteTimerRef = useRef<number | null>(null);
   const pendingSearchHrefRef = useRef<string | null>(null);
   const [listTransition, setListTransition] = useState({
     key: 0,
     direction: "next" as "previous" | "next",
+  });
+  const [statusScrollState, setStatusScrollState] = useState({
+    canScrollLeft: false,
+    canScrollRight: false,
   });
   const statusOptions = getStatusOptions(filters.type, filters.view);
   const viewOptions = getViewOptions(filters.type);
@@ -140,6 +162,16 @@ export function OrdersView({
   );
   const nextViewOption =
     viewOptions[(currentViewIndex + 1) % viewOptions.length] ?? viewOptions[0];
+
+  const updateStatusScrollState = useCallback(() => {
+    const element = statusScrollRef.current;
+    if (!element) return;
+    setStatusScrollState({
+      canScrollLeft: element.scrollLeft > 1,
+      canScrollRight:
+        element.scrollLeft + element.clientWidth < element.scrollWidth - 1,
+    });
+  }, []);
 
   useEffect(() => {
     const syncFiltersFromLocation = () => {
@@ -169,6 +201,15 @@ export function OrdersView({
       window.removeEventListener("popstate", syncFiltersFromLocation);
     };
   }, []);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(updateStatusScrollState);
+    window.addEventListener("resize", updateStatusScrollState);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", updateStatusScrollState);
+    };
+  }, [filters.type, filters.view, updateStatusScrollState]);
 
   function updateFilters(
     updates: {
@@ -339,30 +380,53 @@ export function OrdersView({
           />
         </InputGroup>
 
-        <div className="min-w-0 touch-pan-x overflow-x-auto overscroll-x-contain pb-1">
-          <ToggleGroup
-            type="single"
-            value={filters.status}
-            variant="outline"
-            spacing={1}
-            selectionVariant="primary"
-            aria-label="订单状态筛选"
-            className="w-max flex-nowrap"
-            onValueChange={(value) => {
-              if (value) updateFilters({ status: value as OrderStatus });
-            }}
+        <div className="flex min-w-0 items-center gap-2 pb-1">
+          <Button
+            type="button"
+            variant={filters.status === "all" ? "default" : "outline"}
+            className="h-11 shrink-0 px-3 text-xs"
+            aria-pressed={filters.status === "all"}
+            onClick={() => updateFilters({ status: "all" })}
           >
-            {statusOptions.map((option) => (
-              <ToggleGroupItem
-                key={option.value}
-                value={option.value}
-                aria-label={`筛选${option.label}订单`}
-                className="h-11 min-w-11 px-2 text-xs"
+            全部
+          </Button>
+          <div className="relative min-w-0 flex-1 overflow-hidden">
+            {statusScrollState.canScrollLeft ? (
+              <span className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-background to-transparent" />
+            ) : null}
+            <div
+              ref={statusScrollRef}
+              className="min-w-0 touch-pan-x overflow-x-auto overscroll-x-contain app-scrollbar"
+              onScroll={updateStatusScrollState}
+            >
+              <ToggleGroup
+                type="single"
+                value={filters.status === "all" ? "" : filters.status}
+                variant="outline"
+                spacing={1}
+                selectionVariant="primary"
+                aria-label="订单状态筛选"
+                className="w-max flex-nowrap"
+                onValueChange={(value) => {
+                  if (value) updateFilters({ status: value as OrderStatus });
+                }}
               >
-                {getCompactStatusLabel(option.value)}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
+                {statusOptions.slice(1).map((option) => (
+                  <ToggleGroupItem
+                    key={option.value}
+                    value={option.value}
+                    aria-label={`筛选${option.label}订单`}
+                    className="h-11 min-w-11 px-3 text-xs"
+                  >
+                    {getCompactStatusLabel(option.value)}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </div>
+            {statusScrollState.canScrollRight ? (
+              <span className="pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-gradient-to-l from-background to-transparent" />
+            ) : null}
+          </div>
         </div>
       </section>
 
@@ -556,6 +620,25 @@ function OrderCard({ order }: { order: RenderableOrder }) {
           </p>
         ) : null}
       </CardHeader>
+      <CardContent className="flex min-w-0 items-center gap-3 pb-3">
+        <OrderThumbnails order={order} />
+        <div className="min-w-0 flex-1 space-y-1 text-sm">
+          {order.unitPriceCents !== null ? (
+            <p className="font-medium tabular-nums">
+              {formatPrice(order.unitPriceCents)}
+              {order.quantity !== null ? ` × ${order.quantity}` : null}
+            </p>
+          ) : null}
+          {order.itemCount > 1 ? (
+            <p className="text-muted-foreground">共 {order.itemCount} 种商品</p>
+          ) : null}
+          {formatOrderDate(order.createdAt) ? (
+            <p className="text-xs text-muted-foreground">
+              创建于 {formatOrderDate(order.createdAt)}
+            </p>
+          ) : null}
+        </div>
+      </CardContent>
       <CardFooter className="min-w-0 justify-between gap-3 border-t bg-muted/30 px-4 py-3">
         <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
           {order.summary}
@@ -590,6 +673,39 @@ function OrderCard({ order }: { order: RenderableOrder }) {
       {card}
     </Link>
   );
+}
+
+function OrderThumbnails({ order }: { order: RenderableOrder }) {
+  const imageUrls = order.imageUrls.slice(0, 3);
+
+  if (imageUrls.length <= 1) {
+    return (
+      <ManagedImage
+        src={imageUrls[0]}
+        alt={order.title}
+        className="size-16 shrink-0 rounded-lg"
+      />
+    );
+  }
+
+  return (
+    <div className="flex shrink-0 -space-x-3" aria-label="商品图片">
+      {imageUrls.map((src, index) => (
+        <ManagedImage
+          key={`${src}-${index}`}
+          src={src}
+          alt={`${order.title} 商品 ${index + 1}`}
+          className="size-14 rounded-lg border-2 border-card"
+        />
+      ))}
+    </div>
+  );
+}
+
+function formatOrderDate(value: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : orderDateFormatter.format(date);
 }
 
 function getEmptyTitle(filters: OrderFilters): string {
@@ -641,6 +757,11 @@ function mapSpotOrder(
     status: order.status,
     amount: order.totalAmountCents,
     summary: `${order.quantity} 件商品`,
+    imageUrls: order.productImageUrl ? [order.productImageUrl] : [],
+    unitPriceCents: order.unitPriceCents,
+    quantity: order.quantity,
+    itemCount: 1,
+    createdAt: order.createdAt,
     href: buildSpotOrderDetailHref(order.id, view),
   };
 }
@@ -664,6 +785,13 @@ function mapBuyerErrandOrder(order: BuyerErrandOrder): RenderableOrder {
     status: order.status,
     amount,
     summary: `${order.productTotalCount} 种商品`,
+    imageUrls: order.productTemplates
+      .map((template) => template.mainImageUrl)
+      .filter(Boolean),
+    unitPriceCents: null,
+    quantity: null,
+    itemCount: order.productTotalCount,
+    createdAt: order.createdAt,
     href: buildBuyerErrandOrderDetailHref(order.id),
   };
 }
@@ -679,6 +807,11 @@ function mapErrandTaskBrief(task: ErrandTaskBrief): RenderableOrder {
     status: task.status,
     amount: null,
     summary: `${task.itemCount} 种商品`,
+    imageUrls: [],
+    unitPriceCents: null,
+    quantity: null,
+    itemCount: task.itemCount,
+    createdAt: task.createdAt,
     href: `/group/purchase/${task.id}`,
   };
 }

@@ -13,6 +13,7 @@ export default async function ProfilePage() {
       error={result.error}
       dataSource={desktopAppConfig.dataSource}
       connectBaseUrl={desktopAppConfig.connectBaseUrl}
+      feedbackFormUrl={desktopAppConfig.feedbackFormUrl}
     />
   );
 }

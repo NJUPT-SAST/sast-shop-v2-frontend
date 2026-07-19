@@ -254,21 +254,7 @@ export function getStatusLabel(status: OrderStatus): string {
 }
 
 export function getCompactStatusLabel(status: OrderStatus): string {
-  const labels: Partial<Record<OrderStatus, string>> = {
-    all: "全部",
-    open: "未接",
-    shopping: "采购",
-    pending_distributing: "待发",
-    distributing: "分发",
-    pending_payment: "待付",
-    collecting_payment: "收款",
-    paid: "处理",
-    processing: "处理",
-    completed: "完成",
-    cancelled: "取消",
-  };
-
-  return labels[status] ?? getStatusLabel(status);
+  return getStatusLabel(status);
 }
 
 export function getCompactViewLabel(view: OrderView): string {

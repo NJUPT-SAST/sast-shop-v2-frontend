@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   RiArrowRightSLine,
@@ -47,6 +47,8 @@ const updatedAtFormatter = new Intl.DateTimeFormat("zh-CN", {
 export function ErrandDemandHall({ demands, error }: ErrandDemandHallProps) {
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const hasKeyword = Boolean(keyword.trim());
 
   const filteredDemands = useMemo(() => {
     const value = keyword.trim().toLowerCase();
@@ -75,11 +77,13 @@ export function ErrandDemandHall({ demands, error }: ErrandDemandHallProps) {
         <span className="sr-only">搜索店铺名称</span>
         <RiSearchLine className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
+          ref={searchInputRef}
           value={keyword}
           onChange={(event) => {
             setKeyword(event.target.value);
           }}
           placeholder="搜索店铺名称"
+          autoComplete="off"
           className="rounded-lg pl-9"
         />
       </label>
@@ -93,7 +97,16 @@ export function ErrandDemandHall({ demands, error }: ErrandDemandHallProps) {
       ) : (
         <Empty
           icon={<RiStore2Line className="size-5" />}
-          title={error ? "跑腿需求暂不可用" : "暂无待接单需求"}
+          title={
+            error
+              ? "跑腿需求暂不可用"
+              : hasKeyword
+                ? "没有匹配的店铺需求"
+                : "暂无待接单需求"
+          }
+          description={
+            hasKeyword && !error ? "请尝试其他店铺名称。" : undefined
+          }
           action={
             error ? (
               <Button
@@ -102,6 +115,19 @@ export function ErrandDemandHall({ demands, error }: ErrandDemandHallProps) {
                 onClick={() => router.refresh()}
               >
                 重新加载
+              </Button>
+            ) : hasKeyword ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setKeyword("");
+                  window.requestAnimationFrame(() =>
+                    searchInputRef.current?.focus(),
+                  );
+                }}
+              >
+                清空搜索
               </Button>
             ) : undefined
           }

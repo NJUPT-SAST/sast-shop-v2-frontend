@@ -315,7 +315,7 @@ export function SpotOrderDetail({
                 ) : null}
                 {bill.verifyCode ? (
                   <>
-                    <dt className="text-muted-foreground">核验码</dt>
+                    <dt className="text-muted-foreground">付款标识码</dt>
                     <dd className="font-mono text-lg font-semibold tracking-widest">
                       {bill.verifyCode}
                     </dd>
@@ -404,7 +404,7 @@ export function SpotOrderDetail({
                 ? "取消后订单将停止处理，关联账单也会关闭。"
                 : confirmation === "complete"
                   ? "完成后订单将进入最终状态。"
-                  : "请核对金额和核验码，确认实际款项已经到账。"}
+                  : "请核对收款方、金额和付款标识码，确认实际款项已经到账。"}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -548,7 +548,7 @@ function PaymentDialog({
             扫码支付 {formatPrice(bill?.amountCents ?? order.totalAmountCents)}
           </DialogTitle>
           <DialogDescription>
-            请核对收款方和核验码，扫码完成后点击“我已支付”。
+            请核对收款方、金额和付款标识码，扫码完成后点击“我已支付”。
           </DialogDescription>
         </DialogHeader>
         <Tabs
@@ -575,7 +575,7 @@ function PaymentDialog({
         </div>
         {bill?.verifyCode ? (
           <div className="flex items-center justify-between rounded-lg bg-muted px-4 py-3 text-sm">
-            <span className="text-muted-foreground">核验码</span>
+            <span className="text-muted-foreground">付款标识码</span>
             <span className="font-mono text-lg font-semibold tracking-widest">
               {bill.verifyCode}
             </span>

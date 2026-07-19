@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { DataSource } from "@sast-shop/api";
+import { resolveFeedbackFormUrl } from "@sast-shop/domain";
 import { getServerAuthMode } from "./auth-mode";
 
 const supportedMobileDataSources = new Set<DataSource>([
@@ -40,5 +41,8 @@ export const mobileAppConfig = {
     authMode === "required"
       ? `${appOrigin}/api/connect`
       : (connectBaseUrlEnv ?? "http://127.0.0.1:6660"),
+  feedbackFormUrl: resolveFeedbackFormUrl(
+    process.env.NEXT_PUBLIC_FEEDBACK_FORM_URL,
+  ),
   authMode,
 };

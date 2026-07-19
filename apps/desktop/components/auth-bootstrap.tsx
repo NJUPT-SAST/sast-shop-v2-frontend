@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import { requestLarkAuthorizationCode, waitForLarkReady } from "@sast-shop/api";
 import { RiShieldUserLine } from "@remixicon/react";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -18,8 +19,6 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card";
 import { Spinner } from "@workspace/ui/components/spinner";
-
-import { requestLarkAuthorizationCode } from "@/lib/lark-auth";
 
 type AuthState = "checking" | "authenticating" | "authenticated" | "error";
 
@@ -54,16 +53,10 @@ export function AuthBootstrap({
         throw new Error("请在飞书客户端内打开该应用");
       }
       const sdk = window.h5sdk;
+      const client = window.tt;
       setState("authenticating");
-      const code = await new Promise<string>((resolve, reject) => {
-        sdk.ready?.(() => {
-          if (!window.tt) {
-            reject(new Error("飞书客户端初始化失败，请重新打开应用"));
-            return;
-          }
-          requestLarkAuthorizationCode(window.tt, appId).then(resolve, reject);
-        });
-      });
+      await waitForLarkReady(sdk);
+      const code = await requestLarkAuthorizationCode(client, appId);
       const response = await fetch("/api/auth/session", {
         method: "POST",
         headers: { "content-type": "application/json" },

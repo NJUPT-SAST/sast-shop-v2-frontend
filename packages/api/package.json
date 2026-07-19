@@ -9,7 +9,8 @@
     "test": "vitest run"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./server": "./src/server/index.ts"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^2.12.0",

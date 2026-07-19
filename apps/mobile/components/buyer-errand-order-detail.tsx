@@ -130,7 +130,10 @@ export function BuyerErrandOrderDetailView({
           order={resolvedOrder}
         />
 
-        <StatusNotice paymentState={paymentState} />
+        <StatusNotice
+          status={resolvedOrder.status}
+          paymentState={paymentState}
+        />
         <CaptainCard order={resolvedOrder} />
         <ProductItemsCard items={resolvedOrder.productItems} />
         <AmountSummaryCard order={resolvedOrder} />
@@ -201,10 +204,24 @@ export function BuyerErrandOrderDetailView({
 }
 
 function StatusNotice({
+  status,
   paymentState,
 }: {
+  status: BuyerErrandOrderDetail["status"];
   paymentState: ReturnType<typeof resolveBuyerErrandPaymentState>;
 }) {
+  if (status === "open") {
+    return (
+      <Alert>
+        <RiTimeLine />
+        <AlertTitle>等待团长接单</AlertTitle>
+        <AlertDescription>
+          尚未接单的商品会继续保留在跑腿大厅；接单后可在此查看采购进度。
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   if (paymentState === "submitted") {
     return (
       <Alert>

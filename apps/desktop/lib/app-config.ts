@@ -1,4 +1,5 @@
 import type { DataSource } from "@sast-shop/api";
+import { resolveFeedbackFormUrl } from "@sast-shop/domain";
 
 const supportedDesktopDataSources = new Set<DataSource>([
   "mock",
@@ -31,4 +32,7 @@ export const desktopAppConfig = {
   dataSource: resolveDesktopDataSource(dataSourceEnv),
   appOrigin,
   connectBaseUrl: `${appOrigin}/api/connect`,
+  feedbackFormUrl: resolveFeedbackFormUrl(
+    process.env.NEXT_PUBLIC_FEEDBACK_FORM_URL,
+  ),
 };

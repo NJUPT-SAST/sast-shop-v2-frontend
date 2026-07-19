@@ -12,6 +12,7 @@ import type { SpotOrderBrief as ProtoSpotOrderBrief } from "../gen/sast/sastshop
 import { SpotOrderService } from "../gen/sast/sastshopv2/spot/v1/spot_order_service_pb";
 import { SpotOrderStatus } from "../gen/sast/sastshopv2/spot/v1/spot_order_status_pb";
 import type { UserInfo } from "../gen/sast/sastshopv2/user/v1/user_info_pb";
+import { mapWithConcurrency } from "../concurrency";
 import { resolveDataSource, type ServiceOptions } from "../data-source";
 import { FeatureUnavailableError, ValidationError } from "../errors";
 import { createLocalTransport, requestLocal } from "../local-connect";
@@ -78,8 +79,8 @@ export async function listSpotOrders(
     }
 
     const stores = await listStores(options);
-    const orders = await Promise.all(
-      stores.map((store) => listSpotOrdersByStore(store.id, options)),
+    const orders = await mapWithConcurrency(stores, 4, (store) =>
+      listSpotOrdersByStore(store.id, options),
     );
 
     return deduplicateSpotOrders(orders.flat());
