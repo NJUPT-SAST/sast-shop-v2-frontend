@@ -43,6 +43,7 @@ import {
 } from "@workspace/ui/components/dialog";
 import { Empty } from "@workspace/ui/components/empty";
 import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
+import { LoadFailure } from "@workspace/ui/components/load-failure";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { QuantityStepper } from "@workspace/ui/components/quantity-stepper";
@@ -113,9 +114,7 @@ export function ErrandShop({
   const [deadlineValue, setDeadlineValue] = useState(() =>
     toDateTimeLocalValue(getDefaultErrandDeadline()),
   );
-  const minimumDeadlineValue = toDateTimeLocalValue(
-    getMinimumErrandDeadline(),
-  );
+  const minimumDeadlineValue = toDateTimeLocalValue(getMinimumErrandDeadline());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -155,11 +154,27 @@ export function ErrandShop({
     0,
   );
 
-  if (!store || error) {
+  if (error) {
+    return (
+      <LoadFailure
+        variant="page"
+        title="店铺商品加载失败"
+        description={error}
+        onRetry={() => router.refresh()}
+        secondaryAction={
+          <Button asChild variant="outline">
+            <Link href="/group">返回团购工作台</Link>
+          </Button>
+        }
+      />
+    );
+  }
+
+  if (!store) {
     return (
       <Empty
         icon={<RiShoppingBag3Line className="size-5" />}
-        title={error ? "店铺商品暂不可用" : "没有找到店铺"}
+        title="没有找到店铺"
         action={
           <Button asChild variant="outline">
             <Link href="/group">返回团购工作台</Link>

@@ -57,7 +57,7 @@ export function DesktopNav() {
             className="min-h-11 w-full justify-start px-4"
             asChild
           >
-            <Link href={item.href}>
+            <Link href={item.href} aria-current={isActive ? "page" : undefined}>
               <Icon className="size-4" />
               <span className="truncate">{item.label}</span>
             </Link>

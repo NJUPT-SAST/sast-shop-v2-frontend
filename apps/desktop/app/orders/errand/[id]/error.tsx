@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { RiErrorWarningLine } from "@remixicon/react";
 import { Button } from "@workspace/ui/components/button";
-import { Empty } from "@workspace/ui/components/empty";
+import { LoadFailure } from "@workspace/ui/components/load-failure";
 
 export default function BuyerErrandOrderError({
   reset,
@@ -11,19 +10,15 @@ export default function BuyerErrandOrderError({
   reset: () => void;
 }) {
   return (
-    <Empty
-      icon={<RiErrorWarningLine className="size-5" />}
+    <LoadFailure
+      variant="page"
       title="跑腿订单加载失败"
       description="请稍后重试。"
-      action={
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={reset}>
-            重新加载
-          </Button>
-          <Button asChild>
-            <Link href="/orders?type=errand">返回订单</Link>
-          </Button>
-        </div>
+      onRetry={reset}
+      secondaryAction={
+        <Button asChild variant="outline">
+          <Link href="/orders?type=errand">返回订单</Link>
+        </Button>
       }
     />
   );

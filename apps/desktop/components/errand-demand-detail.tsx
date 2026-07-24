@@ -41,6 +41,7 @@ import {
   DialogTitle,
 } from "@workspace/ui/components/dialog";
 import { Empty } from "@workspace/ui/components/empty";
+import { LoadFailure } from "@workspace/ui/components/load-failure";
 import { cn } from "@workspace/ui/lib/utils";
 import { toast } from "sonner";
 
@@ -121,12 +122,28 @@ export function ErrandDemandDetail({
     }
   }
 
-  if (error || details.length === 0) {
+  if (error) {
+    return (
+      <LoadFailure
+        variant="page"
+        title="需求详情加载失败"
+        description={error}
+        onRetry={() => router.refresh()}
+        secondaryAction={
+          <Button asChild variant="outline">
+            <Link href="/group/errand">返回跑腿大厅</Link>
+          </Button>
+        }
+      />
+    );
+  }
+
+  if (details.length === 0) {
     return (
       <Empty
         icon={<RiStore2Line className="size-5" />}
-        title={error ? "需求详情暂不可用" : "这个店铺暂无可接单需求"}
-        description={error ?? "可以返回跑腿大厅查看其他店铺。"}
+        title="这个店铺暂无可接单需求"
+        description="可以返回跑腿大厅查看其他店铺。"
         action={
           <Button asChild variant="outline">
             <Link href="/group/errand">返回跑腿大厅</Link>

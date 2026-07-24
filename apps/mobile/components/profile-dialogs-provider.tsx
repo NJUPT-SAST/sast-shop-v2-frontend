@@ -37,11 +37,6 @@ import {
   validatePaymentQrContent,
   type PaymentQrContentValidationReason,
 } from "@sast-shop/domain";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@workspace/ui/components/alert";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
@@ -57,6 +52,7 @@ import {
 } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
+import { LoadFailure } from "@workspace/ui/components/load-failure";
 import {
   RadioGroup,
   RadioGroupItem,
@@ -621,15 +617,12 @@ function ProfileLoadError({
   onRetry: () => void;
 }) {
   return (
-    <Alert variant="destructive">
-      <AlertTitle>资料加载失败</AlertTitle>
-      <AlertDescription className="mt-1 flex flex-col items-start gap-3">
-        <span>{message ?? "资料管理暂不可用，请稍后再试"}</span>
-        <Button type="button" size="touch" variant="outline" onClick={onRetry}>
-          重新加载
-        </Button>
-      </AlertDescription>
-    </Alert>
+    <LoadFailure
+      variant="compact"
+      title="资料加载失败"
+      description={message ?? "资料管理暂不可用，请稍后再试"}
+      onRetry={onRetry}
+    />
   );
 }
 

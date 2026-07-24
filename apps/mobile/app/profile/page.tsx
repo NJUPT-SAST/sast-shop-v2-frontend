@@ -1,13 +1,10 @@
 import type { ProfileOverview } from "@sast-shop/api";
-import Link from "next/link";
-import { RiRefreshLine } from "@remixicon/react";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
 } from "@workspace/ui/components/avatar";
-import { Button } from "@workspace/ui/components/button";
-import { Card, CardHeader, CardTitle } from "@workspace/ui/components/card";
+import { LoadFailure } from "@workspace/ui/components/load-failure";
 import { loadProfileOverview } from "@/lib/profile-overview";
 import { mobileAppConfig } from "@/lib/app-config";
 import { ProfileManagement } from "@/components/profile-management";
@@ -38,16 +35,12 @@ export default async function ProfilePage() {
       <h1 className="text-xl font-semibold md:text-2xl">我的</h1>
 
       {result.error ? (
-        <Card className="rounded-lg">
-          <CardHeader className="flex-row items-center justify-between gap-3">
-            <CardTitle className="text-base leading-6">资料加载失败</CardTitle>
-            <Button asChild size="icon-touch" variant="ghost">
-              <Link href="/profile" aria-label="重新加载个人资料">
-                <RiRefreshLine />
-              </Link>
-            </Button>
-          </CardHeader>
-        </Card>
+        <LoadFailure
+          variant="compact"
+          title="资料加载失败"
+          description={result.error}
+          retryHref="/profile"
+        />
       ) : null}
 
       {overview ? (

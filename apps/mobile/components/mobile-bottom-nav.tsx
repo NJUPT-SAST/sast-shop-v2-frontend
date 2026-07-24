@@ -9,7 +9,6 @@ import {
   RiGroupLine,
   RiKeyboardBoxLine,
   RiQrScan2Line,
-  RiStore2Line,
   RiUser3Line,
 } from "@remixicon/react";
 import { Button } from "@workspace/ui/components/button";
@@ -22,12 +21,13 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@workspace/ui/components/drawer";
+import { SastShopMark } from "@workspace/ui/components/sast-shop-mark";
 import { cn } from "@workspace/ui/lib/utils";
 import { useFeishuUiEnvironment } from "@/hooks/use-feishu-ui-environment";
 import { useMobileScroll } from "./mobile-scroll-context";
 
 const navItems = [
-  { label: "商城", href: "/shop", icon: RiStore2Line },
+  { label: "商城", href: "/shop", icon: SastShopMark },
   { label: "团购", href: "/group", icon: RiGroupLine },
   { label: "订单", href: "/orders", icon: RiFileList3Line },
   { label: "我的", href: "/profile", icon: RiUser3Line },

@@ -333,17 +333,17 @@ Create `packages/ui/src/styles/globals.css`:
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6f3ef;
+  --foreground: #1d1d1f;
   --card: #ffffff;
-  --card-foreground: #171717;
-  --primary: #18181b;
-  --primary-foreground: #fafafa;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --border: #e4e4e7;
-  --ring: #a1a1aa;
-  --radius: 0.5rem;
+  --card-foreground: #1d1d1f;
+  --primary: #c9431f;
+  --primary-foreground: #ffffff;
+  --muted: #eeeae5;
+  --muted-foreground: #6e6e73;
+  --border: #e3dcd4;
+  --ring: #c9431f;
+  --radius: 0.625rem;
 }
 
 @theme inline {

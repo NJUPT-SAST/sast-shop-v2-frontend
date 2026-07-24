@@ -18,7 +18,7 @@ This slice creates the first real bridge from `demand` to `task` while avoiding 
 - Let captains inspect store-level demand detail and select requester rows.
 - Create an errand task through the API facade using selected `demand_item` rows.
 - Keep all app code behind `@sast-shop/api`, with no direct proto imports in pages or components.
-- Preserve the current UI system: restrained Action Blue, mobile-first layout, Chinese copy, standard controls, and clear state feedback.
+- Preserve the current UI system: restrained Action Coral, mobile-first layout, Chinese copy, standard controls, and clear state feedback.
 - Give later shopping, distribution, and collecting-payment pages a reliable handoff point.
 
 ## Non-Goals
@@ -228,7 +228,7 @@ interface ErrandTaskBrief {
 
 ## UI And Interaction Notes
 
-- Use Action Blue for primary actions. Do not use orange action buttons from the old prototype.
+- Use the Action Coral `primary` token for primary actions. Do not copy raw orange values from the old prototype.
 - Cards stay at the current project radius scale and do not use broad shadows.
 - No card nesting. Product groups and requester rows can use bordered rows inside a section, but avoid card-in-card styling.
 - Use existing shared components first: `Button`, `Card`, `Badge`, `Input`, `ResponsiveDialog`, `Empty`, `Avatar`, and `ManagedImage`.

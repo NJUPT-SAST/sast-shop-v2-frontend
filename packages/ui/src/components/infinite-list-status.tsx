@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { Button } from "#components/button";
+import { LoadFailure } from "#components/load-failure";
 
 export function InfiniteListStatus({
   hasMore,
@@ -63,11 +63,12 @@ export function InfiniteListStatus({
         <div ref={sentinelRef} className="h-px w-full" aria-hidden="true" />
       ) : null}
       {error ? (
-        <div className="flex justify-center">
-          <Button type="button" variant="outline" onClick={onLoadMore}>
-            重新加载
-          </Button>
-        </div>
+        <LoadFailure
+          variant="compact"
+          surface="plain"
+          title="加载更多失败"
+          onRetry={onLoadMore}
+        />
       ) : null}
       {!hasMore && hasItems && !loading ? (
         <p

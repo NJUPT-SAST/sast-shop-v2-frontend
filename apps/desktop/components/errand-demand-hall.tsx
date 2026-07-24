@@ -32,6 +32,7 @@ import {
 } from "@workspace/ui/components/card";
 import { Empty } from "@workspace/ui/components/empty";
 import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
+import { LoadFailure } from "@workspace/ui/components/load-failure";
 import {
   InputGroup,
   InputGroupAddon,
@@ -127,18 +128,10 @@ export function ErrandDemandHall({
       </InputGroup>
 
       {error ? (
-        <Empty
-          icon={<RiStore2Line className="size-5" />}
-          title="跑腿需求暂不可用"
-          action={
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.refresh()}
-            >
-              重新加载
-            </Button>
-          }
+        <LoadFailure
+          title="跑腿需求加载失败"
+          description={error}
+          onRetry={() => router.refresh()}
         />
       ) : filtered.length === 0 && !loadingMore && !hasMore ? (
         <Empty

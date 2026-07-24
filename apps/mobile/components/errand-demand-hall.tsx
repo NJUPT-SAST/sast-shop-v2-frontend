@@ -31,6 +31,7 @@ import {
 import { Empty } from "@workspace/ui/components/empty";
 import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
 import { Input } from "@workspace/ui/components/input";
+import { LoadFailure } from "@workspace/ui/components/load-failure";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
 
@@ -132,7 +133,13 @@ export function ErrandDemandHall({
         />
       </label>
 
-      {filteredDemands.length > 0 ? (
+      {error ? (
+        <LoadFailure
+          title="跑腿需求加载失败"
+          description={error}
+          onRetry={() => router.refresh()}
+        />
+      ) : filteredDemands.length > 0 ? (
         <section className="flex flex-col gap-3">
           {filteredDemands.map((demand) => (
             <DemandCard key={demand.storeId} demand={demand} />
@@ -141,26 +148,10 @@ export function ErrandDemandHall({
       ) : !loadingMore && !hasMore ? (
         <Empty
           icon={<RiStore2Line className="size-5" />}
-          title={
-            error
-              ? "跑腿需求暂不可用"
-              : hasKeyword
-                ? "没有匹配的店铺需求"
-                : "暂无待接单需求"
-          }
-          description={
-            hasKeyword && !error ? "请尝试其他店铺名称。" : undefined
-          }
+          title={hasKeyword ? "没有匹配的店铺需求" : "暂无待接单需求"}
+          description={hasKeyword ? "请尝试其他店铺名称。" : undefined}
           action={
-            error ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.refresh()}
-              >
-                重新加载
-              </Button>
-            ) : hasKeyword ? (
+            hasKeyword ? (
               <Button
                 type="button"
                 variant="outline"

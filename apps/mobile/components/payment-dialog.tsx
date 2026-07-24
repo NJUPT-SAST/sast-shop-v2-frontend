@@ -15,6 +15,7 @@ import { formatPrice } from "@sast-shop/domain";
 import { Button } from "@workspace/ui/components/button";
 import { CopyButton } from "@workspace/ui/components/copy-button";
 import { Empty } from "@workspace/ui/components/empty";
+import { LoadFailure } from "@workspace/ui/components/load-failure";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -232,20 +233,22 @@ function PaymentDialogBody({
       <div className="flex min-h-0 flex-col overflow-y-auto py-1">
         {status === "loading" ? <PaymentDialogSkeleton /> : null}
         {status === "error" ? (
-          <Empty
-            icon={<RiQrCodeLine className="size-5" />}
-            title="获取支付账单失败"
-            description={
-              errorMessage ?? "请稍后重试，或联系收款人确认收款信息。"
-            }
-            action={
-              onRetry ? (
-                <Button type="button" variant="outline" onClick={onRetry}>
-                  重试
-                </Button>
-              ) : null
-            }
-          />
+          onRetry ? (
+            <LoadFailure
+              title="支付账单加载失败"
+              description={
+                errorMessage ?? "请稍后重试，或联系收款人确认收款信息。"
+              }
+              onRetry={onRetry}
+            />
+          ) : (
+            <LoadFailure
+              title="支付账单加载失败"
+              description={
+                errorMessage ?? "请稍后重试，或联系收款人确认收款信息。"
+              }
+            />
+          )
         ) : null}
         {status === "submitted" ? (
           <Empty

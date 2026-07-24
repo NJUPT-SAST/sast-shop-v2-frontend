@@ -4,7 +4,7 @@
 
 **Goal:** Build the buyer-side errand demand flow and show buyer errand orders in the mobile orders page.
 
-**Architecture:** Add `@sast-shop/api` errand facades first, then build the mobile store-detail/cart flow on top of those facades. `../frontend-v2/components/group/shop-detail/*` is a behavioral reference only; final UI/UX follows `$impeccable` product-register guidance, this repo's shadcn-style primitives, mobile shell, and single Action Blue theme.
+**Architecture:** Add `@sast-shop/api` errand facades first, then build the mobile store-detail/cart flow on top of those facades. `../frontend-v2/components/group/shop-detail/*` is a behavioral reference only; final UI/UX follows `$impeccable` product-register guidance, this repo's shadcn-style primitives, mobile shell, and single Action Coral theme.
 
 **Tech Stack:** Next.js 16 App Router, React 19, TypeScript strict, ConnectRPC Web v2, Buf Protobuf-ES v2, Vitest, Tailwind CSS v4, shadcn-style workspace UI, remixicon, sonner.
 
@@ -59,7 +59,7 @@ Use `$impeccable` as the craft standard for the mobile surface:
 
 - Treat `/group/shop/[id]` as a task surface, not a retail product showcase.
 - Use the old implementation for interaction inventory: store detail, product selection, bottom cart entry, review drawer, per-item service fee, expected delivery, and confirmation.
-- Do not copy the old orange action color. Use `primary` Action Blue for submit and active controls.
+- Do not copy raw orange values from the old prototype. Use the `primary` Action Coral token for submit and active controls.
 - Keep product cards compact and scannable. Repeated cards are allowed because they represent repeated products, but avoid decorative card walls, nested cards, broad shadows, or oversized radius.
 - Make state and money visible before ornament: selected quantity, fee per item, estimated product total, service fee total, deadline, and submission state.
 - Use familiar controls: buttons for add/remove, input group for money, `datetime-local` or a simple date/time picker for deadline, Drawer/Dialog for confirmation.
@@ -474,7 +474,7 @@ describe("buyer errand order service", () => {
               name: "SAST 小卖部",
               address: "仙林校区",
               logoUrl: "https://example.com/logo.png",
-              themeColor: "#0071e3",
+              themeColor: "#c9431f",
             },
             status: "ERRAND_DEMAND_STATUS_OPEN",
             productTemplates: [
@@ -1136,7 +1136,7 @@ Before writing JSX, write this comment as a temporary checklist in your working 
 UI quality checklist:
 - Task-first, not retail-first.
 - Compact product cards, no nested cards, no broad shadows.
-- Action Blue only for primary action and active controls.
+- Action Coral only for primary action and active controls.
 - Quantity, fee, deadline, and totals visible before submit.
 - Drawer failure preserves state.
 ```
