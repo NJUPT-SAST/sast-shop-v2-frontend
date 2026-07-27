@@ -48,7 +48,11 @@ export default async function PurchaseTaskPage({
     return (
       <DistributingTaskView
         {...shared}
-        detail={await getDistributingTaskDetail(id, options)}
+        detail={await getDistributingTaskDetail(id, {
+          ...options,
+          taskItems: state.task.items,
+          taskUpdatedAt: state.task.updatedAt,
+        })}
         mode={state.mode}
       />
     );

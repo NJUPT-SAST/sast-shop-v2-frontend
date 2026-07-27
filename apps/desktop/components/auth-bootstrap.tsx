@@ -90,10 +90,21 @@ export function AuthBootstrap({
           if (!(reason instanceof AuthRequiredError)) throw reason;
         }
       }
-      if (!appId) throw new Error("缺少飞书应用 ID，请联系管理员完成部署配置");
-      if (!window.h5sdk?.ready || !window.tt) {
-        throw new Error("请在飞书客户端内打开该应用");
+
+      if (!appId || !window.h5sdk?.ready || !window.tt) {
+        setState("authenticating");
+        const loginUrl = new URL(
+          "/api/auth/lark/authorize",
+          window.location.origin,
+        );
+        loginUrl.searchParams.set(
+          "returnTo",
+          `${window.location.pathname}${window.location.search}`,
+        );
+        window.location.assign(loginUrl.href);
+        return false;
       }
+
       const sdk = window.h5sdk;
       const client = window.tt;
       setState("authenticating");

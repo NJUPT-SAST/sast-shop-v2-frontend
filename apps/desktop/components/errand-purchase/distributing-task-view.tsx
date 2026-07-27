@@ -75,6 +75,7 @@ export function DistributingTaskView({
   const router = useRouter();
   const pendingRef = useRef(false);
   const [items, setItems] = useState(detail.items);
+  const [taskUpdatedAt, setTaskUpdatedAt] = useState(detail.taskUpdatedAt);
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       detail.items.map((item) => [
@@ -146,6 +147,23 @@ export function DistributingTaskView({
       item.actualUnitPriceCents,
   );
 
+  function applyRefreshedDetail(refreshed: DistributingTaskDetail) {
+    setTaskUpdatedAt((current) => refreshed.taskUpdatedAt ?? current);
+    setItems((current) => {
+      const currentItemUpdatedAtById = new Map(
+        current.map((item) => [item.errandTaskItemId, item.itemUpdatedAt]),
+      );
+
+      return refreshed.items.map((item) => ({
+        ...item,
+        itemUpdatedAt:
+          item.itemUpdatedAt ??
+          currentItemUpdatedAtById.get(item.errandTaskItemId) ??
+          null,
+      }));
+    });
+  }
+
   async function savePrice(item: DistributingTaskItem) {
     const cents = parseCents(priceDrafts[item.errandTaskItemId] ?? "");
     const key = `price-${item.errandTaskItemId}`;
@@ -157,17 +175,19 @@ export function DistributingTaskView({
     setPendingKeys((current) => new Set(current).add(key));
     try {
       await updateActualPrice(
-        detail.taskId,
-        item.errandTaskItemId,
-        cents,
-        null,
+        {
+          errandTaskId: detail.taskId,
+          errandTaskItemId: item.errandTaskItemId,
+          actualUnitPriceCents: cents,
+          itemUpdatedAt: item.itemUpdatedAt,
+        },
         serviceOptions,
       );
       const refreshed = await getDistributingTaskDetail(
         detail.taskId,
         serviceOptions,
       );
-      setItems(refreshed.items);
+      applyRefreshedDetail(refreshed);
       setPriceDrafts(
         Object.fromEntries(
           refreshed.items.map((entry) => [
@@ -219,7 +239,7 @@ export function DistributingTaskView({
         detail.taskId,
         serviceOptions,
       );
-      setItems(refreshed.items);
+      applyRefreshedDetail(refreshed);
       setAssignmentDrafts(
         Object.fromEntries(
           refreshed.items.flatMap((entry) =>
@@ -262,7 +282,7 @@ export function DistributingTaskView({
         await transitionToDistributing(
           detail.taskId,
           packagingFeeCents,
-          null,
+          taskUpdatedAt,
           serviceOptions,
         );
         toast.success("已进入分发阶段");
@@ -270,7 +290,7 @@ export function DistributingTaskView({
       } else if (action === "finish") {
         await transitionToCollectingPayment(
           detail.taskId,
-          null,
+          taskUpdatedAt,
           serviceOptions,
         );
         toast.success("已生成参与者账单");

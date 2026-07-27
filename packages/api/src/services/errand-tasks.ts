@@ -51,7 +51,14 @@ export interface ErrandTaskBrief {
   storeName: string;
   status: ErrandTaskStatusValue;
   itemCount: number;
+  items: ErrandTaskBriefItem[];
+  updatedAt: string | null;
   createdAt: string | null;
+}
+
+export interface ErrandTaskBriefItem {
+  id: string;
+  updatedAt: string | null;
 }
 
 type ListErrandTasksOptions = ServiceOptions & {
@@ -102,16 +109,24 @@ export async function listErrandTasksPage(
   const dataSource = resolveDataSource(options);
 
   if (dataSource === "mock" || dataSource === "local") {
+    let rawErrandTasks: unknown[] = [];
     const client = createClient(
       ErrandTaskService,
-      createLocalTransport(options),
+      createLocalTransport({
+        ...options,
+        fetch: createErrandTaskListCaptureFetch(options, (tasks) => {
+          rawErrandTasks = tasks;
+        }),
+      }),
     );
     const response = await requestLocal("listErrandTasks", () =>
       client.getErrandTaskList(request),
     );
 
     return createPageResult({
-      items: response.errandTasks.map(mapErrandTask),
+      items: response.errandTasks.map((task, index) =>
+        mapErrandTask(task, rawErrandTasks[index]),
+      ),
       currentPage: response.currentPage,
       pageSize: request.pageSize,
       totalCount: response.totalCount,
@@ -166,14 +181,126 @@ function parseCreateErrandTaskInput(input: CreateErrandTaskInput) {
   };
 }
 
-function mapErrandTask(task: ProtoErrandTask): ErrandTaskBrief {
+function mapErrandTask(
+  task: ProtoErrandTask,
+  rawTask?: unknown,
+): ErrandTaskBrief {
+  const items = task.items.map(mapErrandTaskBriefItem);
+
   return {
     id: task.taskId.toString(),
     storeId: task.storeId.toString(),
     storeName: task.storeName,
     status: mapStatusFromProto(task.status),
-    itemCount: task.items.length,
+    itemCount: items.length,
+    items,
+    updatedAt: mapErrandTaskUpdatedAt(task, rawTask),
     createdAt: formatTimestamp(task.createdAt),
+  };
+}
+
+function mapErrandTaskUpdatedAt(
+  task: ProtoErrandTask,
+  rawTask?: unknown,
+): string | null {
+  const rawUpdatedAt = getRawUpdatedAt(rawTask);
+
+  if (rawUpdatedAt) {
+    return rawUpdatedAt;
+  }
+
+  const taskWithUpdatedAt = task as ProtoErrandTask & {
+    updatedAt?: Timestamp | undefined;
+  };
+
+  return formatTimestamp(taskWithUpdatedAt.updatedAt);
+}
+
+function createErrandTaskListCaptureFetch(
+  options: ServiceOptions,
+  onTasks: (tasks: unknown[]) => void,
+): typeof globalThis.fetch {
+  return createJsonBodyCaptureFetch(options, (body) => {
+    const tasks = getRawRepeatedField(body, "errandTasks", "errand_tasks");
+
+    if (tasks) {
+      onTasks(tasks);
+    }
+  });
+}
+
+function createJsonBodyCaptureFetch(
+  options: ServiceOptions,
+  onBody: (body: unknown) => void,
+): typeof globalThis.fetch {
+  return async (input, init) => {
+    const response = options.fetch
+      ? await options.fetch(input, init)
+      : await globalThis.fetch(input, init);
+
+    try {
+      const body: unknown = await response.clone().json();
+      onBody(body);
+    } catch {
+      // Non-JSON Connect responses are still parsed by the generated client.
+    }
+
+    return response;
+  };
+}
+
+function getRawUpdatedAt(value: unknown): string | null {
+  return (
+    getRawTimestampString(value, "updatedAt") ??
+    getRawTimestampString(value, "updated_at")
+  );
+}
+
+function getRawRepeatedField(
+  value: unknown,
+  jsonName: string,
+  protoName: string,
+): unknown[] | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const rawValue = value[jsonName] ?? value[protoName];
+
+  return Array.isArray(rawValue) ? rawValue : null;
+}
+
+function getRawTimestampString(
+  value: unknown,
+  fieldName: string,
+): string | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const rawValue = value[fieldName];
+
+  if (typeof rawValue !== "string") {
+    return null;
+  }
+
+  const date = new Date(rawValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toISOString();
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function mapErrandTaskBriefItem(item: ErrandTaskItem): ErrandTaskBriefItem {
+  return {
+    id: item.id.toString(),
+    updatedAt: formatTimestamp(item.updatedAt),
   };
 }
 
@@ -294,6 +421,20 @@ function parseOptionalTimestampString(
   return timestampFromDate(date);
 }
 
+function parseTimestampString(value: string, message: string): Timestamp {
+  if (!value) {
+    throw new ValidationError(message);
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    throw new ValidationError(message);
+  }
+
+  return timestampFromDate(date);
+}
+
 export interface ShoppingTaskItem {
   id: string;
   productTitle: string;
@@ -332,6 +473,7 @@ export interface DistributingTaskItem {
   imageUrl: string;
   originUnitPriceCents: number;
   actualUnitPriceCents: number;
+  itemUpdatedAt: string | null;
   requesters: DistributingRequester[];
 }
 
@@ -339,9 +481,15 @@ export interface DistributingTaskDetail {
   taskId: string;
   storeId: string;
   storeName: string;
+  taskUpdatedAt: string | null;
   packagingFeeCents: number;
   items: DistributingTaskItem[];
 }
+
+type GetDistributingTaskDetailOptions = ServiceOptions & {
+  taskItems?: ErrandTaskBriefItem[];
+  taskUpdatedAt?: string | null;
+};
 
 export interface CollectingPaymentItem {
   errandDemandItemId: string;
@@ -395,6 +543,13 @@ export interface SaveDistributingAssignmentInput {
   errandTaskAssignmentId: string;
   distributedQuantity: number;
   assignmentUpdatedAt?: string | null;
+}
+
+export interface UpdateActualPriceInput {
+  errandTaskId: string;
+  errandTaskItemId: string;
+  actualUnitPriceCents: number;
+  itemUpdatedAt?: string | null;
 }
 
 export async function getShoppingTaskDetail(
@@ -500,26 +655,40 @@ export async function transitionToPendingDistributing(
 
 export async function getDistributingTaskDetail(
   taskId: string,
-  options: ServiceOptions = {},
+  options: GetDistributingTaskDetailOptions = {},
 ): Promise<DistributingTaskDetail> {
   const errandTaskId = parseInt64(taskId, "跑腿任务 ID 不正确");
   const dataSource = resolveDataSource(options);
 
   if (dataSource === "mock" || dataSource === "local") {
+    const concurrencyInfo = await getErrandTaskConcurrencyInfo(
+      errandTaskId.toString(),
+      options,
+    );
+    let rawDetail: unknown = null;
     const client = createClient(
       ErrandTaskService,
-      createLocalTransport(options),
+      createLocalTransport({
+        ...options,
+        fetch: createJsonBodyCaptureFetch(options, (body) => {
+          rawDetail = body;
+        }),
+      }),
     );
     const response = await requestLocal("getDistributingTaskDetail", () =>
       client.getDistributingTaskDetail({ errandTaskId }),
     );
+    const detailUpdatedAt = getRawUpdatedAt(rawDetail);
 
     return {
       taskId: response.errandTaskId.toString(),
       storeId: response.storeId.toString(),
       storeName: response.storeName,
+      taskUpdatedAt: detailUpdatedAt ?? concurrencyInfo.taskUpdatedAt,
       packagingFeeCents: response.packagingFeeCents,
-      items: response.distributingItems.map(mapDistributingItem),
+      items: response.distributingItems.map((item) =>
+        mapDistributingItem(item, concurrencyInfo.itemUpdatedAtById),
+      ),
     };
   }
 
@@ -527,36 +696,40 @@ export async function getDistributingTaskDetail(
 }
 
 export async function updateActualPrice(
-  taskId: string,
-  taskItemId: string,
-  priceCents: number,
-  itemUpdatedAt?: string | null,
+  input: UpdateActualPriceInput,
   options: ServiceOptions = {},
 ): Promise<void> {
   const dataSource = resolveDataSource(options);
   const actualUnitPriceCents = parseNonNegativeInt32(
-    priceCents,
+    input.actualUnitPriceCents,
     "实际单价不正确",
   );
 
   if (dataSource === "mock" || dataSource === "local") {
+    const errandTaskItemId = parseInt64(
+      input.errandTaskItemId,
+      "任务商品 ID 不正确",
+    );
+    const resolvedItemUpdatedAt = await resolveErrandTaskItemUpdatedAt(
+      input.errandTaskId,
+      errandTaskItemId.toString(),
+      input.itemUpdatedAt,
+      options,
+    );
+    const errandTaskItemUpdatedAt = parseTimestampString(
+      resolvedItemUpdatedAt ?? "",
+      "商品更新时间不正确",
+    );
     const client = createClient(
       ErrandTaskService,
       createLocalTransport(options),
     );
     await requestLocal("updateActualPrice", () =>
       client.updateActualPrice({
-        errandTaskId: parseInt64(taskId, "跑腿任务 ID 不正确"),
-        errandTaskItemId: parseInt64(taskItemId, "任务商品 ID 不正确"),
+        errandTaskId: parseInt64(input.errandTaskId, "跑腿任务 ID 不正确"),
+        errandTaskItemId,
         actualUnitPriceCents,
-        ...(itemUpdatedAt != null
-          ? {
-              errandTaskItemUpdatedAt: parseOptionalTimestampString(
-                itemUpdatedAt,
-                "商品更新时间不正确",
-              ),
-            }
-          : {}),
+        errandTaskItemUpdatedAt,
       }),
     );
     return;
@@ -579,6 +752,15 @@ export async function transitionToDistributing(
   );
 
   if (dataSource === "mock" || dataSource === "local") {
+    const resolvedUpdatedAt = await resolveErrandTaskUpdatedAt(
+      errandTaskId.toString(),
+      updatedAt,
+      options,
+    );
+    const parsedUpdatedAt = parseTimestampString(
+      resolvedUpdatedAt ?? "",
+      "更新时间不正确",
+    );
     const client = createClient(
       ErrandTaskService,
       createLocalTransport(options),
@@ -587,14 +769,7 @@ export async function transitionToDistributing(
       client.transitionToDistributing({
         errandTaskId,
         packagingFeeCents: normalizedPackagingFeeCents,
-        ...(updatedAt != null
-          ? {
-              updatedAt: parseOptionalTimestampString(
-                updatedAt,
-                "更新时间不正确",
-              ),
-            }
-          : {}),
+        updatedAt: parsedUpdatedAt,
       }),
     );
     return;
@@ -654,6 +829,15 @@ export async function transitionToCollectingPayment(
   const dataSource = resolveDataSource(options);
 
   if (dataSource === "mock" || dataSource === "local") {
+    const resolvedUpdatedAt = await resolveErrandTaskUpdatedAt(
+      errandTaskId.toString(),
+      updatedAt,
+      options,
+    );
+    const parsedUpdatedAt = parseTimestampString(
+      resolvedUpdatedAt ?? "",
+      "更新时间不正确",
+    );
     const client = createClient(
       ErrandTaskService,
       createLocalTransport(options),
@@ -661,14 +845,7 @@ export async function transitionToCollectingPayment(
     await requestLocal("transitionToCollectingPayment", () =>
       client.transitionToCollectingPayment({
         errandTaskId,
-        ...(updatedAt != null
-          ? {
-              updatedAt: parseOptionalTimestampString(
-                updatedAt,
-                "更新时间不正确",
-              ),
-            }
-          : {}),
+        updatedAt: parsedUpdatedAt,
       }),
     );
     return;
@@ -784,6 +961,67 @@ function mapErrandTaskItem(item: ErrandTaskItem): ShoppingTaskItem {
   };
 }
 
+async function getErrandTaskConcurrencyInfo(
+  taskId: string,
+  options: GetDistributingTaskDetailOptions,
+): Promise<{
+  taskUpdatedAt: string | null;
+  itemUpdatedAtById: Map<string, string | null>;
+}> {
+  if (options.taskItems && options.taskUpdatedAt != null) {
+    return {
+      taskUpdatedAt: options.taskUpdatedAt,
+      itemUpdatedAtById: new Map(
+        options.taskItems.map((item) => [item.id, item.updatedAt] as const),
+      ),
+    };
+  }
+
+  let task: ErrandTaskBrief | null = null;
+
+  try {
+    task = await getErrandTaskBrief(taskId, options);
+  } catch {
+    return { taskUpdatedAt: null, itemUpdatedAtById: new Map() };
+  }
+
+  return {
+    taskUpdatedAt: options.taskUpdatedAt ?? task?.updatedAt ?? null,
+    itemUpdatedAtById: new Map(
+      options.taskItems?.map((item) => [item.id, item.updatedAt] as const) ??
+        task?.items.map((item) => [item.id, item.updatedAt] as const) ??
+        [],
+    ),
+  };
+}
+
+async function resolveErrandTaskUpdatedAt(
+  taskId: string,
+  updatedAt: string | null | undefined,
+  options: ServiceOptions,
+): Promise<string | null> {
+  if (updatedAt != null) {
+    return updatedAt;
+  }
+
+  const task = await getErrandTaskBrief(taskId, options);
+  return task?.updatedAt ?? null;
+}
+
+async function resolveErrandTaskItemUpdatedAt(
+  taskId: string,
+  taskItemId: string,
+  updatedAt: string | null | undefined,
+  options: ServiceOptions,
+): Promise<string | null> {
+  if (updatedAt != null) {
+    return updatedAt;
+  }
+
+  const task = await getErrandTaskBrief(taskId, options);
+  return task?.items.find((item) => item.id === taskItemId)?.updatedAt ?? null;
+}
+
 function mapDistributingRequester(
   r: DistributingRequestInfo,
 ): DistributingRequester {
@@ -799,14 +1037,20 @@ function mapDistributingRequester(
   };
 }
 
-function mapDistributingItem(item: DistributingItem): DistributingTaskItem {
+function mapDistributingItem(
+  item: DistributingItem,
+  itemUpdatedAtById: ReadonlyMap<string, string | null>,
+): DistributingTaskItem {
+  const errandTaskItemId = item.errandTaskItemId.toString();
+
   return {
-    errandTaskItemId: item.errandTaskItemId.toString(),
+    errandTaskItemId,
     title: item.titleSnapshot,
     description: item.descriptionSnapshot,
     imageUrl: item.imageUrlSnapshot,
     originUnitPriceCents: item.originUnitPriceCents,
     actualUnitPriceCents: item.actualUnitPriceCents,
+    itemUpdatedAt: itemUpdatedAtById.get(errandTaskItemId) ?? null,
     requesters: item.requesters.map(mapDistributingRequester),
   };
 }

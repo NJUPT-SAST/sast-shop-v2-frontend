@@ -57,7 +57,11 @@ export default async function PurchaseTaskPage({
   }
 
   if (state.kind === "distributing") {
-    const detail = await getDistributingTaskDetail(id, serviceOptions);
+    const detail = await getDistributingTaskDetail(id, {
+      ...serviceOptions,
+      taskItems: state.task.items,
+      taskUpdatedAt: state.task.updatedAt,
+    });
 
     return (
       <DistributingTaskView

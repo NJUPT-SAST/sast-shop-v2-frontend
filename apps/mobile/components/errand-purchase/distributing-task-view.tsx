@@ -93,6 +93,7 @@ export function DistributingTaskView({
   const router = useRouter();
   const submittingRef = useRef(false);
   const [items, setItems] = useState<DistributingTaskItem[]>(detail.items);
+  const [taskUpdatedAt, setTaskUpdatedAt] = useState(detail.taskUpdatedAt);
   const [packagingFee, setPackagingFee] = useState(
     formatYuan(detail.packagingFeeCents),
   );
@@ -146,6 +147,23 @@ export function DistributingTaskView({
     );
   };
 
+  const applyRefreshedDetail = (refreshed: DistributingTaskDetail) => {
+    setTaskUpdatedAt((current) => refreshed.taskUpdatedAt ?? current);
+    setItems((current) => {
+      const currentItemUpdatedAtById = new Map(
+        current.map((item) => [item.errandTaskItemId, item.itemUpdatedAt]),
+      );
+
+      return refreshed.items.map((item) => ({
+        ...item,
+        itemUpdatedAt:
+          item.itemUpdatedAt ??
+          currentItemUpdatedAtById.get(item.errandTaskItemId) ??
+          null,
+      }));
+    });
+  };
+
   const handleSaveAssignment = async (
     item: DistributingTaskItem,
     requester: DistributingRequester,
@@ -175,7 +193,7 @@ export function DistributingTaskView({
             detail.taskId,
             serviceOptions,
           );
-          setItems(refreshed.items);
+          applyRefreshedDetail(refreshed);
         } catch {
           toast.warning("结果已保存，但状态刷新失败，请重新进入任务");
         }
@@ -220,7 +238,7 @@ export function DistributingTaskView({
             detail.taskId,
             serviceOptions,
           );
-          setItems(refreshed.items);
+          applyRefreshedDetail(refreshed);
         } catch {
           toast.warning("结果已撤销，但状态刷新失败，请重新进入任务");
         }
@@ -247,13 +265,24 @@ export function DistributingTaskView({
     submittingRef.current = true;
     try {
       await updateActualPrice(
-        detail.taskId,
-        dialog.item.errandTaskItemId,
-        cents,
-        null,
+        {
+          errandTaskId: detail.taskId,
+          errandTaskItemId: dialog.item.errandTaskItemId,
+          actualUnitPriceCents: cents,
+          itemUpdatedAt: dialog.item.itemUpdatedAt,
+        },
         serviceOptions,
       );
-      updateItemPrice(dialog.item.errandTaskItemId, cents);
+      try {
+        const refreshed = await getDistributingTaskDetail(
+          detail.taskId,
+          serviceOptions,
+        );
+        applyRefreshedDetail(refreshed);
+      } catch {
+        updateItemPrice(dialog.item.errandTaskItemId, cents);
+        toast.warning("价格已保存，但状态刷新失败，请重新进入任务");
+      }
       setDialog({ type: "none" });
     } catch {
       toast.error("修改价格失败，请稍后再试");
@@ -275,7 +304,7 @@ export function DistributingTaskView({
       await transitionToDistributing(
         detail.taskId,
         feeCents,
-        null,
+        taskUpdatedAt,
         serviceOptions,
       );
       setDialog({ type: "none" });
@@ -293,7 +322,11 @@ export function DistributingTaskView({
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      await transitionToCollectingPayment(detail.taskId, null, serviceOptions);
+      await transitionToCollectingPayment(
+        detail.taskId,
+        taskUpdatedAt,
+        serviceOptions,
+      );
       setDialog({ type: "none" });
       router.replace(buildErrandTaskPaymentHref(detail.taskId));
     } catch {

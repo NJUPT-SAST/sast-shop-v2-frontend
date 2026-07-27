@@ -144,12 +144,14 @@ export {
   type DistributingTaskDetail,
   type DistributingTaskItem,
   type ErrandTaskBrief,
+  type ErrandTaskBriefItem,
   type ErrandTaskStatusFilter,
   type ErrandTaskStatusValue,
   type SaveDistributingAssignmentInput,
   type SaveShoppingItemInput,
   type ShoppingTaskDetail,
   type ShoppingTaskItem,
+  type UpdateActualPriceInput,
 } from "./services/errand-tasks";
 export {
   createProductTemplate,
