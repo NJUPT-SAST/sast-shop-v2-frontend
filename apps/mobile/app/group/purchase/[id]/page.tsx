@@ -52,6 +52,7 @@ export default async function PurchaseTaskPage({
         dataSource={mobileAppConfig.dataSource}
         connectBaseUrl={mobileAppConfig.connectBaseUrl}
         detail={detail}
+        taskUpdatedAt={detail.taskUpdatedAt ?? state.task.updatedAt}
       />
     );
   }

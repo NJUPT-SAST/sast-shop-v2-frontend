@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { RiArrowDownSLine, RiArrowUpSLine, RiBillLine } from "@remixicon/react";
 import {
   confirmBill,
+  getErrandTaskBrief,
   transitionToCompleted,
   type CollectingPaymentBill,
   type CollectingPaymentDetail,
@@ -16,6 +17,11 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@workspace/ui/components/avatar";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@workspace/ui/components/alert";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Empty } from "@workspace/ui/components/empty";
@@ -36,6 +42,8 @@ export type CollectingPaymentViewProps = {
   connectBaseUrl: string;
   detail: CollectingPaymentDetail;
   taskId: string;
+  taskUpdatedAt: string | null;
+  billingNotice?: boolean;
 };
 
 type DialogState =
@@ -145,12 +153,14 @@ export function CollectingPaymentView({
   connectBaseUrl,
   detail,
   taskId,
+  taskUpdatedAt,
+  billingNotice = false,
 }: CollectingPaymentViewProps) {
   const router = useRouter();
   const submittingRef = useRef(false);
   const confirmingRef = useRef(false);
   const [bills, setBills] = useState<CollectingPaymentBill[]>(detail.bills);
-  const [expandedBillId, setExpandedBillId] = useState<string | null>(null);
+  const [expandedBillKey, setExpandedBillKey] = useState<string | null>(null);
   const [dialog, setDialog] = useState<DialogState>({ type: "none" });
   const [submitting, setSubmitting] = useState(false);
   const [confirmingBillId, setConfirmingBillId] = useState<string | null>(null);
@@ -163,12 +173,14 @@ export function CollectingPaymentView({
   );
   const unpaid = bills.filter((b) => b.paymentStatus === "pending");
   const confirmed = bills.filter((b) => b.paymentStatus === "confirmed");
-  const closed = bills.filter((b) => b.paymentStatus === "closed");
+  const abnormalBills = bills.filter(
+    (b) => b.paymentStatus === "closed" || b.paymentStatus === "unknown",
+  );
 
   const confirmedCount = confirmed.length;
-  const settledCount = confirmedCount + closed.length;
   const totalCount = bills.length;
-  const allSettled = settledCount === totalCount && totalCount > 0;
+  const allConfirmed =
+    totalCount > 0 && bills.every((b) => b.paymentStatus === "confirmed");
 
   const updateBill = (
     requesterId: string,
@@ -210,15 +222,32 @@ export function CollectingPaymentView({
   };
 
   const handleComplete = async () => {
-    if (submittingRef.current) return;
+    if (!allConfirmed || submittingRef.current) return;
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      await transitionToCompleted(taskId, null, serviceOptions);
+      const latestTask = await getErrandTaskBrief(taskId, serviceOptions);
+      if (latestTask?.status === "completed") {
+        setDialog({ type: "none" });
+        router.replace("/orders?type=errand&view=captain");
+        return;
+      }
+      if (latestTask?.status === "collecting_payment") {
+        await transitionToCompleted(
+          taskId,
+          latestTask.updatedAt ?? taskUpdatedAt,
+          serviceOptions,
+        );
+        setDialog({ type: "none" });
+        router.replace("/orders?type=errand&view=captain");
+        return;
+      }
+      toast.error("任务状态已变化，请刷新后重试");
       setDialog({ type: "none" });
-      router.push("/group");
+      setSubmitting(false);
+      router.refresh();
     } catch {
-      toast.error("操作失败，请稍后再试");
+      toast.error("订单完成失败，请刷新账单后重试");
       setSubmitting(false);
     } finally {
       submittingRef.current = false;
@@ -226,7 +255,6 @@ export function CollectingPaymentView({
   };
 
   const renderBillSection = (list: CollectingPaymentBill[], title: string) => {
-    if (list.length === 0) return null;
     return (
       <section className="flex flex-col gap-3">
         <div className="flex items-baseline gap-2">
@@ -235,10 +263,11 @@ export function CollectingPaymentView({
             {list.length} 位买家
           </span>
         </div>
-        <div className="flex flex-col gap-3">
+        {list.length ? (
+          <div className="flex flex-col gap-3">
           {list.map((bill) => {
             const expandKey = bill.billId ?? bill.requesterId;
-            const isExpanded = expandedBillId === expandKey;
+            const isExpanded = expandedBillKey === expandKey;
             return (
               <div
                 key={expandKey}
@@ -250,7 +279,7 @@ export function CollectingPaymentView({
                   aria-expanded={isExpanded}
                   className="flex w-full items-center gap-3 p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   onClick={() =>
-                    setExpandedBillId(isExpanded ? null : expandKey)
+                    setExpandedBillKey(isExpanded ? null : expandKey)
                   }
                 >
                   <Avatar className="size-10 shrink-0">
@@ -271,6 +300,12 @@ export function CollectingPaymentView({
                     <p className="text-sm font-semibold tabular-nums text-primary">
                       {formatPrice(bill.totalAmountCents)}
                     </p>
+                    {bill.paymentStatus === "pending_confirmation" &&
+                    bill.verifyCode ? (
+                      <p className="mt-0.5 font-mono text-xs font-semibold tracking-widest">
+                        标识码 {bill.verifyCode}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     {getStatusBadge(bill.paymentStatus)}
@@ -354,19 +389,45 @@ export function CollectingPaymentView({
               </div>
             );
           })}
-        </div>
+          </div>
+        ) : (
+          <div className="rounded-lg border bg-card p-3 text-sm text-muted-foreground">
+            当前没有{title}账单。
+          </div>
+        )}
       </section>
     );
   };
 
   return (
     <div className="flex flex-1 flex-col gap-5 py-5 pb-24">
-      <h1 className="text-lg font-semibold leading-7">收款核对</h1>
+      <div className="flex items-center gap-2">
+        <h1 className="text-lg font-semibold leading-7">支付核对</h1>
+        <Badge variant="warning">收款中</Badge>
+      </div>
+
+      {billingNotice ? (
+        <Alert>
+          <AlertTitle>账单生成异常</AlertTitle>
+          <AlertDescription>请刷新或联系处理。</AlertDescription>
+        </Alert>
+      ) : null}
 
       {renderBillSection(pendingConfirmation, "待确认")}
       {renderBillSection(unpaid, "未支付")}
       {renderBillSection(confirmed, "已收款")}
-      {renderBillSection(closed, "已关闭")}
+
+      {abnormalBills.length ? (
+        <Alert>
+          <AlertTitle>异常账单</AlertTitle>
+          <AlertDescription>
+            {abnormalBills
+              .map((bill) => bill.requesterName || bill.billNo || bill.requesterId)
+              .join("、")}
+            的账单状态不计入订单完成进度，请刷新后核对。
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       {bills.length === 0 && (
         <Empty
@@ -378,15 +439,19 @@ export function CollectingPaymentView({
 
       {bills.length > 0 ? (
         <MobileFixedFooter>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-muted-foreground">账单处理进度</p>
+            <p className="text-sm font-semibold tabular-nums">
+              {confirmedCount}/{totalCount} 人已收款
+            </p>
+          </div>
           <Button
             type="button"
-            disabled={!allSettled}
-            className="h-12 w-full"
+            disabled={!allConfirmed}
+            className="h-12 flex-1"
             onClick={() => setDialog({ type: "confirm_complete" })}
           >
-            {allSettled
-              ? "完成订单"
-              : `还有 ${totalCount - settledCount} 笔账单待处理`}
+            订单完成
           </Button>
         </MobileFixedFooter>
       ) : null}
@@ -467,7 +532,7 @@ export function CollectingPaymentView({
                 billToConfirm && void handleConfirmBill(billToConfirm)
               }
             >
-              {confirmingBillId !== null ? "确认中" : "确认已到账"}
+              {confirmingBillId !== null ? "确认中" : "确认收款"}
             </Button>
           </ResponsiveDialogFooter>
         </ResponsiveDialogContent>
@@ -483,7 +548,7 @@ export function CollectingPaymentView({
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>确认订单完成</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
-              全部账单已确认到账，完成后不可继续修改。
+              {confirmedCount}/{totalCount} 人已确认到账。完成后不可继续修改。
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
           <ResponsiveDialogFooter>
@@ -497,10 +562,10 @@ export function CollectingPaymentView({
             </Button>
             <Button
               type="button"
-              disabled={submitting}
+              disabled={submitting || !allConfirmed}
               onClick={() => void handleComplete()}
             >
-              {submitting ? "处理中" : "确认完成"}
+              {submitting ? "处理中" : "订单完成"}
             </Button>
           </ResponsiveDialogFooter>
         </ResponsiveDialogContent>

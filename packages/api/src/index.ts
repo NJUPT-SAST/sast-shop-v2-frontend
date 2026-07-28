@@ -148,6 +148,7 @@ export {
   type ErrandTaskStatusFilter,
   type ErrandTaskStatusValue,
   type SaveDistributingAssignmentInput,
+  type SaveDistributingAssignmentResult,
   type SaveShoppingItemInput,
   type ShoppingTaskDetail,
   type ShoppingTaskItem,

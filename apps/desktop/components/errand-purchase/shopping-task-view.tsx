@@ -53,10 +53,12 @@ export function ShoppingTaskView({
   dataSource,
   connectBaseUrl,
   detail,
+  taskUpdatedAt,
 }: {
   dataSource: DataSource;
   connectBaseUrl?: string;
   detail: ShoppingTaskDetail;
+  taskUpdatedAt: string | null;
 }) {
   const router = useRouter();
   const pendingRef = useRef(false);
@@ -130,7 +132,7 @@ export function ShoppingTaskView({
     try {
       await transitionToPendingDistributing(
         detail.taskId,
-        null,
+        taskUpdatedAt,
         serviceOptions,
       );
       setDialog({ type: "none" });
@@ -149,7 +151,7 @@ export function ShoppingTaskView({
     pendingRef.current = true;
     setPending(true);
     try {
-      await cancelTask(detail.taskId, null, serviceOptions);
+      await cancelTask(detail.taskId, taskUpdatedAt, serviceOptions);
       toast.success("采购任务已取消");
       router.push("/orders?type=errand&view=captain");
     } catch {

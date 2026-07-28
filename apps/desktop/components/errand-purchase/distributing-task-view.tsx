@@ -12,6 +12,7 @@ import {
 import {
   cancelTask,
   getDistributingTaskDetail,
+  getErrandTaskBrief,
   saveDistributingAssignment,
   transitionToCollectingPayment,
   transitionToDistributing,
@@ -147,6 +148,36 @@ export function DistributingTaskView({
       item.actualUnitPriceCents,
   );
 
+  function updateRequesterAssignment(
+    itemId: string,
+    assignmentId: string,
+    distributedQuantity: number,
+    assignmentUpdatedAt: string | null,
+  ) {
+    setItems((current) =>
+      current.map((item) =>
+        item.errandTaskItemId !== itemId
+          ? item
+          : {
+              ...item,
+              requesters: item.requesters.map((requester) =>
+                requester.errandTaskAssignmentId !== assignmentId
+                  ? requester
+                  : {
+                      ...requester,
+                      distributedQuantity,
+                      assignmentUpdatedAt,
+                    },
+              ),
+            },
+      ),
+    );
+    setAssignmentDrafts((current) => ({
+      ...current,
+      [assignmentId]: distributedQuantity > 0 ? String(distributedQuantity) : "",
+    }));
+  }
+
   function applyRefreshedDetail(refreshed: DistributingTaskDetail) {
     setTaskUpdatedAt((current) => refreshed.taskUpdatedAt ?? current);
     setItems((current) => {
@@ -226,7 +257,7 @@ export function DistributingTaskView({
     }
     setPendingKeys((current) => new Set(current).add(key));
     try {
-      await saveDistributingAssignment(
+      const saved = await saveDistributingAssignment(
         {
           errandTaskItemId: item.errandTaskItemId,
           errandTaskAssignmentId: requester.errandTaskAssignmentId,
@@ -235,22 +266,11 @@ export function DistributingTaskView({
         },
         serviceOptions,
       );
-      const refreshed = await getDistributingTaskDetail(
-        detail.taskId,
-        serviceOptions,
-      );
-      applyRefreshedDetail(refreshed);
-      setAssignmentDrafts(
-        Object.fromEntries(
-          refreshed.items.flatMap((entry) =>
-            entry.requesters.map((candidate) => [
-              candidate.errandTaskAssignmentId,
-              candidate.distributedQuantity > 0
-                ? String(candidate.distributedQuantity)
-                : "",
-            ]),
-          ),
-        ),
+      updateRequesterAssignment(
+        item.errandTaskItemId,
+        requester.errandTaskAssignmentId,
+        quantity,
+        saved.assignmentUpdatedAt ?? requester.assignmentUpdatedAt,
       );
       toast.success(quantity === -1 ? "已撤销分发结果" : "分发结果已保存");
     } catch {
@@ -294,14 +314,29 @@ export function DistributingTaskView({
           serviceOptions,
         );
         toast.success("已生成参与者账单");
-        router.refresh();
-      } else {
-        await cancelTask(detail.taskId, null, serviceOptions);
-        toast.success("采购任务已取消");
         router.replace(buildErrandTaskPaymentHref(detail.taskId));
+      } else {
+        await cancelTask(detail.taskId, taskUpdatedAt, serviceOptions);
+        toast.success("采购任务已取消");
+        router.replace("/orders?type=errand&view=captain");
       }
       setConfirmation(null);
     } catch {
+      if (action === "finish") {
+        try {
+          const task = await getErrandTaskBrief(detail.taskId, serviceOptions);
+          if (task?.status === "collecting_payment") {
+            toast.error("账单生成异常，请刷新或联系处理");
+            router.replace(
+              `${buildErrandTaskPaymentHref(detail.taskId)}?notice=billing_generation_failed`,
+            );
+            return;
+          }
+        } catch {
+          // Keep the original transition error as the user-facing result.
+        }
+        router.refresh();
+      }
       toast.error("状态更新失败，请刷新任务后重试");
     } finally {
       pendingRef.current = false;
@@ -380,7 +415,7 @@ export function DistributingTaskView({
               </p>
             </div>
             <Button
-              disabled={!allProcessed || pending}
+              disabled={!allProcessed || pending || pendingKeys.size > 0}
               onClick={() => setConfirmation("finish")}
             >
               <RiCheckboxCircleLine data-icon="inline-start" />

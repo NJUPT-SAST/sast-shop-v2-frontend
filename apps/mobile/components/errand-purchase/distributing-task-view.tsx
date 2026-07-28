@@ -15,6 +15,7 @@ import {
 import {
   cancelTask,
   getDistributingTaskDetail,
+  getErrandTaskBrief,
   saveDistributingAssignment,
   transitionToCollectingPayment,
   transitionToDistributing,
@@ -113,13 +114,16 @@ export function DistributingTaskView({
     (i) => !isItemFullyDistributed(i),
   );
   const distributed = purchasedItems.filter((i) => isItemFullyDistributed(i));
+  const requesters = items.flatMap((item) => item.requesters);
   const allDistributed =
-    undistributed.length === 0 && purchasedItems.length > 0;
+    requesters.length > 0 &&
+    requesters.every((requester) => requester.distributedQuantity >= 0);
 
   const updateRequester = (
     itemId: string,
     assignmentId: string,
     distributedQuantity: number,
+    assignmentUpdatedAt: string | null,
   ) => {
     setItems((prev) =>
       prev.map((item) =>
@@ -130,7 +134,7 @@ export function DistributingTaskView({
               requesters: item.requesters.map((r) =>
                 r.errandTaskAssignmentId !== assignmentId
                   ? r
-                  : { ...r, distributedQuantity },
+                  : { ...r, distributedQuantity, assignmentUpdatedAt },
               ),
             },
       ),
@@ -173,7 +177,7 @@ export function DistributingTaskView({
     if (assigningIds.has(key)) return;
     setAssigningIds((prev) => new Set(prev).add(key));
     try {
-      await saveDistributingAssignment(
+      const saved = await saveDistributingAssignment(
         {
           errandTaskItemId: item.errandTaskItemId,
           errandTaskAssignmentId: requester.errandTaskAssignmentId,
@@ -186,6 +190,7 @@ export function DistributingTaskView({
         item.errandTaskItemId,
         requester.errandTaskAssignmentId,
         distributedQuantity,
+        saved.assignmentUpdatedAt ?? requester.assignmentUpdatedAt,
       );
       if (dataSource === "local") {
         try {
@@ -218,7 +223,7 @@ export function DistributingTaskView({
     if (assigningIds.has(key)) return;
     setAssigningIds((prev) => new Set(prev).add(key));
     try {
-      await saveDistributingAssignment(
+      const saved = await saveDistributingAssignment(
         {
           errandTaskItemId: item.errandTaskItemId,
           errandTaskAssignmentId: requester.errandTaskAssignmentId,
@@ -231,6 +236,7 @@ export function DistributingTaskView({
         item.errandTaskItemId,
         requester.errandTaskAssignmentId,
         -1,
+        saved.assignmentUpdatedAt ?? requester.assignmentUpdatedAt,
       );
       if (dataSource === "local") {
         try {
@@ -330,6 +336,19 @@ export function DistributingTaskView({
       setDialog({ type: "none" });
       router.replace(buildErrandTaskPaymentHref(detail.taskId));
     } catch {
+      try {
+        const task = await getErrandTaskBrief(detail.taskId, serviceOptions);
+        if (task?.status === "collecting_payment") {
+          toast.error("账单生成异常，请刷新或联系处理");
+          router.replace(
+            `${buildErrandTaskPaymentHref(detail.taskId)}?notice=billing_generation_failed`,
+          );
+          return;
+        }
+      } catch {
+        // Keep the original transition error as the user-facing result.
+      }
+      router.refresh();
       toast.error("操作失败，请稍后再试");
       setSubmitting(false);
     } finally {
@@ -342,9 +361,9 @@ export function DistributingTaskView({
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      await cancelTask(detail.taskId, null, serviceOptions);
+      await cancelTask(detail.taskId, taskUpdatedAt, serviceOptions);
       setDialog({ type: "none" });
-      router.push("/group");
+      router.replace("/orders?type=errand&view=captain");
     } catch {
       toast.error("取消失败，请稍后再试");
       setSubmitting(false);
@@ -570,7 +589,7 @@ export function DistributingTaskView({
         ) : (
           <Button
             type="button"
-            disabled={!allDistributed}
+            disabled={!allDistributed || assigningIds.size > 0}
             className="h-12 w-full"
             onClick={() => setDialog({ type: "confirm_finish" })}
           >

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   RiArrowRightSLine,
+  RiEditLine,
   RiFileList3Line,
   RiSearchLine,
 } from "@remixicon/react";
@@ -61,6 +62,11 @@ import {
   type RenderableOrderStatus,
 } from "@/lib/order-filters";
 import { parsePositiveInt64RouteId } from "@/lib/route-id";
+import {
+  getErrandDemandSnapshotMap,
+  shouldDisplayErrandDemandExpired,
+  type ErrandDemandSnapshot,
+} from "@/lib/errand-demand-snapshot";
 import { ManagedImage } from "./managed-image";
 
 type RenderableOrder = {
@@ -79,6 +85,8 @@ type RenderableOrder = {
   itemCount: number;
   createdAt: string | null;
   href: string | null;
+  modifyHref: string | null;
+  isExpired: boolean;
 };
 
 const orderDateFormatter = new Intl.DateTimeFormat("zh-CN", {
@@ -123,6 +131,10 @@ export function OrdersView({
   const [rememberedViews, setRememberedViews] = useState<RememberedOrderViews>(
     () => rememberView(DEFAULT_REMEMBERED_ORDER_VIEWS, initialFilters),
   );
+  const [now, setNow] = useState(() => new Date());
+  const [errandDemandSnapshots, setErrandDemandSnapshots] = useState<
+    ReadonlyMap<string, ErrandDemandSnapshot>
+  >(() => new Map());
   const searchTimerRef = useRef<number | null>(null);
   const pendingSearchHrefRef = useRef<string | null>(null);
   const loadSpotBuyerPage = useCallback(
@@ -195,12 +207,20 @@ export function OrdersView({
     () => [
       ...spotBuyerFeed.items.map((order) => mapSpotOrder(order, "buyer")),
       ...spotSellerFeed.items.map((order) => mapSpotOrder(order, "seller")),
-      ...buyerErrandFeed.items.map(mapBuyerErrandOrder),
+      ...buyerErrandFeed.items.map((order) =>
+        mapBuyerErrandOrder(
+          order,
+          errandDemandSnapshots.get(order.id) ?? null,
+          now,
+        ),
+      ),
       ...errandTaskFeed.items.map(mapErrandTask),
     ],
     [
       buyerErrandFeed.items,
+      errandDemandSnapshots,
       errandTaskFeed.items,
+      now,
       spotBuyerFeed.items,
       spotSellerFeed.items,
     ],
@@ -224,6 +244,24 @@ export function OrdersView({
     loadMoreError: currentFeedLoadMoreError,
     loadMore: loadMoreCurrentFeed,
   } = currentFeed;
+
+  useEffect(() => {
+    const refreshSnapshots = () => {
+      setErrandDemandSnapshots(getErrandDemandSnapshotMap());
+    };
+    const timer = window.setTimeout(refreshSnapshots, 0);
+
+    window.addEventListener("storage", refreshSnapshots);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("storage", refreshSnapshots);
+    };
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const shouldContinueSearching = filters.query.trim().length > 0;
@@ -454,6 +492,12 @@ function getOrderKey(order: { id: string }) {
 }
 
 function OrderItem({ order }: { order: RenderableOrder }) {
+  const statusLabel = order.isExpired
+    ? "已过期"
+    : getStatusLabel(order.status, order.view);
+  const statusVariant = order.isExpired
+    ? "danger"
+    : getStatusBadgeVariant(order.status);
   const content = (
     <Item
       variant="outline"
@@ -466,10 +510,10 @@ function OrderItem({ order }: { order: RenderableOrder }) {
             {order.title}
           </ItemTitle>
           <Badge
-            variant={getStatusBadgeVariant(order.status)}
+            variant={statusVariant}
             className="shrink-0"
           >
-            {getStatusLabel(order.status, order.view)}
+            {statusLabel}
           </Badge>
         </div>
         {order.store || order.orderNo ? (
@@ -500,11 +544,34 @@ function OrderItem({ order }: { order: RenderableOrder }) {
         <span className="truncate text-sm text-muted-foreground">
           {order.summary}
         </span>
-        <span className="truncate font-semibold">
-          {order.amount === null ? null : formatPrice(order.amount)}
-        </span>
+        <div className="flex min-w-0 flex-col items-end gap-2">
+          <span className="truncate font-semibold">
+            {order.amount === null ? null : formatPrice(order.amount)}
+          </span>
+          {order.modifyHref ? (
+            <Button asChild size="sm" variant="outline">
+              <Link href={order.modifyHref} prefetch={false}>
+                <RiEditLine data-icon="inline-start" />
+                修改需求
+              </Link>
+            </Button>
+          ) : null}
+        </div>
       </div>
-      {order.href ? (
+      {order.href && order.modifyHref ? (
+        <ItemActions>
+          <Button
+            asChild
+            size="icon-sm"
+            variant="ghost"
+            aria-label="查看订单详情"
+          >
+            <Link href={order.href} prefetch={false}>
+              <RiArrowRightSLine className="size-5" />
+            </Link>
+          </Button>
+        </ItemActions>
+      ) : order.href ? (
         <ItemActions>
           <RiArrowRightSLine className="size-5 text-muted-foreground" />
         </ItemActions>
@@ -513,6 +580,8 @@ function OrderItem({ order }: { order: RenderableOrder }) {
   );
 
   if (!order.href) return <div className="opacity-60">{content}</div>;
+  if (order.modifyHref) return <div className="block min-w-0">{content}</div>;
+
   return (
     <Link
       href={order.href}
@@ -581,11 +650,18 @@ function mapSpotOrder(
     href: id
       ? `/orders/spot/${id}?view=${view}&returnTo=${encodeURIComponent(returnTo)}`
       : null,
+    modifyHref: null,
+    isExpired: false,
   };
 }
 
-function mapBuyerErrandOrder(order: BuyerErrandOrder): RenderableOrder {
+function mapBuyerErrandOrder(
+  order: BuyerErrandOrder,
+  snapshot: ErrandDemandSnapshot | null,
+  now: Date,
+): RenderableOrder {
   const id = parsePositiveInt64RouteId(order.id);
+  const editStoreId = parsePositiveInt64RouteId(snapshot?.storeId ?? "");
   return {
     id: `participant-${order.id}`,
     orderNo: null,
@@ -612,6 +688,13 @@ function mapBuyerErrandOrder(order: BuyerErrandOrder): RenderableOrder {
     itemCount: order.productTotalCount,
     createdAt: order.createdAt,
     href: id ? `/orders/errand/${id}` : null,
+    modifyHref:
+      id && editStoreId ? `/group/shop/${editStoreId}?editDemandId=${id}` : null,
+    isExpired: shouldDisplayErrandDemandExpired(
+      order.status,
+      snapshot?.deadline ?? null,
+      now,
+    ),
   };
 }
 
@@ -633,6 +716,8 @@ function mapErrandTask(task: ErrandTaskBrief): RenderableOrder {
     itemCount: task.itemCount,
     createdAt: task.createdAt,
     href: id ? `/group/purchase/${id}` : null,
+    modifyHref: null,
+    isExpired: false,
   };
 }
 

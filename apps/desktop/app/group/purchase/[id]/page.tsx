@@ -37,10 +37,13 @@ export default async function PurchaseTaskPage({
   };
 
   if (state.kind === "shopping") {
+    const detail = await getShoppingTaskDetail(id, options);
+
     return (
       <ShoppingTaskView
         {...shared}
-        detail={await getShoppingTaskDetail(id, options)}
+        detail={detail}
+        taskUpdatedAt={detail.taskUpdatedAt ?? state.task.updatedAt}
       />
     );
   }

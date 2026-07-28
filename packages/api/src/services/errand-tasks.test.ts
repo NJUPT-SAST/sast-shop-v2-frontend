@@ -11,6 +11,7 @@ import {
   saveDistributingAssignment,
   saveShoppingTaskItem,
   transitionToCollectingPayment,
+  transitionToCompleted,
   transitionToDistributing,
   transitionToPendingDistributing,
   updateActualPrice,
@@ -300,6 +301,7 @@ describe("captain task detail facades", () => {
             actualUnitPriceCents: 1100,
           },
         ],
+        updatedAt: "2026-07-18T03:00:00Z",
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
@@ -307,6 +309,7 @@ describe("captain task detail facades", () => {
     await expect(getShoppingTaskDetail("7001", localOptions)).resolves.toEqual({
       taskId: "7001",
       storeId: "3001",
+      taskUpdatedAt: "2026-07-18T03:00:00.000Z",
       storeName: "SAST 小卖部",
       taskItems: [
         {
@@ -560,6 +563,7 @@ describe("captain task detail facades", () => {
             totalAmountCents: 1500,
           },
         ],
+        updated_at: "2026-07-16T08:00:00Z",
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
@@ -568,6 +572,7 @@ describe("captain task detail facades", () => {
 
     expect(detail).toEqual({
       taskId: "7004",
+      taskUpdatedAt: "2026-07-16T08:00:00.000Z",
       bills: [
         {
           requesterId: "1001",
@@ -815,6 +820,39 @@ describe("captain task detail facades", () => {
     });
   });
 
+  it("returns the new distributing assignment timestamp", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        errandTaskAssignmentUpdatedAt: "2026-07-17T08:05:00Z",
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      saveDistributingAssignment(
+        {
+          errandTaskItemId: "7101",
+          errandTaskAssignmentId: "8101",
+          distributedQuantity: 3,
+          assignmentUpdatedAt: "2026-07-17T08:00:00Z",
+        },
+        localOptions,
+      ),
+    ).resolves.toEqual({
+      assignmentUpdatedAt: "2026-07-17T08:05:00.000Z",
+    });
+
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.errand.v1.ErrandTaskService/SaveDistributingTaskAssignment",
+      body: {
+        errandTaskItemId: "7101",
+        errandTaskAssignmentId: "8101",
+        distributedQuantity: 3,
+        errandTaskAssignmentUpdatedAt: "2026-07-17T08:00:00Z",
+      },
+    });
+  });
+
   it("rejects operation quantities below the unprocessed sentinel", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
@@ -1051,21 +1089,100 @@ describe("captain task detail facades", () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
-  it("uses dedicated task transition and cancel endpoints", async () => {
+  it("uses task timestamps for final transition and cancel endpoints", async () => {
     const fetchMock = vi.fn(async () => stubJsonResponse({}));
     vi.stubGlobal("fetch", fetchMock);
 
-    await transitionToPendingDistributing("7001", null, localOptions);
-    await cancelTask("7001", null, localOptions);
+    await transitionToPendingDistributing(
+      "7001",
+      "2026-07-17T08:00:00Z",
+      localOptions,
+    );
+    await transitionToCompleted(
+      "7001",
+      "2026-07-17T08:00:00Z",
+      localOptions,
+    );
+    await cancelTask("7001", "2026-07-17T08:00:00Z", localOptions);
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
     await expectConnectRequestAt(fetchMock, 0, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/TransitionToPendingDistributing",
-      body: { errandTaskId: "7001" },
+      body: {
+        errandTaskId: "7001",
+      },
     });
     await expectConnectRequestAt(fetchMock, 1, {
+      path: "/sast.sastshopv2.errand.v1.ErrandTaskService/TransitionToCompleted",
+      body: {
+        errandTaskId: "7001",
+        updatedAt: "2026-07-17T08:00:00Z",
+      },
+    });
+    await expectConnectRequestAt(fetchMock, 2, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/CancelTask",
-      body: { errandTaskId: "7001" },
+      body: {
+        errandTaskId: "7001",
+        updatedAt: "2026-07-17T08:00:00Z",
+      },
+    });
+  });
+
+  it("auto-resolves task timestamps for task-level mutations", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url;
+      const path = new URL(url).pathname;
+
+      if (path.endsWith("/GetErrandTaskList")) {
+        return stubJsonResponse({
+          errandTasks: [
+            {
+              taskId: "7001",
+              storeId: "3001",
+              storeName: "SAST 小卖部",
+              status: "ERRAND_TASK_STATUS_SHOPPING",
+              items: [],
+              updatedAt: "2026-07-17T08:00:00Z",
+            },
+          ],
+          currentPage: 1,
+          totalCount: 1,
+        });
+      }
+
+      return stubJsonResponse({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await transitionToPendingDistributing("7001", null, localOptions);
+    await transitionToCompleted("7001", null, localOptions);
+    await cancelTask("7001", null, localOptions);
+
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+    await expectConnectRequestAt(fetchMock, 0, {
+      path: "/sast.sastshopv2.errand.v1.ErrandTaskService/TransitionToPendingDistributing",
+      body: {
+        errandTaskId: "7001",
+      },
+    });
+    await expectConnectRequestAt(fetchMock, 2, {
+      path: "/sast.sastshopv2.errand.v1.ErrandTaskService/TransitionToCompleted",
+      body: {
+        errandTaskId: "7001",
+        updatedAt: "2026-07-17T08:00:00Z",
+      },
+    });
+    await expectConnectRequestAt(fetchMock, 4, {
+      path: "/sast.sastshopv2.errand.v1.ErrandTaskService/CancelTask",
+      body: {
+        errandTaskId: "7001",
+        updatedAt: "2026-07-17T08:00:00Z",
+      },
     });
   });
 

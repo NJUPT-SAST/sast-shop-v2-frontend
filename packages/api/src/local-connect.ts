@@ -6,7 +6,7 @@ import {
   AuthRequiredError,
   ResourceNotFoundError,
 } from "./errors";
-
+// 创建RPC网络传输层
 export function createLocalTransport(options: ServiceOptions = {}) {
   return createConnectTransport({
     baseUrl: resolveConnectBaseUrl(options),
@@ -14,7 +14,7 @@ export function createLocalTransport(options: ServiceOptions = {}) {
     ...(options.fetch ? { fetch: options.fetch } : {}),
   });
 }
-
+// RPC统一一场拦截包装器
 export async function requestLocal<T>(
   feature: string,
   request: () => Promise<T>,
@@ -24,9 +24,9 @@ export async function requestLocal<T>(
   } catch (error) {
     const connectError = ConnectError.from(error);
 
-    if (connectError.code === Code.Unauthenticated) {
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event(AuthRequiredError.browserEventName));
+    if (connectError.code === Code.Unauthenticated) {  // 401未登录/绘画过期
+      if (typeof window !== "undefined") { // 如果是浏览器
+        window.dispatchEvent(new Event(AuthRequiredError.browserEventName));  // 触发自动登录
       }
       throw new AuthRequiredError();
     }
