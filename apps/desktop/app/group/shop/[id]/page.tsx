@@ -20,13 +20,8 @@ export default async function GroupShopPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id: rawId } = await params;
-  const rawSearchParams = await searchParams;
   const id = parsePositiveInt64RouteId(rawId);
   if (!id) notFound();
-  const editDemandId =
-    typeof rawSearchParams.editDemandId === "string"
-      ? parsePositiveInt64RouteId(rawSearchParams.editDemandId)
-      : null;
 
   const options = await getServerServiceOptions();
   let store: Store | null = null;
@@ -58,7 +53,6 @@ export default async function GroupShopPage({
       store={store}
       initialPage={templatePage}
       error={error}
-      prefillDemandId={editDemandId}
     />
   );
 }

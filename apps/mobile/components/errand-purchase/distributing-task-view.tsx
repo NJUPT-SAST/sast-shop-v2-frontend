@@ -376,7 +376,7 @@ export function DistributingTaskView({
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      await cancelTask(detail.taskId, taskUpdatedAtRef.current, serviceOptions);
+      await cancelTask(detail.taskId, taskUpdatedAt, serviceOptions);
       setDialog({ type: "none" });
       router.replace("/orders?type=errand&view=captain");
     } catch {
