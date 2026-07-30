@@ -1,20 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation"; //提交成功后跳转到订单跑腿页
-import { //Remix Icon 图标
+import {
+  //Remix Icon 图标
   RiAddLine, //加号
-  RiArrowLeftLine,  //返回箭头
+  RiArrowLeftLine, //返回箭头
   RiShoppingBag3Line, //购物袋
   RiShoppingCartLine, //购物车图标
 } from "@remixicon/react";
-import { 
-  createErrandDemand, 
-  listProductTemplatesPage,  //分页拉取店铺商品模板（左侧商品列表
-  type DataSource,   // 多环境区分表示，内部接口通用参数
-  type PageResult,    // 分页接口标准返回结构
-  type ProductTemplate,  
+import {
+  createErrandDemand,
+  listProductTemplatesPage, //分页拉取店铺商品模板（左侧商品列表
+  type DataSource, // 多环境区分表示，内部接口通用参数
+  type PageResult, // 分页接口标准返回结构
+  type ProductTemplate,
   type Store,
 } from "@sast-shop/api";
 import {
@@ -45,6 +46,7 @@ import {
 } from "@workspace/ui/components/dialog";
 import { Empty } from "@workspace/ui/components/empty";
 import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
+import { LoadFailure } from "@workspace/ui/components/load-failure";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { QuantityStepper } from "@workspace/ui/components/quantity-stepper";
@@ -59,12 +61,6 @@ import { toast } from "sonner";
 import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
 
 import { ManagedImage } from "@/components/managed-image";
-import {
-  createErrandDemandSnapshot,
-  getErrandDemandSnapshot,
-  saveErrandDemandSnapshot,
-} from "@/lib/errand-demand-snapshot";
-
 type CartItem = {
   template: ProductTemplate;
   quantity: number;
@@ -80,17 +76,14 @@ export function ErrandShop({
   store,
   initialPage,
   error,
-  prefillDemandId,
 }: {
   dataSource: DataSource;
   connectBaseUrl?: string;
   store: Store | null;
   initialPage: PageResult<ProductTemplate>;
   error: string | null;
-  prefillDemandId?: string | null;
 }) {
   const router = useRouter();
-  const prefillStoreId = store?.id ?? null;
   const loadPage = useCallback(
     (page: number) => {
       if (!store) return Promise.resolve(initialPage);
@@ -117,16 +110,13 @@ export function ErrandShop({
     getKey: getTemplateKey,
     identity: `${dataSource}:${connectBaseUrl}:${store?.id ?? "none"}`,
   });
-  const submittingRef = useRef(false);//ref存储提交锁，防止用户多次点击提交
+  const submittingRef = useRef(false); //ref存储提交锁，防止用户多次点击提交
   const [items, setItems] = useState<CartItem[]>([]);
   const [feeDrafts, setFeeDrafts] = useState<Record<string, string>>({});
   const [deadlineValue, setDeadlineValue] = useState(() =>
     toDateTimeLocalValue(getDefaultErrandDeadline()),
   );
-  const prefilledDemandKeyRef = useRef<string | null>(null);
-  const minimumDeadlineValue = toDateTimeLocalValue(
-    getMinimumErrandDeadline(),
-  );
+  const minimumDeadlineValue = toDateTimeLocalValue(getMinimumErrandDeadline());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -166,46 +156,27 @@ export function ErrandShop({
     0,
   );
 
-  useEffect(() => {
-    if (!prefillDemandId || !prefillStoreId) return;
+  if (error) {
+    return (
+      <LoadFailure
+        variant="page"
+        title="店铺商品加载失败"
+        description={error}
+        onRetry={() => router.refresh()}
+        secondaryAction={
+          <Button asChild variant="outline">
+            <Link href="/group">返回团购工作台</Link>
+          </Button>
+        }
+      />
+    );
+  }
 
-    const key = `${prefillStoreId}:${prefillDemandId}`;
-    if (prefilledDemandKeyRef.current === key) return;
-    prefilledDemandKeyRef.current = key;
-
-    const timer = window.setTimeout(() => {
-      const snapshot = getErrandDemandSnapshot(prefillDemandId);
-      if (!snapshot || snapshot.storeId !== prefillStoreId) {
-        toast.error("未找到原需求内容，请重新填写");
-        return;
-      }
-
-      setItems(
-        snapshot.items.map((item) => ({
-          template: item.productTemplate,
-          quantity: item.quantity,
-          serviceFeePerUnitCents: item.serviceFeePerUnitCents,
-        })),
-      );
-      setFeeDrafts(
-        Object.fromEntries(
-          snapshot.items.map((item) => [
-            item.productTemplate.id,
-            formatYuanInput(item.serviceFeePerUnitCents),
-          ]),
-        ),
-      );
-      setDeadlineValue(toDateTimeLocalValue(new Date(snapshot.deadline)));
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-  }, [prefillDemandId, prefillStoreId]);
-
-  if (!store || error) {
+  if (!store) {
     return (
       <Empty
         icon={<RiShoppingBag3Line className="size-5" />}
-        title={error ? "店铺商品暂不可用" : "没有找到店铺"}
+        title="没有找到店铺"
         action={
           <Button asChild variant="outline">
             <Link href="/group">返回团购工作台</Link>
@@ -280,7 +251,7 @@ export function ErrandShop({
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      const result = await createErrandDemand(
+      await createErrandDemand(
         {
           storeId,
           deadline: deadline.toISOString(),
@@ -292,18 +263,6 @@ export function ErrandShop({
           })),
         },
         { dataSource, connectBaseUrl },
-      );
-      saveErrandDemandSnapshot(
-        createErrandDemandSnapshot({
-          demandId: result.errandDemandId,
-          storeId,
-          deadline: deadline.toISOString(),
-          items: normalizedItems.map((item) => ({
-            productTemplate: item.template,
-            quantity: item.quantity,
-            serviceFeePerUnitCents: item.serviceFeePerUnitCents,
-          })),
-        }),
       );
       toast.success("跑腿需求已发起");
       setConfirmOpen(false);

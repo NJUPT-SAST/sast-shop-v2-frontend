@@ -7,7 +7,6 @@ import {
 import {
   RiArrowRightSLine,
   RiFileAddLine,
-  RiRefreshLine,
   RiRunLine,
   RiStore2Line,
 } from "@remixicon/react";
@@ -20,7 +19,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
-import { Empty } from "@workspace/ui/components/empty";
+import { LoadFailure } from "@workspace/ui/components/load-failure";
 import { ManagedImage } from "@/components/managed-image";
 import { StoreCreateDialog } from "@/components/store-create-dialog";
 import { mobileAppConfig } from "@/lib/app-config";
@@ -61,44 +60,40 @@ export default async function GroupPage() {
     <div className="flex flex-1 flex-col gap-8 py-6">
       <section className="flex flex-col gap-4">
         <h1 className="text-xl font-semibold leading-7 md:text-2xl">团购</h1>
-
-        {storeError || taskError ? (
-          <Card className="overflow-hidden rounded-lg">
-            <CardHeader className="flex-row items-center justify-between gap-3">
-              <CardTitle className="text-base leading-6">
-                部分内容加载失败
-              </CardTitle>
-              <Button asChild size="icon-touch" variant="ghost">
-                <Link href="/group" aria-label="重新加载团购页面">
-                  <RiRefreshLine />
-                </Link>
-              </Button>
-            </CardHeader>
-          </Card>
-        ) : null}
       </section>
 
-      {tasks.length > 0 ? (
+      {taskError || tasks.length > 0 ? (
         <section className="flex flex-col gap-3">
           <div className="flex items-end justify-between gap-3">
             <h2 className="min-w-0 text-xl font-semibold leading-7 md:text-2xl">
               正在采购
             </h2>
-            <Button
-              asChild
-              variant="ghost"
-              size="touch"
-              className="text-primary"
-            >
-              <Link href="/orders?type=errand&view=captain">全部任务</Link>
-            </Button>
+            {tasks.length > 0 ? (
+              <Button
+                asChild
+                variant="ghost"
+                size="touch"
+                className="text-primary"
+              >
+                <Link href="/orders?type=errand&view=captain">全部任务</Link>
+              </Button>
+            ) : null}
           </div>
 
-          <div className="grid min-w-0 gap-3 md:grid-cols-2">
-            {tasks.slice(0, 2).map((task) => (
-              <TaskCard key={task.id} task={task} />
-            ))}
-          </div>
+          {taskError ? (
+            <LoadFailure
+              variant="compact"
+              title="采购任务加载失败"
+              description={taskError}
+              retryHref="/group"
+            />
+          ) : (
+            <div className="grid min-w-0 gap-3 md:grid-cols-2">
+              {tasks.slice(0, 2).map((task) => (
+                <TaskCard key={task.id} task={task} />
+              ))}
+            </div>
+          )}
         </section>
       ) : null}
 
@@ -123,7 +118,14 @@ export default async function GroupPage() {
           </StoreCreateDialog>
         </div>
 
-        {stores.length > 0 ? (
+        {storeError ? (
+          <LoadFailure
+            variant="compact"
+            title="店铺信息加载失败"
+            description={storeError}
+            retryHref="/group"
+          />
+        ) : stores.length > 0 ? (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] md:gap-4">
             {stores.map((store) =>
               isValidRouteId(store.id) ? (
@@ -142,21 +144,12 @@ export default async function GroupPage() {
               ),
             )}
           </div>
-        ) : !storeError ? (
-          <Empty
-            icon={<RiStore2Line className="size-5" />}
-            title="还没有店铺"
-            action={
-              <StoreCreateDialog
-                dataSource={mobileAppConfig.dataSource}
-                connectBaseUrl={mobileAppConfig.connectBaseUrl}
-                returnTo="/group"
-              >
-                <Button>创建店铺</Button>
-              </StoreCreateDialog>
-            }
-          />
-        ) : null}
+        ) : (
+          <p className="flex items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
+            <RiStore2Line className="size-4" aria-hidden="true" />
+            <span>暂无店铺信息</span>
+          </p>
+        )}
       </section>
 
       <section className="flex flex-col gap-4">

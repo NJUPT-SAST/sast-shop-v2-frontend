@@ -24,6 +24,7 @@ import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Empty } from "@workspace/ui/components/empty";
 import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
+import { LoadFailure } from "@workspace/ui/components/load-failure";
 import {
   InputGroup,
   InputGroupAddon,
@@ -431,15 +432,10 @@ export function OrdersView({
       </ToggleGroup>
 
       {hasError ? (
-        <Empty
-          icon={<RiFileList3Line className="size-5" />}
-          title="该视角订单暂时无法加载"
+        <LoadFailure
+          title="该视角订单加载失败"
           description="请稍后重新加载。"
-          action={
-            <Button variant="outline" onClick={() => router.refresh()}>
-              重新加载
-            </Button>
-          }
+          onRetry={() => router.refresh()}
         />
       ) : filtered.length === 0 &&
         !currentFeed.loadingMore &&
@@ -509,10 +505,7 @@ function OrderItem({ order }: { order: RenderableOrder }) {
           <ItemTitle className="min-w-0 truncate text-base">
             {order.title}
           </ItemTitle>
-          <Badge
-            variant={statusVariant}
-            className="shrink-0"
-          >
+          <Badge variant={statusVariant} className="shrink-0">
             {statusLabel}
           </Badge>
         </div>
@@ -689,7 +682,9 @@ function mapBuyerErrandOrder(
     createdAt: order.createdAt,
     href: id ? `/orders/errand/${id}` : null,
     modifyHref:
-      id && editStoreId ? `/group/shop/${editStoreId}?editDemandId=${id}` : null,
+      id && editStoreId
+        ? `/group/shop/${editStoreId}?editDemandId=${id}`
+        : null,
     isExpired: shouldDisplayErrandDemandExpired(
       order.status,
       snapshot?.deadline ?? null,

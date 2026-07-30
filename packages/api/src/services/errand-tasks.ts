@@ -370,11 +370,7 @@ function parsePositiveInteger(value: number, message: string): number {
 }
 
 function parseOperationQuantity(value: number, message: string): number {
-  if (
-    !Number.isInteger(value) ||
-    value < -1 ||
-    value > MAX_SIGNED_INT32
-  ) {
+  if (!Number.isInteger(value) || value < -1 || value > MAX_SIGNED_INT32) {
     throw new ValidationError(message);
   }
 
@@ -382,11 +378,7 @@ function parseOperationQuantity(value: number, message: string): number {
 }
 
 function parseNonNegativeInt32(value: number, message: string): number {
-  if (
-    !Number.isInteger(value) ||
-    value < 0 ||
-    value > MAX_SIGNED_INT32
-  ) {
+  if (!Number.isInteger(value) || value < 0 || value > MAX_SIGNED_INT32) {
     throw new ValidationError(message);
   }
 
@@ -699,15 +691,18 @@ export async function getDistributingTaskDetail(
     );
     const detailUpdatedAt = mapResponseUpdatedAt(response, rawDetail);
 
+    const finalTaskUpdatedAt = detailUpdatedAt ?? concurrencyInfo.taskUpdatedAt;
+    const mappedItems = response.distributingItems.map((item) =>
+      mapDistributingItem(item, concurrencyInfo.itemUpdatedAtById),
+    );
+
     return {
       taskId: response.errandTaskId.toString(),
       storeId: response.storeId.toString(),
       storeName: response.storeName,
-      taskUpdatedAt: detailUpdatedAt ?? concurrencyInfo.taskUpdatedAt,
+      taskUpdatedAt: finalTaskUpdatedAt,
       packagingFeeCents: response.packagingFeeCents,
-      items: response.distributingItems.map((item) =>
-        mapDistributingItem(item, concurrencyInfo.itemUpdatedAtById),
-      ),
+      items: mappedItems,
     };
   }
 
@@ -846,7 +841,10 @@ export async function saveDistributingAssignment(
     return {
       assignmentUpdatedAt:
         getRawTimestampString(rawResponse, "errandTaskAssignmentUpdatedAt") ??
-        getRawTimestampString(rawResponse, "errand_task_assignment_updated_at") ??
+        getRawTimestampString(
+          rawResponse,
+          "errand_task_assignment_updated_at",
+        ) ??
         formatTimestamp(responseWithUpdatedAt.errandTaskAssignmentUpdatedAt),
     };
   }
@@ -1014,12 +1012,10 @@ async function getErrandTaskConcurrencyInfo(
   itemUpdatedAtById: Map<string, string | null>;
 }> {
   if (options.taskItems && options.taskUpdatedAt != null) {
-    return {
-      taskUpdatedAt: options.taskUpdatedAt,
-      itemUpdatedAtById: new Map(
-        options.taskItems.map((item) => [item.id, item.updatedAt] as const),
-      ),
-    };
+    const itemMap = new Map(
+      options.taskItems.map((item) => [item.id, item.updatedAt] as const),
+    );
+    return { taskUpdatedAt: options.taskUpdatedAt, itemUpdatedAtById: itemMap };
   }
 
   let task: ErrandTaskBrief | null = null;
@@ -1030,7 +1026,7 @@ async function getErrandTaskConcurrencyInfo(
     return { taskUpdatedAt: null, itemUpdatedAtById: new Map() };
   }
 
-  return {
+  const result = {
     taskUpdatedAt: options.taskUpdatedAt ?? task?.updatedAt ?? null,
     itemUpdatedAtById: new Map(
       options.taskItems?.map((item) => [item.id, item.updatedAt] as const) ??
@@ -1038,6 +1034,7 @@ async function getErrandTaskConcurrencyInfo(
         [],
     ),
   };
+  return result;
 }
 
 async function resolveErrandTaskUpdatedAt(

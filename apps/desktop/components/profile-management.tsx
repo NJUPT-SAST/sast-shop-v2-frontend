@@ -35,12 +35,7 @@ import {
 } from "@workspace/ui/components/avatar";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card";
+import { Card, CardContent } from "@workspace/ui/components/card";
 import {
   Dialog,
   DialogContent,
@@ -52,6 +47,7 @@ import {
 import { Empty } from "@workspace/ui/components/empty";
 import { Field, FieldError, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
+import { LoadFailure } from "@workspace/ui/components/load-failure";
 import {
   Select,
   SelectContent,
@@ -215,21 +211,12 @@ export function ProfileManagement({
       </section>
 
       {error ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>资料暂不可用</CardTitle>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between gap-4">
-            <span className="text-sm text-muted-foreground">{error}</span>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.refresh()}
-            >
-              重新加载
-            </Button>
-          </CardContent>
-        </Card>
+        <LoadFailure
+          variant="compact"
+          title="资料加载失败"
+          description={error}
+          onRetry={() => router.refresh()}
+        />
       ) : null}
 
       {initialOverview ? (

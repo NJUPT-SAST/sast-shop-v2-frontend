@@ -40,12 +40,6 @@ import {
   ValidationError,
 } from "@sast-shop/api";
 import { formatPrice } from "@sast-shop/domain";
-import {
-  Alert,
-  AlertAction,
-  AlertDescription,
-  AlertTitle,
-} from "@workspace/ui/components/alert";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -58,6 +52,7 @@ import {
 } from "@workspace/ui/components/drawer";
 import { Empty } from "@workspace/ui/components/empty";
 import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
+import { LoadFailure } from "@workspace/ui/components/load-failure";
 import {
   Field,
   FieldDescription,
@@ -334,20 +329,12 @@ export function ProductTemplateManager({
       </section>
 
       {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>模板暂不可用</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-          <AlertAction>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => router.refresh()}
-            >
-              重新加载
-            </Button>
-          </AlertAction>
-        </Alert>
+        <LoadFailure
+          variant="compact"
+          title="商品模板加载失败"
+          description={error}
+          onRetry={() => router.refresh()}
+        />
       ) : null}
 
       {stores.length > 0 ? (

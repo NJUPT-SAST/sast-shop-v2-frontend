@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   RiCheckboxCircleLine,
-  RiErrorWarningLine,
   RiSearchLine,
   RiShoppingBag3Line,
   RiStore2Line,
@@ -29,11 +28,6 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@workspace/ui/components/avatar";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@workspace/ui/components/alert";
 import { Button } from "@workspace/ui/components/button";
 import {
   Card,
@@ -43,6 +37,7 @@ import {
 } from "@workspace/ui/components/card";
 import { Empty } from "@workspace/ui/components/empty";
 import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
+import { LoadFailure } from "@workspace/ui/components/load-failure";
 import {
   InputGroup,
   InputGroupAddon,
@@ -474,11 +469,11 @@ export function SpotMarketplace({
       </InputGroup>
 
       {error ? (
-        <Alert variant="destructive">
-          <RiErrorWarningLine />
-          <AlertTitle>现货加载失败</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+        <LoadFailure
+          title="现货加载失败"
+          description={error}
+          onRetry={() => router.refresh()}
+        />
       ) : null}
 
       {!error && filteredProducts.length > 0 ? (
@@ -586,18 +581,12 @@ export function SpotMarketplace({
                 <Spinner className="size-6" />
               </div>
             ) : detailStatus === "error" || !selectedProduct ? (
-              <div className="flex min-h-56 flex-col items-center justify-center gap-4">
-                <p className="text-sm text-muted-foreground">
-                  商品详情暂时无法加载
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => void openDetail(selectedBrief)}
-                >
-                  重新加载
-                </Button>
-              </div>
+              <LoadFailure
+                className="min-h-56"
+                surface="plain"
+                title="商品详情加载失败"
+                onRetry={() => void openDetail(selectedBrief)}
+              />
             ) : (
               <>
                 <div className="app-scrollbar min-h-0 flex-1 overflow-y-auto pr-1">

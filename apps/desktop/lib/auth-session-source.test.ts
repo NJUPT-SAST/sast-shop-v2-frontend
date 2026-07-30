@@ -26,7 +26,7 @@ describe("desktop OAuth session source", () => {
     expect(routeSource).toContain("getSessionCookieSecret()");
     expect(routeSource).toContain("Boolean(sessionToken && user)");
     expect(sessionSource).toContain(
-      "response.cookies.set(\n    sessionUserCookieName,\n    sessionUserCookie,",
+      "response.cookies.set(sessionUserCookieName, sessionUserCookie,",
     );
     expect(sessionSource).toContain(
       'response.cookies.set(sessionUserCookieName, "", expiredCookieOptions)',

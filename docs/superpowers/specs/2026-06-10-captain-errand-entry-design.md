@@ -18,7 +18,7 @@ This slice creates the first real bridge from `demand` to `task` while avoiding 
 - Let captains inspect store-level demand detail and select requester rows.
 - Create an errand task through the API facade using selected `demand_item` rows.
 - Keep all app code behind `@sast-shop/api`, with no direct proto imports in pages or components.
-- Preserve the current UI system: restrained Action Blue, mobile-first layout, Chinese copy, standard controls, and clear state feedback.
+- Preserve the current UI system: restrained Action Coral, mobile-first layout, Chinese copy, standard controls, and clear state feedback.
 - Give later shopping, distribution, and collecting-payment pages a reliable handoff point.
 
 ## Non-Goals
@@ -112,9 +112,9 @@ Input:
 
 ```ts
 interface ListErrandDemandStoresOptions extends ServiceOptions {
-  storeName?: string
-  page?: number
-  pageSize?: number
+  storeName?: string;
+  page?: number;
+  pageSize?: number;
 }
 ```
 
@@ -122,12 +122,12 @@ Output:
 
 ```ts
 interface ErrandDemandStoreSummary {
-  storeId: string
-  storeName: string
-  participantAvatars: string[]
-  totalOriginUnitPriceCents: number
-  totalServiceFeeCents: number
-  updatedAt: string | null
+  storeId: string;
+  storeName: string;
+  participantAvatars: string[];
+  totalOriginUnitPriceCents: number;
+  totalServiceFeeCents: number;
+  updatedAt: string | null;
 }
 ```
 
@@ -141,7 +141,7 @@ Input:
 
 ```ts
 interface GetErrandDemandDetailsInput {
-  storeId: string
+  storeId: string;
 }
 ```
 
@@ -149,22 +149,22 @@ Output:
 
 ```ts
 interface ErrandDemandDetailGroup {
-  errandDemandId: string
-  productTemplate: ProductTemplate | null
-  estimatedUnitPriceCents: number
-  quantity: number
-  requesters: ErrandDemandRequester[]
+  errandDemandId: string;
+  productTemplate: ProductTemplate | null;
+  estimatedUnitPriceCents: number;
+  quantity: number;
+  requesters: ErrandDemandRequester[];
 }
 
 interface ErrandDemandRequester {
-  requesterId: string
-  requesterName: string
-  requesterAvatarUrl: string
-  quantity: number
-  serviceFeePerUnitCents: number
-  errandDemandItemId: string
-  deadline: string | null
-  updatedAt: string | null
+  requesterId: string;
+  requesterName: string;
+  requesterAvatarUrl: string;
+  quantity: number;
+  serviceFeePerUnitCents: number;
+  errandDemandItemId: string;
+  deadline: string | null;
+  updatedAt: string | null;
 }
 ```
 
@@ -176,11 +176,11 @@ Input:
 
 ```ts
 interface CreateErrandTaskInput {
-  storeId: string
+  storeId: string;
   demandItems: Array<{
-    errandDemandItemId: string
-    updatedAt?: string | null
-  }>
+    errandDemandItemId: string;
+    updatedAt?: string | null;
+  }>;
 }
 ```
 
@@ -188,7 +188,7 @@ Output:
 
 ```ts
 interface CreateErrandTaskResult {
-  errandTaskId: string
+  errandTaskId: string;
 }
 ```
 
@@ -206,12 +206,19 @@ Output:
 
 ```ts
 interface ErrandTaskBrief {
-  id: string
-  storeId: string
-  storeName: string
-  status: "shopping" | "pending_distributing" | "distributing" | "collecting_payment" | "completed" | "cancelled" | "unknown"
-  itemCount: number
-  createdAt: string | null
+  id: string;
+  storeId: string;
+  storeName: string;
+  status:
+    | "shopping"
+    | "pending_distributing"
+    | "distributing"
+    | "collecting_payment"
+    | "completed"
+    | "cancelled"
+    | "unknown";
+  itemCount: number;
+  createdAt: string | null;
 }
 ```
 
@@ -228,7 +235,7 @@ interface ErrandTaskBrief {
 
 ## UI And Interaction Notes
 
-- Use Action Blue for primary actions. Do not use orange action buttons from the old prototype.
+- Use the Action Coral `primary` token for primary actions. Do not copy raw orange values from the old prototype.
 - Cards stay at the current project radius scale and do not use broad shadows.
 - No card nesting. Product groups and requester rows can use bordered rows inside a section, but avoid card-in-card styling.
 - Use existing shared components first: `Button`, `Card`, `Badge`, `Input`, `ResponsiveDialog`, `Empty`, `Avatar`, and `ManagedImage`.

@@ -34,6 +34,7 @@ import {
 } from "@workspace/ui/components/card";
 import { Empty } from "@workspace/ui/components/empty";
 import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
+import { LoadFailure } from "@workspace/ui/components/load-failure";
 import {
   InputGroup,
   InputGroupAddon,
@@ -662,14 +663,10 @@ function OrderList({
 }) {
   if (hasError) {
     return (
-      <Empty
-        icon={<RiFileList3Line className="size-5" />}
-        title="订单暂不可用"
-        action={
-          <Button type="button" variant="outline" onClick={onRetry}>
-            重新加载
-          </Button>
-        }
+      <LoadFailure
+        title="订单加载失败"
+        description="网络或服务暂时不可用，请稍后重试。"
+        onRetry={onRetry}
       />
     );
   }

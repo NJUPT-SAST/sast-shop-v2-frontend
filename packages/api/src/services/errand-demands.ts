@@ -68,12 +68,15 @@ export async function createErrandDemand(
   const request = parseCreateErrandDemandInput(input);
   const dataSource = resolveDataSource(options);
 
-  if (dataSource === "mock" || dataSource === "local") { // remote线上远程环境暂未实现，走else分支
-    const client = createClient( //基于 Service 定义 + transport，生成 RPC 风格客户端；
+  if (dataSource === "mock" || dataSource === "local") {
+    // remote线上远程环境暂未实现，走else分支
+    const client = createClient(
+      //基于 Service 定义 + transport，生成 RPC 风格客户端；
       ErrandDemandService,
       createLocalTransport(options),
-    ); 
-    const response = await requestLocal("createErrandDemand", () =>  // requestLocal 内部合适时机再执行这个回调发起请求；
+    );
+    const response = await requestLocal("createErrandDemand", () =>
+      // requestLocal 内部合适时机再执行这个回调发起请求；
       client.createErrandDemand(request),
     );
 

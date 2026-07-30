@@ -1,6 +1,6 @@
 "use client";
 
-import { type PointerEvent, useRef, useState } from "react";
+import { type PointerEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   RiArrowGoBackLine,
@@ -82,7 +82,12 @@ function formatYuan(cents: number): string {
 }
 
 function isItemFullyDistributed(item: DistributingTaskItem): boolean {
-  return item.requesters.every((r) => r.distributedQuantity >= 0);
+  const totalTarget = item.requesters.reduce((s, r) => s + r.quantity, 0);
+  const totalDistributed = item.requesters.reduce(
+    (s, r) => s + Math.max(0, r.distributedQuantity),
+    0,
+  );
+  return totalTarget > 0 && totalDistributed >= totalTarget;
 }
 
 export function DistributingTaskView({
@@ -95,6 +100,10 @@ export function DistributingTaskView({
   const submittingRef = useRef(false);
   const [items, setItems] = useState<DistributingTaskItem[]>(detail.items);
   const [taskUpdatedAt, setTaskUpdatedAt] = useState(detail.taskUpdatedAt);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTaskUpdatedAt((current) => detail.taskUpdatedAt ?? current);
+  }, [detail.taskUpdatedAt]);
   const [packagingFee, setPackagingFee] = useState(
     formatYuan(detail.packagingFeeCents),
   );
@@ -114,10 +123,16 @@ export function DistributingTaskView({
     (i) => !isItemFullyDistributed(i),
   );
   const distributed = purchasedItems.filter((i) => isItemFullyDistributed(i));
-  const requesters = items.flatMap((item) => item.requesters);
   const allDistributed =
-    requesters.length > 0 &&
-    requesters.every((requester) => requester.distributedQuantity >= 0);
+    items.length > 0 &&
+    items.every((item) => {
+      const totalTarget = item.requesters.reduce((s, r) => s + r.quantity, 0);
+      const totalDistributed = item.requesters.reduce(
+        (s, r) => s + Math.max(0, r.distributedQuantity),
+        0,
+      );
+      return totalTarget > 0 && totalDistributed >= totalTarget;
+    });
 
   const updateRequester = (
     itemId: string,
@@ -227,7 +242,7 @@ export function DistributingTaskView({
         {
           errandTaskItemId: item.errandTaskItemId,
           errandTaskAssignmentId: requester.errandTaskAssignmentId,
-          distributedQuantity: -1,
+          distributedQuantity: 0,
           assignmentUpdatedAt: requester.assignmentUpdatedAt,
         },
         serviceOptions,
@@ -235,7 +250,7 @@ export function DistributingTaskView({
       updateRequester(
         item.errandTaskItemId,
         requester.errandTaskAssignmentId,
-        -1,
+        0,
         saved.assignmentUpdatedAt ?? requester.assignmentUpdatedAt,
       );
       if (dataSource === "local") {

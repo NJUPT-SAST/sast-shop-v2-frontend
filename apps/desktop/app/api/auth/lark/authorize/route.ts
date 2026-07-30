@@ -25,14 +25,12 @@ export async function GET(request: NextRequest) {
   let state: string;
   try {
     state = createFeishuOAuthState(returnTo);
-    destination = createFeishuOAuthAuthorizeUrl(
-      getFeishuOAuthConfig(),
-      state,
-    );
+    destination = createFeishuOAuthAuthorizeUrl(getFeishuOAuthConfig(), state);
   } catch {
     return createAuthErrorResponse({
       title: "登录配置不可用",
-      description: "飞书 OAuth 参数未正确配置，请联系管理员检查应用 ID 和回调地址。",
+      description:
+        "飞书 OAuth 参数未正确配置，请联系管理员检查应用 ID 和回调地址。",
       status: 500,
     });
   }

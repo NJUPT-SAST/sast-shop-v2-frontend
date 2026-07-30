@@ -9,19 +9,19 @@ export interface PageResult<T> {
   currentPage: number;
   pageSize: number;
   totalCount: number;
-  hasMore: boolean;  //是否还有下一页
+  hasMore: boolean; //是否还有下一页
 }
 //入参配置接口：调用createPageResult需要传入的参数
 interface CreatePageResultInput<T> {
-  items: T[];  //当前页查询出来的数组数据
-  currentPage: number;  //数据库查询使用的页码
+  items: T[]; //当前页查询出来的数组数据
+  currentPage: number; //数据库查询使用的页码
   pageSize: number;
   totalCount: number;
   expectedPage: number;
   feature: string;
   hasMore?: boolean;
   maxItems?: number;
-  validateOffset?: boolean;  //是否开启偏移量合法性校验
+  validateOffset?: boolean; //是否开启偏移量合法性校验
 }
 
 export function createPageResult<T>({
@@ -46,8 +46,8 @@ export function createPageResult<T>({
     (validateOffset &&
       items.length > 0 &&
       totalCount < (currentPage - 1) * pageSize + items.length)
-      //(currentPage - 1) * pageSize 偏移 offset
-      //offset + items.length    当前分页读到最后一条数据在全局数据里的位置
+    //(currentPage - 1) * pageSize 偏移 offset
+    //offset + items.length    当前分页读到最后一条数据在全局数据里的位置
   ) {
     throw new FeatureUnavailableError(`${feature}.pagination`);
   }
