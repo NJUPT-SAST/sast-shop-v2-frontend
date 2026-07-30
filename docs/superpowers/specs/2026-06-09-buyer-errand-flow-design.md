@@ -4,7 +4,7 @@
 
 SAST Shop phase one covers spot goods, group/errand purchasing, publishing spot goods, orders, and trust-based payment. The current app has solid spot, payment, profile, address, and QR code foundations, but the mobile group page is still mostly a store grid with placeholder restock actions. The orders page lists spot orders and explicitly shows placeholder states for errand orders and captain tasks.
 
-The old `../frontend-v2` implementation has a useful buyer-side errand interaction model: a store detail page, product-template grid, bottom cart bar, cart drawer, per-item errand fee, expected delivery time, and a confirmation dialog. This design ports that flow into the current monorepo while respecting the new API facade boundary, shadcn-style components, and single Action Blue theme.
+The old `../frontend-v2` implementation has a useful buyer-side errand interaction model: a store detail page, product-template grid, bottom cart bar, cart drawer, per-item errand fee, expected delivery time, and a confirmation dialog. This design ports that flow into the current monorepo while respecting the new API facade boundary, shadcn-style components, and single Action Coral theme.
 
 ## Goals
 
@@ -33,7 +33,7 @@ Add errand facade services in `packages/api`, map generated ConnectRPC messages 
 
 Use `$impeccable` as the UI/UX quality bar. This is a task-focused product surface inside Feishu, not a public e-commerce landing page. The interface should feel reliable, fast, and clear: state first, amount breakdowns visible, standard controls, restrained color, and no decorative retail treatment.
 
-`../frontend-v2` is useful for behavior and information architecture: store detail, product-template selection, bottom cart entry, cart review, per-item service fee, expected delivery, and confirmation. The final implementation does not need to match its exact visual composition. In particular, keep the current single Action Blue system, avoid the old orange action color, avoid heavy card walls, and prefer compact task surfaces that make quantity, fee, deadline, and submission state easy to scan.
+`../frontend-v2` is useful for behavior and information architecture: store detail, product-template selection, bottom cart entry, cart review, per-item service fee, expected delivery, and confirmation. The final implementation does not need to match its exact visual composition. In particular, keep the current single Action Coral system, avoid copying raw orange values from the old prototype, avoid heavy card walls, and prefer compact task surfaces that make quantity, fee, deadline, and submission state easy to scan.
 
 ## Routes And Surfaces
 
@@ -197,7 +197,7 @@ Behavior:
 
 ## UI And Interaction Notes
 
-- Use Action Blue `primary` buttons instead of the orange buttons from `../frontend-v2`.
+- Use Action Coral `primary` buttons instead of copying the raw orange buttons from `../frontend-v2`.
 - Let `$impeccable` product-register rules guide the final composition: standard controls, clear focus states, 150-250ms state motion only, no decorative motion, no over-rounded cards, no ghost-card border plus broad shadow pairing.
 - Use existing shared components first: `Button`, `Card`, `Badge`, `Input`, `InputGroup`, `ResponsiveDialog`, `Drawer`, `Empty`, `Spinner` or `Skeleton`, and `sonner`.
 - Do not nest cards inside cards.

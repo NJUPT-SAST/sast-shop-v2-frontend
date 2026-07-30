@@ -5,7 +5,7 @@ description: A content-first marketplace interface with warm neutral surfaces, p
 
 colors:
   primary: "#c9431f"
-  primary-focus: "#b63a18"
+  primary-focus: "#c9431f"
   primary-on-dark: "#ff9a78"
   ink: "#1d1d1f"
   body: "#1d1d1f"
@@ -275,17 +275,17 @@ components:
 
 ## Overview
 
-Apple's web presence is a masterclass in **reverent product photography framed by near-invisible UI**. Every page is a stack of edge-to-edge product "tiles" — alternating light and dark canvases, each centered on a hero headline, a one-line tagline, two tiny blue pill CTAs, and an impossibly crisp product render. Nothing competes with the product. Typography is confident but quiet; color is either pure white, an off-white parchment, or a near-black tile; interactive elements are a single, quiet blue.
+SAST Commerce frames product content with restrained UI. Every page is a stack of focused shopping and task surfaces, with clear headlines, concise supporting text, coral pill actions, and product imagery. Nothing competes with the product or the current transaction state. Typography is confident but quiet; warm neutral surfaces and near-black text support a single Action Coral accent.
 
 Density is unusually low even by contemporary SaaS standards. Each tile occupies roughly one viewport, and there is no decorative chrome — no borders, no gradients, no decorative frames, no shadows on headlines. Elevation appears only when a product image rests on a surface (a single soft `rgba(0, 0, 0, 0.22) 3px 5px 30px` drop for visual weight). The result is a catalog that feels more like a museum gallery: the wall disappears and the artifact takes over.
 
-Store and shop surfaces retain the same chassis but switch modes. The product configurator (iPhone 17 Pro, accessories grid) introduces a tight grid of white utility cards at `{rounded.lg}` (18px) radius with a thin border, paired with a persistent thin sub-nav strip. The environment page leans darker and more editorial. Across all five surfaces the typographic system, spacing rhythm, and the single blue accent are consistent — this is one design language expressed at different volumes.
+Store and shop surfaces retain the same chassis but switch modes. Dense task surfaces use white utility cards at `{rounded.lg}` (18px) radius with a thin border, paired with clear navigation and action areas. Across mobile and desktop, the typographic system, spacing rhythm, warm neutral surfaces, and single coral accent remain consistent.
 
 **Key Characteristics:**
 - Photography-first presentation; UI recedes so the product can speak.
 - Alternating full-bleed tile sections: white/parchment ↔ near-black, with the color change itself acting as the section divider.
 - Single coral accent (`{colors.primary}` — #c9431f) carries every interactive element. No second brand color exists.
-- Two button grammars: tiny blue pill CTAs (`{rounded.pill}`) and compact utility rects (`{rounded.sm}`).
+- Two button grammars: coral pill CTAs (`{rounded.pill}`) and compact utility rects (`{rounded.sm}`).
 - SF Pro Display + SF Pro Text — negative letter-spacing at display sizes for the signature "Apple tight" headline feel.
 - Whisper-soft elevation used only when a product image needs to breathe — exactly one drop-shadow in the entire system.
 - Tight two-row nav: slim `{component.global-nav}` + product-specific `{component.sub-nav-frosted}` with persistent right-aligned primary CTA.
@@ -297,7 +297,7 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
 
 ### Brand & Accent
 - **Action Coral** (`{colors.primary}` — #c9431f): The single brand-level interactive color. All text links, all coral pill CTAs ("Learn more", "Buy"), and the focus ring root. This is Apple's quiet but universal "click me" signal. Press state shifts to a slightly darker variant via the active scale transform rather than a hex change.
-- **Focus Coral** (`{colors.primary-focus}` — #b63a18): A marginally brighter sibling of Action Coral, reserved for the keyboard focus ring on buttons (`outline: 2px solid`).
+- **Focus Coral** (`{colors.primary-focus}` — #c9431f): Matches the light-theme Action Coral token and is reserved for keyboard focus rings on buttons (`outline: 2px solid`).
 - **Soft Coral** (`{colors.primary-on-dark}` — #ff9a78): A brighter coral used on dark surfaces for in-copy links and inline callouts, where Action Coral would disappear against the tile background.
 
 ### Surface
@@ -415,7 +415,7 @@ Apple's whitespace is the product's pedestal. Every tile begins with at least 64
 | `{rounded.sm}` | 8px | Dark utility buttons (Sign In, Bag), inline card imagery |
 | `{rounded.md}` | 11px | White Pearl Button capsules |
 | `{rounded.lg}` | 18px | Store utility cards, accessories grid cards |
-| `{rounded.pill}` | 9999px | Primary blue pill CTAs, sub-nav buy button, configurator option chips, search input — the signature Apple pill |
+| `{rounded.pill}` | 9999px | Primary coral pill CTAs, sub-nav actions, option chips, and search inputs |
 | `{rounded.full}` | 9999px / 50% | Circular control chips floating over photography |
 
 ### Photography Geometry
@@ -439,7 +439,7 @@ Apple's whitespace is the product's pedestal. Every tile begins with at least 64
 - Active state: `{component.button-primary-active}` — `transform: scale(0.95)` (the system-wide micro-interaction).
 - Focus state: `{component.button-primary-focus}` — 2px solid `{colors.primary-focus}` outline.
 
-**`button-secondary-pill`** — Used as the second CTA when two blue pills appear together ("Learn more" / "Buy"). Background transparent, text `{colors.primary}`, 1px solid `{colors.primary}` border, rounded `{rounded.pill}`, padding 11px × 22px. Reads as a "ghost pill."
+**`button-secondary-pill`** — Used as the second CTA when two coral actions appear together. Background transparent, text `{colors.primary}`, 1px solid `{colors.primary}` border, rounded `{rounded.pill}`, padding 11px × 22px. Reads as a "ghost pill."
 
 **`button-dark-utility`** — Global nav actions (Sign In, Bag, language selector). Background `{colors.ink}` (#1d1d1f), text `{colors.on-dark}` in `{typography.button-utility}` (14px / 400 / -0.224px tracking), rounded `{rounded.sm}` (8px), padding 8px × 15px. Active state shrinks via `transform: scale(0.95)`.
 
@@ -492,7 +492,7 @@ Error and validation states were not surfaced in the analyzed pages.
 - Set headlines in `{typography.hero-display}` or `{typography.display-lg}` with negative letter-spacing (`-0.28 → -0.374px`) to get the signature "Apple tight" cadence.
 - Run body copy at `{typography.body}` (17px / 400 / 1.47 / -0.374px) — not 16px. The extra pixel defines the brand's reading pace.
 - Alternate `{component.product-tile-light}` (or parchment) and `{component.product-tile-dark}` for full-bleed section rhythm. The color change IS the divider.
-- Reserve `{rounded.pill}` for the primary blue CTA and any other element that should read as an "action" (configurator chips, search input, sticky bar CTA).
+- Reserve `{rounded.pill}` for the primary coral CTA and any other element that should read as an action (option chips, search input, sticky bar CTA).
 - Apply the single product-shadow (`rgba(0, 0, 0, 0.22) 3px 5px 30px`) only to product renders resting on a surface — never on cards, buttons, or text.
 - Use `transform: scale(0.95)` as the active/press state on every button — it's the system-wide micro-interaction.
 - Keep the global nav `{colors.surface-black}` (true black) — it's the only place pure black appears on most pages.

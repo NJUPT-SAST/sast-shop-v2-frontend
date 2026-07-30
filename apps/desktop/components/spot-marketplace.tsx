@@ -29,6 +29,7 @@ import {
 } from "@workspace/ui/components/dialog";
 import { Empty } from "@workspace/ui/components/empty";
 import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
+import { LoadFailure } from "@workspace/ui/components/load-failure";
 import {
   InputGroup,
   InputGroupAddon,
@@ -213,14 +214,10 @@ export function SpotMarketplace({
       </section>
 
       {error ? (
-        <Empty
-          title="现货商品暂时无法加载"
+        <LoadFailure
+          title="现货商品加载失败"
           description={error}
-          action={
-            <Button variant="outline" onClick={() => router.refresh()}>
-              重新加载
-            </Button>
-          }
+          onRetry={() => router.refresh()}
         />
       ) : filtered.length === 0 && !loadingMore && !hasMore ? (
         <Empty
@@ -313,17 +310,12 @@ export function SpotMarketplace({
                   <Spinner className="size-6" />
                 </div>
               ) : detailStatus === "error" || !selected ? (
-                <div className="flex min-h-64 flex-col items-center justify-center gap-4">
-                  <p className="text-sm text-muted-foreground">
-                    商品详情暂时无法加载
-                  </p>
-                  <Button
-                    variant="outline"
-                    onClick={() => void openDetail(selectedBrief)}
-                  >
-                    重新加载
-                  </Button>
-                </div>
+                <LoadFailure
+                  className="min-h-64"
+                  surface="plain"
+                  title="商品详情加载失败"
+                  onRetry={() => void openDetail(selectedBrief)}
+                />
               ) : (
                 <>
                   <div className="grid grid-cols-[15rem_minmax(0,1fr)] gap-6">

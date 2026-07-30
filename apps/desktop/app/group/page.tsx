@@ -16,6 +16,7 @@ import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import { Empty } from "@workspace/ui/components/empty";
+import { LoadFailure } from "@workspace/ui/components/load-failure";
 import {
   Item,
   ItemActions,
@@ -73,14 +74,10 @@ export default async function GroupPage() {
           </div>
 
           {storesResult.status === "rejected" ? (
-            <Empty
-              icon={<RiStore2Line className="size-5" />}
-              title="店铺暂不可用"
-              action={
-                <Button asChild variant="outline">
-                  <Link href="/group">重新加载</Link>
-                </Button>
-              }
+            <LoadFailure
+              title="店铺加载失败"
+              description="网络或服务暂时不可用，请稍后重试。"
+              retryHref="/group"
             />
           ) : stores.length === 0 ? (
             <Empty
@@ -114,12 +111,11 @@ export default async function GroupPage() {
               </Button>
             </div>
             {tasksResult.status === "rejected" ? (
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/30 px-3 py-2">
-                <p className="text-sm text-destructive">采购任务加载失败</p>
-                <Button asChild size="sm" variant="ghost">
-                  <Link href="/group">重试</Link>
-                </Button>
-              </div>
+              <LoadFailure
+                variant="compact"
+                title="采购任务加载失败"
+                retryHref="/group"
+              />
             ) : tasks.length === 0 ? (
               <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
                 当前没有进行中的团长任务。

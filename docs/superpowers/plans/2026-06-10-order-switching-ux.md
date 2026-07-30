@@ -70,8 +70,8 @@ Add dark mode and badge tone variables in `packages/ui/src/styles/globals.css`.
   --card-foreground: #f5f5f7;
   --popover: #1b1b20;
   --popover-foreground: #f5f5f7;
-  --primary: #2997ff;
-  --primary-foreground: #ffffff;
+  --primary: #ff9a78;
+  --primary-foreground: #2b1008;
   --secondary: #24242a;
   --secondary-foreground: #f5f5f7;
   --accent: #24242a;
@@ -82,7 +82,7 @@ Add dark mode and badge tone variables in `packages/ui/src/styles/globals.css`.
   --muted-foreground: #a1a1aa;
   --border: #303038;
   --input: #3a3a42;
-  --ring: #2997ff;
+  --ring: #ff9a78;
   --badge-neutral: #24242a;
   --badge-neutral-foreground: #d6d6dc;
   --badge-neutral-border: #3a3a42;

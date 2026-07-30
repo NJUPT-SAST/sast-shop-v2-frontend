@@ -71,7 +71,7 @@ pnpm mock:generate:user
 - 使用 Next App Router 约定。默认优先 Server Component；只有需要浏览器状态、事件处理、飞书 JSAPI 或客户端副作用时才使用 `"use client"`。
 - 飞书开放平台、Lark SDK、密钥和服务端凭据只能放在服务端边界内，不能泄露到 Client Component 或公开环境变量。
 - 接入 shadcn/ui 时使用 shadcn skill/CLI，并保持组件风格与本项目中文移动端商城场景一致。
-- 主题色与语义 token 以 `DESIGN.md` 和 `packages/ui/src/styles/globals.css` 为准：保持单一 Action Blue（当前使用更明亮的 `#0071e3`），不要引入第二强调色；调整全局色彩时优先改 `background`、`card`、`muted`、`secondary`、`border` 等语义变量，不在业务组件里散落 raw hex。
+- 主题色与语义 token 以 `packages/ui/src/styles/globals.css` 为实现基准、`DESIGN.md` 为设计说明：保持单一 Action Coral（浅色主题 `#c9431f`，深色主题 `#ff9a78`），不要引入第二强调色；调整全局色彩时优先改 `background`、`card`、`muted`、`secondary`、`border` 等语义变量，不在业务组件里散落 raw hex。
 - Tailwind CSS v4 的全局基础样式放在 `@layer base` 内，避免 `*` 级规则覆盖 `border-transparent` 等工具类；修 shadcn/Radix 组件时使用真实 data selector（如 `data-[state=active]`、`group-data-[orientation=vertical]/tabs`），wrapper 接收 `orientation` 等行为 prop 时要继续传给 primitive。
 - 图标按计划使用 remixicon；接入前先安装依赖。若临时使用其他图标库，需要保持风格统一并在依赖中体现。
 - 网络请求使用 ConnectRPC 与 Buf 生成代码；页面只调用 `@sast-shop/api` facade，不直接 import proto 生成文件。
