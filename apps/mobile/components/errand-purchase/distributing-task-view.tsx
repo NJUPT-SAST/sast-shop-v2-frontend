@@ -101,6 +101,7 @@ export function DistributingTaskView({
   const [items, setItems] = useState<DistributingTaskItem[]>(detail.items);
   const [taskUpdatedAt, setTaskUpdatedAt] = useState(detail.taskUpdatedAt);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTaskUpdatedAt((current) => detail.taskUpdatedAt ?? current);
   }, [detail.taskUpdatedAt]);
   const [packagingFee, setPackagingFee] = useState(
@@ -122,7 +123,6 @@ export function DistributingTaskView({
     (i) => !isItemFullyDistributed(i),
   );
   const distributed = purchasedItems.filter((i) => isItemFullyDistributed(i));
-  const requesters = items.flatMap((item) => item.requesters);
   const allDistributed =
     items.length > 0 &&
     items.every((item) => {
@@ -376,7 +376,7 @@ export function DistributingTaskView({
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      await cancelTask(detail.taskId, taskUpdatedAt, serviceOptions);
+      await cancelTask(detail.taskId, taskUpdatedAtRef.current, serviceOptions);
       setDialog({ type: "none" });
       router.replace("/orders?type=errand&view=captain");
     } catch {

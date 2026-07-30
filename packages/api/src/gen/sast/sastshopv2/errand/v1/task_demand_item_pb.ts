@@ -11,34 +11,39 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/errand/v1/task_demand_item.proto.
  */
-export const file_sast_sastshopv2_errand_v1_task_demand_item: GenFile = /*@__PURE__*/
-  fileDesc("CjBzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL3Rhc2tfZGVtYW5kX2l0ZW0ucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEiXwoOVGFza0RlbWFuZEl0ZW0SHQoVZXJyYW5kX2RlbWFuZF9pdGVtX2lkGAEgASgDEi4KCnVwZGF0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wYgZwcm90bzM", [file_google_protobuf_timestamp]);
+export const file_sast_sastshopv2_errand_v1_task_demand_item: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CjBzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL3Rhc2tfZGVtYW5kX2l0ZW0ucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEiXwoOVGFza0RlbWFuZEl0ZW0SHQoVZXJyYW5kX2RlbWFuZF9pdGVtX2lkGAEgASgDEi4KCnVwZGF0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wYgZwcm90bzM",
+    [file_google_protobuf_timestamp],
+  );
 
 /**
  * 团长接单时选择的需求行
  *
  * @generated from message sast.sastshopv2.errand.v1.TaskDemandItem
  */
-export type TaskDemandItem = Message<"sast.sastshopv2.errand.v1.TaskDemandItem"> & {
-  /**
-   * 被选择的买家需求行 ID
-   *
-   * @generated from field: int64 errand_demand_item_id = 1;
-   */
-  errandDemandItemId: bigint;
+export type TaskDemandItem =
+  Message<"sast.sastshopv2.errand.v1.TaskDemandItem"> & {
+    /**
+     * 被选择的买家需求行 ID
+     *
+     * @generated from field: int64 errand_demand_item_id = 1;
+     */
+    errandDemandItemId: bigint;
 
-  /**
-   * 前端读取需求行时拿到的 updated_at，用于防止重复接单
-   *
-   * @generated from field: google.protobuf.Timestamp updated_at = 2;
-   */
-  updatedAt?: Timestamp | undefined;
-};
+    /**
+     * 前端读取需求行时拿到的 updated_at，用于防止重复接单
+     *
+     * @generated from field: google.protobuf.Timestamp updated_at = 2;
+     */
+    updatedAt?: Timestamp | undefined;
+  };
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.TaskDemandItem.
  * Use `create(TaskDemandItemSchema)` to create a new message.
  */
-export const TaskDemandItemSchema: GenMessage<TaskDemandItem> = /*@__PURE__*/
+export const TaskDemandItemSchema: GenMessage<TaskDemandItem> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_task_demand_item, 0);
-

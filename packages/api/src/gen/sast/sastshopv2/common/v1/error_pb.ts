@@ -2,15 +2,22 @@
 // @generated from file sast/sastshopv2/common/v1/error.proto (package sast.sastshopv2.common.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
+import type {
+  GenEnum,
+  GenFile,
+  GenMessage,
+} from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file sast/sastshopv2/common/v1/error.proto.
  */
-export const file_sast_sastshopv2_common_v1_error: GenFile = /*@__PURE__*/
-  fileDesc("CiVzYXN0L3Nhc3RzaG9wdjIvY29tbW9uL3YxL2Vycm9yLnByb3RvEhlzYXN0LnNhc3RzaG9wdjIuY29tbW9uLnYxIkcKC0NvbW1vbkVycm9yEjgKBGNvZGUYASABKA4yKi5zYXN0LnNhc3RzaG9wdjIuY29tbW9uLnYxLkNvbW1vbkVycm9yQ29kZSpbCg9Db21tb25FcnJvckNvZGUSIQodQ09NTU9OX0VSUk9SX0NPREVfVU5TUEVDSUZJRUQQABIlCiBDT01NT05fRVJST1JfQ09ERV9JTlRFUk5BTF9FUlJPUhDoB2IGcHJvdG8z");
+export const file_sast_sastshopv2_common_v1_error: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CiVzYXN0L3Nhc3RzaG9wdjIvY29tbW9uL3YxL2Vycm9yLnByb3RvEhlzYXN0LnNhc3RzaG9wdjIuY29tbW9uLnYxIkcKC0NvbW1vbkVycm9yEjgKBGNvZGUYASABKA4yKi5zYXN0LnNhc3RzaG9wdjIuY29tbW9uLnYxLkNvbW1vbkVycm9yQ29kZSpbCg9Db21tb25FcnJvckNvZGUSIQodQ09NTU9OX0VSUk9SX0NPREVfVU5TUEVDSUZJRUQQABIlCiBDT01NT05fRVJST1JfQ09ERV9JTlRFUk5BTF9FUlJPUhDoB2IGcHJvdG8z",
+  );
 
 /**
  * @generated from message sast.sastshopv2.common.v1.CommonError
@@ -26,7 +33,8 @@ export type CommonError = Message<"sast.sastshopv2.common.v1.CommonError"> & {
  * Describes the message sast.sastshopv2.common.v1.CommonError.
  * Use `create(CommonErrorSchema)` to create a new message.
  */
-export const CommonErrorSchema: GenMessage<CommonError> = /*@__PURE__*/
+export const CommonErrorSchema: GenMessage<CommonError> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_common_v1_error, 0);
 
 /**
@@ -47,6 +55,6 @@ export enum CommonErrorCode {
 /**
  * Describes the enum sast.sastshopv2.common.v1.CommonErrorCode.
  */
-export const CommonErrorCodeSchema: GenEnum<CommonErrorCode> = /*@__PURE__*/
+export const CommonErrorCodeSchema: GenEnum<CommonErrorCode> =
+  /*@__PURE__*/
   enumDesc(file_sast_sastshopv2_common_v1_error, 0);
-

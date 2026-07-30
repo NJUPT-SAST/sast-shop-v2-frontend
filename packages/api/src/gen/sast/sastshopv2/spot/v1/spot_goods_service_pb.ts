@@ -2,8 +2,16 @@
 // @generated from file sast/sastshopv2/spot/v1/spot_goods_service.proto (package sast.sastshopv2.spot.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type {
+  GenFile,
+  GenMessage,
+  GenService,
+} from "@bufbuild/protobuf/codegenv2";
+import {
+  fileDesc,
+  messageDesc,
+  serviceDesc,
+} from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { SpotGoodsBrief, SpotGoodsDetail } from "./spot_goods_pb";
@@ -13,254 +21,276 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/spot/v1/spot_goods_service.proto.
  */
-export const file_sast_sastshopv2_spot_v1_spot_goods_service: GenFile = /*@__PURE__*/
-  fileDesc("CjBzYXN0L3Nhc3RzaG9wdjIvc3BvdC92MS9zcG90X2dvb2RzX3NlcnZpY2UucHJvdG8SF3Nhc3Quc2FzdHNob3B2Mi5zcG90LnYxIkkKFExpc3RTcG90R29vZHNSZXF1ZXN0EhAKCHN0b3JlX2lkGAEgASgDEgwKBHBhZ2UYAiABKAUSEQoJcGFnZV9zaXplGAMgASgFIoQBChVMaXN0U3BvdEdvb2RzUmVzcG9uc2USQAoPc3BvdF9nb29kc19saXN0GAEgAygLMicuc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuU3BvdEdvb2RzQnJpZWYSFAoMY3VycmVudF9wYWdlGAIgASgFEhMKC3RvdGFsX2NvdW50GAMgASgFIiwKE0dldFNwb3RHb29kc1JlcXVlc3QSFQoNc3BvdF9nb29kc19pZBgBIAEoAyJbChRHZXRTcG90R29vZHNSZXNwb25zZRJDChFzcG90X2dvb2RzX2RldGFpbBgBIAEoCzIoLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLlNwb3RHb29kc0RldGFpbCKlAQoWQ3JlYXRlU3BvdEdvb2RzUmVxdWVzdBIbChNwcm9kdWN0X3RlbXBsYXRlX2lkGAEgASgDEhgKEHNhbGVfcHJpY2VfY2VudHMYAiABKAUSEwoLc3RvY2tfdG90YWwYAyABKAUSPwobcHJvZHVjdF90ZW1wbGF0ZV91cGRhdGVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJeChdDcmVhdGVTcG90R29vZHNSZXNwb25zZRJDChFzcG90X2dvb2RzX2RldGFpbBgBIAEoCzIoLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLlNwb3RHb29kc0RldGFpbCJ3ChtVcGRhdGVTcG90R29vZHNTdG9ja1JlcXVlc3QSFQoNc3BvdF9nb29kc19pZBgBIAEoAxIRCgluZXdfc3RvY2sYAiABKAUSLgoKdXBkYXRlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiHgocVXBkYXRlU3BvdEdvb2RzU3RvY2tSZXNwb25zZSKCAQobVXBkYXRlU3BvdEdvb2RzUHJpY2VSZXF1ZXN0EhUKDXNwb3RfZ29vZHNfaWQYASABKAMSHAoUbmV3X3NhbGVfcHJpY2VfY2VudHMYAiABKAUSLgoKdXBkYXRlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiHgocVXBkYXRlU3BvdEdvb2RzUHJpY2VSZXNwb25zZTLxBAoQU3BvdEdvb2RzU2VydmljZRJuCg1MaXN0U3BvdEdvb2RzEi0uc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuTGlzdFNwb3RHb29kc1JlcXVlc3QaLi5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5MaXN0U3BvdEdvb2RzUmVzcG9uc2USawoMR2V0U3BvdEdvb2RzEiwuc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuR2V0U3BvdEdvb2RzUmVxdWVzdBotLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLkdldFNwb3RHb29kc1Jlc3BvbnNlEnQKD0NyZWF0ZVNwb3RHb29kcxIvLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLkNyZWF0ZVNwb3RHb29kc1JlcXVlc3QaMC5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5DcmVhdGVTcG90R29vZHNSZXNwb25zZRKDAQoUVXBkYXRlU3BvdEdvb2RzU3RvY2sSNC5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5VcGRhdGVTcG90R29vZHNTdG9ja1JlcXVlc3QaNS5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5VcGRhdGVTcG90R29vZHNTdG9ja1Jlc3BvbnNlEoMBChRVcGRhdGVTcG90R29vZHNQcmljZRI0LnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLlVwZGF0ZVNwb3RHb29kc1ByaWNlUmVxdWVzdBo1LnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLlVwZGF0ZVNwb3RHb29kc1ByaWNlUmVzcG9uc2ViBnByb3RvMw", [file_google_protobuf_timestamp, file_sast_sastshopv2_spot_v1_spot_goods]);
+export const file_sast_sastshopv2_spot_v1_spot_goods_service: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CjBzYXN0L3Nhc3RzaG9wdjIvc3BvdC92MS9zcG90X2dvb2RzX3NlcnZpY2UucHJvdG8SF3Nhc3Quc2FzdHNob3B2Mi5zcG90LnYxIkkKFExpc3RTcG90R29vZHNSZXF1ZXN0EhAKCHN0b3JlX2lkGAEgASgDEgwKBHBhZ2UYAiABKAUSEQoJcGFnZV9zaXplGAMgASgFIoQBChVMaXN0U3BvdEdvb2RzUmVzcG9uc2USQAoPc3BvdF9nb29kc19saXN0GAEgAygLMicuc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuU3BvdEdvb2RzQnJpZWYSFAoMY3VycmVudF9wYWdlGAIgASgFEhMKC3RvdGFsX2NvdW50GAMgASgFIiwKE0dldFNwb3RHb29kc1JlcXVlc3QSFQoNc3BvdF9nb29kc19pZBgBIAEoAyJbChRHZXRTcG90R29vZHNSZXNwb25zZRJDChFzcG90X2dvb2RzX2RldGFpbBgBIAEoCzIoLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLlNwb3RHb29kc0RldGFpbCKlAQoWQ3JlYXRlU3BvdEdvb2RzUmVxdWVzdBIbChNwcm9kdWN0X3RlbXBsYXRlX2lkGAEgASgDEhgKEHNhbGVfcHJpY2VfY2VudHMYAiABKAUSEwoLc3RvY2tfdG90YWwYAyABKAUSPwobcHJvZHVjdF90ZW1wbGF0ZV91cGRhdGVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJeChdDcmVhdGVTcG90R29vZHNSZXNwb25zZRJDChFzcG90X2dvb2RzX2RldGFpbBgBIAEoCzIoLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLlNwb3RHb29kc0RldGFpbCJ3ChtVcGRhdGVTcG90R29vZHNTdG9ja1JlcXVlc3QSFQoNc3BvdF9nb29kc19pZBgBIAEoAxIRCgluZXdfc3RvY2sYAiABKAUSLgoKdXBkYXRlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiHgocVXBkYXRlU3BvdEdvb2RzU3RvY2tSZXNwb25zZSKCAQobVXBkYXRlU3BvdEdvb2RzUHJpY2VSZXF1ZXN0EhUKDXNwb3RfZ29vZHNfaWQYASABKAMSHAoUbmV3X3NhbGVfcHJpY2VfY2VudHMYAiABKAUSLgoKdXBkYXRlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiHgocVXBkYXRlU3BvdEdvb2RzUHJpY2VSZXNwb25zZTLxBAoQU3BvdEdvb2RzU2VydmljZRJuCg1MaXN0U3BvdEdvb2RzEi0uc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuTGlzdFNwb3RHb29kc1JlcXVlc3QaLi5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5MaXN0U3BvdEdvb2RzUmVzcG9uc2USawoMR2V0U3BvdEdvb2RzEiwuc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuR2V0U3BvdEdvb2RzUmVxdWVzdBotLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLkdldFNwb3RHb29kc1Jlc3BvbnNlEnQKD0NyZWF0ZVNwb3RHb29kcxIvLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLkNyZWF0ZVNwb3RHb29kc1JlcXVlc3QaMC5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5DcmVhdGVTcG90R29vZHNSZXNwb25zZRKDAQoUVXBkYXRlU3BvdEdvb2RzU3RvY2sSNC5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5VcGRhdGVTcG90R29vZHNTdG9ja1JlcXVlc3QaNS5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5VcGRhdGVTcG90R29vZHNTdG9ja1Jlc3BvbnNlEoMBChRVcGRhdGVTcG90R29vZHNQcmljZRI0LnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLlVwZGF0ZVNwb3RHb29kc1ByaWNlUmVxdWVzdBo1LnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLlVwZGF0ZVNwb3RHb29kc1ByaWNlUmVzcG9uc2ViBnByb3RvMw",
+    [file_google_protobuf_timestamp, file_sast_sastshopv2_spot_v1_spot_goods],
+  );
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.ListSpotGoodsRequest
  */
-export type ListSpotGoodsRequest = Message<"sast.sastshopv2.spot.v1.ListSpotGoodsRequest"> & {
-  /**
-   * 店铺 ID
-   *
-   * @generated from field: int64 store_id = 1;
-   */
-  storeId: bigint;
+export type ListSpotGoodsRequest =
+  Message<"sast.sastshopv2.spot.v1.ListSpotGoodsRequest"> & {
+    /**
+     * 店铺 ID
+     *
+     * @generated from field: int64 store_id = 1;
+     */
+    storeId: bigint;
 
-  /**
-   * 页码，从 1 开始
-   *
-   * @generated from field: int32 page = 2;
-   */
-  page: number;
+    /**
+     * 页码，从 1 开始
+     *
+     * @generated from field: int32 page = 2;
+     */
+    page: number;
 
-  /**
-   * 每页数量
-   *
-   * @generated from field: int32 page_size = 3;
-   */
-  pageSize: number;
-};
+    /**
+     * 每页数量
+     *
+     * @generated from field: int32 page_size = 3;
+     */
+    pageSize: number;
+  };
 
 /**
  * Describes the message sast.sastshopv2.spot.v1.ListSpotGoodsRequest.
  * Use `create(ListSpotGoodsRequestSchema)` to create a new message.
  */
-export const ListSpotGoodsRequestSchema: GenMessage<ListSpotGoodsRequest> = /*@__PURE__*/
+export const ListSpotGoodsRequestSchema: GenMessage<ListSpotGoodsRequest> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 0);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.ListSpotGoodsResponse
  */
-export type ListSpotGoodsResponse = Message<"sast.sastshopv2.spot.v1.ListSpotGoodsResponse"> & {
-  /**
-   * 当前页现货商品列表
-   *
-   * @generated from field: repeated sast.sastshopv2.spot.v1.SpotGoodsBrief spot_goods_list = 1;
-   */
-  spotGoodsList: SpotGoodsBrief[];
+export type ListSpotGoodsResponse =
+  Message<"sast.sastshopv2.spot.v1.ListSpotGoodsResponse"> & {
+    /**
+     * 当前页现货商品列表
+     *
+     * @generated from field: repeated sast.sastshopv2.spot.v1.SpotGoodsBrief spot_goods_list = 1;
+     */
+    spotGoodsList: SpotGoodsBrief[];
 
-  /**
-   * @generated from field: int32 current_page = 2;
-   */
-  currentPage: number;
+    /**
+     * @generated from field: int32 current_page = 2;
+     */
+    currentPage: number;
 
-  /**
-   * @generated from field: int32 total_count = 3;
-   */
-  totalCount: number;
-};
+    /**
+     * @generated from field: int32 total_count = 3;
+     */
+    totalCount: number;
+  };
 
 /**
  * Describes the message sast.sastshopv2.spot.v1.ListSpotGoodsResponse.
  * Use `create(ListSpotGoodsResponseSchema)` to create a new message.
  */
-export const ListSpotGoodsResponseSchema: GenMessage<ListSpotGoodsResponse> = /*@__PURE__*/
+export const ListSpotGoodsResponseSchema: GenMessage<ListSpotGoodsResponse> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 1);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.GetSpotGoodsRequest
  */
-export type GetSpotGoodsRequest = Message<"sast.sastshopv2.spot.v1.GetSpotGoodsRequest"> & {
-  /**
-   * 现货商品 ID
-   *
-   * @generated from field: int64 spot_goods_id = 1;
-   */
-  spotGoodsId: bigint;
-};
+export type GetSpotGoodsRequest =
+  Message<"sast.sastshopv2.spot.v1.GetSpotGoodsRequest"> & {
+    /**
+     * 现货商品 ID
+     *
+     * @generated from field: int64 spot_goods_id = 1;
+     */
+    spotGoodsId: bigint;
+  };
 
 /**
  * Describes the message sast.sastshopv2.spot.v1.GetSpotGoodsRequest.
  * Use `create(GetSpotGoodsRequestSchema)` to create a new message.
  */
-export const GetSpotGoodsRequestSchema: GenMessage<GetSpotGoodsRequest> = /*@__PURE__*/
+export const GetSpotGoodsRequestSchema: GenMessage<GetSpotGoodsRequest> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 2);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.GetSpotGoodsResponse
  */
-export type GetSpotGoodsResponse = Message<"sast.sastshopv2.spot.v1.GetSpotGoodsResponse"> & {
-  /**
-   * @generated from field: sast.sastshopv2.spot.v1.SpotGoodsDetail spot_goods_detail = 1;
-   */
-  spotGoodsDetail?: SpotGoodsDetail | undefined;
-};
+export type GetSpotGoodsResponse =
+  Message<"sast.sastshopv2.spot.v1.GetSpotGoodsResponse"> & {
+    /**
+     * @generated from field: sast.sastshopv2.spot.v1.SpotGoodsDetail spot_goods_detail = 1;
+     */
+    spotGoodsDetail?: SpotGoodsDetail | undefined;
+  };
 
 /**
  * Describes the message sast.sastshopv2.spot.v1.GetSpotGoodsResponse.
  * Use `create(GetSpotGoodsResponseSchema)` to create a new message.
  */
-export const GetSpotGoodsResponseSchema: GenMessage<GetSpotGoodsResponse> = /*@__PURE__*/
+export const GetSpotGoodsResponseSchema: GenMessage<GetSpotGoodsResponse> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 3);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.CreateSpotGoodsRequest
  */
-export type CreateSpotGoodsRequest = Message<"sast.sastshopv2.spot.v1.CreateSpotGoodsRequest"> & {
-  /**
-   * catalog 商品模板 ID
-   *
-   * @generated from field: int64 product_template_id = 1;
-   */
-  productTemplateId: bigint;
+export type CreateSpotGoodsRequest =
+  Message<"sast.sastshopv2.spot.v1.CreateSpotGoodsRequest"> & {
+    /**
+     * catalog 商品模板 ID
+     *
+     * @generated from field: int64 product_template_id = 1;
+     */
+    productTemplateId: bigint;
 
-  /**
-   * 上架售卖单价，单位为分
-   *
-   * @generated from field: int32 sale_price_cents = 2;
-   */
-  salePriceCents: number;
+    /**
+     * 上架售卖单价，单位为分
+     *
+     * @generated from field: int32 sale_price_cents = 2;
+     */
+    salePriceCents: number;
 
-  /**
-   * 初始库存总量
-   *
-   * @generated from field: int32 stock_total = 3;
-   */
-  stockTotal: number;
+    /**
+     * 初始库存总量
+     *
+     * @generated from field: int32 stock_total = 3;
+     */
+    stockTotal: number;
 
-  /**
-   * 前端读取商品模板时拿到的 updated_at，用于校验模板是否被更新
-   *
-   * @generated from field: google.protobuf.Timestamp product_template_updated_at = 4;
-   */
-  productTemplateUpdatedAt?: Timestamp | undefined;
-};
+    /**
+     * 前端读取商品模板时拿到的 updated_at，用于校验模板是否被更新
+     *
+     * @generated from field: google.protobuf.Timestamp product_template_updated_at = 4;
+     */
+    productTemplateUpdatedAt?: Timestamp | undefined;
+  };
 
 /**
  * Describes the message sast.sastshopv2.spot.v1.CreateSpotGoodsRequest.
  * Use `create(CreateSpotGoodsRequestSchema)` to create a new message.
  */
-export const CreateSpotGoodsRequestSchema: GenMessage<CreateSpotGoodsRequest> = /*@__PURE__*/
+export const CreateSpotGoodsRequestSchema: GenMessage<CreateSpotGoodsRequest> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 4);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.CreateSpotGoodsResponse
  */
-export type CreateSpotGoodsResponse = Message<"sast.sastshopv2.spot.v1.CreateSpotGoodsResponse"> & {
-  /**
-   * @generated from field: sast.sastshopv2.spot.v1.SpotGoodsDetail spot_goods_detail = 1;
-   */
-  spotGoodsDetail?: SpotGoodsDetail | undefined;
-};
+export type CreateSpotGoodsResponse =
+  Message<"sast.sastshopv2.spot.v1.CreateSpotGoodsResponse"> & {
+    /**
+     * @generated from field: sast.sastshopv2.spot.v1.SpotGoodsDetail spot_goods_detail = 1;
+     */
+    spotGoodsDetail?: SpotGoodsDetail | undefined;
+  };
 
 /**
  * Describes the message sast.sastshopv2.spot.v1.CreateSpotGoodsResponse.
  * Use `create(CreateSpotGoodsResponseSchema)` to create a new message.
  */
-export const CreateSpotGoodsResponseSchema: GenMessage<CreateSpotGoodsResponse> = /*@__PURE__*/
+export const CreateSpotGoodsResponseSchema: GenMessage<CreateSpotGoodsResponse> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 5);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.UpdateSpotGoodsStockRequest
  */
-export type UpdateSpotGoodsStockRequest = Message<"sast.sastshopv2.spot.v1.UpdateSpotGoodsStockRequest"> & {
-  /**
-   * 现货商品 ID
-   *
-   * @generated from field: int64 spot_goods_id = 1;
-   */
-  spotGoodsId: bigint;
+export type UpdateSpotGoodsStockRequest =
+  Message<"sast.sastshopv2.spot.v1.UpdateSpotGoodsStockRequest"> & {
+    /**
+     * 现货商品 ID
+     *
+     * @generated from field: int64 spot_goods_id = 1;
+     */
+    spotGoodsId: bigint;
 
-  /**
-   * 更新后的库存数量
-   *
-   * @generated from field: int32 new_stock = 2;
-   */
-  newStock: number;
+    /**
+     * 更新后的库存数量
+     *
+     * @generated from field: int32 new_stock = 2;
+     */
+    newStock: number;
 
-  /**
-   * 前端读取现货商品时拿到的 updated_at，用于库存修改并发校验
-   *
-   * @generated from field: google.protobuf.Timestamp updated_at = 3;
-   */
-  updatedAt?: Timestamp | undefined;
-};
+    /**
+     * 前端读取现货商品时拿到的 updated_at，用于库存修改并发校验
+     *
+     * @generated from field: google.protobuf.Timestamp updated_at = 3;
+     */
+    updatedAt?: Timestamp | undefined;
+  };
 
 /**
  * Describes the message sast.sastshopv2.spot.v1.UpdateSpotGoodsStockRequest.
  * Use `create(UpdateSpotGoodsStockRequestSchema)` to create a new message.
  */
-export const UpdateSpotGoodsStockRequestSchema: GenMessage<UpdateSpotGoodsStockRequest> = /*@__PURE__*/
+export const UpdateSpotGoodsStockRequestSchema: GenMessage<UpdateSpotGoodsStockRequest> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 6);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.UpdateSpotGoodsStockResponse
  */
-export type UpdateSpotGoodsStockResponse = Message<"sast.sastshopv2.spot.v1.UpdateSpotGoodsStockResponse"> & {
-};
+export type UpdateSpotGoodsStockResponse =
+  Message<"sast.sastshopv2.spot.v1.UpdateSpotGoodsStockResponse"> & {};
 
 /**
  * Describes the message sast.sastshopv2.spot.v1.UpdateSpotGoodsStockResponse.
  * Use `create(UpdateSpotGoodsStockResponseSchema)` to create a new message.
  */
-export const UpdateSpotGoodsStockResponseSchema: GenMessage<UpdateSpotGoodsStockResponse> = /*@__PURE__*/
+export const UpdateSpotGoodsStockResponseSchema: GenMessage<UpdateSpotGoodsStockResponse> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 7);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.UpdateSpotGoodsPriceRequest
  */
-export type UpdateSpotGoodsPriceRequest = Message<"sast.sastshopv2.spot.v1.UpdateSpotGoodsPriceRequest"> & {
-  /**
-   * 现货商品 ID
-   *
-   * @generated from field: int64 spot_goods_id = 1;
-   */
-  spotGoodsId: bigint;
+export type UpdateSpotGoodsPriceRequest =
+  Message<"sast.sastshopv2.spot.v1.UpdateSpotGoodsPriceRequest"> & {
+    /**
+     * 现货商品 ID
+     *
+     * @generated from field: int64 spot_goods_id = 1;
+     */
+    spotGoodsId: bigint;
 
-  /**
-   * 更新后的售卖单价，单位为分
-   *
-   * @generated from field: int32 new_sale_price_cents = 2;
-   */
-  newSalePriceCents: number;
+    /**
+     * 更新后的售卖单价，单位为分
+     *
+     * @generated from field: int32 new_sale_price_cents = 2;
+     */
+    newSalePriceCents: number;
 
-  /**
-   * 前端读取现货商品时拿到的 updated_at，用于价格修改并发校验
-   *
-   * @generated from field: google.protobuf.Timestamp updated_at = 3;
-   */
-  updatedAt?: Timestamp | undefined;
-};
+    /**
+     * 前端读取现货商品时拿到的 updated_at，用于价格修改并发校验
+     *
+     * @generated from field: google.protobuf.Timestamp updated_at = 3;
+     */
+    updatedAt?: Timestamp | undefined;
+  };
 
 /**
  * Describes the message sast.sastshopv2.spot.v1.UpdateSpotGoodsPriceRequest.
  * Use `create(UpdateSpotGoodsPriceRequestSchema)` to create a new message.
  */
-export const UpdateSpotGoodsPriceRequestSchema: GenMessage<UpdateSpotGoodsPriceRequest> = /*@__PURE__*/
+export const UpdateSpotGoodsPriceRequestSchema: GenMessage<UpdateSpotGoodsPriceRequest> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 8);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.UpdateSpotGoodsPriceResponse
  */
-export type UpdateSpotGoodsPriceResponse = Message<"sast.sastshopv2.spot.v1.UpdateSpotGoodsPriceResponse"> & {
-};
+export type UpdateSpotGoodsPriceResponse =
+  Message<"sast.sastshopv2.spot.v1.UpdateSpotGoodsPriceResponse"> & {};
 
 /**
  * Describes the message sast.sastshopv2.spot.v1.UpdateSpotGoodsPriceResponse.
  * Use `create(UpdateSpotGoodsPriceResponseSchema)` to create a new message.
  */
-export const UpdateSpotGoodsPriceResponseSchema: GenMessage<UpdateSpotGoodsPriceResponse> = /*@__PURE__*/
+export const UpdateSpotGoodsPriceResponseSchema: GenMessage<UpdateSpotGoodsPriceResponse> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 9);
 
 /**
@@ -276,7 +306,7 @@ export const SpotGoodsService: GenService<{
     methodKind: "unary";
     input: typeof ListSpotGoodsRequestSchema;
     output: typeof ListSpotGoodsResponseSchema;
-  },
+  };
   /**
    * 获取现货商品详情
    *
@@ -286,7 +316,7 @@ export const SpotGoodsService: GenService<{
     methodKind: "unary";
     input: typeof GetSpotGoodsRequestSchema;
     output: typeof GetSpotGoodsResponseSchema;
-  },
+  };
   /**
    * 卖家上架现货商品
    *
@@ -296,7 +326,7 @@ export const SpotGoodsService: GenService<{
     methodKind: "unary";
     input: typeof CreateSpotGoodsRequestSchema;
     output: typeof CreateSpotGoodsResponseSchema;
-  },
+  };
   /**
    * 卖家调整现货商品库存
    *
@@ -306,7 +336,7 @@ export const SpotGoodsService: GenService<{
     methodKind: "unary";
     input: typeof UpdateSpotGoodsStockRequestSchema;
     output: typeof UpdateSpotGoodsStockResponseSchema;
-  },
+  };
   /**
    * 卖家调整现货商品价格
    *
@@ -316,7 +346,7 @@ export const SpotGoodsService: GenService<{
     methodKind: "unary";
     input: typeof UpdateSpotGoodsPriceRequestSchema;
     output: typeof UpdateSpotGoodsPriceResponseSchema;
-  },
-}> = /*@__PURE__*/
+  };
+}> =
+  /*@__PURE__*/
   serviceDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 0);
-

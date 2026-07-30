@@ -8,8 +8,11 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv2";
 /**
  * Describes the file sast/sastshopv2/errand/v1/errand_demand_item_status.proto.
  */
-export const file_sast_sastshopv2_errand_v1_errand_demand_item_status: GenFile = /*@__PURE__*/
-  fileDesc("CjlzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF9kZW1hbmRfaXRlbV9zdGF0dXMucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEq8AIKFkVycmFuZERlbWFuZEl0ZW1TdGF0dXMSKQolRVJSQU5EX0RFTUFORF9JVEVNX1NUQVRVU19VTlNQRUNJRklFRBAAEiIKHkVSUkFORF9ERU1BTkRfSVRFTV9TVEFUVVNfT1BFThABEiYKIkVSUkFORF9ERU1BTkRfSVRFTV9TVEFUVVNfU0hPUFBJTkcQAhIyCi5FUlJBTkRfREVNQU5EX0lURU1fU1RBVFVTX1BFTkRJTkdfRElTVFJJQlVUSU5HEAMSKgomRVJSQU5EX0RFTUFORF9JVEVNX1NUQVRVU19ESVNUUklCVVRJTkcQBBItCilFUlJBTkRfREVNQU5EX0lURU1fU1RBVFVTX1BFTkRJTkdfUEFZTUVOVBAFEicKI0VSUkFORF9ERU1BTkRfSVRFTV9TVEFUVVNfQ09NUExFVEVEEAYSJwojRVJSQU5EX0RFTUFORF9JVEVNX1NUQVRVU19DQU5DRUxMRUQQB2IGcHJvdG8z");
+export const file_sast_sastshopv2_errand_v1_errand_demand_item_status: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CjlzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF9kZW1hbmRfaXRlbV9zdGF0dXMucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEq8AIKFkVycmFuZERlbWFuZEl0ZW1TdGF0dXMSKQolRVJSQU5EX0RFTUFORF9JVEVNX1NUQVRVU19VTlNQRUNJRklFRBAAEiIKHkVSUkFORF9ERU1BTkRfSVRFTV9TVEFUVVNfT1BFThABEiYKIkVSUkFORF9ERU1BTkRfSVRFTV9TVEFUVVNfU0hPUFBJTkcQAhIyCi5FUlJBTkRfREVNQU5EX0lURU1fU1RBVFVTX1BFTkRJTkdfRElTVFJJQlVUSU5HEAMSKgomRVJSQU5EX0RFTUFORF9JVEVNX1NUQVRVU19ESVNUUklCVVRJTkcQBBItCilFUlJBTkRfREVNQU5EX0lURU1fU1RBVFVTX1BFTkRJTkdfUEFZTUVOVBAFEicKI0VSUkFORF9ERU1BTkRfSVRFTV9TVEFUVVNfQ09NUExFVEVEEAYSJwojRVJSQU5EX0RFTUFORF9JVEVNX1NUQVRVU19DQU5DRUxMRUQQB2IGcHJvdG8z",
+  );
 
 /**
  * @generated from enum sast.sastshopv2.errand.v1.ErrandDemandItemStatus
@@ -59,6 +62,6 @@ export enum ErrandDemandItemStatus {
 /**
  * Describes the enum sast.sastshopv2.errand.v1.ErrandDemandItemStatus.
  */
-export const ErrandDemandItemStatusSchema: GenEnum<ErrandDemandItemStatus> = /*@__PURE__*/
+export const ErrandDemandItemStatusSchema: GenEnum<ErrandDemandItemStatus> =
+  /*@__PURE__*/
   enumDesc(file_sast_sastshopv2_errand_v1_errand_demand_item_status, 0);
-

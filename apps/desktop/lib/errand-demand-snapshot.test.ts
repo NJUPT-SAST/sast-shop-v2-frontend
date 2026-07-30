@@ -88,9 +88,9 @@ describe("errand demand snapshots", () => {
     const deadline = "2026-07-18T14:00:00.000Z";
 
     expect(shouldDisplayErrandDemandExpired("open", deadline, now)).toBe(true);
-    expect(shouldDisplayErrandDemandExpired("distributing", deadline, now)).toBe(
-      true,
-    );
+    expect(
+      shouldDisplayErrandDemandExpired("distributing", deadline, now),
+    ).toBe(true);
     expect(shouldDisplayErrandDemandExpired("completed", deadline, now)).toBe(
       false,
     );

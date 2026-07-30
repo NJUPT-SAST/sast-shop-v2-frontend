@@ -13,7 +13,7 @@ export interface ServiceOptions {
   connectBaseUrl?: string;
   fetch?: typeof globalThis.fetch; // 可自定义fetch实现（用于拦截、mock、适配SSR）
   currentUser?: CurrentUser;
-  requiresAuthenticatedUser?: boolean;  // 是否要求必须携带登录用户
+  requiresAuthenticatedUser?: boolean; // 是否要求必须携带登录用户
 }
 // 优先传入调用方传入的options.dataSource；
 export function resolveDataSource(options: ServiceOptions = {}): DataSource {

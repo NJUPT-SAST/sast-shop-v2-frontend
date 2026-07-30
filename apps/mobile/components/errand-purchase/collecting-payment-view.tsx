@@ -265,130 +265,132 @@ export function CollectingPaymentView({
         </div>
         {list.length ? (
           <div className="flex flex-col gap-3">
-          {list.map((bill) => {
-            const expandKey = bill.billId ?? bill.requesterId;
-            const isExpanded = expandedBillKey === expandKey;
-            return (
-              <div
-                key={expandKey}
-                className="rounded-lg border bg-card overflow-hidden"
-              >
-                <button
-                  type="button"
-                  aria-controls={`payment-bill-${expandKey}`}
-                  aria-expanded={isExpanded}
-                  className="flex w-full items-center gap-3 p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  onClick={() =>
-                    setExpandedBillKey(isExpanded ? null : expandKey)
-                  }
+            {list.map((bill) => {
+              const expandKey = bill.billId ?? bill.requesterId;
+              const isExpanded = expandedBillKey === expandKey;
+              return (
+                <div
+                  key={expandKey}
+                  className="rounded-lg border bg-card overflow-hidden"
                 >
-                  <Avatar className="size-10 shrink-0">
-                    <AvatarImage
-                      src={bill.requesterAvatarUrl}
-                      alt={bill.requesterName}
-                    />
-                    <AvatarFallback className="text-sm">
-                      {bill.requesterName[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="truncate text-sm font-medium">
-                        {bill.requesterName}
-                      </p>
-                    </div>
-                    <p className="text-sm font-semibold tabular-nums text-primary">
-                      {formatPrice(bill.totalAmountCents)}
-                    </p>
-                    {bill.paymentStatus === "pending_confirmation" &&
-                    bill.verifyCode ? (
-                      <p className="mt-0.5 font-mono text-xs font-semibold tracking-widest">
-                        标识码 {bill.verifyCode}
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {getStatusBadge(bill.paymentStatus)}
-                    {isExpanded ? (
-                      <RiArrowUpSLine className="size-4 text-muted-foreground" />
-                    ) : (
-                      <RiArrowDownSLine className="size-4 text-muted-foreground" />
-                    )}
-                  </div>
-                </button>
-
-                {isExpanded && (
-                  <div
-                    id={`payment-bill-${expandKey}`}
-                    className="border-t px-3 pb-3"
+                  <button
+                    type="button"
+                    aria-controls={`payment-bill-${expandKey}`}
+                    aria-expanded={isExpanded}
+                    className="flex w-full items-center gap-3 p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={() =>
+                      setExpandedBillKey(isExpanded ? null : expandKey)
+                    }
                   >
-                    <div className="mt-3 flex flex-col gap-3 tabular-nums">
-                      {bill.items.map((item) => (
-                        <PaymentItemBreakdown
-                          key={item.errandDemandItemId}
-                          item={item}
-                        />
-                      ))}
-                      <div className="mt-1 border-t pt-2 flex flex-col gap-1 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">商品费</span>
-                          <span>{formatPrice(bill.productAmountCents)}</span>
-                        </div>
-                        {bill.serviceFeeAmountCents > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">
-                              跑腿费
-                            </span>
-                            <span>
-                              {formatPrice(bill.serviceFeeAmountCents)}
-                            </span>
-                          </div>
-                        )}
-                        {bill.packagingFeeShareCents > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">
-                              包装费
-                            </span>
-                            <span>
-                              {formatPrice(bill.packagingFeeShareCents)}
-                            </span>
-                          </div>
-                        )}
-                        <div className="flex justify-between font-semibold">
-                          <span>合计</span>
-                          <span className="text-primary">
-                            {formatPrice(bill.totalAmountCents)}
-                          </span>
-                        </div>
+                    <Avatar className="size-10 shrink-0">
+                      <AvatarImage
+                        src={bill.requesterAvatarUrl}
+                        alt={bill.requesterName}
+                      />
+                      <AvatarFallback className="text-sm">
+                        {bill.requesterName[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-sm font-medium">
+                          {bill.requesterName}
+                        </p>
                       </div>
+                      <p className="text-sm font-semibold tabular-nums text-primary">
+                        {formatPrice(bill.totalAmountCents)}
+                      </p>
+                      {bill.paymentStatus === "pending_confirmation" &&
+                      bill.verifyCode ? (
+                        <p className="mt-0.5 font-mono text-xs font-semibold tracking-widest">
+                          标识码 {bill.verifyCode}
+                        </p>
+                      ) : null}
                     </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {getStatusBadge(bill.paymentStatus)}
+                      {isExpanded ? (
+                        <RiArrowUpSLine className="size-4 text-muted-foreground" />
+                      ) : (
+                        <RiArrowDownSLine className="size-4 text-muted-foreground" />
+                      )}
+                    </div>
+                  </button>
 
-                    {bill.paymentStatus === "pending_confirmation" && (
-                      <div className="mt-3">
-                        <Button
-                          type="button"
-                          size="touch"
-                          className="w-full"
-                          onClick={() =>
-                            setDialog({ type: "confirm_bill", bill })
-                          }
-                          disabled={
-                            confirmingBillId === bill.requesterId ||
-                            !bill.billId ||
-                            !bill.billUpdatedAt
-                          }
-                        >
-                          {confirmingBillId === bill.requesterId
-                            ? "处理中"
-                            : "确认收款"}
-                        </Button>
+                  {isExpanded && (
+                    <div
+                      id={`payment-bill-${expandKey}`}
+                      className="border-t px-3 pb-3"
+                    >
+                      <div className="mt-3 flex flex-col gap-3 tabular-nums">
+                        {bill.items.map((item) => (
+                          <PaymentItemBreakdown
+                            key={item.errandDemandItemId}
+                            item={item}
+                          />
+                        ))}
+                        <div className="mt-1 border-t pt-2 flex flex-col gap-1 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              商品费
+                            </span>
+                            <span>{formatPrice(bill.productAmountCents)}</span>
+                          </div>
+                          {bill.serviceFeeAmountCents > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">
+                                跑腿费
+                              </span>
+                              <span>
+                                {formatPrice(bill.serviceFeeAmountCents)}
+                              </span>
+                            </div>
+                          )}
+                          {bill.packagingFeeShareCents > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">
+                                包装费
+                              </span>
+                              <span>
+                                {formatPrice(bill.packagingFeeShareCents)}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex justify-between font-semibold">
+                            <span>合计</span>
+                            <span className="text-primary">
+                              {formatPrice(bill.totalAmountCents)}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+
+                      {bill.paymentStatus === "pending_confirmation" && (
+                        <div className="mt-3">
+                          <Button
+                            type="button"
+                            size="touch"
+                            className="w-full"
+                            onClick={() =>
+                              setDialog({ type: "confirm_bill", bill })
+                            }
+                            disabled={
+                              confirmingBillId === bill.requesterId ||
+                              !bill.billId ||
+                              !bill.billUpdatedAt
+                            }
+                          >
+                            {confirmingBillId === bill.requesterId
+                              ? "处理中"
+                              : "确认收款"}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div className="rounded-lg border bg-card p-3 text-sm text-muted-foreground">
@@ -422,7 +424,9 @@ export function CollectingPaymentView({
           <AlertTitle>异常账单</AlertTitle>
           <AlertDescription>
             {abnormalBills
-              .map((bill) => bill.requesterName || bill.billNo || bill.requesterId)
+              .map(
+                (bill) => bill.requesterName || bill.billNo || bill.requesterId,
+              )
               .join("、")}
             的账单状态不计入订单完成进度，请刷新后核对。
           </AlertDescription>

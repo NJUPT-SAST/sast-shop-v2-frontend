@@ -2,10 +2,21 @@
 // @generated from file sast/sastshopv2/errand/v1/buyer_errand_order_service.proto (package sast.sastshopv2.errand.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type {
+  GenFile,
+  GenMessage,
+  GenService,
+} from "@bufbuild/protobuf/codegenv2";
+import {
+  fileDesc,
+  messageDesc,
+  serviceDesc,
+} from "@bufbuild/protobuf/codegenv2";
 import { file_buf_validate_validate } from "../../../../buf/validate/validate_pb";
-import type { BuyerErrandOrderBrief, BuyerErrandOrderDetail } from "./buyer_errand_order_pb";
+import type {
+  BuyerErrandOrderBrief,
+  BuyerErrandOrderDetail,
+} from "./buyer_errand_order_pb";
 import { file_sast_sastshopv2_errand_v1_buyer_errand_order } from "./buyer_errand_order_pb";
 import type { ErrandDemandStatus } from "./errand_demand_status_pb";
 import { file_sast_sastshopv2_errand_v1_errand_demand_status } from "./errand_demand_status_pb";
@@ -14,140 +25,160 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/errand/v1/buyer_errand_order_service.proto.
  */
-export const file_sast_sastshopv2_errand_v1_buyer_errand_order_service: GenFile = /*@__PURE__*/
-  fileDesc("CjpzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2J1eWVyX2VycmFuZF9vcmRlcl9zZXJ2aWNlLnByb3RvEhlzYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxItEBCh9HZXRCdXllckVycmFuZE9yZGVyQnJpZWZSZXF1ZXN0EgwKBHBhZ2UYASABKAUSEQoJcGFnZV9zaXplGAIgASgFEhwKD3N0b3JlX2lkX2ZpbHRlchgDIAEoA0gAiAEBEkkKDXN0YXR1c19maWx0ZXIYBCABKA4yLS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZERlbWFuZFN0YXR1c0gBiAEBQhIKEF9zdG9yZV9pZF9maWx0ZXJCEAoOX3N0YXR1c19maWx0ZXIijwEKIEdldEJ1eWVyRXJyYW5kT3JkZXJCcmllZlJlc3BvbnNlEkAKBm9yZGVycxgBIAMoCzIwLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuQnV5ZXJFcnJhbmRPcmRlckJyaWVmEhQKDGN1cnJlbnRfcGFnZRgCIAEoBRITCgt0b3RhbF9jb3VudBgDIAEoBSI8CiBHZXRCdXllckVycmFuZE9yZGVyRGV0YWlsUmVxdWVzdBIYChBlcnJhbmRfZGVtYW5kX2lkGAEgASgDImUKIUdldEJ1eWVyRXJyYW5kT3JkZXJEZXRhaWxSZXNwb25zZRJACgVvcmRlchgBIAEoCzIxLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuQnV5ZXJFcnJhbmRPcmRlckRldGFpbCJNCihHZXRCdXllckVycmFuZE9yZGVyQ2FwdGFpbkNvbnRhY3RSZXF1ZXN0EiEKEGVycmFuZF9kZW1hbmRfaWQYASABKANCB7pIBCICIAAiSwopR2V0QnV5ZXJFcnJhbmRPcmRlckNhcHRhaW5Db250YWN0UmVzcG9uc2USHgoWY2FwdGFpbl9mZWlzaHVfb3Blbl9pZBgBIAEoCTL5AwoXQnV5ZXJFcnJhbmRPcmRlclNlcnZpY2USkwEKGEdldEJ1eWVyRXJyYW5kT3JkZXJCcmllZhI6LnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuR2V0QnV5ZXJFcnJhbmRPcmRlckJyaWVmUmVxdWVzdBo7LnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuR2V0QnV5ZXJFcnJhbmRPcmRlckJyaWVmUmVzcG9uc2USlgEKGUdldEJ1eWVyRXJyYW5kT3JkZXJEZXRhaWwSOy5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkdldEJ1eWVyRXJyYW5kT3JkZXJEZXRhaWxSZXF1ZXN0Gjwuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXRCdXllckVycmFuZE9yZGVyRGV0YWlsUmVzcG9uc2USrgEKIUdldEJ1eWVyRXJyYW5kT3JkZXJDYXB0YWluQ29udGFjdBJDLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuR2V0QnV5ZXJFcnJhbmRPcmRlckNhcHRhaW5Db250YWN0UmVxdWVzdBpELnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuR2V0QnV5ZXJFcnJhbmRPcmRlckNhcHRhaW5Db250YWN0UmVzcG9uc2ViBnByb3RvMw", [file_buf_validate_validate, file_sast_sastshopv2_errand_v1_buyer_errand_order, file_sast_sastshopv2_errand_v1_errand_demand_status]);
+export const file_sast_sastshopv2_errand_v1_buyer_errand_order_service: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CjpzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2J1eWVyX2VycmFuZF9vcmRlcl9zZXJ2aWNlLnByb3RvEhlzYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxItEBCh9HZXRCdXllckVycmFuZE9yZGVyQnJpZWZSZXF1ZXN0EgwKBHBhZ2UYASABKAUSEQoJcGFnZV9zaXplGAIgASgFEhwKD3N0b3JlX2lkX2ZpbHRlchgDIAEoA0gAiAEBEkkKDXN0YXR1c19maWx0ZXIYBCABKA4yLS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZERlbWFuZFN0YXR1c0gBiAEBQhIKEF9zdG9yZV9pZF9maWx0ZXJCEAoOX3N0YXR1c19maWx0ZXIijwEKIEdldEJ1eWVyRXJyYW5kT3JkZXJCcmllZlJlc3BvbnNlEkAKBm9yZGVycxgBIAMoCzIwLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuQnV5ZXJFcnJhbmRPcmRlckJyaWVmEhQKDGN1cnJlbnRfcGFnZRgCIAEoBRITCgt0b3RhbF9jb3VudBgDIAEoBSI8CiBHZXRCdXllckVycmFuZE9yZGVyRGV0YWlsUmVxdWVzdBIYChBlcnJhbmRfZGVtYW5kX2lkGAEgASgDImUKIUdldEJ1eWVyRXJyYW5kT3JkZXJEZXRhaWxSZXNwb25zZRJACgVvcmRlchgBIAEoCzIxLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuQnV5ZXJFcnJhbmRPcmRlckRldGFpbCJNCihHZXRCdXllckVycmFuZE9yZGVyQ2FwdGFpbkNvbnRhY3RSZXF1ZXN0EiEKEGVycmFuZF9kZW1hbmRfaWQYASABKANCB7pIBCICIAAiSwopR2V0QnV5ZXJFcnJhbmRPcmRlckNhcHRhaW5Db250YWN0UmVzcG9uc2USHgoWY2FwdGFpbl9mZWlzaHVfb3Blbl9pZBgBIAEoCTL5AwoXQnV5ZXJFcnJhbmRPcmRlclNlcnZpY2USkwEKGEdldEJ1eWVyRXJyYW5kT3JkZXJCcmllZhI6LnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuR2V0QnV5ZXJFcnJhbmRPcmRlckJyaWVmUmVxdWVzdBo7LnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuR2V0QnV5ZXJFcnJhbmRPcmRlckJyaWVmUmVzcG9uc2USlgEKGUdldEJ1eWVyRXJyYW5kT3JkZXJEZXRhaWwSOy5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkdldEJ1eWVyRXJyYW5kT3JkZXJEZXRhaWxSZXF1ZXN0Gjwuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXRCdXllckVycmFuZE9yZGVyRGV0YWlsUmVzcG9uc2USrgEKIUdldEJ1eWVyRXJyYW5kT3JkZXJDYXB0YWluQ29udGFjdBJDLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuR2V0QnV5ZXJFcnJhbmRPcmRlckNhcHRhaW5Db250YWN0UmVxdWVzdBpELnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuR2V0QnV5ZXJFcnJhbmRPcmRlckNhcHRhaW5Db250YWN0UmVzcG9uc2ViBnByb3RvMw",
+    [
+      file_buf_validate_validate,
+      file_sast_sastshopv2_errand_v1_buyer_errand_order,
+      file_sast_sastshopv2_errand_v1_errand_demand_status,
+    ],
+  );
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.GetBuyerErrandOrderBriefRequest
  */
-export type GetBuyerErrandOrderBriefRequest = Message<"sast.sastshopv2.errand.v1.GetBuyerErrandOrderBriefRequest"> & {
-  /**
-   * @generated from field: int32 page = 1;
-   */
-  page: number;
+export type GetBuyerErrandOrderBriefRequest =
+  Message<"sast.sastshopv2.errand.v1.GetBuyerErrandOrderBriefRequest"> & {
+    /**
+     * @generated from field: int32 page = 1;
+     */
+    page: number;
 
-  /**
-   * @generated from field: int32 page_size = 2;
-   */
-  pageSize: number;
+    /**
+     * @generated from field: int32 page_size = 2;
+     */
+    pageSize: number;
 
-  /**
-   * 可选店铺过滤
-   *
-   * @generated from field: optional int64 store_id_filter = 3;
-   */
-  storeIdFilter?: bigint | undefined;
+    /**
+     * 可选店铺过滤
+     *
+     * @generated from field: optional int64 store_id_filter = 3;
+     */
+    storeIdFilter?: bigint | undefined;
 
-  /**
-   * 可选买家视角状态过滤
-   *
-   * @generated from field: optional sast.sastshopv2.errand.v1.ErrandDemandStatus status_filter = 4;
-   */
-  statusFilter?: ErrandDemandStatus | undefined;
-};
+    /**
+     * 可选买家视角状态过滤
+     *
+     * @generated from field: optional sast.sastshopv2.errand.v1.ErrandDemandStatus status_filter = 4;
+     */
+    statusFilter?: ErrandDemandStatus | undefined;
+  };
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.GetBuyerErrandOrderBriefRequest.
  * Use `create(GetBuyerErrandOrderBriefRequestSchema)` to create a new message.
  */
-export const GetBuyerErrandOrderBriefRequestSchema: GenMessage<GetBuyerErrandOrderBriefRequest> = /*@__PURE__*/
+export const GetBuyerErrandOrderBriefRequestSchema: GenMessage<GetBuyerErrandOrderBriefRequest> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_buyer_errand_order_service, 0);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.GetBuyerErrandOrderBriefResponse
  */
-export type GetBuyerErrandOrderBriefResponse = Message<"sast.sastshopv2.errand.v1.GetBuyerErrandOrderBriefResponse"> & {
-  /**
-   * @generated from field: repeated sast.sastshopv2.errand.v1.BuyerErrandOrderBrief orders = 1;
-   */
-  orders: BuyerErrandOrderBrief[];
+export type GetBuyerErrandOrderBriefResponse =
+  Message<"sast.sastshopv2.errand.v1.GetBuyerErrandOrderBriefResponse"> & {
+    /**
+     * @generated from field: repeated sast.sastshopv2.errand.v1.BuyerErrandOrderBrief orders = 1;
+     */
+    orders: BuyerErrandOrderBrief[];
 
-  /**
-   * @generated from field: int32 current_page = 2;
-   */
-  currentPage: number;
+    /**
+     * @generated from field: int32 current_page = 2;
+     */
+    currentPage: number;
 
-  /**
-   * @generated from field: int32 total_count = 3;
-   */
-  totalCount: number;
-};
+    /**
+     * @generated from field: int32 total_count = 3;
+     */
+    totalCount: number;
+  };
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.GetBuyerErrandOrderBriefResponse.
  * Use `create(GetBuyerErrandOrderBriefResponseSchema)` to create a new message.
  */
-export const GetBuyerErrandOrderBriefResponseSchema: GenMessage<GetBuyerErrandOrderBriefResponse> = /*@__PURE__*/
+export const GetBuyerErrandOrderBriefResponseSchema: GenMessage<GetBuyerErrandOrderBriefResponse> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_buyer_errand_order_service, 1);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.GetBuyerErrandOrderDetailRequest
  */
-export type GetBuyerErrandOrderDetailRequest = Message<"sast.sastshopv2.errand.v1.GetBuyerErrandOrderDetailRequest"> & {
-  /**
-   * 买家视角跑腿订单 ID
-   *
-   * @generated from field: int64 errand_demand_id = 1;
-   */
-  errandDemandId: bigint;
-};
+export type GetBuyerErrandOrderDetailRequest =
+  Message<"sast.sastshopv2.errand.v1.GetBuyerErrandOrderDetailRequest"> & {
+    /**
+     * 买家视角跑腿订单 ID
+     *
+     * @generated from field: int64 errand_demand_id = 1;
+     */
+    errandDemandId: bigint;
+  };
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.GetBuyerErrandOrderDetailRequest.
  * Use `create(GetBuyerErrandOrderDetailRequestSchema)` to create a new message.
  */
-export const GetBuyerErrandOrderDetailRequestSchema: GenMessage<GetBuyerErrandOrderDetailRequest> = /*@__PURE__*/
+export const GetBuyerErrandOrderDetailRequestSchema: GenMessage<GetBuyerErrandOrderDetailRequest> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_buyer_errand_order_service, 2);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.GetBuyerErrandOrderDetailResponse
  */
-export type GetBuyerErrandOrderDetailResponse = Message<"sast.sastshopv2.errand.v1.GetBuyerErrandOrderDetailResponse"> & {
-  /**
-   * @generated from field: sast.sastshopv2.errand.v1.BuyerErrandOrderDetail order = 1;
-   */
-  order?: BuyerErrandOrderDetail | undefined;
-};
+export type GetBuyerErrandOrderDetailResponse =
+  Message<"sast.sastshopv2.errand.v1.GetBuyerErrandOrderDetailResponse"> & {
+    /**
+     * @generated from field: sast.sastshopv2.errand.v1.BuyerErrandOrderDetail order = 1;
+     */
+    order?: BuyerErrandOrderDetail | undefined;
+  };
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.GetBuyerErrandOrderDetailResponse.
  * Use `create(GetBuyerErrandOrderDetailResponseSchema)` to create a new message.
  */
-export const GetBuyerErrandOrderDetailResponseSchema: GenMessage<GetBuyerErrandOrderDetailResponse> = /*@__PURE__*/
+export const GetBuyerErrandOrderDetailResponseSchema: GenMessage<GetBuyerErrandOrderDetailResponse> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_buyer_errand_order_service, 3);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.GetBuyerErrandOrderCaptainContactRequest
  */
-export type GetBuyerErrandOrderCaptainContactRequest = Message<"sast.sastshopv2.errand.v1.GetBuyerErrandOrderCaptainContactRequest"> & {
-  /**
-   * @generated from field: int64 errand_demand_id = 1;
-   */
-  errandDemandId: bigint;
-};
+export type GetBuyerErrandOrderCaptainContactRequest =
+  Message<"sast.sastshopv2.errand.v1.GetBuyerErrandOrderCaptainContactRequest"> & {
+    /**
+     * @generated from field: int64 errand_demand_id = 1;
+     */
+    errandDemandId: bigint;
+  };
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.GetBuyerErrandOrderCaptainContactRequest.
  * Use `create(GetBuyerErrandOrderCaptainContactRequestSchema)` to create a new message.
  */
-export const GetBuyerErrandOrderCaptainContactRequestSchema: GenMessage<GetBuyerErrandOrderCaptainContactRequest> = /*@__PURE__*/
+export const GetBuyerErrandOrderCaptainContactRequestSchema: GenMessage<GetBuyerErrandOrderCaptainContactRequest> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_buyer_errand_order_service, 4);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.GetBuyerErrandOrderCaptainContactResponse
  */
-export type GetBuyerErrandOrderCaptainContactResponse = Message<"sast.sastshopv2.errand.v1.GetBuyerErrandOrderCaptainContactResponse"> & {
-  /**
-   * @generated from field: string captain_feishu_open_id = 1;
-   */
-  captainFeishuOpenId: string;
-};
+export type GetBuyerErrandOrderCaptainContactResponse =
+  Message<"sast.sastshopv2.errand.v1.GetBuyerErrandOrderCaptainContactResponse"> & {
+    /**
+     * @generated from field: string captain_feishu_open_id = 1;
+     */
+    captainFeishuOpenId: string;
+  };
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.GetBuyerErrandOrderCaptainContactResponse.
  * Use `create(GetBuyerErrandOrderCaptainContactResponseSchema)` to create a new message.
  */
-export const GetBuyerErrandOrderCaptainContactResponseSchema: GenMessage<GetBuyerErrandOrderCaptainContactResponse> = /*@__PURE__*/
+export const GetBuyerErrandOrderCaptainContactResponseSchema: GenMessage<GetBuyerErrandOrderCaptainContactResponse> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_buyer_errand_order_service, 5);
 
 /**
@@ -163,7 +194,7 @@ export const BuyerErrandOrderService: GenService<{
     methodKind: "unary";
     input: typeof GetBuyerErrandOrderBriefRequestSchema;
     output: typeof GetBuyerErrandOrderBriefResponseSchema;
-  },
+  };
   /**
    * 获取当前买家的跑腿订单详情
    *
@@ -173,7 +204,7 @@ export const BuyerErrandOrderService: GenService<{
     methodKind: "unary";
     input: typeof GetBuyerErrandOrderDetailRequestSchema;
     output: typeof GetBuyerErrandOrderDetailResponseSchema;
-  },
+  };
   /**
    * 需求发起人获取已接单团长的飞书会话标识
    *
@@ -183,7 +214,7 @@ export const BuyerErrandOrderService: GenService<{
     methodKind: "unary";
     input: typeof GetBuyerErrandOrderCaptainContactRequestSchema;
     output: typeof GetBuyerErrandOrderCaptainContactResponseSchema;
-  },
-}> = /*@__PURE__*/
+  };
+}> =
+  /*@__PURE__*/
   serviceDesc(file_sast_sastshopv2_errand_v1_buyer_errand_order_service, 0);
-

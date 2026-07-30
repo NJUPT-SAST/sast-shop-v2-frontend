@@ -3,10 +3,7 @@ import type { PaymentPlatform } from "./platforms";
 export const MAX_PAYMENT_QR_CONTENT_LENGTH = 512;
 
 export type PaymentQrContentValidationReason =
-  | "empty"
-  | "too-long"
-  | "control-character"
-  | "unsupported-channel-content";
+  "empty" | "too-long" | "control-character" | "unsupported-channel-content";
 
 export type PaymentQrContentValidationResult =
   | { ok: true; content: string }
@@ -19,17 +16,17 @@ const CHANNEL_ALLOWLIST: Record<PaymentPlatform, RegExp[]> = {
   wechat: [
     new RegExp(`^wxp://${QR_CONTENT_CHARS}$`),
     new RegExp(`^weixin://${QR_CONTENT_CHARS}$`),
-    new RegExp(`^https://wx\\.tenpay\\.com/${QR_CONTENT_CHARS}$`)
+    new RegExp(`^https://wx\\.tenpay\\.com/${QR_CONTENT_CHARS}$`),
   ],
   alipay: [
     new RegExp(`^https://qr\\.alipay\\.com/${QR_CONTENT_CHARS}$`),
-    new RegExp(`^alipays://${QR_CONTENT_CHARS}$`)
-  ]
+    new RegExp(`^alipays://${QR_CONTENT_CHARS}$`),
+  ],
 };
 
 export function validatePaymentQrContent(
   channel: PaymentPlatform,
-  content: string
+  content: string,
 ): PaymentQrContentValidationResult {
   const normalizedContent = content.trim();
 
@@ -52,8 +49,13 @@ export function validatePaymentQrContent(
   return { ok: true, content: normalizedContent };
 }
 
-export function isPaymentQrContentAllowed(channel: PaymentPlatform, content: string) {
+export function isPaymentQrContentAllowed(
+  channel: PaymentPlatform,
+  content: string,
+) {
   const normalizedContent = content.trim();
 
-  return CHANNEL_ALLOWLIST[channel].some((pattern) => pattern.test(normalizedContent));
+  return CHANNEL_ALLOWLIST[channel].some((pattern) =>
+    pattern.test(normalizedContent),
+  );
 }

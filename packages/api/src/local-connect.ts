@@ -24,9 +24,11 @@ export async function requestLocal<T>(
   } catch (error) {
     const connectError = ConnectError.from(error);
 
-    if (connectError.code === Code.Unauthenticated) {  // 401未登录/绘画过期
-      if (typeof window !== "undefined") { // 如果是浏览器
-        window.dispatchEvent(new Event(AuthRequiredError.browserEventName));  // 触发自动登录
+    if (connectError.code === Code.Unauthenticated) {
+      // 401未登录/绘画过期
+      if (typeof window !== "undefined") {
+        // 如果是浏览器
+        window.dispatchEvent(new Event(AuthRequiredError.browserEventName)); // 触发自动登录
       }
       throw new AuthRequiredError();
     }

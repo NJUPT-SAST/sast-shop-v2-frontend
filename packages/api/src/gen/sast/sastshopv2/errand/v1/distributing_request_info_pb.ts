@@ -11,58 +11,63 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/errand/v1/distributing_request_info.proto.
  */
-export const file_sast_sastshopv2_errand_v1_distributing_request_info: GenFile = /*@__PURE__*/
-  fileDesc("CjlzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2Rpc3RyaWJ1dGluZ19yZXF1ZXN0X2luZm8ucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEingIKF0Rpc3RyaWJ1dGluZ1JlcXVlc3RJbmZvEhQKDHB1cmNoYXNlcl9pZBgBIAEoAxIWCg5wdXJjaGFzZXJfbmFtZRgCIAEoCRIcChRwdXJjaGFzZXJfYXZhdGFyX3VybBgDIAEoCRIQCghxdWFudGl0eRgEIAEoBRIcChRkaXN0cmlidXRlZF9xdWFudGl0eRgFIAEoBRIhChllcnJhbmRfdGFza19hc3NpZ25tZW50X2lkGAYgASgDEh0KFWVycmFuZF9kZW1hbmRfaXRlbV9pZBgHIAEoAxJFCiFlcnJhbmRfdGFza19hc3NpZ25tZW50X3VwZGF0ZWRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wYgZwcm90bzM", [file_google_protobuf_timestamp]);
+export const file_sast_sastshopv2_errand_v1_distributing_request_info: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CjlzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2Rpc3RyaWJ1dGluZ19yZXF1ZXN0X2luZm8ucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEingIKF0Rpc3RyaWJ1dGluZ1JlcXVlc3RJbmZvEhQKDHB1cmNoYXNlcl9pZBgBIAEoAxIWCg5wdXJjaGFzZXJfbmFtZRgCIAEoCRIcChRwdXJjaGFzZXJfYXZhdGFyX3VybBgDIAEoCRIQCghxdWFudGl0eRgEIAEoBRIcChRkaXN0cmlidXRlZF9xdWFudGl0eRgFIAEoBRIhChllcnJhbmRfdGFza19hc3NpZ25tZW50X2lkGAYgASgDEh0KFWVycmFuZF9kZW1hbmRfaXRlbV9pZBgHIAEoAxJFCiFlcnJhbmRfdGFza19hc3NpZ25tZW50X3VwZGF0ZWRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wYgZwcm90bzM",
+    [file_google_protobuf_timestamp],
+  );
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.DistributingRequestInfo
  */
-export type DistributingRequestInfo = Message<"sast.sastshopv2.errand.v1.DistributingRequestInfo"> & {
-  /**
-   * @generated from field: int64 purchaser_id = 1;
-   */
-  purchaserId: bigint;
+export type DistributingRequestInfo =
+  Message<"sast.sastshopv2.errand.v1.DistributingRequestInfo"> & {
+    /**
+     * @generated from field: int64 purchaser_id = 1;
+     */
+    purchaserId: bigint;
 
-  /**
-   * @generated from field: string purchaser_name = 2;
-   */
-  purchaserName: string;
+    /**
+     * @generated from field: string purchaser_name = 2;
+     */
+    purchaserName: string;
 
-  /**
-   * @generated from field: string purchaser_avatar_url = 3;
-   */
-  purchaserAvatarUrl: string;
+    /**
+     * @generated from field: string purchaser_avatar_url = 3;
+     */
+    purchaserAvatarUrl: string;
 
-  /**
-   * @generated from field: int32 quantity = 4;
-   */
-  quantity: number;
+    /**
+     * @generated from field: int32 quantity = 4;
+     */
+    quantity: number;
 
-  /**
-   * @generated from field: int32 distributed_quantity = 5;
-   */
-  distributedQuantity: number;
+    /**
+     * @generated from field: int32 distributed_quantity = 5;
+     */
+    distributedQuantity: number;
 
-  /**
-   * @generated from field: int64 errand_task_assignment_id = 6;
-   */
-  errandTaskAssignmentId: bigint;
+    /**
+     * @generated from field: int64 errand_task_assignment_id = 6;
+     */
+    errandTaskAssignmentId: bigint;
 
-  /**
-   * @generated from field: int64 errand_demand_item_id = 7;
-   */
-  errandDemandItemId: bigint;
+    /**
+     * @generated from field: int64 errand_demand_item_id = 7;
+     */
+    errandDemandItemId: bigint;
 
-  /**
-   * @generated from field: google.protobuf.Timestamp errand_task_assignment_updated_at = 8;
-   */
-  errandTaskAssignmentUpdatedAt?: Timestamp | undefined;
-};
+    /**
+     * @generated from field: google.protobuf.Timestamp errand_task_assignment_updated_at = 8;
+     */
+    errandTaskAssignmentUpdatedAt?: Timestamp | undefined;
+  };
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.DistributingRequestInfo.
  * Use `create(DistributingRequestInfoSchema)` to create a new message.
  */
-export const DistributingRequestInfoSchema: GenMessage<DistributingRequestInfo> = /*@__PURE__*/
+export const DistributingRequestInfoSchema: GenMessage<DistributingRequestInfo> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_distributing_request_info, 0);
-

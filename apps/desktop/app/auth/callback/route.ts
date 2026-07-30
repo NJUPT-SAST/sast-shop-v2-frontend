@@ -75,7 +75,8 @@ export async function GET(request: NextRequest) {
     return clearStateCookie(
       createAuthErrorResponse({
         title: "登录配置不可用",
-        description: "飞书 OAuth 参数未正确配置，请联系管理员检查应用 ID 和回调地址。",
+        description:
+          "飞书 OAuth 参数未正确配置，请联系管理员检查应用 ID 和回调地址。",
         status: 500,
       }),
     );

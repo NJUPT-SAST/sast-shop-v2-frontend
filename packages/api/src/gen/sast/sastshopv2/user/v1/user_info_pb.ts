@@ -9,8 +9,11 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/user/v1/user_info.proto.
  */
-export const file_sast_sastshopv2_user_v1_user_info: GenFile = /*@__PURE__*/
-  fileDesc("CidzYXN0L3Nhc3RzaG9wdjIvdXNlci92MS91c2VyX2luZm8ucHJvdG8SF3Nhc3Quc2FzdHNob3B2Mi51c2VyLnYxIjgKCFVzZXJJbmZvEgoKAmlkGAEgASgDEgwKBG5hbWUYAiABKAkSEgoKYXZhdGFyX3VybBgDIAEoCWIGcHJvdG8z");
+export const file_sast_sastshopv2_user_v1_user_info: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CidzYXN0L3Nhc3RzaG9wdjIvdXNlci92MS91c2VyX2luZm8ucHJvdG8SF3Nhc3Quc2FzdHNob3B2Mi51c2VyLnYxIjgKCFVzZXJJbmZvEgoKAmlkGAEgASgDEgwKBG5hbWUYAiABKAkSEgoKYXZhdGFyX3VybBgDIAEoCWIGcHJvdG8z",
+  );
 
 /**
  * @generated from message sast.sastshopv2.user.v1.UserInfo
@@ -36,6 +39,6 @@ export type UserInfo = Message<"sast.sastshopv2.user.v1.UserInfo"> & {
  * Describes the message sast.sastshopv2.user.v1.UserInfo.
  * Use `create(UserInfoSchema)` to create a new message.
  */
-export const UserInfoSchema: GenMessage<UserInfo> = /*@__PURE__*/
+export const UserInfoSchema: GenMessage<UserInfo> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_user_v1_user_info, 0);
-

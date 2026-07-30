@@ -8,8 +8,11 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv2";
 /**
  * Describes the file sast/sastshopv2/spot/v1/spot_goods_perspective.proto.
  */
-export const file_sast_sastshopv2_spot_v1_spot_goods_perspective: GenFile = /*@__PURE__*/
-  fileDesc("CjRzYXN0L3Nhc3RzaG9wdjIvc3BvdC92MS9zcG90X2dvb2RzX3BlcnNwZWN0aXZlLnByb3RvEhdzYXN0LnNhc3RzaG9wdjIuc3BvdC52MSqHAQoUU3BvdEdvb2RzUGVyc3BlY3RpdmUSJgoiU1BPVF9HT09EU19QRVJTUEVDVElWRV9VTlNQRUNJRklFRBAAEiQKIFNQT1RfR09PRFNfUEVSU1BFQ1RJVkVfUFVSQ0hBU0VSEAESIQodU1BPVF9HT09EU19QRVJTUEVDVElWRV9TRUxMRVIQAmIGcHJvdG8z");
+export const file_sast_sastshopv2_spot_v1_spot_goods_perspective: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CjRzYXN0L3Nhc3RzaG9wdjIvc3BvdC92MS9zcG90X2dvb2RzX3BlcnNwZWN0aXZlLnByb3RvEhdzYXN0LnNhc3RzaG9wdjIuc3BvdC52MSqHAQoUU3BvdEdvb2RzUGVyc3BlY3RpdmUSJgoiU1BPVF9HT09EU19QRVJTUEVDVElWRV9VTlNQRUNJRklFRBAAEiQKIFNQT1RfR09PRFNfUEVSU1BFQ1RJVkVfUFVSQ0hBU0VSEAESIQodU1BPVF9HT09EU19QRVJTUEVDVElWRV9TRUxMRVIQAmIGcHJvdG8z",
+  );
 
 /**
  * @generated from enum sast.sastshopv2.spot.v1.SpotGoodsPerspective
@@ -34,6 +37,6 @@ export enum SpotGoodsPerspective {
 /**
  * Describes the enum sast.sastshopv2.spot.v1.SpotGoodsPerspective.
  */
-export const SpotGoodsPerspectiveSchema: GenEnum<SpotGoodsPerspective> = /*@__PURE__*/
+export const SpotGoodsPerspectiveSchema: GenEnum<SpotGoodsPerspective> =
+  /*@__PURE__*/
   enumDesc(file_sast_sastshopv2_spot_v1_spot_goods_perspective, 0);
-

@@ -9,58 +9,62 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/user/v1/address.proto.
  */
-export const file_sast_sastshopv2_user_v1_address: GenFile = /*@__PURE__*/
-  fileDesc("CiVzYXN0L3Nhc3RzaG9wdjIvdXNlci92MS9hZGRyZXNzLnByb3RvEhdzYXN0LnNhc3RzaG9wdjIudXNlci52MSKsAQoPU2hpcHBpbmdBZGRyZXNzEgoKAmlkGAEgASgDEhYKDnJlY2lwaWVudF9uYW1lGAIgASgJEhcKD3JlY2lwaWVudF9waG9uZRgDIAEoCRIQCghwcm92aW5jZRgEIAEoCRIMCgRjaXR5GAUgASgJEhAKCGRpc3RyaWN0GAYgASgJEhYKDmRldGFpbF9hZGRyZXNzGAcgASgJEhIKCmlzX2RlZmF1bHQYCCABKAhiBnByb3RvMw");
+export const file_sast_sastshopv2_user_v1_address: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CiVzYXN0L3Nhc3RzaG9wdjIvdXNlci92MS9hZGRyZXNzLnByb3RvEhdzYXN0LnNhc3RzaG9wdjIudXNlci52MSKsAQoPU2hpcHBpbmdBZGRyZXNzEgoKAmlkGAEgASgDEhYKDnJlY2lwaWVudF9uYW1lGAIgASgJEhcKD3JlY2lwaWVudF9waG9uZRgDIAEoCRIQCghwcm92aW5jZRgEIAEoCRIMCgRjaXR5GAUgASgJEhAKCGRpc3RyaWN0GAYgASgJEhYKDmRldGFpbF9hZGRyZXNzGAcgASgJEhIKCmlzX2RlZmF1bHQYCCABKAhiBnByb3RvMw",
+  );
 
 /**
  * @generated from message sast.sastshopv2.user.v1.ShippingAddress
  */
-export type ShippingAddress = Message<"sast.sastshopv2.user.v1.ShippingAddress"> & {
-  /**
-   * @generated from field: int64 id = 1;
-   */
-  id: bigint;
+export type ShippingAddress =
+  Message<"sast.sastshopv2.user.v1.ShippingAddress"> & {
+    /**
+     * @generated from field: int64 id = 1;
+     */
+    id: bigint;
 
-  /**
-   * @generated from field: string recipient_name = 2;
-   */
-  recipientName: string;
+    /**
+     * @generated from field: string recipient_name = 2;
+     */
+    recipientName: string;
 
-  /**
-   * @generated from field: string recipient_phone = 3;
-   */
-  recipientPhone: string;
+    /**
+     * @generated from field: string recipient_phone = 3;
+     */
+    recipientPhone: string;
 
-  /**
-   * @generated from field: string province = 4;
-   */
-  province: string;
+    /**
+     * @generated from field: string province = 4;
+     */
+    province: string;
 
-  /**
-   * @generated from field: string city = 5;
-   */
-  city: string;
+    /**
+     * @generated from field: string city = 5;
+     */
+    city: string;
 
-  /**
-   * @generated from field: string district = 6;
-   */
-  district: string;
+    /**
+     * @generated from field: string district = 6;
+     */
+    district: string;
 
-  /**
-   * @generated from field: string detail_address = 7;
-   */
-  detailAddress: string;
+    /**
+     * @generated from field: string detail_address = 7;
+     */
+    detailAddress: string;
 
-  /**
-   * @generated from field: bool is_default = 8;
-   */
-  isDefault: boolean;
-};
+    /**
+     * @generated from field: bool is_default = 8;
+     */
+    isDefault: boolean;
+  };
 
 /**
  * Describes the message sast.sastshopv2.user.v1.ShippingAddress.
  * Use `create(ShippingAddressSchema)` to create a new message.
  */
-export const ShippingAddressSchema: GenMessage<ShippingAddress> = /*@__PURE__*/
+export const ShippingAddressSchema: GenMessage<ShippingAddress> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_user_v1_address, 0);
-

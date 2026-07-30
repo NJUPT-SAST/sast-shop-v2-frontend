@@ -2,8 +2,16 @@
 // @generated from file sast/sastshopv2/user/v1/user_service_internal.proto (package sast.sastshopv2.user.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type {
+  GenFile,
+  GenMessage,
+  GenService,
+} from "@bufbuild/protobuf/codegenv2";
+import {
+  fileDesc,
+  messageDesc,
+  serviceDesc,
+} from "@bufbuild/protobuf/codegenv2";
 import { file_buf_validate_validate } from "../../../../buf/validate/validate_pb";
 import type { UserInfo } from "./user_info_pb";
 import { file_sast_sastshopv2_user_v1_user_info } from "./user_info_pb";
@@ -12,107 +20,121 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/user/v1/user_service_internal.proto.
  */
-export const file_sast_sastshopv2_user_v1_user_service_internal: GenFile = /*@__PURE__*/
-  fileDesc("CjNzYXN0L3Nhc3RzaG9wdjIvdXNlci92MS91c2VyX3NlcnZpY2VfaW50ZXJuYWwucHJvdG8SF3Nhc3Quc2FzdHNob3B2Mi51c2VyLnYxIlgKEEludGVybmFsVXNlckluZm8SCgoCaWQYASABKAMSDAoEbmFtZRgCIAEoCRISCgphdmF0YXJfdXJsGAMgASgJEhYKDmZlaXNodV9vcGVuX2lkGAQgASgJIiMKD0dldFVzZXJzUmVxdWVzdBIQCgh1c2VyX2lkcxgBIAMoAyJEChBHZXRVc2Vyc1Jlc3BvbnNlEjAKBXVzZXJzGAEgAygLMiEuc2FzdC5zYXN0c2hvcHYyLnVzZXIudjEuVXNlckluZm8iNwobR2V0VXNlckNvbnRhY3RPcGVuSURSZXF1ZXN0EhgKB3VzZXJfaWQYASABKANCB7pIBCICIAAiNgocR2V0VXNlckNvbnRhY3RPcGVuSURSZXNwb25zZRIWCg5mZWlzaHVfb3Blbl9pZBgBIAEoCTL8AQoTVXNlckludGVybmFsU2VydmljZRJfCghHZXRVc2VycxIoLnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLkdldFVzZXJzUmVxdWVzdBopLnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLkdldFVzZXJzUmVzcG9uc2USgwEKFEdldFVzZXJDb250YWN0T3BlbklEEjQuc2FzdC5zYXN0c2hvcHYyLnVzZXIudjEuR2V0VXNlckNvbnRhY3RPcGVuSURSZXF1ZXN0GjUuc2FzdC5zYXN0c2hvcHYyLnVzZXIudjEuR2V0VXNlckNvbnRhY3RPcGVuSURSZXNwb25zZWIGcHJvdG8z", [file_buf_validate_validate, file_sast_sastshopv2_user_v1_user_info]);
+export const file_sast_sastshopv2_user_v1_user_service_internal: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CjNzYXN0L3Nhc3RzaG9wdjIvdXNlci92MS91c2VyX3NlcnZpY2VfaW50ZXJuYWwucHJvdG8SF3Nhc3Quc2FzdHNob3B2Mi51c2VyLnYxIlgKEEludGVybmFsVXNlckluZm8SCgoCaWQYASABKAMSDAoEbmFtZRgCIAEoCRISCgphdmF0YXJfdXJsGAMgASgJEhYKDmZlaXNodV9vcGVuX2lkGAQgASgJIiMKD0dldFVzZXJzUmVxdWVzdBIQCgh1c2VyX2lkcxgBIAMoAyJEChBHZXRVc2Vyc1Jlc3BvbnNlEjAKBXVzZXJzGAEgAygLMiEuc2FzdC5zYXN0c2hvcHYyLnVzZXIudjEuVXNlckluZm8iNwobR2V0VXNlckNvbnRhY3RPcGVuSURSZXF1ZXN0EhgKB3VzZXJfaWQYASABKANCB7pIBCICIAAiNgocR2V0VXNlckNvbnRhY3RPcGVuSURSZXNwb25zZRIWCg5mZWlzaHVfb3Blbl9pZBgBIAEoCTL8AQoTVXNlckludGVybmFsU2VydmljZRJfCghHZXRVc2VycxIoLnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLkdldFVzZXJzUmVxdWVzdBopLnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLkdldFVzZXJzUmVzcG9uc2USgwEKFEdldFVzZXJDb250YWN0T3BlbklEEjQuc2FzdC5zYXN0c2hvcHYyLnVzZXIudjEuR2V0VXNlckNvbnRhY3RPcGVuSURSZXF1ZXN0GjUuc2FzdC5zYXN0c2hvcHYyLnVzZXIudjEuR2V0VXNlckNvbnRhY3RPcGVuSURSZXNwb25zZWIGcHJvdG8z",
+    [file_buf_validate_validate, file_sast_sastshopv2_user_v1_user_info],
+  );
 
 /**
  * @generated from message sast.sastshopv2.user.v1.InternalUserInfo
  */
-export type InternalUserInfo = Message<"sast.sastshopv2.user.v1.InternalUserInfo"> & {
-  /**
-   * @generated from field: int64 id = 1;
-   */
-  id: bigint;
+export type InternalUserInfo =
+  Message<"sast.sastshopv2.user.v1.InternalUserInfo"> & {
+    /**
+     * @generated from field: int64 id = 1;
+     */
+    id: bigint;
 
-  /**
-   * @generated from field: string name = 2;
-   */
-  name: string;
+    /**
+     * @generated from field: string name = 2;
+     */
+    name: string;
 
-  /**
-   * @generated from field: string avatar_url = 3;
-   */
-  avatarUrl: string;
+    /**
+     * @generated from field: string avatar_url = 3;
+     */
+    avatarUrl: string;
 
-  /**
-   * @generated from field: string feishu_open_id = 4;
-   */
-  feishuOpenId: string;
-};
+    /**
+     * @generated from field: string feishu_open_id = 4;
+     */
+    feishuOpenId: string;
+  };
 
 /**
  * Describes the message sast.sastshopv2.user.v1.InternalUserInfo.
  * Use `create(InternalUserInfoSchema)` to create a new message.
  */
-export const InternalUserInfoSchema: GenMessage<InternalUserInfo> = /*@__PURE__*/
+export const InternalUserInfoSchema: GenMessage<InternalUserInfo> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_user_v1_user_service_internal, 0);
 
 /**
  * @generated from message sast.sastshopv2.user.v1.GetUsersRequest
  */
-export type GetUsersRequest = Message<"sast.sastshopv2.user.v1.GetUsersRequest"> & {
-  /**
-   * @generated from field: repeated int64 user_ids = 1;
-   */
-  userIds: bigint[];
-};
+export type GetUsersRequest =
+  Message<"sast.sastshopv2.user.v1.GetUsersRequest"> & {
+    /**
+     * @generated from field: repeated int64 user_ids = 1;
+     */
+    userIds: bigint[];
+  };
 
 /**
  * Describes the message sast.sastshopv2.user.v1.GetUsersRequest.
  * Use `create(GetUsersRequestSchema)` to create a new message.
  */
-export const GetUsersRequestSchema: GenMessage<GetUsersRequest> = /*@__PURE__*/
+export const GetUsersRequestSchema: GenMessage<GetUsersRequest> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_user_v1_user_service_internal, 1);
 
 /**
  * @generated from message sast.sastshopv2.user.v1.GetUsersResponse
  */
-export type GetUsersResponse = Message<"sast.sastshopv2.user.v1.GetUsersResponse"> & {
-  /**
-   * @generated from field: repeated sast.sastshopv2.user.v1.UserInfo users = 1;
-   */
-  users: UserInfo[];
-};
+export type GetUsersResponse =
+  Message<"sast.sastshopv2.user.v1.GetUsersResponse"> & {
+    /**
+     * @generated from field: repeated sast.sastshopv2.user.v1.UserInfo users = 1;
+     */
+    users: UserInfo[];
+  };
 
 /**
  * Describes the message sast.sastshopv2.user.v1.GetUsersResponse.
  * Use `create(GetUsersResponseSchema)` to create a new message.
  */
-export const GetUsersResponseSchema: GenMessage<GetUsersResponse> = /*@__PURE__*/
+export const GetUsersResponseSchema: GenMessage<GetUsersResponse> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_user_v1_user_service_internal, 2);
 
 /**
  * @generated from message sast.sastshopv2.user.v1.GetUserContactOpenIDRequest
  */
-export type GetUserContactOpenIDRequest = Message<"sast.sastshopv2.user.v1.GetUserContactOpenIDRequest"> & {
-  /**
-   * @generated from field: int64 user_id = 1;
-   */
-  userId: bigint;
-};
+export type GetUserContactOpenIDRequest =
+  Message<"sast.sastshopv2.user.v1.GetUserContactOpenIDRequest"> & {
+    /**
+     * @generated from field: int64 user_id = 1;
+     */
+    userId: bigint;
+  };
 
 /**
  * Describes the message sast.sastshopv2.user.v1.GetUserContactOpenIDRequest.
  * Use `create(GetUserContactOpenIDRequestSchema)` to create a new message.
  */
-export const GetUserContactOpenIDRequestSchema: GenMessage<GetUserContactOpenIDRequest> = /*@__PURE__*/
+export const GetUserContactOpenIDRequestSchema: GenMessage<GetUserContactOpenIDRequest> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_user_v1_user_service_internal, 3);
 
 /**
  * @generated from message sast.sastshopv2.user.v1.GetUserContactOpenIDResponse
  */
-export type GetUserContactOpenIDResponse = Message<"sast.sastshopv2.user.v1.GetUserContactOpenIDResponse"> & {
-  /**
-   * @generated from field: string feishu_open_id = 1;
-   */
-  feishuOpenId: string;
-};
+export type GetUserContactOpenIDResponse =
+  Message<"sast.sastshopv2.user.v1.GetUserContactOpenIDResponse"> & {
+    /**
+     * @generated from field: string feishu_open_id = 1;
+     */
+    feishuOpenId: string;
+  };
 
 /**
  * Describes the message sast.sastshopv2.user.v1.GetUserContactOpenIDResponse.
  * Use `create(GetUserContactOpenIDResponseSchema)` to create a new message.
  */
-export const GetUserContactOpenIDResponseSchema: GenMessage<GetUserContactOpenIDResponse> = /*@__PURE__*/
+export const GetUserContactOpenIDResponseSchema: GenMessage<GetUserContactOpenIDResponse> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_user_v1_user_service_internal, 4);
 
 /**
@@ -128,7 +150,7 @@ export const UserInternalService: GenService<{
     methodKind: "unary";
     input: typeof GetUsersRequestSchema;
     output: typeof GetUsersResponseSchema;
-  },
+  };
   /**
    * 仅供内部服务解析飞书会话标识
    *
@@ -138,7 +160,7 @@ export const UserInternalService: GenService<{
     methodKind: "unary";
     input: typeof GetUserContactOpenIDRequestSchema;
     output: typeof GetUserContactOpenIDResponseSchema;
-  },
-}> = /*@__PURE__*/
+  };
+}> =
+  /*@__PURE__*/
   serviceDesc(file_sast_sastshopv2_user_v1_user_service_internal, 0);
-

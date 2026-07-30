@@ -73,8 +73,7 @@ export function CollectingPaymentView({
   ).length;
   const totalCount = bills.length;
   const allConfirmed =
-    totalCount > 0 &&
-    bills.every((bill) => bill.paymentStatus === "confirmed");
+    totalCount > 0 && bills.every((bill) => bill.paymentStatus === "confirmed");
   const totalAmount = bills.reduce(
     (total, bill) => total + bill.totalAmountCents,
     0,
@@ -182,9 +181,7 @@ export function CollectingPaymentView({
             </Link>
           </Button>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-semibold tracking-tight">
-              支付核对
-            </h1>
+            <h1 className="text-3xl font-semibold tracking-tight">支付核对</h1>
             <Badge variant="warning">收款中</Badge>
           </div>
         </div>
@@ -257,7 +254,9 @@ export function CollectingPaymentView({
           <AlertTitle>异常账单</AlertTitle>
           <AlertDescription>
             {abnormalBills
-              .map((bill) => bill.requesterName || bill.billNo || bill.requesterId)
+              .map(
+                (bill) => bill.requesterName || bill.billNo || bill.requesterId,
+              )
               .join("、")}
             的账单状态不计入订单完成进度，请刷新后核对。
           </AlertDescription>

@@ -8,8 +8,11 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv2";
 /**
  * Describes the file sast/sastshopv2/payment/v1/channel.proto.
  */
-export const file_sast_sastshopv2_payment_v1_channel: GenFile = /*@__PURE__*/
-  fileDesc("CihzYXN0L3Nhc3RzaG9wdjIvcGF5bWVudC92MS9jaGFubmVsLnByb3RvEhpzYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MSpKCgdDaGFubmVsEhcKE0NIQU5ORUxfVU5TUEVDSUZJRUQQABISCg5DSEFOTkVMX1dFQ0hBVBABEhIKDkNIQU5ORUxfQUxJUEFZEAJiBnByb3RvMw");
+export const file_sast_sastshopv2_payment_v1_channel: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CihzYXN0L3Nhc3RzaG9wdjIvcGF5bWVudC92MS9jaGFubmVsLnByb3RvEhpzYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MSpKCgdDaGFubmVsEhcKE0NIQU5ORUxfVU5TUEVDSUZJRUQQABISCg5DSEFOTkVMX1dFQ0hBVBABEhIKDkNIQU5ORUxfQUxJUEFZEAJiBnByb3RvMw",
+  );
 
 /**
  * @generated from enum sast.sastshopv2.payment.v1.Channel
@@ -34,6 +37,6 @@ export enum Channel {
 /**
  * Describes the enum sast.sastshopv2.payment.v1.Channel.
  */
-export const ChannelSchema: GenEnum<Channel> = /*@__PURE__*/
+export const ChannelSchema: GenEnum<Channel> =
+  /*@__PURE__*/
   enumDesc(file_sast_sastshopv2_payment_v1_channel, 0);
-

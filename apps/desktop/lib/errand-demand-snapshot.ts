@@ -42,8 +42,10 @@ export function createErrandDemandSnapshot(input: {
 export function getErrandDemandSnapshot(
   demandId: string,
 ): ErrandDemandSnapshot | null {
-  return readErrandDemandSnapshots().find((item) => item.demandId === demandId)
-    ?? null;
+  return (
+    readErrandDemandSnapshots().find((item) => item.demandId === demandId) ??
+    null
+  );
 }
 
 export function getErrandDemandSnapshotMap(): Map<
@@ -153,7 +155,11 @@ function normalizeErrandDemandSnapshotItem(
     value.serviceFeePerUnitCents,
   );
 
-  if (!productTemplate || quantity === null || serviceFeePerUnitCents === null) {
+  if (
+    !productTemplate ||
+    quantity === null ||
+    serviceFeePerUnitCents === null
+  ) {
     return null;
   }
 
@@ -176,8 +182,7 @@ function normalizeProductTemplate(value: unknown): ProductTemplate | null {
   return {
     id,
     title: value.title,
-    description:
-      typeof value.description === "string" ? value.description : "",
+    description: typeof value.description === "string" ? value.description : "",
     priceCents,
     storeId,
     mainImageUrl:

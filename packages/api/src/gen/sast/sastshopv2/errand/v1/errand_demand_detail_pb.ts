@@ -13,55 +13,63 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/errand/v1/errand_demand_detail.proto.
  */
-export const file_sast_sastshopv2_errand_v1_errand_demand_detail: GenFile = /*@__PURE__*/
-  fileDesc("CjRzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF9kZW1hbmRfZGV0YWlsLnByb3RvEhlzYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxIvcBChJFcnJhbmREZW1hbmREZXRhaWwSGAoQZXJyYW5kX2RlbWFuZF9pZBgBIAEoAxJFChBwcm9kdWN0X3RlbXBsYXRlGAIgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlEiIKGmVzdGltYXRlZF91bml0X3ByaWNlX2NlbnRzGAMgASgFEhAKCHF1YW50aXR5GAQgASgFEkoKCnJlcXVlc3RlcnMYBSADKAsyNi5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZERlbWFuZERldGFpbFJlcXVlc3RlcmIGcHJvdG8z", [file_sast_sastshopv2_catalog_v1_product_template, file_sast_sastshopv2_errand_v1_errand_demand_detail_requester]);
+export const file_sast_sastshopv2_errand_v1_errand_demand_detail: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CjRzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF9kZW1hbmRfZGV0YWlsLnByb3RvEhlzYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxIvcBChJFcnJhbmREZW1hbmREZXRhaWwSGAoQZXJyYW5kX2RlbWFuZF9pZBgBIAEoAxJFChBwcm9kdWN0X3RlbXBsYXRlGAIgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlEiIKGmVzdGltYXRlZF91bml0X3ByaWNlX2NlbnRzGAMgASgFEhAKCHF1YW50aXR5GAQgASgFEkoKCnJlcXVlc3RlcnMYBSADKAsyNi5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZERlbWFuZERldGFpbFJlcXVlc3RlcmIGcHJvdG8z",
+    [
+      file_sast_sastshopv2_catalog_v1_product_template,
+      file_sast_sastshopv2_errand_v1_errand_demand_detail_requester,
+    ],
+  );
 
 /**
  * 团长接单弹窗中的商品聚合详情，商品描述实时读取 catalog 商品模板
  *
  * @generated from message sast.sastshopv2.errand.v1.ErrandDemandDetail
  */
-export type ErrandDemandDetail = Message<"sast.sastshopv2.errand.v1.ErrandDemandDetail"> & {
-  /**
-   * 买家视角跑腿订单 ID部分接单后，已接单商品会拆分到新的 demand
-   *
-   * @generated from field: int64 errand_demand_id = 1;
-   */
-  errandDemandId: bigint;
+export type ErrandDemandDetail =
+  Message<"sast.sastshopv2.errand.v1.ErrandDemandDetail"> & {
+    /**
+     * 买家视角跑腿订单 ID部分接单后，已接单商品会拆分到新的 demand
+     *
+     * @generated from field: int64 errand_demand_id = 1;
+     */
+    errandDemandId: bigint;
 
-  /**
-   * catalog 商品模板实时信息
-   *
-   * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 2;
-   */
-  productTemplate?: ProductTemplate | undefined;
+    /**
+     * catalog 商品模板实时信息
+     *
+     * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 2;
+     */
+    productTemplate?: ProductTemplate | undefined;
 
-  /**
-   * 下单时的预估单价，单位为分
-   *
-   * @generated from field: int32 estimated_unit_price_cents = 3;
-   */
-  estimatedUnitPriceCents: number;
+    /**
+     * 下单时的预估单价，单位为分
+     *
+     * @generated from field: int32 estimated_unit_price_cents = 3;
+     */
+    estimatedUnitPriceCents: number;
 
-  /**
-   * 当前商品聚合后的总需求数量
-   *
-   * @generated from field: int32 quantity = 4;
-   */
-  quantity: number;
+    /**
+     * 当前商品聚合后的总需求数量
+     *
+     * @generated from field: int32 quantity = 4;
+     */
+    quantity: number;
 
-  /**
-   * 每个购买人的需求行
-   *
-   * @generated from field: repeated sast.sastshopv2.errand.v1.ErrandDemandDetailRequester requesters = 5;
-   */
-  requesters: ErrandDemandDetailRequester[];
-};
+    /**
+     * 每个购买人的需求行
+     *
+     * @generated from field: repeated sast.sastshopv2.errand.v1.ErrandDemandDetailRequester requesters = 5;
+     */
+    requesters: ErrandDemandDetailRequester[];
+  };
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.ErrandDemandDetail.
  * Use `create(ErrandDemandDetailSchema)` to create a new message.
  */
-export const ErrandDemandDetailSchema: GenMessage<ErrandDemandDetail> = /*@__PURE__*/
+export const ErrandDemandDetailSchema: GenMessage<ErrandDemandDetail> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_demand_detail, 0);
-

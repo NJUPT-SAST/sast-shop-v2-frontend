@@ -78,6 +78,7 @@ export function DistributingTaskView({
   const [items, setItems] = useState(detail.items);
   const [taskUpdatedAt, setTaskUpdatedAt] = useState(detail.taskUpdatedAt);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTaskUpdatedAt((current) => detail.taskUpdatedAt ?? current);
   }, [detail.taskUpdatedAt]);
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>(() =>
@@ -185,7 +186,8 @@ export function DistributingTaskView({
     );
     setAssignmentDrafts((current) => ({
       ...current,
-      [assignmentId]: distributedQuantity > 0 ? String(distributedQuantity) : "",
+      [assignmentId]:
+        distributedQuantity > 0 ? String(distributedQuantity) : "",
     }));
   }
 
@@ -447,131 +449,135 @@ export function DistributingTaskView({
             <Badge variant="neutral">{group.items.length} 种</Badge>
           </div>
           {group.items.map((item) => (
-          <Card key={item.errandTaskItemId} className="min-w-0 overflow-hidden">
-            <CardHeader className="flex-row items-start gap-4">
-              <ManagedImage
-                src={item.imageUrl}
-                alt={item.title}
-                className="size-20 shrink-0 rounded-lg border"
-              />
-              <div className="min-w-0 flex-1">
-                <CardTitle className="truncate text-base">
-                  {item.title}
-                </CardTitle>
-                {item.description ? (
-                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                    {item.description}
+            <Card
+              key={item.errandTaskItemId}
+              className="min-w-0 overflow-hidden"
+            >
+              <CardHeader className="flex-row items-start gap-4">
+                <ManagedImage
+                  src={item.imageUrl}
+                  alt={item.title}
+                  className="size-20 shrink-0 rounded-lg border"
+                />
+                <div className="min-w-0 flex-1">
+                  <CardTitle className="truncate text-base">
+                    {item.title}
+                  </CardTitle>
+                  {item.description ? (
+                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                      {item.description}
+                    </p>
+                  ) : null}
+                  <p className="mt-2 text-sm">
+                    参考价 {formatPrice(item.originUnitPriceCents)} · 实购{" "}
+                    {item.requesters.reduce(
+                      (total, requester) => total + requester.quantity,
+                      0,
+                    )}{" "}
+                    件
                   </p>
-                ) : null}
-                <p className="mt-2 text-sm">
-                  参考价 {formatPrice(item.originUnitPriceCents)} · 实购{" "}
-                  {item.requesters.reduce(
-                    (total, requester) => total + requester.quantity,
-                    0,
-                  )}{" "}
-                  件
-                </p>
-              </div>
-              <div className="flex shrink-0 items-end gap-2">
-                {mode === "pending_distributing" ? (
-                  <div className="flex w-64 items-end gap-2">
-                  <Field>
-                    <FieldLabel
-                      htmlFor={`actual-price-${item.errandTaskItemId}`}
-                    >
-                      实际单价
-                    </FieldLabel>
-                    <InputGroup>
-                      <InputGroupAddon>
-                        <InputGroupText>¥</InputGroupText>
-                      </InputGroupAddon>
-                      <InputGroupInput
-                        id={`actual-price-${item.errandTaskItemId}`}
-                        value={priceDrafts[item.errandTaskItemId] ?? ""}
-                        onChange={(event) =>
-                          moneyPattern.test(event.target.value) &&
-                          setPriceDrafts((current) => ({
-                            ...current,
-                            [item.errandTaskItemId]: event.target.value,
-                          }))
+                </div>
+                <div className="flex shrink-0 items-end gap-2">
+                  {mode === "pending_distributing" ? (
+                    <div className="flex w-64 items-end gap-2">
+                      <Field>
+                        <FieldLabel
+                          htmlFor={`actual-price-${item.errandTaskItemId}`}
+                        >
+                          实际单价
+                        </FieldLabel>
+                        <InputGroup>
+                          <InputGroupAddon>
+                            <InputGroupText>¥</InputGroupText>
+                          </InputGroupAddon>
+                          <InputGroupInput
+                            id={`actual-price-${item.errandTaskItemId}`}
+                            value={priceDrafts[item.errandTaskItemId] ?? ""}
+                            onChange={(event) =>
+                              moneyPattern.test(event.target.value) &&
+                              setPriceDrafts((current) => ({
+                                ...current,
+                                [item.errandTaskItemId]: event.target.value,
+                              }))
+                            }
+                          />
+                        </InputGroup>
+                      </Field>
+                      <Button
+                        variant="outline"
+                        disabled={
+                          pendingKeys.has(`price-${item.errandTaskItemId}`) ||
+                          parseCents(
+                            priceDrafts[item.errandTaskItemId] ?? "",
+                          ) === null
                         }
-                      />
-                    </InputGroup>
-                  </Field>
-                  <Button
-                    variant="outline"
-                    disabled={
-                      pendingKeys.has(`price-${item.errandTaskItemId}`) ||
-                      parseCents(priceDrafts[item.errandTaskItemId] ?? "") ===
-                        null
-                    }
-                    onClick={() => void savePrice(item)}
-                  >
-                    {pendingKeys.has(`price-${item.errandTaskItemId}`) ? (
-                      <Spinner />
-                    ) : (
-                      <RiPriceTag3Line />
-                    )}
-                    保存
-                  </Button>
-                  </div>
-                ) : (
-                  <Badge
-                    variant={
-                      item.requesters.every(isRequesterProcessed)
-                        ? "success"
-                        : "neutral"
-                    }
-                  >
-                    {item.requesters.filter(isRequesterProcessed).length}/
-                    {item.requesters.length} 已处理
-                  </Badge>
-                )}
-                {mode === "distributing" ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      setExpandedItemId((current) =>
-                        current === item.errandTaskItemId
-                          ? null
-                          : item.errandTaskItemId,
-                      )
-                    }
-                    aria-expanded={expandedItemId === item.errandTaskItemId}
-                  >
-                    {expandedItemId === item.errandTaskItemId
-                      ? "收起"
-                      : "展开"}
-                  </Button>
-                ) : null}
-              </div>
-            </CardHeader>
-            {mode === "distributing" &&
-            expandedItemId === item.errandTaskItemId ? (
-              <CardContent className="grid gap-2 border-t pt-4">
-                {item.requesters.map((requester) => (
-                  <RequesterRow
-                    key={requester.errandTaskAssignmentId}
-                    requester={requester}
-                    draft={
-                      assignmentDrafts[requester.errandTaskAssignmentId] ?? ""
-                    }
-                    busy={pendingKeys.has(requester.errandTaskAssignmentId)}
-                    onDraftChange={(value) =>
-                      setAssignmentDrafts((current) => ({
-                        ...current,
-                        [requester.errandTaskAssignmentId]: value,
-                      }))
-                    }
-                    onSave={(quantity) =>
-                      void saveAssignment(item, requester, quantity)
-                    }
-                  />
-                ))}
-              </CardContent>
-            ) : null}
-          </Card>
+                        onClick={() => void savePrice(item)}
+                      >
+                        {pendingKeys.has(`price-${item.errandTaskItemId}`) ? (
+                          <Spinner />
+                        ) : (
+                          <RiPriceTag3Line />
+                        )}
+                        保存
+                      </Button>
+                    </div>
+                  ) : (
+                    <Badge
+                      variant={
+                        item.requesters.every(isRequesterProcessed)
+                          ? "success"
+                          : "neutral"
+                      }
+                    >
+                      {item.requesters.filter(isRequesterProcessed).length}/
+                      {item.requesters.length} 已处理
+                    </Badge>
+                  )}
+                  {mode === "distributing" ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        setExpandedItemId((current) =>
+                          current === item.errandTaskItemId
+                            ? null
+                            : item.errandTaskItemId,
+                        )
+                      }
+                      aria-expanded={expandedItemId === item.errandTaskItemId}
+                    >
+                      {expandedItemId === item.errandTaskItemId
+                        ? "收起"
+                        : "展开"}
+                    </Button>
+                  ) : null}
+                </div>
+              </CardHeader>
+              {mode === "distributing" &&
+              expandedItemId === item.errandTaskItemId ? (
+                <CardContent className="grid gap-2 border-t pt-4">
+                  {item.requesters.map((requester) => (
+                    <RequesterRow
+                      key={requester.errandTaskAssignmentId}
+                      requester={requester}
+                      draft={
+                        assignmentDrafts[requester.errandTaskAssignmentId] ?? ""
+                      }
+                      busy={pendingKeys.has(requester.errandTaskAssignmentId)}
+                      onDraftChange={(value) =>
+                        setAssignmentDrafts((current) => ({
+                          ...current,
+                          [requester.errandTaskAssignmentId]: value,
+                        }))
+                      }
+                      onSave={(quantity) =>
+                        void saveAssignment(item, requester, quantity)
+                      }
+                    />
+                  ))}
+                </CardContent>
+              ) : null}
+            </Card>
           ))}
           {group.items.length === 0 ? (
             <Card>

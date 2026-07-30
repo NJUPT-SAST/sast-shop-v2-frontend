@@ -2,8 +2,16 @@
 // @generated from file sast/sastshopv2/catalog/v1/catalog_internal.proto (package sast.sastshopv2.catalog.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type {
+  GenFile,
+  GenMessage,
+  GenService,
+} from "@bufbuild/protobuf/codegenv2";
+import {
+  fileDesc,
+  messageDesc,
+  serviceDesc,
+} from "@bufbuild/protobuf/codegenv2";
 import type { ProductTemplate } from "./product_template_pb";
 import { file_sast_sastshopv2_catalog_v1_product_template } from "./product_template_pb";
 import type { Store } from "./store_pb";
@@ -13,109 +21,128 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/catalog/v1/catalog_internal.proto.
  */
-export const file_sast_sastshopv2_catalog_v1_catalog_internal: GenFile = /*@__PURE__*/
-  fileDesc("CjFzYXN0L3Nhc3RzaG9wdjIvY2F0YWxvZy92MS9jYXRhbG9nX2ludGVybmFsLnByb3RvEhpzYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MSI4ChlHZXRQcm9kdWN0VGVtcGxhdGVSZXF1ZXN0EhsKE3Byb2R1Y3RfdGVtcGxhdGVfaWQYASABKAMiYwoaR2V0UHJvZHVjdFRlbXBsYXRlUmVzcG9uc2USRQoQcHJvZHVjdF90ZW1wbGF0ZRgBIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZSI6ChpHZXRQcm9kdWN0VGVtcGxhdGVzUmVxdWVzdBIcChRwcm9kdWN0X3RlbXBsYXRlX2lkcxgBIAMoAyJlChtHZXRQcm9kdWN0VGVtcGxhdGVzUmVzcG9uc2USRgoRcHJvZHVjdF90ZW1wbGF0ZXMYASADKAsyKy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5Qcm9kdWN0VGVtcGxhdGUiIwoPR2V0U3RvcmVSZXF1ZXN0EhAKCHN0b3JlX2lkGAEgASgDIkQKEEdldFN0b3JlUmVzcG9uc2USMAoFc3RvcmUYASABKAsyIS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5TdG9yZTKOAwoWQ2F0YWxvZ0ludGVybmFsU2VydmljZRKDAQoSR2V0UHJvZHVjdFRlbXBsYXRlEjUuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuR2V0UHJvZHVjdFRlbXBsYXRlUmVxdWVzdBo2LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkdldFByb2R1Y3RUZW1wbGF0ZVJlc3BvbnNlEoYBChNHZXRQcm9kdWN0VGVtcGxhdGVzEjYuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuR2V0UHJvZHVjdFRlbXBsYXRlc1JlcXVlc3QaNy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRQcm9kdWN0VGVtcGxhdGVzUmVzcG9uc2USZQoIR2V0U3RvcmUSKy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRTdG9yZVJlcXVlc3QaLC5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRTdG9yZVJlc3BvbnNlYgZwcm90bzM", [file_sast_sastshopv2_catalog_v1_product_template, file_sast_sastshopv2_catalog_v1_store]);
+export const file_sast_sastshopv2_catalog_v1_catalog_internal: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CjFzYXN0L3Nhc3RzaG9wdjIvY2F0YWxvZy92MS9jYXRhbG9nX2ludGVybmFsLnByb3RvEhpzYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MSI4ChlHZXRQcm9kdWN0VGVtcGxhdGVSZXF1ZXN0EhsKE3Byb2R1Y3RfdGVtcGxhdGVfaWQYASABKAMiYwoaR2V0UHJvZHVjdFRlbXBsYXRlUmVzcG9uc2USRQoQcHJvZHVjdF90ZW1wbGF0ZRgBIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZSI6ChpHZXRQcm9kdWN0VGVtcGxhdGVzUmVxdWVzdBIcChRwcm9kdWN0X3RlbXBsYXRlX2lkcxgBIAMoAyJlChtHZXRQcm9kdWN0VGVtcGxhdGVzUmVzcG9uc2USRgoRcHJvZHVjdF90ZW1wbGF0ZXMYASADKAsyKy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5Qcm9kdWN0VGVtcGxhdGUiIwoPR2V0U3RvcmVSZXF1ZXN0EhAKCHN0b3JlX2lkGAEgASgDIkQKEEdldFN0b3JlUmVzcG9uc2USMAoFc3RvcmUYASABKAsyIS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5TdG9yZTKOAwoWQ2F0YWxvZ0ludGVybmFsU2VydmljZRKDAQoSR2V0UHJvZHVjdFRlbXBsYXRlEjUuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuR2V0UHJvZHVjdFRlbXBsYXRlUmVxdWVzdBo2LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkdldFByb2R1Y3RUZW1wbGF0ZVJlc3BvbnNlEoYBChNHZXRQcm9kdWN0VGVtcGxhdGVzEjYuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuR2V0UHJvZHVjdFRlbXBsYXRlc1JlcXVlc3QaNy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRQcm9kdWN0VGVtcGxhdGVzUmVzcG9uc2USZQoIR2V0U3RvcmUSKy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRTdG9yZVJlcXVlc3QaLC5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRTdG9yZVJlc3BvbnNlYgZwcm90bzM",
+    [
+      file_sast_sastshopv2_catalog_v1_product_template,
+      file_sast_sastshopv2_catalog_v1_store,
+    ],
+  );
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.GetProductTemplateRequest
  */
-export type GetProductTemplateRequest = Message<"sast.sastshopv2.catalog.v1.GetProductTemplateRequest"> & {
-  /**
-   * @generated from field: int64 product_template_id = 1;
-   */
-  productTemplateId: bigint;
-};
+export type GetProductTemplateRequest =
+  Message<"sast.sastshopv2.catalog.v1.GetProductTemplateRequest"> & {
+    /**
+     * @generated from field: int64 product_template_id = 1;
+     */
+    productTemplateId: bigint;
+  };
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.GetProductTemplateRequest.
  * Use `create(GetProductTemplateRequestSchema)` to create a new message.
  */
-export const GetProductTemplateRequestSchema: GenMessage<GetProductTemplateRequest> = /*@__PURE__*/
+export const GetProductTemplateRequestSchema: GenMessage<GetProductTemplateRequest> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_catalog_internal, 0);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.GetProductTemplateResponse
  */
-export type GetProductTemplateResponse = Message<"sast.sastshopv2.catalog.v1.GetProductTemplateResponse"> & {
-  /**
-   * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 1;
-   */
-  productTemplate?: ProductTemplate | undefined;
-};
+export type GetProductTemplateResponse =
+  Message<"sast.sastshopv2.catalog.v1.GetProductTemplateResponse"> & {
+    /**
+     * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 1;
+     */
+    productTemplate?: ProductTemplate | undefined;
+  };
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.GetProductTemplateResponse.
  * Use `create(GetProductTemplateResponseSchema)` to create a new message.
  */
-export const GetProductTemplateResponseSchema: GenMessage<GetProductTemplateResponse> = /*@__PURE__*/
+export const GetProductTemplateResponseSchema: GenMessage<GetProductTemplateResponse> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_catalog_internal, 1);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.GetProductTemplatesRequest
  */
-export type GetProductTemplatesRequest = Message<"sast.sastshopv2.catalog.v1.GetProductTemplatesRequest"> & {
-  /**
-   * @generated from field: repeated int64 product_template_ids = 1;
-   */
-  productTemplateIds: bigint[];
-};
+export type GetProductTemplatesRequest =
+  Message<"sast.sastshopv2.catalog.v1.GetProductTemplatesRequest"> & {
+    /**
+     * @generated from field: repeated int64 product_template_ids = 1;
+     */
+    productTemplateIds: bigint[];
+  };
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.GetProductTemplatesRequest.
  * Use `create(GetProductTemplatesRequestSchema)` to create a new message.
  */
-export const GetProductTemplatesRequestSchema: GenMessage<GetProductTemplatesRequest> = /*@__PURE__*/
+export const GetProductTemplatesRequestSchema: GenMessage<GetProductTemplatesRequest> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_catalog_internal, 2);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.GetProductTemplatesResponse
  */
-export type GetProductTemplatesResponse = Message<"sast.sastshopv2.catalog.v1.GetProductTemplatesResponse"> & {
-  /**
-   * @generated from field: repeated sast.sastshopv2.catalog.v1.ProductTemplate product_templates = 1;
-   */
-  productTemplates: ProductTemplate[];
-};
+export type GetProductTemplatesResponse =
+  Message<"sast.sastshopv2.catalog.v1.GetProductTemplatesResponse"> & {
+    /**
+     * @generated from field: repeated sast.sastshopv2.catalog.v1.ProductTemplate product_templates = 1;
+     */
+    productTemplates: ProductTemplate[];
+  };
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.GetProductTemplatesResponse.
  * Use `create(GetProductTemplatesResponseSchema)` to create a new message.
  */
-export const GetProductTemplatesResponseSchema: GenMessage<GetProductTemplatesResponse> = /*@__PURE__*/
+export const GetProductTemplatesResponseSchema: GenMessage<GetProductTemplatesResponse> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_catalog_internal, 3);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.GetStoreRequest
  */
-export type GetStoreRequest = Message<"sast.sastshopv2.catalog.v1.GetStoreRequest"> & {
-  /**
-   * @generated from field: int64 store_id = 1;
-   */
-  storeId: bigint;
-};
+export type GetStoreRequest =
+  Message<"sast.sastshopv2.catalog.v1.GetStoreRequest"> & {
+    /**
+     * @generated from field: int64 store_id = 1;
+     */
+    storeId: bigint;
+  };
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.GetStoreRequest.
  * Use `create(GetStoreRequestSchema)` to create a new message.
  */
-export const GetStoreRequestSchema: GenMessage<GetStoreRequest> = /*@__PURE__*/
+export const GetStoreRequestSchema: GenMessage<GetStoreRequest> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_catalog_internal, 4);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.GetStoreResponse
  */
-export type GetStoreResponse = Message<"sast.sastshopv2.catalog.v1.GetStoreResponse"> & {
-  /**
-   * @generated from field: sast.sastshopv2.catalog.v1.Store store = 1;
-   */
-  store?: Store | undefined;
-};
+export type GetStoreResponse =
+  Message<"sast.sastshopv2.catalog.v1.GetStoreResponse"> & {
+    /**
+     * @generated from field: sast.sastshopv2.catalog.v1.Store store = 1;
+     */
+    store?: Store | undefined;
+  };
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.GetStoreResponse.
  * Use `create(GetStoreResponseSchema)` to create a new message.
  */
-export const GetStoreResponseSchema: GenMessage<GetStoreResponse> = /*@__PURE__*/
+export const GetStoreResponseSchema: GenMessage<GetStoreResponse> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_catalog_internal, 5);
 
 /**
@@ -131,7 +158,7 @@ export const CatalogInternalService: GenService<{
     methodKind: "unary";
     input: typeof GetProductTemplateRequestSchema;
     output: typeof GetProductTemplateResponseSchema;
-  },
+  };
   /**
    * Batch get product templates by product template IDs.
    *
@@ -141,7 +168,7 @@ export const CatalogInternalService: GenService<{
     methodKind: "unary";
     input: typeof GetProductTemplatesRequestSchema;
     output: typeof GetProductTemplatesResponseSchema;
-  },
+  };
   /**
    * 读取店铺快照，供 group-trade 展示和校验店铺使用
    *
@@ -151,7 +178,7 @@ export const CatalogInternalService: GenService<{
     methodKind: "unary";
     input: typeof GetStoreRequestSchema;
     output: typeof GetStoreResponseSchema;
-  },
-}> = /*@__PURE__*/
+  };
+}> =
+  /*@__PURE__*/
   serviceDesc(file_sast_sastshopv2_catalog_v1_catalog_internal, 0);
-

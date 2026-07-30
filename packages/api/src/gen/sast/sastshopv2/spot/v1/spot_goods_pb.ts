@@ -15,56 +15,66 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/spot/v1/spot_goods.proto.
  */
-export const file_sast_sastshopv2_spot_v1_spot_goods: GenFile = /*@__PURE__*/
-  fileDesc("CihzYXN0L3Nhc3RzaG9wdjIvc3BvdC92MS9zcG90X2dvb2RzLnByb3RvEhdzYXN0LnNhc3RzaG9wdjIuc3BvdC52MSLdAQoOU3BvdEdvb2RzQnJpZWYSCgoCaWQYASABKAMSRQoQcHJvZHVjdF90ZW1wbGF0ZRgCIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZRIYChBzYWxlX3ByaWNlX2NlbnRzGAMgASgFEi4KCmNyZWF0ZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIqACCg9TcG90R29vZHNEZXRhaWwSCgoCaWQYASABKAMSRQoQcHJvZHVjdF90ZW1wbGF0ZRgCIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZRIYChBzYWxlX3ByaWNlX2NlbnRzGAMgASgFEi4KCmNyZWF0ZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg0KBXN0b2NrGAYgASgFEjEKBnNlbGxlchgHIAEoCzIhLnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLlVzZXJJbmZvYgZwcm90bzM", [file_google_protobuf_timestamp, file_sast_sastshopv2_catalog_v1_product_template, file_sast_sastshopv2_user_v1_user_info]);
+export const file_sast_sastshopv2_spot_v1_spot_goods: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CihzYXN0L3Nhc3RzaG9wdjIvc3BvdC92MS9zcG90X2dvb2RzLnByb3RvEhdzYXN0LnNhc3RzaG9wdjIuc3BvdC52MSLdAQoOU3BvdEdvb2RzQnJpZWYSCgoCaWQYASABKAMSRQoQcHJvZHVjdF90ZW1wbGF0ZRgCIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZRIYChBzYWxlX3ByaWNlX2NlbnRzGAMgASgFEi4KCmNyZWF0ZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIqACCg9TcG90R29vZHNEZXRhaWwSCgoCaWQYASABKAMSRQoQcHJvZHVjdF90ZW1wbGF0ZRgCIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZRIYChBzYWxlX3ByaWNlX2NlbnRzGAMgASgFEi4KCmNyZWF0ZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg0KBXN0b2NrGAYgASgFEjEKBnNlbGxlchgHIAEoCzIhLnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLlVzZXJJbmZvYgZwcm90bzM",
+    [
+      file_google_protobuf_timestamp,
+      file_sast_sastshopv2_catalog_v1_product_template,
+      file_sast_sastshopv2_user_v1_user_info,
+    ],
+  );
 
 /**
  * 现货商品列表项，商品描述实时读取 catalog 商品模板
  *
  * @generated from message sast.sastshopv2.spot.v1.SpotGoodsBrief
  */
-export type SpotGoodsBrief = Message<"sast.sastshopv2.spot.v1.SpotGoodsBrief"> & {
-  /**
-   * 现货商品 ID，对应 spot_goods.id
-   *
-   * @generated from field: int64 id = 1;
-   */
-  id: bigint;
+export type SpotGoodsBrief =
+  Message<"sast.sastshopv2.spot.v1.SpotGoodsBrief"> & {
+    /**
+     * 现货商品 ID，对应 spot_goods.id
+     *
+     * @generated from field: int64 id = 1;
+     */
+    id: bigint;
 
-  /**
-   * catalog 商品模板实时信息
-   *
-   * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 2;
-   */
-  productTemplate?: ProductTemplate | undefined;
+    /**
+     * catalog 商品模板实时信息
+     *
+     * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 2;
+     */
+    productTemplate?: ProductTemplate | undefined;
 
-  /**
-   * 当前售卖单价，单位为分
-   *
-   * @generated from field: int32 sale_price_cents = 3;
-   */
-  salePriceCents: number;
+    /**
+     * 当前售卖单价，单位为分
+     *
+     * @generated from field: int32 sale_price_cents = 3;
+     */
+    salePriceCents: number;
 
-  /**
-   * 上架创建时间
-   *
-   * @generated from field: google.protobuf.Timestamp created_at = 4;
-   */
-  createdAt?: Timestamp | undefined;
+    /**
+     * 上架创建时间
+     *
+     * @generated from field: google.protobuf.Timestamp created_at = 4;
+     */
+    createdAt?: Timestamp | undefined;
 
-  /**
-   * 现货商品最近更新时间，用于下单和改价改库存的并发校验
-   *
-   * @generated from field: google.protobuf.Timestamp updated_at = 5;
-   */
-  updatedAt?: Timestamp | undefined;
-};
+    /**
+     * 现货商品最近更新时间，用于下单和改价改库存的并发校验
+     *
+     * @generated from field: google.protobuf.Timestamp updated_at = 5;
+     */
+    updatedAt?: Timestamp | undefined;
+  };
 
 /**
  * Describes the message sast.sastshopv2.spot.v1.SpotGoodsBrief.
  * Use `create(SpotGoodsBriefSchema)` to create a new message.
  */
-export const SpotGoodsBriefSchema: GenMessage<SpotGoodsBrief> = /*@__PURE__*/
+export const SpotGoodsBriefSchema: GenMessage<SpotGoodsBrief> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_spot_v1_spot_goods, 0);
 
 /**
@@ -72,51 +82,52 @@ export const SpotGoodsBriefSchema: GenMessage<SpotGoodsBrief> = /*@__PURE__*/
  *
  * @generated from message sast.sastshopv2.spot.v1.SpotGoodsDetail
  */
-export type SpotGoodsDetail = Message<"sast.sastshopv2.spot.v1.SpotGoodsDetail"> & {
-  /**
-   * @generated from field: int64 id = 1;
-   */
-  id: bigint;
+export type SpotGoodsDetail =
+  Message<"sast.sastshopv2.spot.v1.SpotGoodsDetail"> & {
+    /**
+     * @generated from field: int64 id = 1;
+     */
+    id: bigint;
 
-  /**
-   * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 2;
-   */
-  productTemplate?: ProductTemplate | undefined;
+    /**
+     * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 2;
+     */
+    productTemplate?: ProductTemplate | undefined;
 
-  /**
-   * @generated from field: int32 sale_price_cents = 3;
-   */
-  salePriceCents: number;
+    /**
+     * @generated from field: int32 sale_price_cents = 3;
+     */
+    salePriceCents: number;
 
-  /**
-   * @generated from field: google.protobuf.Timestamp created_at = 4;
-   */
-  createdAt?: Timestamp | undefined;
+    /**
+     * @generated from field: google.protobuf.Timestamp created_at = 4;
+     */
+    createdAt?: Timestamp | undefined;
 
-  /**
-   * @generated from field: google.protobuf.Timestamp updated_at = 5;
-   */
-  updatedAt?: Timestamp | undefined;
+    /**
+     * @generated from field: google.protobuf.Timestamp updated_at = 5;
+     */
+    updatedAt?: Timestamp | undefined;
 
-  /**
-   * 当前剩余库存
-   *
-   * @generated from field: int32 stock = 6;
-   */
-  stock: number;
+    /**
+     * 当前剩余库存
+     *
+     * @generated from field: int32 stock = 6;
+     */
+    stock: number;
 
-  /**
-   * 上架售卖人信息
-   *
-   * @generated from field: sast.sastshopv2.user.v1.UserInfo seller = 7;
-   */
-  seller?: UserInfo | undefined;
-};
+    /**
+     * 上架售卖人信息
+     *
+     * @generated from field: sast.sastshopv2.user.v1.UserInfo seller = 7;
+     */
+    seller?: UserInfo | undefined;
+  };
 
 /**
  * Describes the message sast.sastshopv2.spot.v1.SpotGoodsDetail.
  * Use `create(SpotGoodsDetailSchema)` to create a new message.
  */
-export const SpotGoodsDetailSchema: GenMessage<SpotGoodsDetail> = /*@__PURE__*/
+export const SpotGoodsDetailSchema: GenMessage<SpotGoodsDetail> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_spot_v1_spot_goods, 1);
-

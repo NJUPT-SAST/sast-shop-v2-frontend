@@ -172,12 +172,12 @@ describe("listErrandTasks", () => {
       ),
     );
 
-    await expect(getErrandTaskBrief("7002", localOptions)).resolves.toMatchObject(
-      {
-        id: "7002",
-        updatedAt: "2026-07-17T08:00:00.000Z",
-      },
-    );
+    await expect(
+      getErrandTaskBrief("7002", localOptions),
+    ).resolves.toMatchObject({
+      id: "7002",
+      updatedAt: "2026-07-17T08:00:00.000Z",
+    });
   });
 
   it("accepts valid status filters", async () => {
@@ -362,9 +362,7 @@ describe("captain task detail facades", () => {
               storeId: "3001",
               storeName: "SAST 小卖部",
               status: "ERRAND_TASK_STATUS_PENDING_DISTRIBUTING",
-              items: [
-                { id: "7201", updatedAt: "2026-07-18T02:00:00Z" },
-              ],
+              items: [{ id: "7201", updatedAt: "2026-07-18T02:00:00Z" }],
               updatedAt: "2026-07-17T08:00:00Z",
               createdAt: "2026-07-17T08:00:00Z",
             },
@@ -515,9 +513,7 @@ describe("captain task detail facades", () => {
     });
 
     expect(detail.taskUpdatedAt).toBe("2026-07-17T08:00:00.000Z");
-    expect(detail.items[0]?.itemUpdatedAt).toBe(
-      "2026-07-18T02:00:00.000Z",
-    );
+    expect(detail.items[0]?.itemUpdatedAt).toBe("2026-07-18T02:00:00.000Z");
     expect(fetchMock).toHaveBeenCalledOnce();
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/GetDistributingTaskDetail",
@@ -723,9 +719,7 @@ describe("captain task detail facades", () => {
               storeId: "3001",
               storeName: "SAST 小卖部",
               status: "ERRAND_TASK_STATUS_PENDING_DISTRIBUTING",
-              items: [
-                { id: "7201", updatedAt: "2026-07-18T02:00:00Z" },
-              ],
+              items: [{ id: "7201", updatedAt: "2026-07-18T02:00:00Z" }],
               updatedAt: "2026-07-17T08:00:00Z",
             },
           ],
@@ -1098,11 +1092,7 @@ describe("captain task detail facades", () => {
       "2026-07-17T08:00:00Z",
       localOptions,
     );
-    await transitionToCompleted(
-      "7001",
-      "2026-07-17T08:00:00Z",
-      localOptions,
-    );
+    await transitionToCompleted("7001", "2026-07-17T08:00:00Z", localOptions);
     await cancelTask("7001", "2026-07-17T08:00:00Z", localOptions);
 
     expect(fetchMock).toHaveBeenCalledTimes(3);

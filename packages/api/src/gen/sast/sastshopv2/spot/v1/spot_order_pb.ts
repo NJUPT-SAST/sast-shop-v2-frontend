@@ -21,91 +21,104 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/spot/v1/spot_order.proto.
  */
-export const file_sast_sastshopv2_spot_v1_spot_order: GenFile = /*@__PURE__*/
-  fileDesc("CihzYXN0L3Nhc3RzaG9wdjIvc3BvdC92MS9zcG90X29yZGVyLnByb3RvEhdzYXN0LnNhc3RzaG9wdjIuc3BvdC52MSLqAgoOU3BvdE9yZGVyQnJpZWYSCgoCaWQYASABKAMSEAoIb3JkZXJfbm8YAiABKAkSMAoFc3RvcmUYAyABKAsyIS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5TdG9yZRJFChBwcm9kdWN0X3NuYXBzaG90GAQgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlEhAKCHF1YW50aXR5GAUgASgFEhgKEHVuaXRfcHJpY2VfY2VudHMYBiABKAUSGgoSdG90YWxfYW1vdW50X2NlbnRzGAcgASgFEg8KB2JpbGxfaWQYCCABKAMSOAoGc3RhdHVzGAkgASgOMiguc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuU3BvdE9yZGVyU3RhdHVzEi4KCmNyZWF0ZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIswFCg9TcG90T3JkZXJEZXRhaWwSCgoCaWQYASABKAMSEAoIb3JkZXJfbm8YAiABKAkSMAoFc3RvcmUYAyABKAsyIS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5TdG9yZRJFChBwcm9kdWN0X3NuYXBzaG90GAQgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlEhAKCHF1YW50aXR5GAUgASgFEhgKEHVuaXRfcHJpY2VfY2VudHMYBiABKAUSGgoSdG90YWxfYW1vdW50X2NlbnRzGAcgASgFEg8KB2JpbGxfaWQYCCABKAMSOAoGc3RhdHVzGAkgASgOMiguc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuU3BvdE9yZGVyU3RhdHVzEi4KCmNyZWF0ZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjEKBnNlbGxlchgLIAEoCzIhLnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLlVzZXJJbmZvEi4KBGJpbGwYDCABKAsyIC5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5CaWxsEjAKB3BhaWRfYXQYDSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSACIAQESNQoMY29tcGxldGVkX2F0GA4gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEgBiAEBEjUKDGNhbmNlbGxlZF9hdBgPIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBIAogBARIuCgp1cGRhdGVkX2F0GBAgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIKCghfcGFpZF9hdEIPCg1fY29tcGxldGVkX2F0Qg8KDV9jYW5jZWxsZWRfYXRiBnByb3RvMw", [file_google_protobuf_timestamp, file_sast_sastshopv2_catalog_v1_product_template, file_sast_sastshopv2_catalog_v1_store, file_sast_sastshopv2_payment_v1_bill, file_sast_sastshopv2_spot_v1_spot_order_status, file_sast_sastshopv2_user_v1_user_info]);
+export const file_sast_sastshopv2_spot_v1_spot_order: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CihzYXN0L3Nhc3RzaG9wdjIvc3BvdC92MS9zcG90X29yZGVyLnByb3RvEhdzYXN0LnNhc3RzaG9wdjIuc3BvdC52MSLqAgoOU3BvdE9yZGVyQnJpZWYSCgoCaWQYASABKAMSEAoIb3JkZXJfbm8YAiABKAkSMAoFc3RvcmUYAyABKAsyIS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5TdG9yZRJFChBwcm9kdWN0X3NuYXBzaG90GAQgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlEhAKCHF1YW50aXR5GAUgASgFEhgKEHVuaXRfcHJpY2VfY2VudHMYBiABKAUSGgoSdG90YWxfYW1vdW50X2NlbnRzGAcgASgFEg8KB2JpbGxfaWQYCCABKAMSOAoGc3RhdHVzGAkgASgOMiguc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuU3BvdE9yZGVyU3RhdHVzEi4KCmNyZWF0ZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIswFCg9TcG90T3JkZXJEZXRhaWwSCgoCaWQYASABKAMSEAoIb3JkZXJfbm8YAiABKAkSMAoFc3RvcmUYAyABKAsyIS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5TdG9yZRJFChBwcm9kdWN0X3NuYXBzaG90GAQgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlEhAKCHF1YW50aXR5GAUgASgFEhgKEHVuaXRfcHJpY2VfY2VudHMYBiABKAUSGgoSdG90YWxfYW1vdW50X2NlbnRzGAcgASgFEg8KB2JpbGxfaWQYCCABKAMSOAoGc3RhdHVzGAkgASgOMiguc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuU3BvdE9yZGVyU3RhdHVzEi4KCmNyZWF0ZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjEKBnNlbGxlchgLIAEoCzIhLnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLlVzZXJJbmZvEi4KBGJpbGwYDCABKAsyIC5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5CaWxsEjAKB3BhaWRfYXQYDSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSACIAQESNQoMY29tcGxldGVkX2F0GA4gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEgBiAEBEjUKDGNhbmNlbGxlZF9hdBgPIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBIAogBARIuCgp1cGRhdGVkX2F0GBAgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIKCghfcGFpZF9hdEIPCg1fY29tcGxldGVkX2F0Qg8KDV9jYW5jZWxsZWRfYXRiBnByb3RvMw",
+    [
+      file_google_protobuf_timestamp,
+      file_sast_sastshopv2_catalog_v1_product_template,
+      file_sast_sastshopv2_catalog_v1_store,
+      file_sast_sastshopv2_payment_v1_bill,
+      file_sast_sastshopv2_spot_v1_spot_order_status,
+      file_sast_sastshopv2_user_v1_user_info,
+    ],
+  );
 
 /**
  * 现货订单列表项，服务于买家/卖家订单列表
  *
  * @generated from message sast.sastshopv2.spot.v1.SpotOrderBrief
  */
-export type SpotOrderBrief = Message<"sast.sastshopv2.spot.v1.SpotOrderBrief"> & {
-  /**
-   * 现货订单 ID
-   *
-   * @generated from field: int64 id = 1;
-   */
-  id: bigint;
+export type SpotOrderBrief =
+  Message<"sast.sastshopv2.spot.v1.SpotOrderBrief"> & {
+    /**
+     * 现货订单 ID
+     *
+     * @generated from field: int64 id = 1;
+     */
+    id: bigint;
 
-  /**
-   * 面向用户展示的订单号
-   *
-   * @generated from field: string order_no = 2;
-   */
-  orderNo: string;
+    /**
+     * 面向用户展示的订单号
+     *
+     * @generated from field: string order_no = 2;
+     */
+    orderNo: string;
 
-  /**
-   * 下单时的店铺信息
-   *
-   * @generated from field: sast.sastshopv2.catalog.v1.Store store = 3;
-   */
-  store?: Store | undefined;
+    /**
+     * 下单时的店铺信息
+     *
+     * @generated from field: sast.sastshopv2.catalog.v1.Store store = 3;
+     */
+    store?: Store | undefined;
 
-  /**
-   * 下单时的商品模板快照
-   *
-   * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_snapshot = 4;
-   */
-  productSnapshot?: ProductTemplate | undefined;
+    /**
+     * 下单时的商品模板快照
+     *
+     * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_snapshot = 4;
+     */
+    productSnapshot?: ProductTemplate | undefined;
 
-  /**
-   * 购买数量
-   *
-   * @generated from field: int32 quantity = 5;
-   */
-  quantity: number;
+    /**
+     * 购买数量
+     *
+     * @generated from field: int32 quantity = 5;
+     */
+    quantity: number;
 
-  /**
-   * 下单单价，单位为分
-   *
-   * @generated from field: int32 unit_price_cents = 6;
-   */
-  unitPriceCents: number;
+    /**
+     * 下单单价，单位为分
+     *
+     * @generated from field: int32 unit_price_cents = 6;
+     */
+    unitPriceCents: number;
 
-  /**
-   * 订单总金额，单位为分
-   *
-   * @generated from field: int32 total_amount_cents = 7;
-   */
-  totalAmountCents: number;
+    /**
+     * 订单总金额，单位为分
+     *
+     * @generated from field: int32 total_amount_cents = 7;
+     */
+    totalAmountCents: number;
 
-  /**
-   * 关联支付账单 ID
-   *
-   * @generated from field: int64 bill_id = 8;
-   */
-  billId: bigint;
+    /**
+     * 关联支付账单 ID
+     *
+     * @generated from field: int64 bill_id = 8;
+     */
+    billId: bigint;
 
-  /**
-   * 订单状态
-   *
-   * @generated from field: sast.sastshopv2.spot.v1.SpotOrderStatus status = 9;
-   */
-  status: SpotOrderStatus;
+    /**
+     * 订单状态
+     *
+     * @generated from field: sast.sastshopv2.spot.v1.SpotOrderStatus status = 9;
+     */
+    status: SpotOrderStatus;
 
-  /**
-   * 下单时间
-   *
-   * @generated from field: google.protobuf.Timestamp created_at = 10;
-   */
-  createdAt?: Timestamp | undefined;
-};
+    /**
+     * 下单时间
+     *
+     * @generated from field: google.protobuf.Timestamp created_at = 10;
+     */
+    createdAt?: Timestamp | undefined;
+  };
 
 /**
  * Describes the message sast.sastshopv2.spot.v1.SpotOrderBrief.
  * Use `create(SpotOrderBriefSchema)` to create a new message.
  */
-export const SpotOrderBriefSchema: GenMessage<SpotOrderBrief> = /*@__PURE__*/
+export const SpotOrderBriefSchema: GenMessage<SpotOrderBrief> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_spot_v1_spot_order, 0);
 
 /**
@@ -113,102 +126,103 @@ export const SpotOrderBriefSchema: GenMessage<SpotOrderBrief> = /*@__PURE__*/
  *
  * @generated from message sast.sastshopv2.spot.v1.SpotOrderDetail
  */
-export type SpotOrderDetail = Message<"sast.sastshopv2.spot.v1.SpotOrderDetail"> & {
-  /**
-   * @generated from field: int64 id = 1;
-   */
-  id: bigint;
+export type SpotOrderDetail =
+  Message<"sast.sastshopv2.spot.v1.SpotOrderDetail"> & {
+    /**
+     * @generated from field: int64 id = 1;
+     */
+    id: bigint;
 
-  /**
-   * @generated from field: string order_no = 2;
-   */
-  orderNo: string;
+    /**
+     * @generated from field: string order_no = 2;
+     */
+    orderNo: string;
 
-  /**
-   * @generated from field: sast.sastshopv2.catalog.v1.Store store = 3;
-   */
-  store?: Store | undefined;
+    /**
+     * @generated from field: sast.sastshopv2.catalog.v1.Store store = 3;
+     */
+    store?: Store | undefined;
 
-  /**
-   * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_snapshot = 4;
-   */
-  productSnapshot?: ProductTemplate | undefined;
+    /**
+     * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_snapshot = 4;
+     */
+    productSnapshot?: ProductTemplate | undefined;
 
-  /**
-   * @generated from field: int32 quantity = 5;
-   */
-  quantity: number;
+    /**
+     * @generated from field: int32 quantity = 5;
+     */
+    quantity: number;
 
-  /**
-   * @generated from field: int32 unit_price_cents = 6;
-   */
-  unitPriceCents: number;
+    /**
+     * @generated from field: int32 unit_price_cents = 6;
+     */
+    unitPriceCents: number;
 
-  /**
-   * @generated from field: int32 total_amount_cents = 7;
-   */
-  totalAmountCents: number;
+    /**
+     * @generated from field: int32 total_amount_cents = 7;
+     */
+    totalAmountCents: number;
 
-  /**
-   * @generated from field: int64 bill_id = 8;
-   */
-  billId: bigint;
+    /**
+     * @generated from field: int64 bill_id = 8;
+     */
+    billId: bigint;
 
-  /**
-   * @generated from field: sast.sastshopv2.spot.v1.SpotOrderStatus status = 9;
-   */
-  status: SpotOrderStatus;
+    /**
+     * @generated from field: sast.sastshopv2.spot.v1.SpotOrderStatus status = 9;
+     */
+    status: SpotOrderStatus;
 
-  /**
-   * @generated from field: google.protobuf.Timestamp created_at = 10;
-   */
-  createdAt?: Timestamp | undefined;
+    /**
+     * @generated from field: google.protobuf.Timestamp created_at = 10;
+     */
+    createdAt?: Timestamp | undefined;
 
-  /**
-   * 订单卖家信息
-   *
-   * @generated from field: sast.sastshopv2.user.v1.UserInfo seller = 11;
-   */
-  seller?: UserInfo | undefined;
+    /**
+     * 订单卖家信息
+     *
+     * @generated from field: sast.sastshopv2.user.v1.UserInfo seller = 11;
+     */
+    seller?: UserInfo | undefined;
 
-  /**
-   * 关联支付账单详情
-   *
-   * @generated from field: sast.sastshopv2.payment.v1.Bill bill = 12;
-   */
-  bill?: Bill | undefined;
+    /**
+     * 关联支付账单详情
+     *
+     * @generated from field: sast.sastshopv2.payment.v1.Bill bill = 12;
+     */
+    bill?: Bill | undefined;
 
-  /**
-   * 支付完成并由 payment 回调 group-trade 的时间
-   *
-   * @generated from field: optional google.protobuf.Timestamp paid_at = 13;
-   */
-  paidAt?: Timestamp | undefined;
+    /**
+     * 支付完成并由 payment 回调 group-trade 的时间
+     *
+     * @generated from field: optional google.protobuf.Timestamp paid_at = 13;
+     */
+    paidAt?: Timestamp | undefined;
 
-  /**
-   * 订单完成时间
-   *
-   * @generated from field: optional google.protobuf.Timestamp completed_at = 14;
-   */
-  completedAt?: Timestamp | undefined;
+    /**
+     * 订单完成时间
+     *
+     * @generated from field: optional google.protobuf.Timestamp completed_at = 14;
+     */
+    completedAt?: Timestamp | undefined;
 
-  /**
-   * 订单取消时间
-   *
-   * @generated from field: optional google.protobuf.Timestamp cancelled_at = 15;
-   */
-  cancelledAt?: Timestamp | undefined;
+    /**
+     * 订单取消时间
+     *
+     * @generated from field: optional google.protobuf.Timestamp cancelled_at = 15;
+     */
+    cancelledAt?: Timestamp | undefined;
 
-  /**
-   * @generated from field: google.protobuf.Timestamp updated_at = 16;
-   */
-  updatedAt?: Timestamp | undefined;
-};
+    /**
+     * @generated from field: google.protobuf.Timestamp updated_at = 16;
+     */
+    updatedAt?: Timestamp | undefined;
+  };
 
 /**
  * Describes the message sast.sastshopv2.spot.v1.SpotOrderDetail.
  * Use `create(SpotOrderDetailSchema)` to create a new message.
  */
-export const SpotOrderDetailSchema: GenMessage<SpotOrderDetail> = /*@__PURE__*/
+export const SpotOrderDetailSchema: GenMessage<SpotOrderDetail> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_spot_v1_spot_order, 1);
-

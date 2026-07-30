@@ -86,7 +86,10 @@ export function normalizeAuthReturnTo(
   }
 
   if (url.origin !== "http://app.local") return fallback;
-  if (url.pathname === "/auth/callback" || url.pathname.startsWith("/api/auth")) {
+  if (
+    url.pathname === "/auth/callback" ||
+    url.pathname.startsWith("/api/auth")
+  ) {
     return fallback;
   }
 

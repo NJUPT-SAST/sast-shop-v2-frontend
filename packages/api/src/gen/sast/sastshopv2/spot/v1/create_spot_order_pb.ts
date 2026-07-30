@@ -11,35 +11,40 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/spot/v1/create_spot_order.proto.
  */
-export const file_sast_sastshopv2_spot_v1_create_spot_order: GenFile = /*@__PURE__*/
-  fileDesc("Ci9zYXN0L3Nhc3RzaG9wdjIvc3BvdC92MS9jcmVhdGVfc3BvdF9vcmRlci5wcm90bxIXc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEibAoPQ3JlYXRlU3BvdE9yZGVyEhcKD3Nwb3RfbGlzdGluZ19pZBgBIAEoAxIQCghxdWFudGl0eRgCIAEoBRIuCgp1cGRhdGVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcGIGcHJvdG8z", [file_google_protobuf_timestamp]);
+export const file_sast_sastshopv2_spot_v1_create_spot_order: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "Ci9zYXN0L3Nhc3RzaG9wdjIvc3BvdC92MS9jcmVhdGVfc3BvdF9vcmRlci5wcm90bxIXc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEibAoPQ3JlYXRlU3BvdE9yZGVyEhcKD3Nwb3RfbGlzdGluZ19pZBgBIAEoAxIQCghxdWFudGl0eRgCIAEoBRIuCgp1cGRhdGVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcGIGcHJvdG8z",
+    [file_google_protobuf_timestamp],
+  );
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.CreateSpotOrder
  */
-export type CreateSpotOrder = Message<"sast.sastshopv2.spot.v1.CreateSpotOrder"> & {
-  /**
-   * @generated from field: int64 spot_listing_id = 1;
-   */
-  spotListingId: bigint;
+export type CreateSpotOrder =
+  Message<"sast.sastshopv2.spot.v1.CreateSpotOrder"> & {
+    /**
+     * @generated from field: int64 spot_listing_id = 1;
+     */
+    spotListingId: bigint;
 
-  /**
-   * @generated from field: int32 quantity = 2;
-   */
-  quantity: number;
+    /**
+     * @generated from field: int32 quantity = 2;
+     */
+    quantity: number;
 
-  /**
-   * 用于现货是否被更新过，作为乐观锁的版本号
-   *
-   * @generated from field: google.protobuf.Timestamp updated_at = 3;
-   */
-  updatedAt?: Timestamp | undefined;
-};
+    /**
+     * 用于现货是否被更新过，作为乐观锁的版本号
+     *
+     * @generated from field: google.protobuf.Timestamp updated_at = 3;
+     */
+    updatedAt?: Timestamp | undefined;
+  };
 
 /**
  * Describes the message sast.sastshopv2.spot.v1.CreateSpotOrder.
  * Use `create(CreateSpotOrderSchema)` to create a new message.
  */
-export const CreateSpotOrderSchema: GenMessage<CreateSpotOrder> = /*@__PURE__*/
+export const CreateSpotOrderSchema: GenMessage<CreateSpotOrder> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_spot_v1_create_spot_order, 0);
-

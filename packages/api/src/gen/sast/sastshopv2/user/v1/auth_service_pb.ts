@@ -2,15 +2,26 @@
 // @generated from file sast/sastshopv2/user/v1/auth_service.proto (package sast.sastshopv2.user.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type {
+  GenFile,
+  GenMessage,
+  GenService,
+} from "@bufbuild/protobuf/codegenv2";
+import {
+  fileDesc,
+  messageDesc,
+  serviceDesc,
+} from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file sast/sastshopv2/user/v1/auth_service.proto.
  */
-export const file_sast_sastshopv2_user_v1_auth_service: GenFile = /*@__PURE__*/
-  fileDesc("CipzYXN0L3Nhc3RzaG9wdjIvdXNlci92MS9hdXRoX3NlcnZpY2UucHJvdG8SF3Nhc3Quc2FzdHNob3B2Mi51c2VyLnYxIm4KDExvZ2luUmVxdWVzdBIMCgRjb2RlGAEgASgJEhkKDHJlZGlyZWN0X3VyaRgCIAEoCUgAiAEBEhYKCWRldmljZV9pZBgDIAEoCUgBiAEBQg8KDV9yZWRpcmVjdF91cmlCDAoKX2RldmljZV9pZCJhCgtMb2dpbk1lbWJlchIKCgJpZBgBIAEoAxIUCgxkaXNwbGF5X25hbWUYAiABKAkSEgoKYXZhdGFyX3VybBgDIAEoCRIMCgRyb2xlGAQgASgJEg4KBnN0YXR1cxgFIAEoCSKGAQoNTG9naW5SZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSFQoNcmVmcmVzaF90b2tlbhgCIAEoCRISCgpleHBpcmVzX2luGAMgASgFEjQKBm1lbWJlchgEIAEoCzIkLnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLkxvZ2luTWVtYmVyIigKGUdldEpTQVBJQXV0aENvbmZpZ1JlcXVlc3QSCwoDdXJsGAEgASgJImUKGkdldEpTQVBJQXV0aENvbmZpZ1Jlc3BvbnNlEg4KBmFwcF9pZBgBIAEoCRIRCgl0aW1lc3RhbXAYAiABKAkSEQoJbm9uY2Vfc3RyGAMgASgJEhEKCXNpZ25hdHVyZRgEIAEoCTLkAQoLQXV0aFNlcnZpY2USVgoFTG9naW4SJS5zYXN0LnNhc3RzaG9wdjIudXNlci52MS5Mb2dpblJlcXVlc3QaJi5zYXN0LnNhc3RzaG9wdjIudXNlci52MS5Mb2dpblJlc3BvbnNlEn0KEkdldEpTQVBJQXV0aENvbmZpZxIyLnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLkdldEpTQVBJQXV0aENvbmZpZ1JlcXVlc3QaMy5zYXN0LnNhc3RzaG9wdjIudXNlci52MS5HZXRKU0FQSUF1dGhDb25maWdSZXNwb25zZWIGcHJvdG8z");
+export const file_sast_sastshopv2_user_v1_auth_service: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CipzYXN0L3Nhc3RzaG9wdjIvdXNlci92MS9hdXRoX3NlcnZpY2UucHJvdG8SF3Nhc3Quc2FzdHNob3B2Mi51c2VyLnYxIm4KDExvZ2luUmVxdWVzdBIMCgRjb2RlGAEgASgJEhkKDHJlZGlyZWN0X3VyaRgCIAEoCUgAiAEBEhYKCWRldmljZV9pZBgDIAEoCUgBiAEBQg8KDV9yZWRpcmVjdF91cmlCDAoKX2RldmljZV9pZCJhCgtMb2dpbk1lbWJlchIKCgJpZBgBIAEoAxIUCgxkaXNwbGF5X25hbWUYAiABKAkSEgoKYXZhdGFyX3VybBgDIAEoCRIMCgRyb2xlGAQgASgJEg4KBnN0YXR1cxgFIAEoCSKGAQoNTG9naW5SZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSFQoNcmVmcmVzaF90b2tlbhgCIAEoCRISCgpleHBpcmVzX2luGAMgASgFEjQKBm1lbWJlchgEIAEoCzIkLnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLkxvZ2luTWVtYmVyIigKGUdldEpTQVBJQXV0aENvbmZpZ1JlcXVlc3QSCwoDdXJsGAEgASgJImUKGkdldEpTQVBJQXV0aENvbmZpZ1Jlc3BvbnNlEg4KBmFwcF9pZBgBIAEoCRIRCgl0aW1lc3RhbXAYAiABKAkSEQoJbm9uY2Vfc3RyGAMgASgJEhEKCXNpZ25hdHVyZRgEIAEoCTLkAQoLQXV0aFNlcnZpY2USVgoFTG9naW4SJS5zYXN0LnNhc3RzaG9wdjIudXNlci52MS5Mb2dpblJlcXVlc3QaJi5zYXN0LnNhc3RzaG9wdjIudXNlci52MS5Mb2dpblJlc3BvbnNlEn0KEkdldEpTQVBJQXV0aENvbmZpZxIyLnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLkdldEpTQVBJQXV0aENvbmZpZ1JlcXVlc3QaMy5zYXN0LnNhc3RzaG9wdjIudXNlci52MS5HZXRKU0FQSUF1dGhDb25maWdSZXNwb25zZWIGcHJvdG8z",
+  );
 
 /**
  * @generated from message sast.sastshopv2.user.v1.LoginRequest
@@ -36,7 +47,8 @@ export type LoginRequest = Message<"sast.sastshopv2.user.v1.LoginRequest"> & {
  * Describes the message sast.sastshopv2.user.v1.LoginRequest.
  * Use `create(LoginRequestSchema)` to create a new message.
  */
-export const LoginRequestSchema: GenMessage<LoginRequest> = /*@__PURE__*/
+export const LoginRequestSchema: GenMessage<LoginRequest> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_user_v1_auth_service, 0);
 
 /**
@@ -73,7 +85,8 @@ export type LoginMember = Message<"sast.sastshopv2.user.v1.LoginMember"> & {
  * Describes the message sast.sastshopv2.user.v1.LoginMember.
  * Use `create(LoginMemberSchema)` to create a new message.
  */
-export const LoginMemberSchema: GenMessage<LoginMember> = /*@__PURE__*/
+export const LoginMemberSchema: GenMessage<LoginMember> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_user_v1_auth_service, 1);
 
 /**
@@ -105,56 +118,61 @@ export type LoginResponse = Message<"sast.sastshopv2.user.v1.LoginResponse"> & {
  * Describes the message sast.sastshopv2.user.v1.LoginResponse.
  * Use `create(LoginResponseSchema)` to create a new message.
  */
-export const LoginResponseSchema: GenMessage<LoginResponse> = /*@__PURE__*/
+export const LoginResponseSchema: GenMessage<LoginResponse> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_user_v1_auth_service, 2);
 
 /**
  * @generated from message sast.sastshopv2.user.v1.GetJSAPIAuthConfigRequest
  */
-export type GetJSAPIAuthConfigRequest = Message<"sast.sastshopv2.user.v1.GetJSAPIAuthConfigRequest"> & {
-  /**
-   * @generated from field: string url = 1;
-   */
-  url: string;
-};
+export type GetJSAPIAuthConfigRequest =
+  Message<"sast.sastshopv2.user.v1.GetJSAPIAuthConfigRequest"> & {
+    /**
+     * @generated from field: string url = 1;
+     */
+    url: string;
+  };
 
 /**
  * Describes the message sast.sastshopv2.user.v1.GetJSAPIAuthConfigRequest.
  * Use `create(GetJSAPIAuthConfigRequestSchema)` to create a new message.
  */
-export const GetJSAPIAuthConfigRequestSchema: GenMessage<GetJSAPIAuthConfigRequest> = /*@__PURE__*/
+export const GetJSAPIAuthConfigRequestSchema: GenMessage<GetJSAPIAuthConfigRequest> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_user_v1_auth_service, 3);
 
 /**
  * @generated from message sast.sastshopv2.user.v1.GetJSAPIAuthConfigResponse
  */
-export type GetJSAPIAuthConfigResponse = Message<"sast.sastshopv2.user.v1.GetJSAPIAuthConfigResponse"> & {
-  /**
-   * @generated from field: string app_id = 1;
-   */
-  appId: string;
+export type GetJSAPIAuthConfigResponse =
+  Message<"sast.sastshopv2.user.v1.GetJSAPIAuthConfigResponse"> & {
+    /**
+     * @generated from field: string app_id = 1;
+     */
+    appId: string;
 
-  /**
-   * @generated from field: string timestamp = 2;
-   */
-  timestamp: string;
+    /**
+     * @generated from field: string timestamp = 2;
+     */
+    timestamp: string;
 
-  /**
-   * @generated from field: string nonce_str = 3;
-   */
-  nonceStr: string;
+    /**
+     * @generated from field: string nonce_str = 3;
+     */
+    nonceStr: string;
 
-  /**
-   * @generated from field: string signature = 4;
-   */
-  signature: string;
-};
+    /**
+     * @generated from field: string signature = 4;
+     */
+    signature: string;
+  };
 
 /**
  * Describes the message sast.sastshopv2.user.v1.GetJSAPIAuthConfigResponse.
  * Use `create(GetJSAPIAuthConfigResponseSchema)` to create a new message.
  */
-export const GetJSAPIAuthConfigResponseSchema: GenMessage<GetJSAPIAuthConfigResponse> = /*@__PURE__*/
+export const GetJSAPIAuthConfigResponseSchema: GenMessage<GetJSAPIAuthConfigResponse> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_user_v1_auth_service, 4);
 
 /**
@@ -170,7 +188,7 @@ export const AuthService: GenService<{
     methodKind: "unary";
     input: typeof LoginRequestSchema;
     output: typeof LoginResponseSchema;
-  },
+  };
   /**
    * 获取JSAPI鉴权配置
    *
@@ -180,7 +198,5 @@ export const AuthService: GenService<{
     methodKind: "unary";
     input: typeof GetJSAPIAuthConfigRequestSchema;
     output: typeof GetJSAPIAuthConfigResponseSchema;
-  },
-}> = /*@__PURE__*/
-  serviceDesc(file_sast_sastshopv2_user_v1_auth_service, 0);
-
+  };
+}> = /*@__PURE__*/ serviceDesc(file_sast_sastshopv2_user_v1_auth_service, 0);

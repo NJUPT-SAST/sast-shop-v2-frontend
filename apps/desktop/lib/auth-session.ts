@@ -91,11 +91,7 @@ export function setDesktopAuthSessionCookies(
   } as const;
 
   response.cookies.set(sessionCookieName, session.sessionToken, cookieOptions);
-  response.cookies.set(
-    sessionUserCookieName,
-    sessionUserCookie,
-    cookieOptions,
-  );
+  response.cookies.set(sessionUserCookieName, sessionUserCookie, cookieOptions);
 }
 
 export function clearDesktopAuthSessionCookies(response: NextResponse) {

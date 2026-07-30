@@ -9,8 +9,11 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/catalog/v1/store.proto.
  */
-export const file_sast_sastshopv2_catalog_v1_store: GenFile = /*@__PURE__*/
-  fileDesc("CiZzYXN0L3Nhc3RzaG9wdjIvY2F0YWxvZy92MS9zdG9yZS5wcm90bxIac2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEiWQoFU3RvcmUSCgoCaWQYASABKAMSDAoEbmFtZRgCIAEoCRIPCgdhZGRyZXNzGAMgASgJEhAKCGxvZ29fdXJsGAQgASgJEhMKC3RoZW1lX2NvbG9yGAUgASgJYgZwcm90bzM");
+export const file_sast_sastshopv2_catalog_v1_store: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CiZzYXN0L3Nhc3RzaG9wdjIvY2F0YWxvZy92MS9zdG9yZS5wcm90bxIac2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEiWQoFU3RvcmUSCgoCaWQYASABKAMSDAoEbmFtZRgCIAEoCRIPCgdhZGRyZXNzGAMgASgJEhAKCGxvZ29fdXJsGAQgASgJEhMKC3RoZW1lX2NvbG9yGAUgASgJYgZwcm90bzM",
+  );
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.Store
@@ -46,6 +49,6 @@ export type Store = Message<"sast.sastshopv2.catalog.v1.Store"> & {
  * Describes the message sast.sastshopv2.catalog.v1.Store.
  * Use `create(StoreSchema)` to create a new message.
  */
-export const StoreSchema: GenMessage<Store> = /*@__PURE__*/
+export const StoreSchema: GenMessage<Store> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_store, 0);
-

@@ -2,89 +2,106 @@
 // @generated from file sast/sastshopv2/errand/v1/grouptrade_internal.proto (package sast.sastshopv2.errand.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type {
+  GenFile,
+  GenMessage,
+  GenService,
+} from "@bufbuild/protobuf/codegenv2";
+import {
+  fileDesc,
+  messageDesc,
+  serviceDesc,
+} from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file sast/sastshopv2/errand/v1/grouptrade_internal.proto.
  */
-export const file_sast_sastshopv2_errand_v1_grouptrade_internal: GenFile = /*@__PURE__*/
-  fileDesc("CjNzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2dyb3VwdHJhZGVfaW50ZXJuYWwucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEiVQoZT25QYXltZW50Q29uZmlybWVkUmVxdWVzdBITCgtzb3VyY2VfdHlwZRgBIAEoCRIRCglzb3VyY2VfaWQYAiABKAMSEAoIcGF5ZXJfaWQYAyABKAMiHAoaT25QYXltZW50Q29uZmlybWVkUmVzcG9uc2UiRwodT25BbGxQYXltZW50c0NvbmZpcm1lZFJlcXVlc3QSEwoLc291cmNlX3R5cGUYASABKAkSEQoJc291cmNlX2lkGAIgASgDIiAKHk9uQWxsUGF5bWVudHNDb25maXJtZWRSZXNwb25zZTKvAgoZR3JvdXBUcmFkZUludGVybmFsU2VydmljZRKBAQoST25QYXltZW50Q29uZmlybWVkEjQuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5PblBheW1lbnRDb25maXJtZWRSZXF1ZXN0GjUuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5PblBheW1lbnRDb25maXJtZWRSZXNwb25zZRKNAQoWT25BbGxQYXltZW50c0NvbmZpcm1lZBI4LnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuT25BbGxQYXltZW50c0NvbmZpcm1lZFJlcXVlc3QaOS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLk9uQWxsUGF5bWVudHNDb25maXJtZWRSZXNwb25zZWIGcHJvdG8z");
+export const file_sast_sastshopv2_errand_v1_grouptrade_internal: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CjNzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2dyb3VwdHJhZGVfaW50ZXJuYWwucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEiVQoZT25QYXltZW50Q29uZmlybWVkUmVxdWVzdBITCgtzb3VyY2VfdHlwZRgBIAEoCRIRCglzb3VyY2VfaWQYAiABKAMSEAoIcGF5ZXJfaWQYAyABKAMiHAoaT25QYXltZW50Q29uZmlybWVkUmVzcG9uc2UiRwodT25BbGxQYXltZW50c0NvbmZpcm1lZFJlcXVlc3QSEwoLc291cmNlX3R5cGUYASABKAkSEQoJc291cmNlX2lkGAIgASgDIiAKHk9uQWxsUGF5bWVudHNDb25maXJtZWRSZXNwb25zZTKvAgoZR3JvdXBUcmFkZUludGVybmFsU2VydmljZRKBAQoST25QYXltZW50Q29uZmlybWVkEjQuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5PblBheW1lbnRDb25maXJtZWRSZXF1ZXN0GjUuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5PblBheW1lbnRDb25maXJtZWRSZXNwb25zZRKNAQoWT25BbGxQYXltZW50c0NvbmZpcm1lZBI4LnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuT25BbGxQYXltZW50c0NvbmZpcm1lZFJlcXVlc3QaOS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLk9uQWxsUGF5bWVudHNDb25maXJtZWRSZXNwb25zZWIGcHJvdG8z",
+  );
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.OnPaymentConfirmedRequest
  */
-export type OnPaymentConfirmedRequest = Message<"sast.sastshopv2.errand.v1.OnPaymentConfirmedRequest"> & {
-  /**
-   * @generated from field: string source_type = 1;
-   */
-  sourceType: string;
+export type OnPaymentConfirmedRequest =
+  Message<"sast.sastshopv2.errand.v1.OnPaymentConfirmedRequest"> & {
+    /**
+     * @generated from field: string source_type = 1;
+     */
+    sourceType: string;
 
-  /**
-   * @generated from field: int64 source_id = 2;
-   */
-  sourceId: bigint;
+    /**
+     * @generated from field: int64 source_id = 2;
+     */
+    sourceId: bigint;
 
-  /**
-   * @generated from field: int64 payer_id = 3;
-   */
-  payerId: bigint;
-};
+    /**
+     * @generated from field: int64 payer_id = 3;
+     */
+    payerId: bigint;
+  };
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.OnPaymentConfirmedRequest.
  * Use `create(OnPaymentConfirmedRequestSchema)` to create a new message.
  */
-export const OnPaymentConfirmedRequestSchema: GenMessage<OnPaymentConfirmedRequest> = /*@__PURE__*/
+export const OnPaymentConfirmedRequestSchema: GenMessage<OnPaymentConfirmedRequest> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_grouptrade_internal, 0);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.OnPaymentConfirmedResponse
  */
-export type OnPaymentConfirmedResponse = Message<"sast.sastshopv2.errand.v1.OnPaymentConfirmedResponse"> & {
-};
+export type OnPaymentConfirmedResponse =
+  Message<"sast.sastshopv2.errand.v1.OnPaymentConfirmedResponse"> & {};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.OnPaymentConfirmedResponse.
  * Use `create(OnPaymentConfirmedResponseSchema)` to create a new message.
  */
-export const OnPaymentConfirmedResponseSchema: GenMessage<OnPaymentConfirmedResponse> = /*@__PURE__*/
+export const OnPaymentConfirmedResponseSchema: GenMessage<OnPaymentConfirmedResponse> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_grouptrade_internal, 1);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.OnAllPaymentsConfirmedRequest
  */
-export type OnAllPaymentsConfirmedRequest = Message<"sast.sastshopv2.errand.v1.OnAllPaymentsConfirmedRequest"> & {
-  /**
-   * @generated from field: string source_type = 1;
-   */
-  sourceType: string;
+export type OnAllPaymentsConfirmedRequest =
+  Message<"sast.sastshopv2.errand.v1.OnAllPaymentsConfirmedRequest"> & {
+    /**
+     * @generated from field: string source_type = 1;
+     */
+    sourceType: string;
 
-  /**
-   * @generated from field: int64 source_id = 2;
-   */
-  sourceId: bigint;
-};
+    /**
+     * @generated from field: int64 source_id = 2;
+     */
+    sourceId: bigint;
+  };
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.OnAllPaymentsConfirmedRequest.
  * Use `create(OnAllPaymentsConfirmedRequestSchema)` to create a new message.
  */
-export const OnAllPaymentsConfirmedRequestSchema: GenMessage<OnAllPaymentsConfirmedRequest> = /*@__PURE__*/
+export const OnAllPaymentsConfirmedRequestSchema: GenMessage<OnAllPaymentsConfirmedRequest> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_grouptrade_internal, 2);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.OnAllPaymentsConfirmedResponse
  */
-export type OnAllPaymentsConfirmedResponse = Message<"sast.sastshopv2.errand.v1.OnAllPaymentsConfirmedResponse"> & {
-};
+export type OnAllPaymentsConfirmedResponse =
+  Message<"sast.sastshopv2.errand.v1.OnAllPaymentsConfirmedResponse"> & {};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.OnAllPaymentsConfirmedResponse.
  * Use `create(OnAllPaymentsConfirmedResponseSchema)` to create a new message.
  */
-export const OnAllPaymentsConfirmedResponseSchema: GenMessage<OnAllPaymentsConfirmedResponse> = /*@__PURE__*/
+export const OnAllPaymentsConfirmedResponseSchema: GenMessage<OnAllPaymentsConfirmedResponse> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_grouptrade_internal, 3);
 
 /**
@@ -101,7 +118,7 @@ export const GroupTradeInternalService: GenService<{
     methodKind: "unary";
     input: typeof OnPaymentConfirmedRequestSchema;
     output: typeof OnPaymentConfirmedResponseSchema;
-  },
+  };
   /**
    * 同一业务来源下账单全部确认后，由 payment 回调 group-trade 推进整体订单或任务状态
    *
@@ -111,7 +128,7 @@ export const GroupTradeInternalService: GenService<{
     methodKind: "unary";
     input: typeof OnAllPaymentsConfirmedRequestSchema;
     output: typeof OnAllPaymentsConfirmedResponseSchema;
-  },
-}> = /*@__PURE__*/
+  };
+}> =
+  /*@__PURE__*/
   serviceDesc(file_sast_sastshopv2_errand_v1_grouptrade_internal, 0);
-

@@ -21,6 +21,7 @@ import {
 } from "@sast-shop/api";
 import { formatPrice } from "@sast-shop/domain";
 import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
 import { Empty } from "@workspace/ui/components/empty";
 import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
 import { LoadFailure } from "@workspace/ui/components/load-failure";
@@ -504,10 +505,7 @@ function OrderItem({ order }: { order: RenderableOrder }) {
           <ItemTitle className="min-w-0 truncate text-base">
             {order.title}
           </ItemTitle>
-          <Badge
-            variant={statusVariant}
-            className="shrink-0"
-          >
+          <Badge variant={statusVariant} className="shrink-0">
             {statusLabel}
           </Badge>
         </div>
@@ -684,7 +682,9 @@ function mapBuyerErrandOrder(
     createdAt: order.createdAt,
     href: id ? `/orders/errand/${id}` : null,
     modifyHref:
-      id && editStoreId ? `/group/shop/${editStoreId}?editDemandId=${id}` : null,
+      id && editStoreId
+        ? `/group/shop/${editStoreId}?editDemandId=${id}`
+        : null,
     isExpired: shouldDisplayErrandDemandExpired(
       order.status,
       snapshot?.deadline ?? null,

@@ -2,15 +2,22 @@
 // @generated from file sast/sastshopv2/user/v1/error.proto (package sast.sastshopv2.user.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
+import type {
+  GenEnum,
+  GenFile,
+  GenMessage,
+} from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file sast/sastshopv2/user/v1/error.proto.
  */
-export const file_sast_sastshopv2_user_v1_error: GenFile = /*@__PURE__*/
-  fileDesc("CiNzYXN0L3Nhc3RzaG9wdjIvdXNlci92MS9lcnJvci5wcm90bxIXc2FzdC5zYXN0c2hvcHYyLnVzZXIudjEiQQoJVXNlckVycm9yEjQKBGNvZGUYASABKA4yJi5zYXN0LnNhc3RzaG9wdjIudXNlci52MS5Vc2VyRXJyb3JDb2RlKlUKDVVzZXJFcnJvckNvZGUSHwobVVNFUl9FUlJPUl9DT0RFX1VOU1BFQ0lGSUVEEAASIwoeVVNFUl9FUlJPUl9DT0RFX0lOVEVSTkFMX0VSUk9SENAPYgZwcm90bzM");
+export const file_sast_sastshopv2_user_v1_error: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CiNzYXN0L3Nhc3RzaG9wdjIvdXNlci92MS9lcnJvci5wcm90bxIXc2FzdC5zYXN0c2hvcHYyLnVzZXIudjEiQQoJVXNlckVycm9yEjQKBGNvZGUYASABKA4yJi5zYXN0LnNhc3RzaG9wdjIudXNlci52MS5Vc2VyRXJyb3JDb2RlKlUKDVVzZXJFcnJvckNvZGUSHwobVVNFUl9FUlJPUl9DT0RFX1VOU1BFQ0lGSUVEEAASIwoeVVNFUl9FUlJPUl9DT0RFX0lOVEVSTkFMX0VSUk9SENAPYgZwcm90bzM",
+  );
 
 /**
  * @generated from message sast.sastshopv2.user.v1.UserError
@@ -26,7 +33,8 @@ export type UserError = Message<"sast.sastshopv2.user.v1.UserError"> & {
  * Describes the message sast.sastshopv2.user.v1.UserError.
  * Use `create(UserErrorSchema)` to create a new message.
  */
-export const UserErrorSchema: GenMessage<UserError> = /*@__PURE__*/
+export const UserErrorSchema: GenMessage<UserError> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_user_v1_error, 0);
 
 /**
@@ -47,6 +55,6 @@ export enum UserErrorCode {
 /**
  * Describes the enum sast.sastshopv2.user.v1.UserErrorCode.
  */
-export const UserErrorCodeSchema: GenEnum<UserErrorCode> = /*@__PURE__*/
+export const UserErrorCodeSchema: GenEnum<UserErrorCode> =
+  /*@__PURE__*/
   enumDesc(file_sast_sastshopv2_user_v1_error, 0);
-

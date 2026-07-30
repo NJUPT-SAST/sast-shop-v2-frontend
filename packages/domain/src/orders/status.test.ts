@@ -6,27 +6,27 @@ describe("getOrderStatusMeta", () => {
   it("returns display metadata for every order status", () => {
     expect(getOrderStatusMeta("pending_payment")).toEqual({
       label: "待支付",
-      tone: "orange"
+      tone: "orange",
     });
     expect(getOrderStatusMeta("pending_confirm")).toEqual({
       label: "待确认",
-      tone: "amber"
+      tone: "amber",
     });
     expect(getOrderStatusMeta("paid")).toEqual({
       label: "已支付",
-      tone: "blue"
+      tone: "blue",
     });
     expect(getOrderStatusMeta("processing")).toEqual({
       label: "处理中",
-      tone: "blue"
+      tone: "blue",
     });
     expect(getOrderStatusMeta("complete")).toEqual({
       label: "已完成",
-      tone: "emerald"
+      tone: "emerald",
     });
     expect(getOrderStatusMeta("cancelled")).toEqual({
       label: "已取消",
-      tone: "muted"
+      tone: "muted",
     });
   });
 });

@@ -4,7 +4,10 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
-import type { CollectingPaymentRequesterItemBrief, CollectingPaymentRequesterItemDetail } from "./collecting_payment_requester_item_pb";
+import type {
+  CollectingPaymentRequesterItemBrief,
+  CollectingPaymentRequesterItemDetail,
+} from "./collecting_payment_requester_item_pb";
 import { file_sast_sastshopv2_errand_v1_collecting_payment_requester_item } from "./collecting_payment_requester_item_pb";
 import type { Bill, BillStatus } from "../../payment/v1/bill_pb";
 import { file_sast_sastshopv2_payment_v1_bill } from "../../payment/v1/bill_pb";
@@ -13,51 +16,60 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/errand/v1/collecting_payment_bill.proto.
  */
-export const file_sast_sastshopv2_errand_v1_collecting_payment_bill: GenFile = /*@__PURE__*/
-  fileDesc("CjdzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2NvbGxlY3RpbmdfcGF5bWVudF9iaWxsLnByb3RvEhlzYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxIqcCChpDb2xsZWN0aW5nUGF5bWVudEJpbGxCcmllZhIUCgxyZXF1ZXN0ZXJfaWQYASABKAMSFgoOcmVxdWVzdGVyX25hbWUYAiABKAkSHAoUcmVxdWVzdGVyX2F2YXRhcl91cmwYAyABKAkSPgoOcGF5bWVudF9zdGF0dXMYBCABKA4yJi5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5CaWxsU3RhdHVzEi4KBGJpbGwYBSABKAsyIC5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5CaWxsEk0KBWl0ZW1zGAYgAygLMj4uc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5Db2xsZWN0aW5nUGF5bWVudFJlcXVlc3Rlckl0ZW1CcmllZiKoAwobQ29sbGVjdGluZ1BheW1lbnRCaWxsRGV0YWlsEhQKDHJlcXVlc3Rlcl9pZBgBIAEoAxIWCg5yZXF1ZXN0ZXJfbmFtZRgCIAEoCRIcChRyZXF1ZXN0ZXJfYXZhdGFyX3VybBgDIAEoCRI+Cg5wYXltZW50X3N0YXR1cxgEIAEoDjImLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJpbGxTdGF0dXMSLgoEYmlsbBgFIAEoCzIgLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJpbGwSTgoFaXRlbXMYBiADKAsyPy5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkNvbGxlY3RpbmdQYXltZW50UmVxdWVzdGVySXRlbURldGFpbBIcChRwcm9kdWN0X2Ftb3VudF9jZW50cxgHIAEoBRIgChhzZXJ2aWNlX2ZlZV9hbW91bnRfY2VudHMYCCABKAUSIQoZcGFja2FnaW5nX2ZlZV9zaGFyZV9jZW50cxgJIAEoBRIaChJ0b3RhbF9hbW91bnRfY2VudHMYCiABKAViBnByb3RvMw", [file_sast_sastshopv2_errand_v1_collecting_payment_requester_item, file_sast_sastshopv2_payment_v1_bill]);
+export const file_sast_sastshopv2_errand_v1_collecting_payment_bill: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CjdzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2NvbGxlY3RpbmdfcGF5bWVudF9iaWxsLnByb3RvEhlzYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxIqcCChpDb2xsZWN0aW5nUGF5bWVudEJpbGxCcmllZhIUCgxyZXF1ZXN0ZXJfaWQYASABKAMSFgoOcmVxdWVzdGVyX25hbWUYAiABKAkSHAoUcmVxdWVzdGVyX2F2YXRhcl91cmwYAyABKAkSPgoOcGF5bWVudF9zdGF0dXMYBCABKA4yJi5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5CaWxsU3RhdHVzEi4KBGJpbGwYBSABKAsyIC5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5CaWxsEk0KBWl0ZW1zGAYgAygLMj4uc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5Db2xsZWN0aW5nUGF5bWVudFJlcXVlc3Rlckl0ZW1CcmllZiKoAwobQ29sbGVjdGluZ1BheW1lbnRCaWxsRGV0YWlsEhQKDHJlcXVlc3Rlcl9pZBgBIAEoAxIWCg5yZXF1ZXN0ZXJfbmFtZRgCIAEoCRIcChRyZXF1ZXN0ZXJfYXZhdGFyX3VybBgDIAEoCRI+Cg5wYXltZW50X3N0YXR1cxgEIAEoDjImLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJpbGxTdGF0dXMSLgoEYmlsbBgFIAEoCzIgLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJpbGwSTgoFaXRlbXMYBiADKAsyPy5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkNvbGxlY3RpbmdQYXltZW50UmVxdWVzdGVySXRlbURldGFpbBIcChRwcm9kdWN0X2Ftb3VudF9jZW50cxgHIAEoBRIgChhzZXJ2aWNlX2ZlZV9hbW91bnRfY2VudHMYCCABKAUSIQoZcGFja2FnaW5nX2ZlZV9zaGFyZV9jZW50cxgJIAEoBRIaChJ0b3RhbF9hbW91bnRfY2VudHMYCiABKAViBnByb3RvMw",
+    [
+      file_sast_sastshopv2_errand_v1_collecting_payment_requester_item,
+      file_sast_sastshopv2_payment_v1_bill,
+    ],
+  );
 
 /**
  * 收款核对中的买家账单摘要
  *
  * @generated from message sast.sastshopv2.errand.v1.CollectingPaymentBillBrief
  */
-export type CollectingPaymentBillBrief = Message<"sast.sastshopv2.errand.v1.CollectingPaymentBillBrief"> & {
-  /**
-   * @generated from field: int64 requester_id = 1;
-   */
-  requesterId: bigint;
+export type CollectingPaymentBillBrief =
+  Message<"sast.sastshopv2.errand.v1.CollectingPaymentBillBrief"> & {
+    /**
+     * @generated from field: int64 requester_id = 1;
+     */
+    requesterId: bigint;
 
-  /**
-   * @generated from field: string requester_name = 2;
-   */
-  requesterName: string;
+    /**
+     * @generated from field: string requester_name = 2;
+     */
+    requesterName: string;
 
-  /**
-   * @generated from field: string requester_avatar_url = 3;
-   */
-  requesterAvatarUrl: string;
+    /**
+     * @generated from field: string requester_avatar_url = 3;
+     */
+    requesterAvatarUrl: string;
 
-  /**
-   * @generated from field: sast.sastshopv2.payment.v1.BillStatus payment_status = 4;
-   */
-  paymentStatus: BillStatus;
+    /**
+     * @generated from field: sast.sastshopv2.payment.v1.BillStatus payment_status = 4;
+     */
+    paymentStatus: BillStatus;
 
-  /**
-   * @generated from field: sast.sastshopv2.payment.v1.Bill bill = 5;
-   */
-  bill?: Bill | undefined;
+    /**
+     * @generated from field: sast.sastshopv2.payment.v1.Bill bill = 5;
+     */
+    bill?: Bill | undefined;
 
-  /**
-   * @generated from field: repeated sast.sastshopv2.errand.v1.CollectingPaymentRequesterItemBrief items = 6;
-   */
-  items: CollectingPaymentRequesterItemBrief[];
-};
+    /**
+     * @generated from field: repeated sast.sastshopv2.errand.v1.CollectingPaymentRequesterItemBrief items = 6;
+     */
+    items: CollectingPaymentRequesterItemBrief[];
+  };
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.CollectingPaymentBillBrief.
  * Use `create(CollectingPaymentBillBriefSchema)` to create a new message.
  */
-export const CollectingPaymentBillBriefSchema: GenMessage<CollectingPaymentBillBrief> = /*@__PURE__*/
+export const CollectingPaymentBillBriefSchema: GenMessage<CollectingPaymentBillBrief> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_collecting_payment_bill, 0);
 
 /**
@@ -65,62 +77,63 @@ export const CollectingPaymentBillBriefSchema: GenMessage<CollectingPaymentBillB
  *
  * @generated from message sast.sastshopv2.errand.v1.CollectingPaymentBillDetail
  */
-export type CollectingPaymentBillDetail = Message<"sast.sastshopv2.errand.v1.CollectingPaymentBillDetail"> & {
-  /**
-   * @generated from field: int64 requester_id = 1;
-   */
-  requesterId: bigint;
+export type CollectingPaymentBillDetail =
+  Message<"sast.sastshopv2.errand.v1.CollectingPaymentBillDetail"> & {
+    /**
+     * @generated from field: int64 requester_id = 1;
+     */
+    requesterId: bigint;
 
-  /**
-   * @generated from field: string requester_name = 2;
-   */
-  requesterName: string;
+    /**
+     * @generated from field: string requester_name = 2;
+     */
+    requesterName: string;
 
-  /**
-   * @generated from field: string requester_avatar_url = 3;
-   */
-  requesterAvatarUrl: string;
+    /**
+     * @generated from field: string requester_avatar_url = 3;
+     */
+    requesterAvatarUrl: string;
 
-  /**
-   * @generated from field: sast.sastshopv2.payment.v1.BillStatus payment_status = 4;
-   */
-  paymentStatus: BillStatus;
+    /**
+     * @generated from field: sast.sastshopv2.payment.v1.BillStatus payment_status = 4;
+     */
+    paymentStatus: BillStatus;
 
-  /**
-   * @generated from field: sast.sastshopv2.payment.v1.Bill bill = 5;
-   */
-  bill?: Bill | undefined;
+    /**
+     * @generated from field: sast.sastshopv2.payment.v1.Bill bill = 5;
+     */
+    bill?: Bill | undefined;
 
-  /**
-   * @generated from field: repeated sast.sastshopv2.errand.v1.CollectingPaymentRequesterItemDetail items = 6;
-   */
-  items: CollectingPaymentRequesterItemDetail[];
+    /**
+     * @generated from field: repeated sast.sastshopv2.errand.v1.CollectingPaymentRequesterItemDetail items = 6;
+     */
+    items: CollectingPaymentRequesterItemDetail[];
 
-  /**
-   * @generated from field: int32 product_amount_cents = 7;
-   */
-  productAmountCents: number;
+    /**
+     * @generated from field: int32 product_amount_cents = 7;
+     */
+    productAmountCents: number;
 
-  /**
-   * @generated from field: int32 service_fee_amount_cents = 8;
-   */
-  serviceFeeAmountCents: number;
+    /**
+     * @generated from field: int32 service_fee_amount_cents = 8;
+     */
+    serviceFeeAmountCents: number;
 
-  /**
-   * @generated from field: int32 packaging_fee_share_cents = 9;
-   */
-  packagingFeeShareCents: number;
+    /**
+     * @generated from field: int32 packaging_fee_share_cents = 9;
+     */
+    packagingFeeShareCents: number;
 
-  /**
-   * @generated from field: int32 total_amount_cents = 10;
-   */
-  totalAmountCents: number;
-};
+    /**
+     * @generated from field: int32 total_amount_cents = 10;
+     */
+    totalAmountCents: number;
+  };
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.CollectingPaymentBillDetail.
  * Use `create(CollectingPaymentBillDetailSchema)` to create a new message.
  */
-export const CollectingPaymentBillDetailSchema: GenMessage<CollectingPaymentBillDetail> = /*@__PURE__*/
+export const CollectingPaymentBillDetailSchema: GenMessage<CollectingPaymentBillDetail> =
+  /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_collecting_payment_bill, 1);
-

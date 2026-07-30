@@ -102,7 +102,7 @@ Use plain pnpm workspaces for the first implementation. Do not add Turborepo unt
 `packages/ui` follows the shadcn monorepo model. Apps import shared UI components from the workspace package, for example:
 
 ```tsx
-import { Button } from "@workspace/ui/components/button"
+import { Button } from "@workspace/ui/components/button";
 ```
 
 App-specific layout components, feature components, and pages stay inside each app.
