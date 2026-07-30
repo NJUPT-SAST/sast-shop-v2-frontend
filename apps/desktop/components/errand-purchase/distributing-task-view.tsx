@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -77,6 +77,9 @@ export function DistributingTaskView({
   const pendingRef = useRef(false);
   const [items, setItems] = useState(detail.items);
   const [taskUpdatedAt, setTaskUpdatedAt] = useState(detail.taskUpdatedAt);
+  useEffect(() => {
+    setTaskUpdatedAt((current) => detail.taskUpdatedAt ?? current);
+  }, [detail.taskUpdatedAt]);
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       detail.items.map((item) => [
@@ -113,7 +116,15 @@ export function DistributingTaskView({
   );
   const processedCount = requesters.filter(isRequesterProcessed).length;
   const allProcessed =
-    requesters.length > 0 && processedCount === requesters.length;
+    items.length > 0 &&
+    items.every((item) => {
+      const totalTarget = item.requesters.reduce((s, r) => s + r.quantity, 0);
+      const totalDistributed = item.requesters.reduce(
+        (s, r) => s + Math.max(0, r.distributedQuantity),
+        0,
+      );
+      return totalTarget > 0 && totalDistributed >= totalTarget;
+    });
   const distributionGroups =
     mode === "pending_distributing"
       ? [
@@ -247,10 +258,9 @@ export function DistributingTaskView({
     const key = requester.errandTaskAssignmentId;
     if (pendingKeys.has(key)) return;
     if (
-      quantity !== -1 &&
-      (!Number.isInteger(quantity) ||
-        quantity < 0 ||
-        quantity > requester.quantity)
+      !Number.isInteger(quantity) ||
+      quantity < 0 ||
+      quantity > requester.quantity
     ) {
       toast.error(`分发数量应为 0 到 ${requester.quantity}`);
       return;
@@ -272,7 +282,7 @@ export function DistributingTaskView({
         quantity,
         saved.assignmentUpdatedAt ?? requester.assignmentUpdatedAt,
       );
-      toast.success(quantity === -1 ? "已撤销分发结果" : "分发结果已保存");
+      toast.success(quantity === 0 ? "已撤销分发结果" : "分发结果已保存");
     } catch {
       toast.error("分发结果保存失败，请刷新后重试");
     } finally {
@@ -648,7 +658,7 @@ function RequesterRow({
           variant="outline"
           size="sm"
           disabled={busy}
-          onClick={() => onSave(-1)}
+          onClick={() => onSave(0)}
         >
           撤销
         </Button>
@@ -738,7 +748,7 @@ function ConfirmationDialog({
 }
 
 function isRequesterProcessed(requester: DistributingRequester): boolean {
-  return requester.distributedQuantity >= 0;
+  return requester.distributedQuantity > 0;
 }
 
 function formatYuan(cents: number): string {
