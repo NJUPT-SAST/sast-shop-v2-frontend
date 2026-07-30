@@ -4,6 +4,8 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { DistributingRequestInfo } from "./distributing_request_info_pb";
 import { file_sast_sastshopv2_errand_v1_distributing_request_info } from "./distributing_request_info_pb";
 import type { Message } from "@bufbuild/protobuf";
@@ -12,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file sast/sastshopv2/errand/v1/distributing_item.proto.
  */
 export const file_sast_sastshopv2_errand_v1_distributing_item: GenFile = /*@__PURE__*/
-  fileDesc("CjFzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2Rpc3RyaWJ1dGluZ19pdGVtLnByb3RvEhlzYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxIqgCChBEaXN0cmlidXRpbmdJdGVtEhsKE2VycmFuZF90YXNrX2l0ZW1faWQYASABKAMSGwoTcHJvZHVjdF90ZW1wbGF0ZV9pZBgCIAEoAxIWCg50aXRsZV9zbmFwc2hvdBgDIAEoCRIcChRkZXNjcmlwdGlvbl9zbmFwc2hvdBgEIAEoCRIaChJpbWFnZV91cmxfc25hcHNob3QYBSABKAkSHwoXb3JpZ2luX3VuaXRfcHJpY2VfY2VudHMYBiABKAUSHwoXYWN0dWFsX3VuaXRfcHJpY2VfY2VudHMYByABKAUSRgoKcmVxdWVzdGVycxgIIAMoCzIyLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuRGlzdHJpYnV0aW5nUmVxdWVzdEluZm9iBnByb3RvMw", [file_sast_sastshopv2_errand_v1_distributing_request_info]);
+  fileDesc("CjFzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2Rpc3RyaWJ1dGluZ19pdGVtLnByb3RvEhlzYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxItgCChBEaXN0cmlidXRpbmdJdGVtEhsKE2VycmFuZF90YXNrX2l0ZW1faWQYASABKAMSGwoTcHJvZHVjdF90ZW1wbGF0ZV9pZBgCIAEoAxIWCg50aXRsZV9zbmFwc2hvdBgDIAEoCRIcChRkZXNjcmlwdGlvbl9zbmFwc2hvdBgEIAEoCRIaChJpbWFnZV91cmxfc25hcHNob3QYBSABKAkSHwoXb3JpZ2luX3VuaXRfcHJpY2VfY2VudHMYBiABKAUSHwoXYWN0dWFsX3VuaXRfcHJpY2VfY2VudHMYByABKAUSRgoKcmVxdWVzdGVycxgIIAMoCzIyLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuRGlzdHJpYnV0aW5nUmVxdWVzdEluZm8SLgoKdXBkYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBiBnByb3RvMw", [file_google_protobuf_timestamp, file_sast_sastshopv2_errand_v1_distributing_request_info]);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.DistributingItem
@@ -57,6 +59,11 @@ export type DistributingItem = Message<"sast.sastshopv2.errand.v1.DistributingIt
    * @generated from field: repeated sast.sastshopv2.errand.v1.DistributingRequestInfo requesters = 8;
    */
   requesters: DistributingRequestInfo[];
+
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 9;
+   */
+  updatedAt?: Timestamp | undefined;
 };
 
 /**
