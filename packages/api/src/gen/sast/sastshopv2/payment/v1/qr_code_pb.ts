@@ -11,12 +11,8 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/payment/v1/qr_code.proto.
  */
-export const file_sast_sastshopv2_payment_v1_qr_code: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "CihzYXN0L3Nhc3RzaG9wdjIvcGF5bWVudC92MS9xcl9jb2RlLnByb3RvEhpzYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MSJbCgZRckNvZGUSCgoCaWQYASABKAMSNAoHY2hhbm5lbBgCIAEoDjIjLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkNoYW5uZWwSDwoHY29udGVudBgDIAEoCWIGcHJvdG8z",
-    [file_sast_sastshopv2_payment_v1_channel],
-  );
+export const file_sast_sastshopv2_payment_v1_qr_code: GenFile = /*@__PURE__*/
+  fileDesc("CihzYXN0L3Nhc3RzaG9wdjIvcGF5bWVudC92MS9xcl9jb2RlLnByb3RvEhpzYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MSJbCgZRckNvZGUSCgoCaWQYASABKAMSNAoHY2hhbm5lbBgCIAEoDjIjLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkNoYW5uZWwSDwoHY29udGVudBgDIAEoCWIGcHJvdG8z", [file_sast_sastshopv2_payment_v1_channel]);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.QrCode
@@ -42,6 +38,6 @@ export type QrCode = Message<"sast.sastshopv2.payment.v1.QrCode"> & {
  * Describes the message sast.sastshopv2.payment.v1.QrCode.
  * Use `create(QrCodeSchema)` to create a new message.
  */
-export const QrCodeSchema: GenMessage<QrCode> =
-  /*@__PURE__*/
+export const QrCodeSchema: GenMessage<QrCode> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_qr_code, 0);
+

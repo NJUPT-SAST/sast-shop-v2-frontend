@@ -2,16 +2,8 @@
 // @generated from file sast/sastshopv2/catalog/v1/product_template_service.proto (package sast.sastshopv2.catalog.v1, syntax proto3)
 /* eslint-disable */
 
-import type {
-  GenFile,
-  GenMessage,
-  GenService,
-} from "@bufbuild/protobuf/codegenv2";
-import {
-  fileDesc,
-  messageDesc,
-  serviceDesc,
-} from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { FieldMask } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
 import type { ProductTemplate } from "./product_template_pb";
@@ -23,241 +15,215 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/catalog/v1/product_template_service.proto.
  */
-export const file_sast_sastshopv2_catalog_v1_product_template_service: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "CjlzYXN0L3Nhc3RzaG9wdjIvY2F0YWxvZy92MS9wcm9kdWN0X3RlbXBsYXRlX3NlcnZpY2UucHJvdG8SGnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxIlIKHUdldFByb2R1Y3RUZW1wbGF0ZUxpc3RSZXF1ZXN0EhAKCHN0b3JlX2lkGAEgASgDEgwKBHBhZ2UYAiABKAUSEQoJcGFnZV9zaXplGAMgASgFIpMBCh5HZXRQcm9kdWN0VGVtcGxhdGVMaXN0UmVzcG9uc2USRgoRcHJvZHVjdF90ZW1wbGF0ZXMYASADKAsyKy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5Qcm9kdWN0VGVtcGxhdGUSFAoMY3VycmVudF9wYWdlGAIgASgFEhMKC3RvdGFsX2NvdW50GAMgASgFIpIBChxDcmVhdGVQcm9kdWN0VGVtcGxhdGVSZXF1ZXN0EhAKCHN0b3JlX2lkGAEgASgDEg0KBXRpdGxlGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEhMKC3ByaWNlX2NlbnRzGAQgASgFEhYKDm1haW5faW1hZ2VfdXJsGAUgASgJEg8KB2JhcmNvZGUYBiABKAkiZgodQ3JlYXRlUHJvZHVjdFRlbXBsYXRlUmVzcG9uc2USRQoQcHJvZHVjdF90ZW1wbGF0ZRgBIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZSKWAQocVXBkYXRlUHJvZHVjdFRlbXBsYXRlUmVxdWVzdBJFChBwcm9kdWN0X3RlbXBsYXRlGAEgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlEi8KC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFzayJmCh1VcGRhdGVQcm9kdWN0VGVtcGxhdGVSZXNwb25zZRJFChBwcm9kdWN0X3RlbXBsYXRlGAEgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlIjUKIkdldFByb2R1Y3RUZW1wbGF0ZUJ5QmFyY29kZVJlcXVlc3QSDwoHYmFyY29kZRgCIAEoCSL7AQojR2V0UHJvZHVjdFRlbXBsYXRlQnlCYXJjb2RlUmVzcG9uc2USUwoFaXRlbXMYASADKAsyRC5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRQcm9kdWN0VGVtcGxhdGVCeUJhcmNvZGVSZXNwb25zZS5JdGVtGn8KBEl0ZW0SRQoQcHJvZHVjdF90ZW1wbGF0ZRgBIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZRIwCgVzdG9yZRgCIAEoCzIhLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlN0b3JlMukEChZQcm9kdWN0VGVtcGxhdGVTZXJ2aWNlEo8BChZHZXRQcm9kdWN0VGVtcGxhdGVMaXN0Ejkuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuR2V0UHJvZHVjdFRlbXBsYXRlTGlzdFJlcXVlc3QaOi5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRQcm9kdWN0VGVtcGxhdGVMaXN0UmVzcG9uc2USjAEKFUNyZWF0ZVByb2R1Y3RUZW1wbGF0ZRI4LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkNyZWF0ZVByb2R1Y3RUZW1wbGF0ZVJlcXVlc3QaOS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5DcmVhdGVQcm9kdWN0VGVtcGxhdGVSZXNwb25zZRKMAQoVVXBkYXRlUHJvZHVjdFRlbXBsYXRlEjguc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuVXBkYXRlUHJvZHVjdFRlbXBsYXRlUmVxdWVzdBo5LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlVwZGF0ZVByb2R1Y3RUZW1wbGF0ZVJlc3BvbnNlEp4BChtHZXRQcm9kdWN0VGVtcGxhdGVCeUJhcmNvZGUSPi5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRQcm9kdWN0VGVtcGxhdGVCeUJhcmNvZGVSZXF1ZXN0Gj8uc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuR2V0UHJvZHVjdFRlbXBsYXRlQnlCYXJjb2RlUmVzcG9uc2ViBnByb3RvMw",
-    [
-      file_google_protobuf_field_mask,
-      file_sast_sastshopv2_catalog_v1_product_template,
-      file_sast_sastshopv2_catalog_v1_store,
-    ],
-  );
+export const file_sast_sastshopv2_catalog_v1_product_template_service: GenFile = /*@__PURE__*/
+  fileDesc("CjlzYXN0L3Nhc3RzaG9wdjIvY2F0YWxvZy92MS9wcm9kdWN0X3RlbXBsYXRlX3NlcnZpY2UucHJvdG8SGnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxIlIKHUdldFByb2R1Y3RUZW1wbGF0ZUxpc3RSZXF1ZXN0EhAKCHN0b3JlX2lkGAEgASgDEgwKBHBhZ2UYAiABKAUSEQoJcGFnZV9zaXplGAMgASgFIpMBCh5HZXRQcm9kdWN0VGVtcGxhdGVMaXN0UmVzcG9uc2USRgoRcHJvZHVjdF90ZW1wbGF0ZXMYASADKAsyKy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5Qcm9kdWN0VGVtcGxhdGUSFAoMY3VycmVudF9wYWdlGAIgASgFEhMKC3RvdGFsX2NvdW50GAMgASgFIpIBChxDcmVhdGVQcm9kdWN0VGVtcGxhdGVSZXF1ZXN0EhAKCHN0b3JlX2lkGAEgASgDEg0KBXRpdGxlGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEhMKC3ByaWNlX2NlbnRzGAQgASgFEhYKDm1haW5faW1hZ2VfdXJsGAUgASgJEg8KB2JhcmNvZGUYBiABKAkiZgodQ3JlYXRlUHJvZHVjdFRlbXBsYXRlUmVzcG9uc2USRQoQcHJvZHVjdF90ZW1wbGF0ZRgBIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZSKWAQocVXBkYXRlUHJvZHVjdFRlbXBsYXRlUmVxdWVzdBJFChBwcm9kdWN0X3RlbXBsYXRlGAEgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlEi8KC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFzayJmCh1VcGRhdGVQcm9kdWN0VGVtcGxhdGVSZXNwb25zZRJFChBwcm9kdWN0X3RlbXBsYXRlGAEgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlIjUKIkdldFByb2R1Y3RUZW1wbGF0ZUJ5QmFyY29kZVJlcXVlc3QSDwoHYmFyY29kZRgCIAEoCSL7AQojR2V0UHJvZHVjdFRlbXBsYXRlQnlCYXJjb2RlUmVzcG9uc2USUwoFaXRlbXMYASADKAsyRC5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRQcm9kdWN0VGVtcGxhdGVCeUJhcmNvZGVSZXNwb25zZS5JdGVtGn8KBEl0ZW0SRQoQcHJvZHVjdF90ZW1wbGF0ZRgBIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZRIwCgVzdG9yZRgCIAEoCzIhLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlN0b3JlMukEChZQcm9kdWN0VGVtcGxhdGVTZXJ2aWNlEo8BChZHZXRQcm9kdWN0VGVtcGxhdGVMaXN0Ejkuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuR2V0UHJvZHVjdFRlbXBsYXRlTGlzdFJlcXVlc3QaOi5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRQcm9kdWN0VGVtcGxhdGVMaXN0UmVzcG9uc2USjAEKFUNyZWF0ZVByb2R1Y3RUZW1wbGF0ZRI4LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkNyZWF0ZVByb2R1Y3RUZW1wbGF0ZVJlcXVlc3QaOS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5DcmVhdGVQcm9kdWN0VGVtcGxhdGVSZXNwb25zZRKMAQoVVXBkYXRlUHJvZHVjdFRlbXBsYXRlEjguc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuVXBkYXRlUHJvZHVjdFRlbXBsYXRlUmVxdWVzdBo5LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlVwZGF0ZVByb2R1Y3RUZW1wbGF0ZVJlc3BvbnNlEp4BChtHZXRQcm9kdWN0VGVtcGxhdGVCeUJhcmNvZGUSPi5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRQcm9kdWN0VGVtcGxhdGVCeUJhcmNvZGVSZXF1ZXN0Gj8uc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuR2V0UHJvZHVjdFRlbXBsYXRlQnlCYXJjb2RlUmVzcG9uc2ViBnByb3RvMw", [file_google_protobuf_field_mask, file_sast_sastshopv2_catalog_v1_product_template, file_sast_sastshopv2_catalog_v1_store]);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.GetProductTemplateListRequest
  */
-export type GetProductTemplateListRequest =
-  Message<"sast.sastshopv2.catalog.v1.GetProductTemplateListRequest"> & {
-    /**
-     * @generated from field: int64 store_id = 1;
-     */
-    storeId: bigint;
+export type GetProductTemplateListRequest = Message<"sast.sastshopv2.catalog.v1.GetProductTemplateListRequest"> & {
+  /**
+   * @generated from field: int64 store_id = 1;
+   */
+  storeId: bigint;
 
-    /**
-     * @generated from field: int32 page = 2;
-     */
-    page: number;
+  /**
+   * @generated from field: int32 page = 2;
+   */
+  page: number;
 
-    /**
-     * @generated from field: int32 page_size = 3;
-     */
-    pageSize: number;
-  };
+  /**
+   * @generated from field: int32 page_size = 3;
+   */
+  pageSize: number;
+};
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.GetProductTemplateListRequest.
  * Use `create(GetProductTemplateListRequestSchema)` to create a new message.
  */
-export const GetProductTemplateListRequestSchema: GenMessage<GetProductTemplateListRequest> =
-  /*@__PURE__*/
+export const GetProductTemplateListRequestSchema: GenMessage<GetProductTemplateListRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 0);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.GetProductTemplateListResponse
  */
-export type GetProductTemplateListResponse =
-  Message<"sast.sastshopv2.catalog.v1.GetProductTemplateListResponse"> & {
-    /**
-     * @generated from field: repeated sast.sastshopv2.catalog.v1.ProductTemplate product_templates = 1;
-     */
-    productTemplates: ProductTemplate[];
+export type GetProductTemplateListResponse = Message<"sast.sastshopv2.catalog.v1.GetProductTemplateListResponse"> & {
+  /**
+   * @generated from field: repeated sast.sastshopv2.catalog.v1.ProductTemplate product_templates = 1;
+   */
+  productTemplates: ProductTemplate[];
 
-    /**
-     * @generated from field: int32 current_page = 2;
-     */
-    currentPage: number;
+  /**
+   * @generated from field: int32 current_page = 2;
+   */
+  currentPage: number;
 
-    /**
-     * @generated from field: int32 total_count = 3;
-     */
-    totalCount: number;
-  };
+  /**
+   * @generated from field: int32 total_count = 3;
+   */
+  totalCount: number;
+};
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.GetProductTemplateListResponse.
  * Use `create(GetProductTemplateListResponseSchema)` to create a new message.
  */
-export const GetProductTemplateListResponseSchema: GenMessage<GetProductTemplateListResponse> =
-  /*@__PURE__*/
+export const GetProductTemplateListResponseSchema: GenMessage<GetProductTemplateListResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 1);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.CreateProductTemplateRequest
  */
-export type CreateProductTemplateRequest =
-  Message<"sast.sastshopv2.catalog.v1.CreateProductTemplateRequest"> & {
-    /**
-     * @generated from field: int64 store_id = 1;
-     */
-    storeId: bigint;
+export type CreateProductTemplateRequest = Message<"sast.sastshopv2.catalog.v1.CreateProductTemplateRequest"> & {
+  /**
+   * @generated from field: int64 store_id = 1;
+   */
+  storeId: bigint;
 
-    /**
-     * @generated from field: string title = 2;
-     */
-    title: string;
+  /**
+   * @generated from field: string title = 2;
+   */
+  title: string;
 
-    /**
-     * @generated from field: string description = 3;
-     */
-    description: string;
+  /**
+   * @generated from field: string description = 3;
+   */
+  description: string;
 
-    /**
-     * @generated from field: int32 price_cents = 4;
-     */
-    priceCents: number;
+  /**
+   * @generated from field: int32 price_cents = 4;
+   */
+  priceCents: number;
 
-    /**
-     * @generated from field: string main_image_url = 5;
-     */
-    mainImageUrl: string;
+  /**
+   * @generated from field: string main_image_url = 5;
+   */
+  mainImageUrl: string;
 
-    /**
-     * @generated from field: string barcode = 6;
-     */
-    barcode: string;
-  };
+  /**
+   * @generated from field: string barcode = 6;
+   */
+  barcode: string;
+};
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.CreateProductTemplateRequest.
  * Use `create(CreateProductTemplateRequestSchema)` to create a new message.
  */
-export const CreateProductTemplateRequestSchema: GenMessage<CreateProductTemplateRequest> =
-  /*@__PURE__*/
+export const CreateProductTemplateRequestSchema: GenMessage<CreateProductTemplateRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 2);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.CreateProductTemplateResponse
  */
-export type CreateProductTemplateResponse =
-  Message<"sast.sastshopv2.catalog.v1.CreateProductTemplateResponse"> & {
-    /**
-     * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 1;
-     */
-    productTemplate?: ProductTemplate | undefined;
-  };
+export type CreateProductTemplateResponse = Message<"sast.sastshopv2.catalog.v1.CreateProductTemplateResponse"> & {
+  /**
+   * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 1;
+   */
+  productTemplate?: ProductTemplate | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.CreateProductTemplateResponse.
  * Use `create(CreateProductTemplateResponseSchema)` to create a new message.
  */
-export const CreateProductTemplateResponseSchema: GenMessage<CreateProductTemplateResponse> =
-  /*@__PURE__*/
+export const CreateProductTemplateResponseSchema: GenMessage<CreateProductTemplateResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 3);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.UpdateProductTemplateRequest
  */
-export type UpdateProductTemplateRequest =
-  Message<"sast.sastshopv2.catalog.v1.UpdateProductTemplateRequest"> & {
-    /**
-     * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 1;
-     */
-    productTemplate?: ProductTemplate | undefined;
+export type UpdateProductTemplateRequest = Message<"sast.sastshopv2.catalog.v1.UpdateProductTemplateRequest"> & {
+  /**
+   * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 1;
+   */
+  productTemplate?: ProductTemplate | undefined;
 
-    /**
-     * @generated from field: google.protobuf.FieldMask update_mask = 2;
-     */
-    updateMask?: FieldMask | undefined;
-  };
+  /**
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.UpdateProductTemplateRequest.
  * Use `create(UpdateProductTemplateRequestSchema)` to create a new message.
  */
-export const UpdateProductTemplateRequestSchema: GenMessage<UpdateProductTemplateRequest> =
-  /*@__PURE__*/
+export const UpdateProductTemplateRequestSchema: GenMessage<UpdateProductTemplateRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 4);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.UpdateProductTemplateResponse
  */
-export type UpdateProductTemplateResponse =
-  Message<"sast.sastshopv2.catalog.v1.UpdateProductTemplateResponse"> & {
-    /**
-     * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 1;
-     */
-    productTemplate?: ProductTemplate | undefined;
-  };
+export type UpdateProductTemplateResponse = Message<"sast.sastshopv2.catalog.v1.UpdateProductTemplateResponse"> & {
+  /**
+   * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 1;
+   */
+  productTemplate?: ProductTemplate | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.UpdateProductTemplateResponse.
  * Use `create(UpdateProductTemplateResponseSchema)` to create a new message.
  */
-export const UpdateProductTemplateResponseSchema: GenMessage<UpdateProductTemplateResponse> =
-  /*@__PURE__*/
+export const UpdateProductTemplateResponseSchema: GenMessage<UpdateProductTemplateResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 5);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.GetProductTemplateByBarcodeRequest
  */
-export type GetProductTemplateByBarcodeRequest =
-  Message<"sast.sastshopv2.catalog.v1.GetProductTemplateByBarcodeRequest"> & {
-    /**
-     * @generated from field: string barcode = 2;
-     */
-    barcode: string;
-  };
+export type GetProductTemplateByBarcodeRequest = Message<"sast.sastshopv2.catalog.v1.GetProductTemplateByBarcodeRequest"> & {
+  /**
+   * @generated from field: string barcode = 2;
+   */
+  barcode: string;
+};
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.GetProductTemplateByBarcodeRequest.
  * Use `create(GetProductTemplateByBarcodeRequestSchema)` to create a new message.
  */
-export const GetProductTemplateByBarcodeRequestSchema: GenMessage<GetProductTemplateByBarcodeRequest> =
-  /*@__PURE__*/
+export const GetProductTemplateByBarcodeRequestSchema: GenMessage<GetProductTemplateByBarcodeRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 6);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.GetProductTemplateByBarcodeResponse
  */
-export type GetProductTemplateByBarcodeResponse =
-  Message<"sast.sastshopv2.catalog.v1.GetProductTemplateByBarcodeResponse"> & {
-    /**
-     * @generated from field: repeated sast.sastshopv2.catalog.v1.GetProductTemplateByBarcodeResponse.Item items = 1;
-     */
-    items: GetProductTemplateByBarcodeResponse_Item[];
-  };
+export type GetProductTemplateByBarcodeResponse = Message<"sast.sastshopv2.catalog.v1.GetProductTemplateByBarcodeResponse"> & {
+  /**
+   * @generated from field: repeated sast.sastshopv2.catalog.v1.GetProductTemplateByBarcodeResponse.Item items = 1;
+   */
+  items: GetProductTemplateByBarcodeResponse_Item[];
+};
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.GetProductTemplateByBarcodeResponse.
  * Use `create(GetProductTemplateByBarcodeResponseSchema)` to create a new message.
  */
-export const GetProductTemplateByBarcodeResponseSchema: GenMessage<GetProductTemplateByBarcodeResponse> =
-  /*@__PURE__*/
+export const GetProductTemplateByBarcodeResponseSchema: GenMessage<GetProductTemplateByBarcodeResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 7);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.GetProductTemplateByBarcodeResponse.Item
  */
-export type GetProductTemplateByBarcodeResponse_Item =
-  Message<"sast.sastshopv2.catalog.v1.GetProductTemplateByBarcodeResponse.Item"> & {
-    /**
-     * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 1;
-     */
-    productTemplate?: ProductTemplate | undefined;
+export type GetProductTemplateByBarcodeResponse_Item = Message<"sast.sastshopv2.catalog.v1.GetProductTemplateByBarcodeResponse.Item"> & {
+  /**
+   * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 1;
+   */
+  productTemplate?: ProductTemplate | undefined;
 
-    /**
-     * @generated from field: sast.sastshopv2.catalog.v1.Store store = 2;
-     */
-    store?: Store | undefined;
-  };
+  /**
+   * @generated from field: sast.sastshopv2.catalog.v1.Store store = 2;
+   */
+  store?: Store | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.GetProductTemplateByBarcodeResponse.Item.
  * Use `create(GetProductTemplateByBarcodeResponse_ItemSchema)` to create a new message.
  */
-export const GetProductTemplateByBarcodeResponse_ItemSchema: GenMessage<GetProductTemplateByBarcodeResponse_Item> =
-  /*@__PURE__*/
+export const GetProductTemplateByBarcodeResponse_ItemSchema: GenMessage<GetProductTemplateByBarcodeResponse_Item> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 7, 0);
 
 /**
@@ -273,7 +239,7 @@ export const ProductTemplateService: GenService<{
     methodKind: "unary";
     input: typeof GetProductTemplateListRequestSchema;
     output: typeof GetProductTemplateListResponseSchema;
-  };
+  },
   /**
    * 创建商品模板
    *
@@ -283,7 +249,7 @@ export const ProductTemplateService: GenService<{
     methodKind: "unary";
     input: typeof CreateProductTemplateRequestSchema;
     output: typeof CreateProductTemplateResponseSchema;
-  };
+  },
   /**
    * 更新商品模板
    *
@@ -293,7 +259,7 @@ export const ProductTemplateService: GenService<{
     methodKind: "unary";
     input: typeof UpdateProductTemplateRequestSchema;
     output: typeof UpdateProductTemplateResponseSchema;
-  };
+  },
   /**
    * 根据条形码获取商品模板
    *
@@ -303,7 +269,7 @@ export const ProductTemplateService: GenService<{
     methodKind: "unary";
     input: typeof GetProductTemplateByBarcodeRequestSchema;
     output: typeof GetProductTemplateByBarcodeResponseSchema;
-  };
-}> =
-  /*@__PURE__*/
+  },
+}> = /*@__PURE__*/
   serviceDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 0);
+

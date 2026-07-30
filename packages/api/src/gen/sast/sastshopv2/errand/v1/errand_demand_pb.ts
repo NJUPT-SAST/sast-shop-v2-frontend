@@ -11,12 +11,8 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/errand/v1/errand_demand.proto.
  */
-export const file_sast_sastshopv2_errand_v1_errand_demand: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "Ci1zYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF9kZW1hbmQucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEimgEKFUVycmFuZERlbWFuZEl0ZW1EcmFmdBIbChNwcm9kdWN0X3RlbXBsYXRlX2lkGAEgASgDEhAKCHF1YW50aXR5GAIgASgFEiIKGnNlcnZpY2VfZmVlX3Blcl91bml0X2NlbnRzGAMgASgFEi4KCnVwZGF0ZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wYgZwcm90bzM",
-    [file_google_protobuf_timestamp],
-  );
+export const file_sast_sastshopv2_errand_v1_errand_demand: GenFile = /*@__PURE__*/
+  fileDesc("Ci1zYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF9kZW1hbmQucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEimgEKFUVycmFuZERlbWFuZEl0ZW1EcmFmdBIbChNwcm9kdWN0X3RlbXBsYXRlX2lkGAEgASgDEhAKCHF1YW50aXR5GAIgASgFEiIKGnNlcnZpY2VfZmVlX3Blcl91bml0X2NlbnRzGAMgASgFEi4KCnVwZGF0ZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wYgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
  * 创建跑腿需求时提交的商品行草稿
@@ -24,41 +20,40 @@ export const file_sast_sastshopv2_errand_v1_errand_demand: GenFile =
  *
  * @generated from message sast.sastshopv2.errand.v1.ErrandDemandItemDraft
  */
-export type ErrandDemandItemDraft =
-  Message<"sast.sastshopv2.errand.v1.ErrandDemandItemDraft"> & {
-    /**
-     * catalog 商品模板 ID
-     *
-     * @generated from field: int64 product_template_id = 1;
-     */
-    productTemplateId: bigint;
+export type ErrandDemandItemDraft = Message<"sast.sastshopv2.errand.v1.ErrandDemandItemDraft"> & {
+  /**
+   * catalog 商品模板 ID
+   *
+   * @generated from field: int64 product_template_id = 1;
+   */
+  productTemplateId: bigint;
 
-    /**
-     * 需求数量
-     *
-     * @generated from field: int32 quantity = 2;
-     */
-    quantity: number;
+  /**
+   * 需求数量
+   *
+   * @generated from field: int32 quantity = 2;
+   */
+  quantity: number;
 
-    /**
-     * 单件跑腿费，单位为分
-     *
-     * @generated from field: int32 service_fee_per_unit_cents = 3;
-     */
-    serviceFeePerUnitCents: number;
+  /**
+   * 单件跑腿费，单位为分
+   *
+   * @generated from field: int32 service_fee_per_unit_cents = 3;
+   */
+  serviceFeePerUnitCents: number;
 
-    /**
-     * 前端读取商品模板时拿到的 updated_at，用于校验商品模板是否被更新
-     *
-     * @generated from field: google.protobuf.Timestamp updated_at = 4;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+  /**
+   * 前端读取商品模板时拿到的 updated_at，用于校验商品模板是否被更新
+   *
+   * @generated from field: google.protobuf.Timestamp updated_at = 4;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.ErrandDemandItemDraft.
  * Use `create(ErrandDemandItemDraftSchema)` to create a new message.
  */
-export const ErrandDemandItemDraftSchema: GenMessage<ErrandDemandItemDraft> =
-  /*@__PURE__*/
+export const ErrandDemandItemDraftSchema: GenMessage<ErrandDemandItemDraft> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_demand, 0);
+

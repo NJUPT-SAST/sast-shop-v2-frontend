@@ -2,16 +2,8 @@
 // @generated from file sast/sastshopv2/catalog/v1/store_service.proto (package sast.sastshopv2.catalog.v1, syntax proto3)
 /* eslint-disable */
 
-import type {
-  GenFile,
-  GenMessage,
-  GenService,
-} from "@bufbuild/protobuf/codegenv2";
-import {
-  fileDesc,
-  messageDesc,
-  serviceDesc,
-} from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { FieldMask } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
 import type { Store } from "./store_pb";
@@ -21,140 +13,125 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/catalog/v1/store_service.proto.
  */
-export const file_sast_sastshopv2_catalog_v1_store_service: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "Ci5zYXN0L3Nhc3RzaG9wdjIvY2F0YWxvZy92MS9zdG9yZV9zZXJ2aWNlLnByb3RvEhpzYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MSIVChNHZXRTdG9yZUxpc3RSZXF1ZXN0IkkKFEdldFN0b3JlTGlzdFJlc3BvbnNlEjEKBnN0b3JlcxgBIAMoCzIhLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlN0b3JlIloKEkNyZWF0ZVN0b3JlUmVxdWVzdBIMCgRuYW1lGAEgASgJEg8KB2FkZHJlc3MYAiABKAkSEAoIbG9nb191cmwYAyABKAkSEwoLdGhlbWVfY29sb3IYBCABKAkiRwoTQ3JlYXRlU3RvcmVSZXNwb25zZRIwCgVzdG9yZRgBIAEoCzIhLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlN0b3JlIncKElVwZGF0ZVN0b3JlUmVxdWVzdBIwCgVzdG9yZRgBIAEoCzIhLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlN0b3JlEi8KC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFzayJHChNVcGRhdGVTdG9yZVJlc3BvbnNlEjAKBXN0b3JlGAEgASgLMiEuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuU3RvcmUy4wIKDkNhdGFsb2dTZXJ2aWNlEnEKDEdldFN0b3JlTGlzdBIvLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkdldFN0b3JlTGlzdFJlcXVlc3QaMC5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRTdG9yZUxpc3RSZXNwb25zZRJuCgtDcmVhdGVTdG9yZRIuLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkNyZWF0ZVN0b3JlUmVxdWVzdBovLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkNyZWF0ZVN0b3JlUmVzcG9uc2USbgoLVXBkYXRlU3RvcmUSLi5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5VcGRhdGVTdG9yZVJlcXVlc3QaLy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5VcGRhdGVTdG9yZVJlc3BvbnNlYgZwcm90bzM",
-    [file_google_protobuf_field_mask, file_sast_sastshopv2_catalog_v1_store],
-  );
+export const file_sast_sastshopv2_catalog_v1_store_service: GenFile = /*@__PURE__*/
+  fileDesc("Ci5zYXN0L3Nhc3RzaG9wdjIvY2F0YWxvZy92MS9zdG9yZV9zZXJ2aWNlLnByb3RvEhpzYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MSIVChNHZXRTdG9yZUxpc3RSZXF1ZXN0IkkKFEdldFN0b3JlTGlzdFJlc3BvbnNlEjEKBnN0b3JlcxgBIAMoCzIhLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlN0b3JlIloKEkNyZWF0ZVN0b3JlUmVxdWVzdBIMCgRuYW1lGAEgASgJEg8KB2FkZHJlc3MYAiABKAkSEAoIbG9nb191cmwYAyABKAkSEwoLdGhlbWVfY29sb3IYBCABKAkiRwoTQ3JlYXRlU3RvcmVSZXNwb25zZRIwCgVzdG9yZRgBIAEoCzIhLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlN0b3JlIncKElVwZGF0ZVN0b3JlUmVxdWVzdBIwCgVzdG9yZRgBIAEoCzIhLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlN0b3JlEi8KC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFzayJHChNVcGRhdGVTdG9yZVJlc3BvbnNlEjAKBXN0b3JlGAEgASgLMiEuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuU3RvcmUy4wIKDkNhdGFsb2dTZXJ2aWNlEnEKDEdldFN0b3JlTGlzdBIvLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkdldFN0b3JlTGlzdFJlcXVlc3QaMC5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRTdG9yZUxpc3RSZXNwb25zZRJuCgtDcmVhdGVTdG9yZRIuLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkNyZWF0ZVN0b3JlUmVxdWVzdBovLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkNyZWF0ZVN0b3JlUmVzcG9uc2USbgoLVXBkYXRlU3RvcmUSLi5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5VcGRhdGVTdG9yZVJlcXVlc3QaLy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5VcGRhdGVTdG9yZVJlc3BvbnNlYgZwcm90bzM", [file_google_protobuf_field_mask, file_sast_sastshopv2_catalog_v1_store]);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.GetStoreListRequest
  */
-export type GetStoreListRequest =
-  Message<"sast.sastshopv2.catalog.v1.GetStoreListRequest"> & {};
+export type GetStoreListRequest = Message<"sast.sastshopv2.catalog.v1.GetStoreListRequest"> & {
+};
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.GetStoreListRequest.
  * Use `create(GetStoreListRequestSchema)` to create a new message.
  */
-export const GetStoreListRequestSchema: GenMessage<GetStoreListRequest> =
-  /*@__PURE__*/
+export const GetStoreListRequestSchema: GenMessage<GetStoreListRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_store_service, 0);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.GetStoreListResponse
  */
-export type GetStoreListResponse =
-  Message<"sast.sastshopv2.catalog.v1.GetStoreListResponse"> & {
-    /**
-     * @generated from field: repeated sast.sastshopv2.catalog.v1.Store stores = 1;
-     */
-    stores: Store[];
-  };
+export type GetStoreListResponse = Message<"sast.sastshopv2.catalog.v1.GetStoreListResponse"> & {
+  /**
+   * @generated from field: repeated sast.sastshopv2.catalog.v1.Store stores = 1;
+   */
+  stores: Store[];
+};
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.GetStoreListResponse.
  * Use `create(GetStoreListResponseSchema)` to create a new message.
  */
-export const GetStoreListResponseSchema: GenMessage<GetStoreListResponse> =
-  /*@__PURE__*/
+export const GetStoreListResponseSchema: GenMessage<GetStoreListResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_store_service, 1);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.CreateStoreRequest
  */
-export type CreateStoreRequest =
-  Message<"sast.sastshopv2.catalog.v1.CreateStoreRequest"> & {
-    /**
-     * @generated from field: string name = 1;
-     */
-    name: string;
+export type CreateStoreRequest = Message<"sast.sastshopv2.catalog.v1.CreateStoreRequest"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
 
-    /**
-     * @generated from field: string address = 2;
-     */
-    address: string;
+  /**
+   * @generated from field: string address = 2;
+   */
+  address: string;
 
-    /**
-     * @generated from field: string logo_url = 3;
-     */
-    logoUrl: string;
+  /**
+   * @generated from field: string logo_url = 3;
+   */
+  logoUrl: string;
 
-    /**
-     * @generated from field: string theme_color = 4;
-     */
-    themeColor: string;
-  };
+  /**
+   * @generated from field: string theme_color = 4;
+   */
+  themeColor: string;
+};
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.CreateStoreRequest.
  * Use `create(CreateStoreRequestSchema)` to create a new message.
  */
-export const CreateStoreRequestSchema: GenMessage<CreateStoreRequest> =
-  /*@__PURE__*/
+export const CreateStoreRequestSchema: GenMessage<CreateStoreRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_store_service, 2);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.CreateStoreResponse
  */
-export type CreateStoreResponse =
-  Message<"sast.sastshopv2.catalog.v1.CreateStoreResponse"> & {
-    /**
-     * @generated from field: sast.sastshopv2.catalog.v1.Store store = 1;
-     */
-    store?: Store | undefined;
-  };
+export type CreateStoreResponse = Message<"sast.sastshopv2.catalog.v1.CreateStoreResponse"> & {
+  /**
+   * @generated from field: sast.sastshopv2.catalog.v1.Store store = 1;
+   */
+  store?: Store | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.CreateStoreResponse.
  * Use `create(CreateStoreResponseSchema)` to create a new message.
  */
-export const CreateStoreResponseSchema: GenMessage<CreateStoreResponse> =
-  /*@__PURE__*/
+export const CreateStoreResponseSchema: GenMessage<CreateStoreResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_store_service, 3);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.UpdateStoreRequest
  */
-export type UpdateStoreRequest =
-  Message<"sast.sastshopv2.catalog.v1.UpdateStoreRequest"> & {
-    /**
-     * @generated from field: sast.sastshopv2.catalog.v1.Store store = 1;
-     */
-    store?: Store | undefined;
+export type UpdateStoreRequest = Message<"sast.sastshopv2.catalog.v1.UpdateStoreRequest"> & {
+  /**
+   * @generated from field: sast.sastshopv2.catalog.v1.Store store = 1;
+   */
+  store?: Store | undefined;
 
-    /**
-     * @generated from field: google.protobuf.FieldMask update_mask = 2;
-     */
-    updateMask?: FieldMask | undefined;
-  };
+  /**
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.UpdateStoreRequest.
  * Use `create(UpdateStoreRequestSchema)` to create a new message.
  */
-export const UpdateStoreRequestSchema: GenMessage<UpdateStoreRequest> =
-  /*@__PURE__*/
+export const UpdateStoreRequestSchema: GenMessage<UpdateStoreRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_store_service, 4);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.UpdateStoreResponse
  */
-export type UpdateStoreResponse =
-  Message<"sast.sastshopv2.catalog.v1.UpdateStoreResponse"> & {
-    /**
-     * @generated from field: sast.sastshopv2.catalog.v1.Store store = 1;
-     */
-    store?: Store | undefined;
-  };
+export type UpdateStoreResponse = Message<"sast.sastshopv2.catalog.v1.UpdateStoreResponse"> & {
+  /**
+   * @generated from field: sast.sastshopv2.catalog.v1.Store store = 1;
+   */
+  store?: Store | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.UpdateStoreResponse.
  * Use `create(UpdateStoreResponseSchema)` to create a new message.
  */
-export const UpdateStoreResponseSchema: GenMessage<UpdateStoreResponse> =
-  /*@__PURE__*/
+export const UpdateStoreResponseSchema: GenMessage<UpdateStoreResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_store_service, 5);
 
 /**
@@ -170,7 +147,7 @@ export const CatalogService: GenService<{
     methodKind: "unary";
     input: typeof GetStoreListRequestSchema;
     output: typeof GetStoreListResponseSchema;
-  };
+  },
   /**
    * 创建店铺
    *
@@ -180,7 +157,7 @@ export const CatalogService: GenService<{
     methodKind: "unary";
     input: typeof CreateStoreRequestSchema;
     output: typeof CreateStoreResponseSchema;
-  };
+  },
   /**
    * 更新店铺
    *
@@ -190,7 +167,7 @@ export const CatalogService: GenService<{
     methodKind: "unary";
     input: typeof UpdateStoreRequestSchema;
     output: typeof UpdateStoreResponseSchema;
-  };
-}> =
-  /*@__PURE__*/
+  },
+}> = /*@__PURE__*/
   serviceDesc(file_sast_sastshopv2_catalog_v1_store_service, 0);
+

@@ -15,106 +15,97 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/errand/v1/errand_demand_item.proto.
  */
-export const file_sast_sastshopv2_errand_v1_errand_demand_item: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "CjJzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF9kZW1hbmRfaXRlbS5wcm90bxIZc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MSKiAwoQRXJyYW5kRGVtYW5kSXRlbRIKCgJpZBgBIAEoAxIYChBlcnJhbmRfZGVtYW5kX2lkGAIgASgDEhQKDHJlcXVlc3Rlcl9pZBgDIAEoAxIQCghzdG9yZV9pZBgEIAEoAxJFChBwcm9kdWN0X3RlbXBsYXRlGAUgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlEiIKGmVzdGltYXRlZF91bml0X3ByaWNlX2NlbnRzGAYgASgFEhAKCHF1YW50aXR5GAcgASgFEiIKGnNlcnZpY2VfZmVlX3Blcl91bml0X2NlbnRzGAggASgFEkEKBnN0YXR1cxgJIAEoDjIxLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuRXJyYW5kRGVtYW5kSXRlbVN0YXR1cxIsCghkZWFkbGluZRgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBiBnByb3RvMw",
-    [
-      file_google_protobuf_timestamp,
-      file_sast_sastshopv2_catalog_v1_product_template,
-      file_sast_sastshopv2_errand_v1_errand_demand_item_status,
-    ],
-  );
+export const file_sast_sastshopv2_errand_v1_errand_demand_item: GenFile = /*@__PURE__*/
+  fileDesc("CjJzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF9kZW1hbmRfaXRlbS5wcm90bxIZc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MSKiAwoQRXJyYW5kRGVtYW5kSXRlbRIKCgJpZBgBIAEoAxIYChBlcnJhbmRfZGVtYW5kX2lkGAIgASgDEhQKDHJlcXVlc3Rlcl9pZBgDIAEoAxIQCghzdG9yZV9pZBgEIAEoAxJFChBwcm9kdWN0X3RlbXBsYXRlGAUgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlEiIKGmVzdGltYXRlZF91bml0X3ByaWNlX2NlbnRzGAYgASgFEhAKCHF1YW50aXR5GAcgASgFEiIKGnNlcnZpY2VfZmVlX3Blcl91bml0X2NlbnRzGAggASgFEkEKBnN0YXR1cxgJIAEoDjIxLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuRXJyYW5kRGVtYW5kSXRlbVN0YXR1cxIsCghkZWFkbGluZRgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBiBnByb3RvMw", [file_google_protobuf_timestamp, file_sast_sastshopv2_catalog_v1_product_template, file_sast_sastshopv2_errand_v1_errand_demand_item_status]);
 
 /**
  * 买家跑腿订单中的单个商品需求行，商品描述实时读取 catalog 商品模板
  *
  * @generated from message sast.sastshopv2.errand.v1.ErrandDemandItem
  */
-export type ErrandDemandItem =
-  Message<"sast.sastshopv2.errand.v1.ErrandDemandItem"> & {
-    /**
-     * 需求行 ID，对应 errand_demand_item.id
-     *
-     * @generated from field: int64 id = 1;
-     */
-    id: bigint;
+export type ErrandDemandItem = Message<"sast.sastshopv2.errand.v1.ErrandDemandItem"> & {
+  /**
+   * 需求行 ID，对应 errand_demand_item.id
+   *
+   * @generated from field: int64 id = 1;
+   */
+  id: bigint;
 
-    /**
-     * 所属买家视角跑腿订单 ID
-     *
-     * @generated from field: int64 errand_demand_id = 2;
-     */
-    errandDemandId: bigint;
+  /**
+   * 所属买家视角跑腿订单 ID
+   *
+   * @generated from field: int64 errand_demand_id = 2;
+   */
+  errandDemandId: bigint;
 
-    /**
-     * 发起需求的购买人 ID
-     *
-     * @generated from field: int64 requester_id = 3;
-     */
-    requesterId: bigint;
+  /**
+   * 发起需求的购买人 ID
+   *
+   * @generated from field: int64 requester_id = 3;
+   */
+  requesterId: bigint;
 
-    /**
-     * 目标店铺 ID
-     *
-     * @generated from field: int64 store_id = 4;
-     */
-    storeId: bigint;
+  /**
+   * 目标店铺 ID
+   *
+   * @generated from field: int64 store_id = 4;
+   */
+  storeId: bigint;
 
-    /**
-     * catalog 商品模板实时信息
-     *
-     * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 5;
-     */
-    productTemplate?: ProductTemplate | undefined;
+  /**
+   * catalog 商品模板实时信息
+   *
+   * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 5;
+   */
+  productTemplate?: ProductTemplate | undefined;
 
-    /**
-     * 下单时的预估单价，单位为分
-     *
-     * @generated from field: int32 estimated_unit_price_cents = 6;
-     */
-    estimatedUnitPriceCents: number;
+  /**
+   * 下单时的预估单价，单位为分
+   *
+   * @generated from field: int32 estimated_unit_price_cents = 6;
+   */
+  estimatedUnitPriceCents: number;
 
-    /**
-     * 需求数量
-     *
-     * @generated from field: int32 quantity = 7;
-     */
-    quantity: number;
+  /**
+   * 需求数量
+   *
+   * @generated from field: int32 quantity = 7;
+   */
+  quantity: number;
 
-    /**
-     * 单件跑腿费，单位为分
-     *
-     * @generated from field: int32 service_fee_per_unit_cents = 8;
-     */
-    serviceFeePerUnitCents: number;
+  /**
+   * 单件跑腿费，单位为分
+   *
+   * @generated from field: int32 service_fee_per_unit_cents = 8;
+   */
+  serviceFeePerUnitCents: number;
 
-    /**
-     * 需求行状态
-     *
-     * @generated from field: sast.sastshopv2.errand.v1.ErrandDemandItemStatus status = 9;
-     */
-    status: ErrandDemandItemStatus;
+  /**
+   * 需求行状态
+   *
+   * @generated from field: sast.sastshopv2.errand.v1.ErrandDemandItemStatus status = 9;
+   */
+  status: ErrandDemandItemStatus;
 
-    /**
-     * 期望送达时间
-     *
-     * @generated from field: google.protobuf.Timestamp deadline = 10;
-     */
-    deadline?: Timestamp | undefined;
+  /**
+   * 期望送达时间
+   *
+   * @generated from field: google.protobuf.Timestamp deadline = 10;
+   */
+  deadline?: Timestamp | undefined;
 
-    /**
-     * 需求行最近更新时间，用于接单并发校验
-     *
-     * @generated from field: google.protobuf.Timestamp updated_at = 11;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+  /**
+   * 需求行最近更新时间，用于接单并发校验
+   *
+   * @generated from field: google.protobuf.Timestamp updated_at = 11;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.ErrandDemandItem.
  * Use `create(ErrandDemandItemSchema)` to create a new message.
  */
-export const ErrandDemandItemSchema: GenMessage<ErrandDemandItem> =
-  /*@__PURE__*/
+export const ErrandDemandItemSchema: GenMessage<ErrandDemandItem> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_demand_item, 0);
+

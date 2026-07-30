@@ -8,11 +8,8 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv2";
 /**
  * Describes the file sast/sastshopv2/errand/v1/errand_task_status.proto.
  */
-export const file_sast_sastshopv2_errand_v1_errand_task_status: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "CjJzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF90YXNrX3N0YXR1cy5wcm90bxIZc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MSqYAgoQRXJyYW5kVGFza1N0YXR1cxIiCh5FUlJBTkRfVEFTS19TVEFUVVNfVU5TUEVDSUZJRUQQABIfChtFUlJBTkRfVEFTS19TVEFUVVNfU0hPUFBJTkcQARIrCidFUlJBTkRfVEFTS19TVEFUVVNfUEVORElOR19ESVNUUklCVVRJTkcQAhIjCh9FUlJBTkRfVEFTS19TVEFUVVNfRElTVFJJQlVUSU5HEAMSKQolRVJSQU5EX1RBU0tfU1RBVFVTX0NPTExFQ1RJTkdfUEFZTUVOVBAEEiAKHEVSUkFORF9UQVNLX1NUQVRVU19DT01QTEVURUQQBRIgChxFUlJBTkRfVEFTS19TVEFUVVNfQ0FOQ0VMTEVEEAZiBnByb3RvMw",
-  );
+export const file_sast_sastshopv2_errand_v1_errand_task_status: GenFile = /*@__PURE__*/
+  fileDesc("CjJzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF90YXNrX3N0YXR1cy5wcm90bxIZc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MSqYAgoQRXJyYW5kVGFza1N0YXR1cxIiCh5FUlJBTkRfVEFTS19TVEFUVVNfVU5TUEVDSUZJRUQQABIfChtFUlJBTkRfVEFTS19TVEFUVVNfU0hPUFBJTkcQARIrCidFUlJBTkRfVEFTS19TVEFUVVNfUEVORElOR19ESVNUUklCVVRJTkcQAhIjCh9FUlJBTkRfVEFTS19TVEFUVVNfRElTVFJJQlVUSU5HEAMSKQolRVJSQU5EX1RBU0tfU1RBVFVTX0NPTExFQ1RJTkdfUEFZTUVOVBAEEiAKHEVSUkFORF9UQVNLX1NUQVRVU19DT01QTEVURUQQBRIgChxFUlJBTkRfVEFTS19TVEFUVVNfQ0FOQ0VMTEVEEAZiBnByb3RvMw");
 
 /**
  * @generated from enum sast.sastshopv2.errand.v1.ErrandTaskStatus
@@ -57,6 +54,6 @@ export enum ErrandTaskStatus {
 /**
  * Describes the enum sast.sastshopv2.errand.v1.ErrandTaskStatus.
  */
-export const ErrandTaskStatusSchema: GenEnum<ErrandTaskStatus> =
-  /*@__PURE__*/
+export const ErrandTaskStatusSchema: GenEnum<ErrandTaskStatus> = /*@__PURE__*/
   enumDesc(file_sast_sastshopv2_errand_v1_errand_task_status, 0);
+

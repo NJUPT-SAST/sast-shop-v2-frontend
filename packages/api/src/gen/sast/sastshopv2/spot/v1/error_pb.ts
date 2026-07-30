@@ -2,22 +2,15 @@
 // @generated from file sast/sastshopv2/spot/v1/error.proto (package sast.sastshopv2.spot.v1, syntax proto3)
 /* eslint-disable */
 
-import type {
-  GenEnum,
-  GenFile,
-  GenMessage,
-} from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file sast/sastshopv2/spot/v1/error.proto.
  */
-export const file_sast_sastshopv2_spot_v1_error: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "CiNzYXN0L3Nhc3RzaG9wdjIvc3BvdC92MS9lcnJvci5wcm90bxIXc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEiQQoJU3BvdEVycm9yEjQKBGNvZGUYASABKA4yJi5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5TcG90RXJyb3JDb2RlKlUKDVNwb3RFcnJvckNvZGUSHwobU1BPVF9FUlJPUl9DT0RFX1VOU1BFQ0lGSUVEEAASIwoeU1BPVF9FUlJPUl9DT0RFX0lOVEVSTkFMX0VSUk9SEIgnYgZwcm90bzM",
-  );
+export const file_sast_sastshopv2_spot_v1_error: GenFile = /*@__PURE__*/
+  fileDesc("CiNzYXN0L3Nhc3RzaG9wdjIvc3BvdC92MS9lcnJvci5wcm90bxIXc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEiQQoJU3BvdEVycm9yEjQKBGNvZGUYASABKA4yJi5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5TcG90RXJyb3JDb2RlKlUKDVNwb3RFcnJvckNvZGUSHwobU1BPVF9FUlJPUl9DT0RFX1VOU1BFQ0lGSUVEEAASIwoeU1BPVF9FUlJPUl9DT0RFX0lOVEVSTkFMX0VSUk9SEIgnYgZwcm90bzM");
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.SpotError
@@ -33,8 +26,7 @@ export type SpotError = Message<"sast.sastshopv2.spot.v1.SpotError"> & {
  * Describes the message sast.sastshopv2.spot.v1.SpotError.
  * Use `create(SpotErrorSchema)` to create a new message.
  */
-export const SpotErrorSchema: GenMessage<SpotError> =
-  /*@__PURE__*/
+export const SpotErrorSchema: GenMessage<SpotError> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_spot_v1_error, 0);
 
 /**
@@ -55,6 +47,6 @@ export enum SpotErrorCode {
 /**
  * Describes the enum sast.sastshopv2.spot.v1.SpotErrorCode.
  */
-export const SpotErrorCodeSchema: GenEnum<SpotErrorCode> =
-  /*@__PURE__*/
+export const SpotErrorCodeSchema: GenEnum<SpotErrorCode> = /*@__PURE__*/
   enumDesc(file_sast_sastshopv2_spot_v1_error, 0);
+

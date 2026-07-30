@@ -2,22 +2,15 @@
 // @generated from file sast/sastshopv2/errand/v1/error.proto (package sast.sastshopv2.errand.v1, syntax proto3)
 /* eslint-disable */
 
-import type {
-  GenEnum,
-  GenFile,
-  GenMessage,
-} from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file sast/sastshopv2/errand/v1/error.proto.
  */
-export const file_sast_sastshopv2_errand_v1_error: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "CiVzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2Vycm9yLnByb3RvEhlzYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxIkcKC0VycmFuZEVycm9yEjgKBGNvZGUYASABKA4yKi5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZEVycm9yQ29kZSpbCg9FcnJhbmRFcnJvckNvZGUSIQodRVJSQU5EX0VSUk9SX0NPREVfVU5TUEVDSUZJRUQQABIlCiBFUlJBTkRfRVJST1JfQ09ERV9JTlRFUk5BTF9FUlJPUhDwLmIGcHJvdG8z",
-  );
+export const file_sast_sastshopv2_errand_v1_error: GenFile = /*@__PURE__*/
+  fileDesc("CiVzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2Vycm9yLnByb3RvEhlzYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxIkcKC0VycmFuZEVycm9yEjgKBGNvZGUYASABKA4yKi5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZEVycm9yQ29kZSpbCg9FcnJhbmRFcnJvckNvZGUSIQodRVJSQU5EX0VSUk9SX0NPREVfVU5TUEVDSUZJRUQQABIlCiBFUlJBTkRfRVJST1JfQ09ERV9JTlRFUk5BTF9FUlJPUhDwLmIGcHJvdG8z");
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.ErrandError
@@ -33,8 +26,7 @@ export type ErrandError = Message<"sast.sastshopv2.errand.v1.ErrandError"> & {
  * Describes the message sast.sastshopv2.errand.v1.ErrandError.
  * Use `create(ErrandErrorSchema)` to create a new message.
  */
-export const ErrandErrorSchema: GenMessage<ErrandError> =
-  /*@__PURE__*/
+export const ErrandErrorSchema: GenMessage<ErrandError> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_error, 0);
 
 /**
@@ -55,6 +47,6 @@ export enum ErrandErrorCode {
 /**
  * Describes the enum sast.sastshopv2.errand.v1.ErrandErrorCode.
  */
-export const ErrandErrorCodeSchema: GenEnum<ErrandErrorCode> =
-  /*@__PURE__*/
+export const ErrandErrorCodeSchema: GenEnum<ErrandErrorCode> = /*@__PURE__*/
   enumDesc(file_sast_sastshopv2_errand_v1_error, 0);
+

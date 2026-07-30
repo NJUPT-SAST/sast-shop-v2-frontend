@@ -2,16 +2,8 @@
 // @generated from file sast/sastshopv2/payment/v1/bill_service.proto (package sast.sastshopv2.payment.v1, syntax proto3)
 /* eslint-disable */
 
-import type {
-  GenFile,
-  GenMessage,
-  GenService,
-} from "@bufbuild/protobuf/codegenv2";
-import {
-  fileDesc,
-  messageDesc,
-  serviceDesc,
-} from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Bill, BillStatus } from "./bill_pb";
@@ -23,339 +15,307 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/payment/v1/bill_service.proto.
  */
-export const file_sast_sastshopv2_payment_v1_bill_service: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "Ci1zYXN0L3Nhc3RzaG9wdjIvcGF5bWVudC92MS9iaWxsX3NlcnZpY2UucHJvdG8SGnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxIp0BChFDcmVhdGVCaWxsUmVxdWVzdBIQCghwYXllcl9pZBgBIAEoAxIQCghwYXllZV9pZBgCIAEoAxIUCgxhbW91bnRfY2VudHMYAyABKAUSGAoLc291cmNlX3R5cGUYBCABKAlIAIgBARIWCglzb3VyY2VfaWQYBSABKANIAYgBAUIOCgxfc291cmNlX3R5cGVCDAoKX3NvdXJjZV9pZCJEChJDcmVhdGVCaWxsUmVzcG9uc2USLgoEYmlsbBgBIAEoCzIgLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJpbGwihwEKDlBheUJpbGxSZXF1ZXN0Eg8KB2JpbGxfaWQYASABKAMSNAoHY2hhbm5lbBgCIAEoDjIjLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkNoYW5uZWwSLgoKdXBkYXRlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiQQoPUGF5QmlsbFJlc3BvbnNlEi4KBGJpbGwYASABKAsyIC5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5CaWxsIlUKEkNvbmZpcm1CaWxsUmVxdWVzdBIPCgdiaWxsX2lkGAEgASgDEi4KCnVwZGF0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIkUKE0NvbmZpcm1CaWxsUmVzcG9uc2USLgoEYmlsbBgBIAEoCzIgLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJpbGwiIQoOR2V0QmlsbFJlcXVlc3QSDwoHYmlsbF9pZBgBIAEoAyJBCg9HZXRCaWxsUmVzcG9uc2USLgoEYmlsbBgBIAEoCzIgLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJpbGwidwodU3VwcGxlbWVudFNlcmlhbE51bWJlclJlcXVlc3QSDwoHYmlsbF9pZBgBIAEoAxIVCg1zZXJpYWxfbnVtYmVyGAIgASgJEi4KCnVwZGF0ZWRfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIlAKHlN1cHBsZW1lbnRTZXJpYWxOdW1iZXJSZXNwb25zZRIuCgRiaWxsGAEgASgLMiAuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQmlsbCK3AQoVVHJhbnNpdGlvbkJpbGxSZXF1ZXN0Eg8KB2JpbGxfaWQYASABKAMSPQoNdGFyZ2V0X3N0YXR1cxgCIAEoDjImLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJpbGxTdGF0dXMSEwoGcmVhc29uGAMgASgJSACIAQESLgoKdXBkYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCCQoHX3JlYXNvbiJIChZUcmFuc2l0aW9uQmlsbFJlc3BvbnNlEi4KBGJpbGwYASABKAsyIC5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5CaWxsMr0FCgtCaWxsU2VydmljZRJrCgpDcmVhdGVCaWxsEi0uc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ3JlYXRlQmlsbFJlcXVlc3QaLi5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5DcmVhdGVCaWxsUmVzcG9uc2USYgoHUGF5QmlsbBIqLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLlBheUJpbGxSZXF1ZXN0Gisuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuUGF5QmlsbFJlc3BvbnNlEm4KC0NvbmZpcm1CaWxsEi4uc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ29uZmlybUJpbGxSZXF1ZXN0Gi8uc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ29uZmlybUJpbGxSZXNwb25zZRJiCgdHZXRCaWxsEiouc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuR2V0QmlsbFJlcXVlc3QaKy5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5HZXRCaWxsUmVzcG9uc2USdwoOVHJhbnNpdGlvbkJpbGwSMS5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5UcmFuc2l0aW9uQmlsbFJlcXVlc3QaMi5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5UcmFuc2l0aW9uQmlsbFJlc3BvbnNlEo8BChZTdXBwbGVtZW50U2VyaWFsTnVtYmVyEjkuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuU3VwcGxlbWVudFNlcmlhbE51bWJlclJlcXVlc3QaOi5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5TdXBwbGVtZW50U2VyaWFsTnVtYmVyUmVzcG9uc2ViBnByb3RvMw",
-    [
-      file_google_protobuf_timestamp,
-      file_sast_sastshopv2_payment_v1_bill,
-      file_sast_sastshopv2_payment_v1_channel,
-    ],
-  );
+export const file_sast_sastshopv2_payment_v1_bill_service: GenFile = /*@__PURE__*/
+  fileDesc("Ci1zYXN0L3Nhc3RzaG9wdjIvcGF5bWVudC92MS9iaWxsX3NlcnZpY2UucHJvdG8SGnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxIp0BChFDcmVhdGVCaWxsUmVxdWVzdBIQCghwYXllcl9pZBgBIAEoAxIQCghwYXllZV9pZBgCIAEoAxIUCgxhbW91bnRfY2VudHMYAyABKAUSGAoLc291cmNlX3R5cGUYBCABKAlIAIgBARIWCglzb3VyY2VfaWQYBSABKANIAYgBAUIOCgxfc291cmNlX3R5cGVCDAoKX3NvdXJjZV9pZCJEChJDcmVhdGVCaWxsUmVzcG9uc2USLgoEYmlsbBgBIAEoCzIgLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJpbGwihwEKDlBheUJpbGxSZXF1ZXN0Eg8KB2JpbGxfaWQYASABKAMSNAoHY2hhbm5lbBgCIAEoDjIjLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkNoYW5uZWwSLgoKdXBkYXRlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiQQoPUGF5QmlsbFJlc3BvbnNlEi4KBGJpbGwYASABKAsyIC5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5CaWxsIlUKEkNvbmZpcm1CaWxsUmVxdWVzdBIPCgdiaWxsX2lkGAEgASgDEi4KCnVwZGF0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIkUKE0NvbmZpcm1CaWxsUmVzcG9uc2USLgoEYmlsbBgBIAEoCzIgLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJpbGwiIQoOR2V0QmlsbFJlcXVlc3QSDwoHYmlsbF9pZBgBIAEoAyJBCg9HZXRCaWxsUmVzcG9uc2USLgoEYmlsbBgBIAEoCzIgLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJpbGwidwodU3VwcGxlbWVudFNlcmlhbE51bWJlclJlcXVlc3QSDwoHYmlsbF9pZBgBIAEoAxIVCg1zZXJpYWxfbnVtYmVyGAIgASgJEi4KCnVwZGF0ZWRfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIlAKHlN1cHBsZW1lbnRTZXJpYWxOdW1iZXJSZXNwb25zZRIuCgRiaWxsGAEgASgLMiAuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQmlsbCK3AQoVVHJhbnNpdGlvbkJpbGxSZXF1ZXN0Eg8KB2JpbGxfaWQYASABKAMSPQoNdGFyZ2V0X3N0YXR1cxgCIAEoDjImLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJpbGxTdGF0dXMSEwoGcmVhc29uGAMgASgJSACIAQESLgoKdXBkYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCCQoHX3JlYXNvbiJIChZUcmFuc2l0aW9uQmlsbFJlc3BvbnNlEi4KBGJpbGwYASABKAsyIC5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5CaWxsMr0FCgtCaWxsU2VydmljZRJrCgpDcmVhdGVCaWxsEi0uc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ3JlYXRlQmlsbFJlcXVlc3QaLi5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5DcmVhdGVCaWxsUmVzcG9uc2USYgoHUGF5QmlsbBIqLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLlBheUJpbGxSZXF1ZXN0Gisuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuUGF5QmlsbFJlc3BvbnNlEm4KC0NvbmZpcm1CaWxsEi4uc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ29uZmlybUJpbGxSZXF1ZXN0Gi8uc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ29uZmlybUJpbGxSZXNwb25zZRJiCgdHZXRCaWxsEiouc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuR2V0QmlsbFJlcXVlc3QaKy5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5HZXRCaWxsUmVzcG9uc2USdwoOVHJhbnNpdGlvbkJpbGwSMS5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5UcmFuc2l0aW9uQmlsbFJlcXVlc3QaMi5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5UcmFuc2l0aW9uQmlsbFJlc3BvbnNlEo8BChZTdXBwbGVtZW50U2VyaWFsTnVtYmVyEjkuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuU3VwcGxlbWVudFNlcmlhbE51bWJlclJlcXVlc3QaOi5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5TdXBwbGVtZW50U2VyaWFsTnVtYmVyUmVzcG9uc2ViBnByb3RvMw", [file_google_protobuf_timestamp, file_sast_sastshopv2_payment_v1_bill, file_sast_sastshopv2_payment_v1_channel]);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.CreateBillRequest
  */
-export type CreateBillRequest =
-  Message<"sast.sastshopv2.payment.v1.CreateBillRequest"> & {
-    /**
-     * 付款人 ID
-     *
-     * @generated from field: int64 payer_id = 1;
-     */
-    payerId: bigint;
+export type CreateBillRequest = Message<"sast.sastshopv2.payment.v1.CreateBillRequest"> & {
+  /**
+   * 付款人 ID
+   *
+   * @generated from field: int64 payer_id = 1;
+   */
+  payerId: bigint;
 
-    /**
-     * 收款人 ID
-     *
-     * @generated from field: int64 payee_id = 2;
-     */
-    payeeId: bigint;
+  /**
+   * 收款人 ID
+   *
+   * @generated from field: int64 payee_id = 2;
+   */
+  payeeId: bigint;
 
-    /**
-     * 应付金额，单位为分
-     *
-     * @generated from field: int32 amount_cents = 3;
-     */
-    amountCents: number;
+  /**
+   * 应付金额，单位为分
+   *
+   * @generated from field: int32 amount_cents = 3;
+   */
+  amountCents: number;
 
-    /**
-     * 可选业务来源类型
-     *
-     * @generated from field: optional string source_type = 4;
-     */
-    sourceType?: string | undefined;
+  /**
+   * 可选业务来源类型
+   *
+   * @generated from field: optional string source_type = 4;
+   */
+  sourceType?: string | undefined;
 
-    /**
-     * 可选业务来源 ID
-     *
-     * @generated from field: optional int64 source_id = 5;
-     */
-    sourceId?: bigint | undefined;
-  };
+  /**
+   * 可选业务来源 ID
+   *
+   * @generated from field: optional int64 source_id = 5;
+   */
+  sourceId?: bigint | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.payment.v1.CreateBillRequest.
  * Use `create(CreateBillRequestSchema)` to create a new message.
  */
-export const CreateBillRequestSchema: GenMessage<CreateBillRequest> =
-  /*@__PURE__*/
+export const CreateBillRequestSchema: GenMessage<CreateBillRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_bill_service, 0);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.CreateBillResponse
  */
-export type CreateBillResponse =
-  Message<"sast.sastshopv2.payment.v1.CreateBillResponse"> & {
-    /**
-     * @generated from field: sast.sastshopv2.payment.v1.Bill bill = 1;
-     */
-    bill?: Bill | undefined;
-  };
+export type CreateBillResponse = Message<"sast.sastshopv2.payment.v1.CreateBillResponse"> & {
+  /**
+   * @generated from field: sast.sastshopv2.payment.v1.Bill bill = 1;
+   */
+  bill?: Bill | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.payment.v1.CreateBillResponse.
  * Use `create(CreateBillResponseSchema)` to create a new message.
  */
-export const CreateBillResponseSchema: GenMessage<CreateBillResponse> =
-  /*@__PURE__*/
+export const CreateBillResponseSchema: GenMessage<CreateBillResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_bill_service, 1);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.PayBillRequest
  */
-export type PayBillRequest =
-  Message<"sast.sastshopv2.payment.v1.PayBillRequest"> & {
-    /**
-     * 账单 ID
-     *
-     * @generated from field: int64 bill_id = 1;
-     */
-    billId: bigint;
+export type PayBillRequest = Message<"sast.sastshopv2.payment.v1.PayBillRequest"> & {
+  /**
+   * 账单 ID
+   *
+   * @generated from field: int64 bill_id = 1;
+   */
+  billId: bigint;
 
-    /**
-     * 付款渠道
-     *
-     * @generated from field: sast.sastshopv2.payment.v1.Channel channel = 2;
-     */
-    channel: Channel;
+  /**
+   * 付款渠道
+   *
+   * @generated from field: sast.sastshopv2.payment.v1.Channel channel = 2;
+   */
+  channel: Channel;
 
-    /**
-     * 前端读取账单时拿到的 updated_at，用于付款提交并发校验
-     *
-     * @generated from field: google.protobuf.Timestamp updated_at = 3;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+  /**
+   * 前端读取账单时拿到的 updated_at，用于付款提交并发校验
+   *
+   * @generated from field: google.protobuf.Timestamp updated_at = 3;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.payment.v1.PayBillRequest.
  * Use `create(PayBillRequestSchema)` to create a new message.
  */
-export const PayBillRequestSchema: GenMessage<PayBillRequest> =
-  /*@__PURE__*/
+export const PayBillRequestSchema: GenMessage<PayBillRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_bill_service, 2);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.PayBillResponse
  */
-export type PayBillResponse =
-  Message<"sast.sastshopv2.payment.v1.PayBillResponse"> & {
-    /**
-     * @generated from field: sast.sastshopv2.payment.v1.Bill bill = 1;
-     */
-    bill?: Bill | undefined;
-  };
+export type PayBillResponse = Message<"sast.sastshopv2.payment.v1.PayBillResponse"> & {
+  /**
+   * @generated from field: sast.sastshopv2.payment.v1.Bill bill = 1;
+   */
+  bill?: Bill | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.payment.v1.PayBillResponse.
  * Use `create(PayBillResponseSchema)` to create a new message.
  */
-export const PayBillResponseSchema: GenMessage<PayBillResponse> =
-  /*@__PURE__*/
+export const PayBillResponseSchema: GenMessage<PayBillResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_bill_service, 3);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.ConfirmBillRequest
  */
-export type ConfirmBillRequest =
-  Message<"sast.sastshopv2.payment.v1.ConfirmBillRequest"> & {
-    /**
-     * 账单 ID
-     *
-     * @generated from field: int64 bill_id = 1;
-     */
-    billId: bigint;
+export type ConfirmBillRequest = Message<"sast.sastshopv2.payment.v1.ConfirmBillRequest"> & {
+  /**
+   * 账单 ID
+   *
+   * @generated from field: int64 bill_id = 1;
+   */
+  billId: bigint;
 
-    /**
-     * 前端读取账单时拿到的 updated_at，用于确认收款并发校验
-     *
-     * @generated from field: google.protobuf.Timestamp updated_at = 2;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+  /**
+   * 前端读取账单时拿到的 updated_at，用于确认收款并发校验
+   *
+   * @generated from field: google.protobuf.Timestamp updated_at = 2;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.payment.v1.ConfirmBillRequest.
  * Use `create(ConfirmBillRequestSchema)` to create a new message.
  */
-export const ConfirmBillRequestSchema: GenMessage<ConfirmBillRequest> =
-  /*@__PURE__*/
+export const ConfirmBillRequestSchema: GenMessage<ConfirmBillRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_bill_service, 4);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.ConfirmBillResponse
  */
-export type ConfirmBillResponse =
-  Message<"sast.sastshopv2.payment.v1.ConfirmBillResponse"> & {
-    /**
-     * @generated from field: sast.sastshopv2.payment.v1.Bill bill = 1;
-     */
-    bill?: Bill | undefined;
-  };
+export type ConfirmBillResponse = Message<"sast.sastshopv2.payment.v1.ConfirmBillResponse"> & {
+  /**
+   * @generated from field: sast.sastshopv2.payment.v1.Bill bill = 1;
+   */
+  bill?: Bill | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.payment.v1.ConfirmBillResponse.
  * Use `create(ConfirmBillResponseSchema)` to create a new message.
  */
-export const ConfirmBillResponseSchema: GenMessage<ConfirmBillResponse> =
-  /*@__PURE__*/
+export const ConfirmBillResponseSchema: GenMessage<ConfirmBillResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_bill_service, 5);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.GetBillRequest
  */
-export type GetBillRequest =
-  Message<"sast.sastshopv2.payment.v1.GetBillRequest"> & {
-    /**
-     * 账单 ID
-     *
-     * @generated from field: int64 bill_id = 1;
-     */
-    billId: bigint;
-  };
+export type GetBillRequest = Message<"sast.sastshopv2.payment.v1.GetBillRequest"> & {
+  /**
+   * 账单 ID
+   *
+   * @generated from field: int64 bill_id = 1;
+   */
+  billId: bigint;
+};
 
 /**
  * Describes the message sast.sastshopv2.payment.v1.GetBillRequest.
  * Use `create(GetBillRequestSchema)` to create a new message.
  */
-export const GetBillRequestSchema: GenMessage<GetBillRequest> =
-  /*@__PURE__*/
+export const GetBillRequestSchema: GenMessage<GetBillRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_bill_service, 6);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.GetBillResponse
  */
-export type GetBillResponse =
-  Message<"sast.sastshopv2.payment.v1.GetBillResponse"> & {
-    /**
-     * @generated from field: sast.sastshopv2.payment.v1.Bill bill = 1;
-     */
-    bill?: Bill | undefined;
-  };
+export type GetBillResponse = Message<"sast.sastshopv2.payment.v1.GetBillResponse"> & {
+  /**
+   * @generated from field: sast.sastshopv2.payment.v1.Bill bill = 1;
+   */
+  bill?: Bill | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.payment.v1.GetBillResponse.
  * Use `create(GetBillResponseSchema)` to create a new message.
  */
-export const GetBillResponseSchema: GenMessage<GetBillResponse> =
-  /*@__PURE__*/
+export const GetBillResponseSchema: GenMessage<GetBillResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_bill_service, 7);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.SupplementSerialNumberRequest
  */
-export type SupplementSerialNumberRequest =
-  Message<"sast.sastshopv2.payment.v1.SupplementSerialNumberRequest"> & {
-    /**
-     * 账单 ID
-     *
-     * @generated from field: int64 bill_id = 1;
-     */
-    billId: bigint;
+export type SupplementSerialNumberRequest = Message<"sast.sastshopv2.payment.v1.SupplementSerialNumberRequest"> & {
+  /**
+   * 账单 ID
+   *
+   * @generated from field: int64 bill_id = 1;
+   */
+  billId: bigint;
 
-    /**
-     * 补充流水号或支付备注
-     *
-     * @generated from field: string serial_number = 2;
-     */
-    serialNumber: string;
+  /**
+   * 补充流水号或支付备注
+   *
+   * @generated from field: string serial_number = 2;
+   */
+  serialNumber: string;
 
-    /**
-     * 前端读取账单时拿到的 updated_at，用于补充流水号并发校验
-     *
-     * @generated from field: google.protobuf.Timestamp updated_at = 3;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+  /**
+   * 前端读取账单时拿到的 updated_at，用于补充流水号并发校验
+   *
+   * @generated from field: google.protobuf.Timestamp updated_at = 3;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.payment.v1.SupplementSerialNumberRequest.
  * Use `create(SupplementSerialNumberRequestSchema)` to create a new message.
  */
-export const SupplementSerialNumberRequestSchema: GenMessage<SupplementSerialNumberRequest> =
-  /*@__PURE__*/
+export const SupplementSerialNumberRequestSchema: GenMessage<SupplementSerialNumberRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_bill_service, 8);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.SupplementSerialNumberResponse
  */
-export type SupplementSerialNumberResponse =
-  Message<"sast.sastshopv2.payment.v1.SupplementSerialNumberResponse"> & {
-    /**
-     * @generated from field: sast.sastshopv2.payment.v1.Bill bill = 1;
-     */
-    bill?: Bill | undefined;
-  };
+export type SupplementSerialNumberResponse = Message<"sast.sastshopv2.payment.v1.SupplementSerialNumberResponse"> & {
+  /**
+   * @generated from field: sast.sastshopv2.payment.v1.Bill bill = 1;
+   */
+  bill?: Bill | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.payment.v1.SupplementSerialNumberResponse.
  * Use `create(SupplementSerialNumberResponseSchema)` to create a new message.
  */
-export const SupplementSerialNumberResponseSchema: GenMessage<SupplementSerialNumberResponse> =
-  /*@__PURE__*/
+export const SupplementSerialNumberResponseSchema: GenMessage<SupplementSerialNumberResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_bill_service, 9);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.TransitionBillRequest
  */
-export type TransitionBillRequest =
-  Message<"sast.sastshopv2.payment.v1.TransitionBillRequest"> & {
-    /**
-     * 账单 ID
-     *
-     * @generated from field: int64 bill_id = 1;
-     */
-    billId: bigint;
+export type TransitionBillRequest = Message<"sast.sastshopv2.payment.v1.TransitionBillRequest"> & {
+  /**
+   * 账单 ID
+   *
+   * @generated from field: int64 bill_id = 1;
+   */
+  billId: bigint;
 
-    /**
-     * 目标状态
-     *
-     * @generated from field: sast.sastshopv2.payment.v1.BillStatus target_status = 2;
-     */
-    targetStatus: BillStatus;
+  /**
+   * 目标状态
+   *
+   * @generated from field: sast.sastshopv2.payment.v1.BillStatus target_status = 2;
+   */
+  targetStatus: BillStatus;
 
-    /**
-     * 状态修正原因
-     *
-     * @generated from field: optional string reason = 3;
-     */
-    reason?: string | undefined;
+  /**
+   * 状态修正原因
+   *
+   * @generated from field: optional string reason = 3;
+   */
+  reason?: string | undefined;
 
-    /**
-     * 管理员读取账单时拿到的 updated_at，用于状态修正并发校验
-     *
-     * @generated from field: google.protobuf.Timestamp updated_at = 4;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+  /**
+   * 管理员读取账单时拿到的 updated_at，用于状态修正并发校验
+   *
+   * @generated from field: google.protobuf.Timestamp updated_at = 4;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.payment.v1.TransitionBillRequest.
  * Use `create(TransitionBillRequestSchema)` to create a new message.
  */
-export const TransitionBillRequestSchema: GenMessage<TransitionBillRequest> =
-  /*@__PURE__*/
+export const TransitionBillRequestSchema: GenMessage<TransitionBillRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_bill_service, 10);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.TransitionBillResponse
  */
-export type TransitionBillResponse =
-  Message<"sast.sastshopv2.payment.v1.TransitionBillResponse"> & {
-    /**
-     * @generated from field: sast.sastshopv2.payment.v1.Bill bill = 1;
-     */
-    bill?: Bill | undefined;
-  };
+export type TransitionBillResponse = Message<"sast.sastshopv2.payment.v1.TransitionBillResponse"> & {
+  /**
+   * @generated from field: sast.sastshopv2.payment.v1.Bill bill = 1;
+   */
+  bill?: Bill | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.payment.v1.TransitionBillResponse.
  * Use `create(TransitionBillResponseSchema)` to create a new message.
  */
-export const TransitionBillResponseSchema: GenMessage<TransitionBillResponse> =
-  /*@__PURE__*/
+export const TransitionBillResponseSchema: GenMessage<TransitionBillResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_bill_service, 11);
 
 /**
@@ -371,7 +331,7 @@ export const BillService: GenService<{
     methodKind: "unary";
     input: typeof CreateBillRequestSchema;
     output: typeof CreateBillResponseSchema;
-  };
+  },
   /**
    * 付款方标记已付款
    *
@@ -381,7 +341,7 @@ export const BillService: GenService<{
     methodKind: "unary";
     input: typeof PayBillRequestSchema;
     output: typeof PayBillResponseSchema;
-  };
+  },
   /**
    * 收款方确认收款
    *
@@ -391,7 +351,7 @@ export const BillService: GenService<{
     methodKind: "unary";
     input: typeof ConfirmBillRequestSchema;
     output: typeof ConfirmBillResponseSchema;
-  };
+  },
   /**
    * 获取账单详情
    *
@@ -401,7 +361,7 @@ export const BillService: GenService<{
     methodKind: "unary";
     input: typeof GetBillRequestSchema;
     output: typeof GetBillResponseSchema;
-  };
+  },
   /**
    * 管理员修正账单状态
    *
@@ -411,7 +371,7 @@ export const BillService: GenService<{
     methodKind: "unary";
     input: typeof TransitionBillRequestSchema;
     output: typeof TransitionBillResponseSchema;
-  };
+  },
   /**
    * 补充支付流水号
    *
@@ -421,5 +381,7 @@ export const BillService: GenService<{
     methodKind: "unary";
     input: typeof SupplementSerialNumberRequestSchema;
     output: typeof SupplementSerialNumberResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_sast_sastshopv2_payment_v1_bill_service, 0);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_sast_sastshopv2_payment_v1_bill_service, 0);
+

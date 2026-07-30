@@ -2,16 +2,8 @@
 // @generated from file sast/sastshopv2/payment/v1/payment_internal.proto (package sast.sastshopv2.payment.v1, syntax proto3)
 /* eslint-disable */
 
-import type {
-  GenFile,
-  GenMessage,
-  GenService,
-} from "@bufbuild/protobuf/codegenv2";
-import {
-  fileDesc,
-  messageDesc,
-  serviceDesc,
-} from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Bill } from "./bill_pb";
 import { file_sast_sastshopv2_payment_v1_bill } from "./bill_pb";
 import type { Message } from "@bufbuild/protobuf";
@@ -19,152 +11,137 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/payment/v1/payment_internal.proto.
  */
-export const file_sast_sastshopv2_payment_v1_payment_internal: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "CjFzYXN0L3Nhc3RzaG9wdjIvcGF5bWVudC92MS9wYXltZW50X2ludGVybmFsLnByb3RvEhpzYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MSJ9ChlDcmVhdGVCaWxsRm9yT3JkZXJSZXF1ZXN0EhMKC3NvdXJjZV90eXBlGAEgASgJEhEKCXNvdXJjZV9pZBgCIAEoAxIQCghwYXllcl9pZBgDIAEoAxIQCghwYXllZV9pZBgEIAEoAxIUCgxhbW91bnRfY2VudHMYBSABKAUiTAoaQ3JlYXRlQmlsbEZvck9yZGVyUmVzcG9uc2USLgoEYmlsbBgBIAEoCzIgLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJpbGwiZwoZQ2FuY2VsQmlsbEJ5U291cmNlUmVxdWVzdBITCgtzb3VyY2VfdHlwZRgBIAEoCRIRCglzb3VyY2VfaWQYAiABKAMSFQoIcGF5ZXJfaWQYAyABKANIAIgBAUILCglfcGF5ZXJfaWQiHAoaQ2FuY2VsQmlsbEJ5U291cmNlUmVzcG9uc2UiKAoUQmF0Y2hHZXRCaWxsc1JlcXVlc3QSEAoIYmlsbF9pZHMYASADKAMiSAoVQmF0Y2hHZXRCaWxsc1Jlc3BvbnNlEi8KBWJpbGxzGAEgAygLMiAuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQmlsbDKaAwoWUGF5bWVudEludGVybmFsU2VydmljZRKDAQoSQ3JlYXRlQmlsbEZvck9yZGVyEjUuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ3JlYXRlQmlsbEZvck9yZGVyUmVxdWVzdBo2LnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkNyZWF0ZUJpbGxGb3JPcmRlclJlc3BvbnNlEoMBChJDYW5jZWxCaWxsQnlTb3VyY2USNS5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5DYW5jZWxCaWxsQnlTb3VyY2VSZXF1ZXN0GjYuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ2FuY2VsQmlsbEJ5U291cmNlUmVzcG9uc2USdAoNQmF0Y2hHZXRCaWxscxIwLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJhdGNoR2V0QmlsbHNSZXF1ZXN0GjEuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQmF0Y2hHZXRCaWxsc1Jlc3BvbnNlYgZwcm90bzM",
-    [file_sast_sastshopv2_payment_v1_bill],
-  );
+export const file_sast_sastshopv2_payment_v1_payment_internal: GenFile = /*@__PURE__*/
+  fileDesc("CjFzYXN0L3Nhc3RzaG9wdjIvcGF5bWVudC92MS9wYXltZW50X2ludGVybmFsLnByb3RvEhpzYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MSJ9ChlDcmVhdGVCaWxsRm9yT3JkZXJSZXF1ZXN0EhMKC3NvdXJjZV90eXBlGAEgASgJEhEKCXNvdXJjZV9pZBgCIAEoAxIQCghwYXllcl9pZBgDIAEoAxIQCghwYXllZV9pZBgEIAEoAxIUCgxhbW91bnRfY2VudHMYBSABKAUiTAoaQ3JlYXRlQmlsbEZvck9yZGVyUmVzcG9uc2USLgoEYmlsbBgBIAEoCzIgLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJpbGwiZwoZQ2FuY2VsQmlsbEJ5U291cmNlUmVxdWVzdBITCgtzb3VyY2VfdHlwZRgBIAEoCRIRCglzb3VyY2VfaWQYAiABKAMSFQoIcGF5ZXJfaWQYAyABKANIAIgBAUILCglfcGF5ZXJfaWQiHAoaQ2FuY2VsQmlsbEJ5U291cmNlUmVzcG9uc2UiKAoUQmF0Y2hHZXRCaWxsc1JlcXVlc3QSEAoIYmlsbF9pZHMYASADKAMiSAoVQmF0Y2hHZXRCaWxsc1Jlc3BvbnNlEi8KBWJpbGxzGAEgAygLMiAuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQmlsbDKaAwoWUGF5bWVudEludGVybmFsU2VydmljZRKDAQoSQ3JlYXRlQmlsbEZvck9yZGVyEjUuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ3JlYXRlQmlsbEZvck9yZGVyUmVxdWVzdBo2LnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkNyZWF0ZUJpbGxGb3JPcmRlclJlc3BvbnNlEoMBChJDYW5jZWxCaWxsQnlTb3VyY2USNS5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5DYW5jZWxCaWxsQnlTb3VyY2VSZXF1ZXN0GjYuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ2FuY2VsQmlsbEJ5U291cmNlUmVzcG9uc2USdAoNQmF0Y2hHZXRCaWxscxIwLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJhdGNoR2V0QmlsbHNSZXF1ZXN0GjEuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQmF0Y2hHZXRCaWxsc1Jlc3BvbnNlYgZwcm90bzM", [file_sast_sastshopv2_payment_v1_bill]);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.CreateBillForOrderRequest
  */
-export type CreateBillForOrderRequest =
-  Message<"sast.sastshopv2.payment.v1.CreateBillForOrderRequest"> & {
-    /**
-     * @generated from field: string source_type = 1;
-     */
-    sourceType: string;
+export type CreateBillForOrderRequest = Message<"sast.sastshopv2.payment.v1.CreateBillForOrderRequest"> & {
+  /**
+   * @generated from field: string source_type = 1;
+   */
+  sourceType: string;
 
-    /**
-     * @generated from field: int64 source_id = 2;
-     */
-    sourceId: bigint;
+  /**
+   * @generated from field: int64 source_id = 2;
+   */
+  sourceId: bigint;
 
-    /**
-     * @generated from field: int64 payer_id = 3;
-     */
-    payerId: bigint;
+  /**
+   * @generated from field: int64 payer_id = 3;
+   */
+  payerId: bigint;
 
-    /**
-     * @generated from field: int64 payee_id = 4;
-     */
-    payeeId: bigint;
+  /**
+   * @generated from field: int64 payee_id = 4;
+   */
+  payeeId: bigint;
 
-    /**
-     * @generated from field: int32 amount_cents = 5;
-     */
-    amountCents: number;
-  };
+  /**
+   * @generated from field: int32 amount_cents = 5;
+   */
+  amountCents: number;
+};
 
 /**
  * Describes the message sast.sastshopv2.payment.v1.CreateBillForOrderRequest.
  * Use `create(CreateBillForOrderRequestSchema)` to create a new message.
  */
-export const CreateBillForOrderRequestSchema: GenMessage<CreateBillForOrderRequest> =
-  /*@__PURE__*/
+export const CreateBillForOrderRequestSchema: GenMessage<CreateBillForOrderRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_payment_internal, 0);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.CreateBillForOrderResponse
  */
-export type CreateBillForOrderResponse =
-  Message<"sast.sastshopv2.payment.v1.CreateBillForOrderResponse"> & {
-    /**
-     * @generated from field: sast.sastshopv2.payment.v1.Bill bill = 1;
-     */
-    bill?: Bill | undefined;
-  };
+export type CreateBillForOrderResponse = Message<"sast.sastshopv2.payment.v1.CreateBillForOrderResponse"> & {
+  /**
+   * @generated from field: sast.sastshopv2.payment.v1.Bill bill = 1;
+   */
+  bill?: Bill | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.payment.v1.CreateBillForOrderResponse.
  * Use `create(CreateBillForOrderResponseSchema)` to create a new message.
  */
-export const CreateBillForOrderResponseSchema: GenMessage<CreateBillForOrderResponse> =
-  /*@__PURE__*/
+export const CreateBillForOrderResponseSchema: GenMessage<CreateBillForOrderResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_payment_internal, 1);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.CancelBillBySourceRequest
  */
-export type CancelBillBySourceRequest =
-  Message<"sast.sastshopv2.payment.v1.CancelBillBySourceRequest"> & {
-    /**
-     * @generated from field: string source_type = 1;
-     */
-    sourceType: string;
+export type CancelBillBySourceRequest = Message<"sast.sastshopv2.payment.v1.CancelBillBySourceRequest"> & {
+  /**
+   * @generated from field: string source_type = 1;
+   */
+  sourceType: string;
 
-    /**
-     * @generated from field: int64 source_id = 2;
-     */
-    sourceId: bigint;
+  /**
+   * @generated from field: int64 source_id = 2;
+   */
+  sourceId: bigint;
 
-    /**
-     * 指定时只取消该付款人的账单，未指定时取消同一业务来源下所有未完成账单
-     *
-     * @generated from field: optional int64 payer_id = 3;
-     */
-    payerId?: bigint | undefined;
-  };
+  /**
+   * 指定时只取消该付款人的账单，未指定时取消同一业务来源下所有未完成账单
+   *
+   * @generated from field: optional int64 payer_id = 3;
+   */
+  payerId?: bigint | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.payment.v1.CancelBillBySourceRequest.
  * Use `create(CancelBillBySourceRequestSchema)` to create a new message.
  */
-export const CancelBillBySourceRequestSchema: GenMessage<CancelBillBySourceRequest> =
-  /*@__PURE__*/
+export const CancelBillBySourceRequestSchema: GenMessage<CancelBillBySourceRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_payment_internal, 2);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.CancelBillBySourceResponse
  */
-export type CancelBillBySourceResponse =
-  Message<"sast.sastshopv2.payment.v1.CancelBillBySourceResponse"> & {};
+export type CancelBillBySourceResponse = Message<"sast.sastshopv2.payment.v1.CancelBillBySourceResponse"> & {
+};
 
 /**
  * Describes the message sast.sastshopv2.payment.v1.CancelBillBySourceResponse.
  * Use `create(CancelBillBySourceResponseSchema)` to create a new message.
  */
-export const CancelBillBySourceResponseSchema: GenMessage<CancelBillBySourceResponse> =
-  /*@__PURE__*/
+export const CancelBillBySourceResponseSchema: GenMessage<CancelBillBySourceResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_payment_internal, 3);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.BatchGetBillsRequest
  */
-export type BatchGetBillsRequest =
-  Message<"sast.sastshopv2.payment.v1.BatchGetBillsRequest"> & {
-    /**
-     * @generated from field: repeated int64 bill_ids = 1;
-     */
-    billIds: bigint[];
-  };
+export type BatchGetBillsRequest = Message<"sast.sastshopv2.payment.v1.BatchGetBillsRequest"> & {
+  /**
+   * @generated from field: repeated int64 bill_ids = 1;
+   */
+  billIds: bigint[];
+};
 
 /**
  * Describes the message sast.sastshopv2.payment.v1.BatchGetBillsRequest.
  * Use `create(BatchGetBillsRequestSchema)` to create a new message.
  */
-export const BatchGetBillsRequestSchema: GenMessage<BatchGetBillsRequest> =
-  /*@__PURE__*/
+export const BatchGetBillsRequestSchema: GenMessage<BatchGetBillsRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_payment_internal, 4);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.BatchGetBillsResponse
  */
-export type BatchGetBillsResponse =
-  Message<"sast.sastshopv2.payment.v1.BatchGetBillsResponse"> & {
-    /**
-     * @generated from field: repeated sast.sastshopv2.payment.v1.Bill bills = 1;
-     */
-    bills: Bill[];
-  };
+export type BatchGetBillsResponse = Message<"sast.sastshopv2.payment.v1.BatchGetBillsResponse"> & {
+  /**
+   * @generated from field: repeated sast.sastshopv2.payment.v1.Bill bills = 1;
+   */
+  bills: Bill[];
+};
 
 /**
  * Describes the message sast.sastshopv2.payment.v1.BatchGetBillsResponse.
  * Use `create(BatchGetBillsResponseSchema)` to create a new message.
  */
-export const BatchGetBillsResponseSchema: GenMessage<BatchGetBillsResponse> =
-  /*@__PURE__*/
+export const BatchGetBillsResponseSchema: GenMessage<BatchGetBillsResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_payment_internal, 5);
 
 /**
@@ -182,7 +159,7 @@ export const PaymentInternalService: GenService<{
     methodKind: "unary";
     input: typeof CreateBillForOrderRequestSchema;
     output: typeof CreateBillForOrderResponseSchema;
-  };
+  },
   /**
    * 按业务来源取消账单，用于订单或任务取消后的账单作废
    *
@@ -192,7 +169,7 @@ export const PaymentInternalService: GenService<{
     methodKind: "unary";
     input: typeof CancelBillBySourceRequestSchema;
     output: typeof CancelBillBySourceResponseSchema;
-  };
+  },
   /**
    * @generated from rpc sast.sastshopv2.payment.v1.PaymentInternalService.BatchGetBills
    */
@@ -200,7 +177,7 @@ export const PaymentInternalService: GenService<{
     methodKind: "unary";
     input: typeof BatchGetBillsRequestSchema;
     output: typeof BatchGetBillsResponseSchema;
-  };
-}> =
-  /*@__PURE__*/
+  },
+}> = /*@__PURE__*/
   serviceDesc(file_sast_sastshopv2_payment_v1_payment_internal, 0);
+

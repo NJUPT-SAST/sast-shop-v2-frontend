@@ -11,53 +11,48 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/errand/v1/errand_demand_by_store.proto.
  */
-export const file_sast_sastshopv2_errand_v1_errand_demand_by_store: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "CjZzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF9kZW1hbmRfYnlfc3RvcmUucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEi0AEKE0VycmFuZERlbWFuZEJ5U3RvcmUSEAoIc3RvcmVfaWQYASABKAMSEgoKc3RvcmVfbmFtZRgCIAEoCRIbChNwYXJ0aWNpcGFudF9hdmF0YXJzGAMgAygJEiUKHXRvdGFsX29yaWdpbl91bml0X3ByaWNlX2NlbnRzGAQgASgFEh8KF3RvdGFsX3NlcnZpY2VfZmVlX2NlbnRzGAUgASgFEi4KCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wYgZwcm90bzM",
-    [file_google_protobuf_timestamp],
-  );
+export const file_sast_sastshopv2_errand_v1_errand_demand_by_store: GenFile = /*@__PURE__*/
+  fileDesc("CjZzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF9kZW1hbmRfYnlfc3RvcmUucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEi0AEKE0VycmFuZERlbWFuZEJ5U3RvcmUSEAoIc3RvcmVfaWQYASABKAMSEgoKc3RvcmVfbmFtZRgCIAEoCRIbChNwYXJ0aWNpcGFudF9hdmF0YXJzGAMgAygJEiUKHXRvdGFsX29yaWdpbl91bml0X3ByaWNlX2NlbnRzGAQgASgFEh8KF3RvdGFsX3NlcnZpY2VfZmVlX2NlbnRzGAUgASgFEi4KCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wYgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.ErrandDemandByStore
  */
-export type ErrandDemandByStore =
-  Message<"sast.sastshopv2.errand.v1.ErrandDemandByStore"> & {
-    /**
-     * @generated from field: int64 store_id = 1;
-     */
-    storeId: bigint;
+export type ErrandDemandByStore = Message<"sast.sastshopv2.errand.v1.ErrandDemandByStore"> & {
+  /**
+   * @generated from field: int64 store_id = 1;
+   */
+  storeId: bigint;
 
-    /**
-     * @generated from field: string store_name = 2;
-     */
-    storeName: string;
+  /**
+   * @generated from field: string store_name = 2;
+   */
+  storeName: string;
 
-    /**
-     * @generated from field: repeated string participant_avatars = 3;
-     */
-    participantAvatars: string[];
+  /**
+   * @generated from field: repeated string participant_avatars = 3;
+   */
+  participantAvatars: string[];
 
-    /**
-     * @generated from field: int32 total_origin_unit_price_cents = 4;
-     */
-    totalOriginUnitPriceCents: number;
+  /**
+   * @generated from field: int32 total_origin_unit_price_cents = 4;
+   */
+  totalOriginUnitPriceCents: number;
 
-    /**
-     * @generated from field: int32 total_service_fee_cents = 5;
-     */
-    totalServiceFeeCents: number;
+  /**
+   * @generated from field: int32 total_service_fee_cents = 5;
+   */
+  totalServiceFeeCents: number;
 
-    /**
-     * @generated from field: google.protobuf.Timestamp updated_at = 6;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 6;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.ErrandDemandByStore.
  * Use `create(ErrandDemandByStoreSchema)` to create a new message.
  */
-export const ErrandDemandByStoreSchema: GenMessage<ErrandDemandByStore> =
-  /*@__PURE__*/
+export const ErrandDemandByStoreSchema: GenMessage<ErrandDemandByStore> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_demand_by_store, 0);
+

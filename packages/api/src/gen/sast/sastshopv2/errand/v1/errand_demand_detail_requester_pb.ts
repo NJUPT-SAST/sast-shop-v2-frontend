@@ -11,81 +11,76 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/errand/v1/errand_demand_detail_requester.proto.
  */
-export const file_sast_sastshopv2_errand_v1_errand_demand_detail_requester: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "Cj5zYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF9kZW1hbmRfZGV0YWlsX3JlcXVlc3Rlci5wcm90bxIZc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MSKcAgobRXJyYW5kRGVtYW5kRGV0YWlsUmVxdWVzdGVyEhQKDHJlcXVlc3Rlcl9pZBgBIAEoAxIWCg5yZXF1ZXN0ZXJfbmFtZRgCIAEoCRIcChRyZXF1ZXN0ZXJfYXZhdGFyX3VybBgDIAEoCRIQCghxdWFudGl0eRgEIAEoBRIiChpzZXJ2aWNlX2ZlZV9wZXJfdW5pdF9jZW50cxgFIAEoBRIdChVlcnJhbmRfZGVtYW5kX2l0ZW1faWQYBiABKAMSLAoIZGVhZGxpbmUYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wYgZwcm90bzM",
-    [file_google_protobuf_timestamp],
-  );
+export const file_sast_sastshopv2_errand_v1_errand_demand_detail_requester: GenFile = /*@__PURE__*/
+  fileDesc("Cj5zYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF9kZW1hbmRfZGV0YWlsX3JlcXVlc3Rlci5wcm90bxIZc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MSKcAgobRXJyYW5kRGVtYW5kRGV0YWlsUmVxdWVzdGVyEhQKDHJlcXVlc3Rlcl9pZBgBIAEoAxIWCg5yZXF1ZXN0ZXJfbmFtZRgCIAEoCRIcChRyZXF1ZXN0ZXJfYXZhdGFyX3VybBgDIAEoCRIQCghxdWFudGl0eRgEIAEoBRIiChpzZXJ2aWNlX2ZlZV9wZXJfdW5pdF9jZW50cxgFIAEoBRIdChVlcnJhbmRfZGVtYW5kX2l0ZW1faWQYBiABKAMSLAoIZGVhZGxpbmUYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wYgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
  * 团长接单弹窗中某个商品下的购买人需求行
  *
  * @generated from message sast.sastshopv2.errand.v1.ErrandDemandDetailRequester
  */
-export type ErrandDemandDetailRequester =
-  Message<"sast.sastshopv2.errand.v1.ErrandDemandDetailRequester"> & {
-    /**
-     * 购买人 ID
-     *
-     * @generated from field: int64 requester_id = 1;
-     */
-    requesterId: bigint;
+export type ErrandDemandDetailRequester = Message<"sast.sastshopv2.errand.v1.ErrandDemandDetailRequester"> & {
+  /**
+   * 购买人 ID
+   *
+   * @generated from field: int64 requester_id = 1;
+   */
+  requesterId: bigint;
 
-    /**
-     * 购买人名称
-     *
-     * @generated from field: string requester_name = 2;
-     */
-    requesterName: string;
+  /**
+   * 购买人名称
+   *
+   * @generated from field: string requester_name = 2;
+   */
+  requesterName: string;
 
-    /**
-     * 购买人头像
-     *
-     * @generated from field: string requester_avatar_url = 3;
-     */
-    requesterAvatarUrl: string;
+  /**
+   * 购买人头像
+   *
+   * @generated from field: string requester_avatar_url = 3;
+   */
+  requesterAvatarUrl: string;
 
-    /**
-     * 需求数量
-     *
-     * @generated from field: int32 quantity = 4;
-     */
-    quantity: number;
+  /**
+   * 需求数量
+   *
+   * @generated from field: int32 quantity = 4;
+   */
+  quantity: number;
 
-    /**
-     * 单件跑腿费，单位为分
-     *
-     * @generated from field: int32 service_fee_per_unit_cents = 5;
-     */
-    serviceFeePerUnitCents: number;
+  /**
+   * 单件跑腿费，单位为分
+   *
+   * @generated from field: int32 service_fee_per_unit_cents = 5;
+   */
+  serviceFeePerUnitCents: number;
 
-    /**
-     * 需求行 ID，CreateTask 必须使用该 ID 定位接单对象
-     *
-     * @generated from field: int64 errand_demand_item_id = 6;
-     */
-    errandDemandItemId: bigint;
+  /**
+   * 需求行 ID，CreateTask 必须使用该 ID 定位接单对象
+   *
+   * @generated from field: int64 errand_demand_item_id = 6;
+   */
+  errandDemandItemId: bigint;
 
-    /**
-     * 期望送达时间
-     *
-     * @generated from field: google.protobuf.Timestamp deadline = 7;
-     */
-    deadline?: Timestamp | undefined;
+  /**
+   * 期望送达时间
+   *
+   * @generated from field: google.protobuf.Timestamp deadline = 7;
+   */
+  deadline?: Timestamp | undefined;
 
-    /**
-     * 需求行最近更新时间，用于接单并发校验
-     *
-     * @generated from field: google.protobuf.Timestamp updated_at = 8;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+  /**
+   * 需求行最近更新时间，用于接单并发校验
+   *
+   * @generated from field: google.protobuf.Timestamp updated_at = 8;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.ErrandDemandDetailRequester.
  * Use `create(ErrandDemandDetailRequesterSchema)` to create a new message.
  */
-export const ErrandDemandDetailRequesterSchema: GenMessage<ErrandDemandDetailRequester> =
-  /*@__PURE__*/
+export const ErrandDemandDetailRequesterSchema: GenMessage<ErrandDemandDetailRequester> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_demand_detail_requester, 0);
+

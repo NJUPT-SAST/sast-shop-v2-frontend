@@ -2,16 +2,8 @@
 // @generated from file sast/sastshopv2/errand/v1/errand_task_service.proto (package sast.sastshopv2.errand.v1, syntax proto3)
 /* eslint-disable */
 
-import type {
-  GenFile,
-  GenMessage,
-  GenService,
-} from "@bufbuild/protobuf/codegenv2";
-import {
-  fileDesc,
-  messageDesc,
-  serviceDesc,
-} from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { CollectingPaymentBillDetail } from "./collecting_payment_bill_pb";
@@ -31,695 +23,631 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/errand/v1/errand_task_service.proto.
  */
-export const file_sast_sastshopv2_errand_v1_errand_task_service: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "CjNzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF90YXNrX3NlcnZpY2UucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEiZgoRQ3JlYXRlVGFza1JlcXVlc3QSEAoIc3RvcmVfaWQYASABKAMSPwoMZGVtYW5kX2l0ZW1zGAIgAygLMikuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5UYXNrRGVtYW5kSXRlbSIsChJDcmVhdGVUYXNrUmVzcG9uc2USFgoOZXJyYW5kX3Rhc2tfaWQYASABKAMiNgocR2V0U2hvcHBpbmdUYXNrRGV0YWlsUmVxdWVzdBIWCg5lcnJhbmRfdGFza19pZBgBIAEoAyLMAQodR2V0U2hvcHBpbmdUYXNrRGV0YWlsUmVzcG9uc2USFgoOZXJyYW5kX3Rhc2tfaWQYASABKAMSEAoIc3RvcmVfaWQYAiABKAMSEgoKc3RvcmVfbmFtZRgDIAEoCRI9Cgp0YXNrX2l0ZW1zGAQgAygLMikuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5FcnJhbmRUYXNrSXRlbRIuCgp1cGRhdGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCLpAQobU2F2ZVNob3BwaW5nVGFza0l0ZW1SZXF1ZXN0EhYKDmVycmFuZF90YXNrX2lkGAEgASgDEhsKE2VycmFuZF90YXNrX2l0ZW1faWQYAiABKAMSGgoScHVyY2hhc2VkX3F1YW50aXR5GAMgASgFEiAKE25vbl9wdXJjaGFzZV9yZWFzb24YBCABKAlIAIgBARI/ChtlcnJhbmRfdGFza19pdGVtX3VwZGF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQhYKFF9ub25fcHVyY2hhc2VfcmVhc29uIl8KHFNhdmVTaG9wcGluZ1Rhc2tJdGVtUmVzcG9uc2USPwobZXJyYW5kX3Rhc2tfaXRlbV91cGRhdGVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJwCiZUcmFuc2l0aW9uVG9QZW5kaW5nRGlzdHJpYnV0aW5nUmVxdWVzdBIWCg5lcnJhbmRfdGFza19pZBgBIAEoAxIuCgp1cGRhdGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJZCidUcmFuc2l0aW9uVG9QZW5kaW5nRGlzdHJpYnV0aW5nUmVzcG9uc2USLgoKdXBkYXRlZF9hdBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiOgogR2V0RGlzdHJpYnV0aW5nVGFza0RldGFpbFJlcXVlc3QSFgoOZXJyYW5kX3Rhc2tfaWQYASABKAMi9wEKIUdldERpc3RyaWJ1dGluZ1Rhc2tEZXRhaWxSZXNwb25zZRIWCg5lcnJhbmRfdGFza19pZBgBIAEoAxIQCghzdG9yZV9pZBgCIAEoAxISCgpzdG9yZV9uYW1lGAMgASgJEhsKE3BhY2thZ2luZ19mZWVfY2VudHMYBCABKAUSRwoSZGlzdHJpYnV0aW5nX2l0ZW1zGAUgAygLMisuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5EaXN0cmlidXRpbmdJdGVtEi4KCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIrEBChhVcGRhdGVBY3R1YWxQcmljZVJlcXVlc3QSFgoOZXJyYW5kX3Rhc2tfaWQYASABKAMSGwoTZXJyYW5kX3Rhc2tfaXRlbV9pZBgCIAEoAxIfChdhY3R1YWxfdW5pdF9wcmljZV9jZW50cxgDIAEoBRI/ChtlcnJhbmRfdGFza19pdGVtX3VwZGF0ZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIlwKGVVwZGF0ZUFjdHVhbFByaWNlUmVzcG9uc2USPwobZXJyYW5kX3Rhc2tfaXRlbV91cGRhdGVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKGAQofVHJhbnNpdGlvblRvRGlzdHJpYnV0aW5nUmVxdWVzdBIWCg5lcnJhbmRfdGFza19pZBgBIAEoAxIbChNwYWNrYWdpbmdfZmVlX2NlbnRzGAIgASgFEi4KCnVwZGF0ZWRfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIlIKIFRyYW5zaXRpb25Ub0Rpc3RyaWJ1dGluZ1Jlc3BvbnNlEi4KCnVwZGF0ZWRfYXQYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIswBCiVTYXZlRGlzdHJpYnV0aW5nVGFza0Fzc2lnbm1lbnRSZXF1ZXN0EhsKE2VycmFuZF90YXNrX2l0ZW1faWQYASABKAMSIQoZZXJyYW5kX3Rhc2tfYXNzaWdubWVudF9pZBgCIAEoAxIcChRkaXN0cmlidXRlZF9xdWFudGl0eRgDIAEoBRJFCiFlcnJhbmRfdGFza19hc3NpZ25tZW50X3VwZGF0ZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIm8KJlNhdmVEaXN0cmlidXRpbmdUYXNrQXNzaWdubWVudFJlc3BvbnNlEkUKIWVycmFuZF90YXNrX2Fzc2lnbm1lbnRfdXBkYXRlZF9hdBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAibgokVHJhbnNpdGlvblRvQ29sbGVjdGluZ1BheW1lbnRSZXF1ZXN0EhYKDmVycmFuZF90YXNrX2lkGAEgASgDEi4KCnVwZGF0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIlcKJVRyYW5zaXRpb25Ub0NvbGxlY3RpbmdQYXltZW50UmVzcG9uc2USLgoKdXBkYXRlZF9hdBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiOwohR2V0Q29sbGVjdGluZ1BheW1lbnREZXRhaWxSZXF1ZXN0EhYKDmVycmFuZF90YXNrX2lkGAEgASgDIrMBCiJHZXRDb2xsZWN0aW5nUGF5bWVudERldGFpbFJlc3BvbnNlEkUKBWJpbGxzGAEgAygLMjYuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5Db2xsZWN0aW5nUGF5bWVudEJpbGxEZXRhaWwSFgoOZXJyYW5kX3Rhc2tfaWQYAiABKAMSLgoKdXBkYXRlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiZgocVHJhbnNpdGlvblRvQ29tcGxldGVkUmVxdWVzdBIWCg5lcnJhbmRfdGFza19pZBgBIAEoAxIuCgp1cGRhdGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJPCh1UcmFuc2l0aW9uVG9Db21wbGV0ZWRSZXNwb25zZRIuCgp1cGRhdGVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKWAQoYR2V0RXJyYW5kVGFza0xpc3RSZXF1ZXN0EgwKBHBhZ2UYASABKAUSEQoJcGFnZV9zaXplGAIgASgFEkcKDWZpbHRlcl9zdGF0dXMYAyABKA4yKy5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZFRhc2tTdGF0dXNIAIgBAUIQCg5fZmlsdGVyX3N0YXR1cyKDAQoZR2V0RXJyYW5kVGFza0xpc3RSZXNwb25zZRI7CgxlcnJhbmRfdGFza3MYASADKAsyJS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZFRhc2sSFAoMY3VycmVudF9wYWdlGAIgASgFEhMKC3RvdGFsX2NvdW50GAMgASgFIlsKEUNhbmNlbFRhc2tSZXF1ZXN0EhYKDmVycmFuZF90YXNrX2lkGAEgASgDEi4KCnVwZGF0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIkQKEkNhbmNlbFRhc2tSZXNwb25zZRIuCgp1cGRhdGVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcDLQDgoRRXJyYW5kVGFza1NlcnZpY2USaQoKQ3JlYXRlVGFzaxIsLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuQ3JlYXRlVGFza1JlcXVlc3QaLS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkNyZWF0ZVRhc2tSZXNwb25zZRKKAQoVR2V0U2hvcHBpbmdUYXNrRGV0YWlsEjcuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXRTaG9wcGluZ1Rhc2tEZXRhaWxSZXF1ZXN0Gjguc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXRTaG9wcGluZ1Rhc2tEZXRhaWxSZXNwb25zZRKHAQoUU2F2ZVNob3BwaW5nVGFza0l0ZW0SNi5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLlNhdmVTaG9wcGluZ1Rhc2tJdGVtUmVxdWVzdBo3LnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuU2F2ZVNob3BwaW5nVGFza0l0ZW1SZXNwb25zZRKoAQofVHJhbnNpdGlvblRvUGVuZGluZ0Rpc3RyaWJ1dGluZxJBLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuVHJhbnNpdGlvblRvUGVuZGluZ0Rpc3RyaWJ1dGluZ1JlcXVlc3QaQi5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLlRyYW5zaXRpb25Ub1BlbmRpbmdEaXN0cmlidXRpbmdSZXNwb25zZRKWAQoZR2V0RGlzdHJpYnV0aW5nVGFza0RldGFpbBI7LnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuR2V0RGlzdHJpYnV0aW5nVGFza0RldGFpbFJlcXVlc3QaPC5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkdldERpc3RyaWJ1dGluZ1Rhc2tEZXRhaWxSZXNwb25zZRJ+ChFVcGRhdGVBY3R1YWxQcmljZRIzLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuVXBkYXRlQWN0dWFsUHJpY2VSZXF1ZXN0GjQuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5VcGRhdGVBY3R1YWxQcmljZVJlc3BvbnNlEpMBChhUcmFuc2l0aW9uVG9EaXN0cmlidXRpbmcSOi5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLlRyYW5zaXRpb25Ub0Rpc3RyaWJ1dGluZ1JlcXVlc3QaOy5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLlRyYW5zaXRpb25Ub0Rpc3RyaWJ1dGluZ1Jlc3BvbnNlEqUBCh5TYXZlRGlzdHJpYnV0aW5nVGFza0Fzc2lnbm1lbnQSQC5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLlNhdmVEaXN0cmlidXRpbmdUYXNrQXNzaWdubWVudFJlcXVlc3QaQS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLlNhdmVEaXN0cmlidXRpbmdUYXNrQXNzaWdubWVudFJlc3BvbnNlEqIBCh1UcmFuc2l0aW9uVG9Db2xsZWN0aW5nUGF5bWVudBI/LnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuVHJhbnNpdGlvblRvQ29sbGVjdGluZ1BheW1lbnRSZXF1ZXN0GkAuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5UcmFuc2l0aW9uVG9Db2xsZWN0aW5nUGF5bWVudFJlc3BvbnNlEpkBChpHZXRDb2xsZWN0aW5nUGF5bWVudERldGFpbBI8LnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuR2V0Q29sbGVjdGluZ1BheW1lbnREZXRhaWxSZXF1ZXN0Gj0uc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXRDb2xsZWN0aW5nUGF5bWVudERldGFpbFJlc3BvbnNlEooBChVUcmFuc2l0aW9uVG9Db21wbGV0ZWQSNy5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLlRyYW5zaXRpb25Ub0NvbXBsZXRlZFJlcXVlc3QaOC5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLlRyYW5zaXRpb25Ub0NvbXBsZXRlZFJlc3BvbnNlEn4KEUdldEVycmFuZFRhc2tMaXN0EjMuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXRFcnJhbmRUYXNrTGlzdFJlcXVlc3QaNC5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkdldEVycmFuZFRhc2tMaXN0UmVzcG9uc2USaQoKQ2FuY2VsVGFzaxIsLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuQ2FuY2VsVGFza1JlcXVlc3QaLS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkNhbmNlbFRhc2tSZXNwb25zZWIGcHJvdG8z",
-    [
-      file_google_protobuf_timestamp,
-      file_sast_sastshopv2_errand_v1_collecting_payment_bill,
-      file_sast_sastshopv2_errand_v1_distributing_item,
-      file_sast_sastshopv2_errand_v1_errand_task,
-      file_sast_sastshopv2_errand_v1_errand_task_item,
-      file_sast_sastshopv2_errand_v1_errand_task_status,
-      file_sast_sastshopv2_errand_v1_task_demand_item,
-    ],
-  );
+export const file_sast_sastshopv2_errand_v1_errand_task_service: GenFile = /*@__PURE__*/
+  fileDesc("CjNzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF90YXNrX3NlcnZpY2UucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEiZgoRQ3JlYXRlVGFza1JlcXVlc3QSEAoIc3RvcmVfaWQYASABKAMSPwoMZGVtYW5kX2l0ZW1zGAIgAygLMikuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5UYXNrRGVtYW5kSXRlbSIsChJDcmVhdGVUYXNrUmVzcG9uc2USFgoOZXJyYW5kX3Rhc2tfaWQYASABKAMiNgocR2V0U2hvcHBpbmdUYXNrRGV0YWlsUmVxdWVzdBIWCg5lcnJhbmRfdGFza19pZBgBIAEoAyLMAQodR2V0U2hvcHBpbmdUYXNrRGV0YWlsUmVzcG9uc2USFgoOZXJyYW5kX3Rhc2tfaWQYASABKAMSEAoIc3RvcmVfaWQYAiABKAMSEgoKc3RvcmVfbmFtZRgDIAEoCRI9Cgp0YXNrX2l0ZW1zGAQgAygLMikuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5FcnJhbmRUYXNrSXRlbRIuCgp1cGRhdGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCLpAQobU2F2ZVNob3BwaW5nVGFza0l0ZW1SZXF1ZXN0EhYKDmVycmFuZF90YXNrX2lkGAEgASgDEhsKE2VycmFuZF90YXNrX2l0ZW1faWQYAiABKAMSGgoScHVyY2hhc2VkX3F1YW50aXR5GAMgASgFEiAKE25vbl9wdXJjaGFzZV9yZWFzb24YBCABKAlIAIgBARI/ChtlcnJhbmRfdGFza19pdGVtX3VwZGF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQhYKFF9ub25fcHVyY2hhc2VfcmVhc29uIl8KHFNhdmVTaG9wcGluZ1Rhc2tJdGVtUmVzcG9uc2USPwobZXJyYW5kX3Rhc2tfaXRlbV91cGRhdGVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJwCiZUcmFuc2l0aW9uVG9QZW5kaW5nRGlzdHJpYnV0aW5nUmVxdWVzdBIWCg5lcnJhbmRfdGFza19pZBgBIAEoAxIuCgp1cGRhdGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJZCidUcmFuc2l0aW9uVG9QZW5kaW5nRGlzdHJpYnV0aW5nUmVzcG9uc2USLgoKdXBkYXRlZF9hdBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiOgogR2V0RGlzdHJpYnV0aW5nVGFza0RldGFpbFJlcXVlc3QSFgoOZXJyYW5kX3Rhc2tfaWQYASABKAMi9wEKIUdldERpc3RyaWJ1dGluZ1Rhc2tEZXRhaWxSZXNwb25zZRIWCg5lcnJhbmRfdGFza19pZBgBIAEoAxIQCghzdG9yZV9pZBgCIAEoAxISCgpzdG9yZV9uYW1lGAMgASgJEhsKE3BhY2thZ2luZ19mZWVfY2VudHMYBCABKAUSRwoSZGlzdHJpYnV0aW5nX2l0ZW1zGAUgAygLMisuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5EaXN0cmlidXRpbmdJdGVtEi4KCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIrEBChhVcGRhdGVBY3R1YWxQcmljZVJlcXVlc3QSFgoOZXJyYW5kX3Rhc2tfaWQYASABKAMSGwoTZXJyYW5kX3Rhc2tfaXRlbV9pZBgCIAEoAxIfChdhY3R1YWxfdW5pdF9wcmljZV9jZW50cxgDIAEoBRI/ChtlcnJhbmRfdGFza19pdGVtX3VwZGF0ZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIlwKGVVwZGF0ZUFjdHVhbFByaWNlUmVzcG9uc2USPwobZXJyYW5kX3Rhc2tfaXRlbV91cGRhdGVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKGAQofVHJhbnNpdGlvblRvRGlzdHJpYnV0aW5nUmVxdWVzdBIWCg5lcnJhbmRfdGFza19pZBgBIAEoAxIbChNwYWNrYWdpbmdfZmVlX2NlbnRzGAIgASgFEi4KCnVwZGF0ZWRfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIlIKIFRyYW5zaXRpb25Ub0Rpc3RyaWJ1dGluZ1Jlc3BvbnNlEi4KCnVwZGF0ZWRfYXQYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIswBCiVTYXZlRGlzdHJpYnV0aW5nVGFza0Fzc2lnbm1lbnRSZXF1ZXN0EhsKE2VycmFuZF90YXNrX2l0ZW1faWQYASABKAMSIQoZZXJyYW5kX3Rhc2tfYXNzaWdubWVudF9pZBgCIAEoAxIcChRkaXN0cmlidXRlZF9xdWFudGl0eRgDIAEoBRJFCiFlcnJhbmRfdGFza19hc3NpZ25tZW50X3VwZGF0ZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIm8KJlNhdmVEaXN0cmlidXRpbmdUYXNrQXNzaWdubWVudFJlc3BvbnNlEkUKIWVycmFuZF90YXNrX2Fzc2lnbm1lbnRfdXBkYXRlZF9hdBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAibgokVHJhbnNpdGlvblRvQ29sbGVjdGluZ1BheW1lbnRSZXF1ZXN0EhYKDmVycmFuZF90YXNrX2lkGAEgASgDEi4KCnVwZGF0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIlcKJVRyYW5zaXRpb25Ub0NvbGxlY3RpbmdQYXltZW50UmVzcG9uc2USLgoKdXBkYXRlZF9hdBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiOwohR2V0Q29sbGVjdGluZ1BheW1lbnREZXRhaWxSZXF1ZXN0EhYKDmVycmFuZF90YXNrX2lkGAEgASgDIrMBCiJHZXRDb2xsZWN0aW5nUGF5bWVudERldGFpbFJlc3BvbnNlEkUKBWJpbGxzGAEgAygLMjYuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5Db2xsZWN0aW5nUGF5bWVudEJpbGxEZXRhaWwSFgoOZXJyYW5kX3Rhc2tfaWQYAiABKAMSLgoKdXBkYXRlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiZgocVHJhbnNpdGlvblRvQ29tcGxldGVkUmVxdWVzdBIWCg5lcnJhbmRfdGFza19pZBgBIAEoAxIuCgp1cGRhdGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJPCh1UcmFuc2l0aW9uVG9Db21wbGV0ZWRSZXNwb25zZRIuCgp1cGRhdGVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKWAQoYR2V0RXJyYW5kVGFza0xpc3RSZXF1ZXN0EgwKBHBhZ2UYASABKAUSEQoJcGFnZV9zaXplGAIgASgFEkcKDWZpbHRlcl9zdGF0dXMYAyABKA4yKy5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZFRhc2tTdGF0dXNIAIgBAUIQCg5fZmlsdGVyX3N0YXR1cyKDAQoZR2V0RXJyYW5kVGFza0xpc3RSZXNwb25zZRI7CgxlcnJhbmRfdGFza3MYASADKAsyJS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZFRhc2sSFAoMY3VycmVudF9wYWdlGAIgASgFEhMKC3RvdGFsX2NvdW50GAMgASgFIlsKEUNhbmNlbFRhc2tSZXF1ZXN0EhYKDmVycmFuZF90YXNrX2lkGAEgASgDEi4KCnVwZGF0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIkQKEkNhbmNlbFRhc2tSZXNwb25zZRIuCgp1cGRhdGVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcDLQDgoRRXJyYW5kVGFza1NlcnZpY2USaQoKQ3JlYXRlVGFzaxIsLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuQ3JlYXRlVGFza1JlcXVlc3QaLS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkNyZWF0ZVRhc2tSZXNwb25zZRKKAQoVR2V0U2hvcHBpbmdUYXNrRGV0YWlsEjcuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXRTaG9wcGluZ1Rhc2tEZXRhaWxSZXF1ZXN0Gjguc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXRTaG9wcGluZ1Rhc2tEZXRhaWxSZXNwb25zZRKHAQoUU2F2ZVNob3BwaW5nVGFza0l0ZW0SNi5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLlNhdmVTaG9wcGluZ1Rhc2tJdGVtUmVxdWVzdBo3LnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuU2F2ZVNob3BwaW5nVGFza0l0ZW1SZXNwb25zZRKoAQofVHJhbnNpdGlvblRvUGVuZGluZ0Rpc3RyaWJ1dGluZxJBLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuVHJhbnNpdGlvblRvUGVuZGluZ0Rpc3RyaWJ1dGluZ1JlcXVlc3QaQi5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLlRyYW5zaXRpb25Ub1BlbmRpbmdEaXN0cmlidXRpbmdSZXNwb25zZRKWAQoZR2V0RGlzdHJpYnV0aW5nVGFza0RldGFpbBI7LnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuR2V0RGlzdHJpYnV0aW5nVGFza0RldGFpbFJlcXVlc3QaPC5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkdldERpc3RyaWJ1dGluZ1Rhc2tEZXRhaWxSZXNwb25zZRJ+ChFVcGRhdGVBY3R1YWxQcmljZRIzLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuVXBkYXRlQWN0dWFsUHJpY2VSZXF1ZXN0GjQuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5VcGRhdGVBY3R1YWxQcmljZVJlc3BvbnNlEpMBChhUcmFuc2l0aW9uVG9EaXN0cmlidXRpbmcSOi5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLlRyYW5zaXRpb25Ub0Rpc3RyaWJ1dGluZ1JlcXVlc3QaOy5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLlRyYW5zaXRpb25Ub0Rpc3RyaWJ1dGluZ1Jlc3BvbnNlEqUBCh5TYXZlRGlzdHJpYnV0aW5nVGFza0Fzc2lnbm1lbnQSQC5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLlNhdmVEaXN0cmlidXRpbmdUYXNrQXNzaWdubWVudFJlcXVlc3QaQS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLlNhdmVEaXN0cmlidXRpbmdUYXNrQXNzaWdubWVudFJlc3BvbnNlEqIBCh1UcmFuc2l0aW9uVG9Db2xsZWN0aW5nUGF5bWVudBI/LnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuVHJhbnNpdGlvblRvQ29sbGVjdGluZ1BheW1lbnRSZXF1ZXN0GkAuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5UcmFuc2l0aW9uVG9Db2xsZWN0aW5nUGF5bWVudFJlc3BvbnNlEpkBChpHZXRDb2xsZWN0aW5nUGF5bWVudERldGFpbBI8LnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuR2V0Q29sbGVjdGluZ1BheW1lbnREZXRhaWxSZXF1ZXN0Gj0uc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXRDb2xsZWN0aW5nUGF5bWVudERldGFpbFJlc3BvbnNlEooBChVUcmFuc2l0aW9uVG9Db21wbGV0ZWQSNy5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLlRyYW5zaXRpb25Ub0NvbXBsZXRlZFJlcXVlc3QaOC5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLlRyYW5zaXRpb25Ub0NvbXBsZXRlZFJlc3BvbnNlEn4KEUdldEVycmFuZFRhc2tMaXN0EjMuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXRFcnJhbmRUYXNrTGlzdFJlcXVlc3QaNC5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkdldEVycmFuZFRhc2tMaXN0UmVzcG9uc2USaQoKQ2FuY2VsVGFzaxIsLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuQ2FuY2VsVGFza1JlcXVlc3QaLS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkNhbmNlbFRhc2tSZXNwb25zZWIGcHJvdG8z", [file_google_protobuf_timestamp, file_sast_sastshopv2_errand_v1_collecting_payment_bill, file_sast_sastshopv2_errand_v1_distributing_item, file_sast_sastshopv2_errand_v1_errand_task, file_sast_sastshopv2_errand_v1_errand_task_item, file_sast_sastshopv2_errand_v1_errand_task_status, file_sast_sastshopv2_errand_v1_task_demand_item]);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.CreateTaskRequest
  */
-export type CreateTaskRequest =
-  Message<"sast.sastshopv2.errand.v1.CreateTaskRequest"> & {
-    /**
-     * 接单店铺 ID
-     *
-     * @generated from field: int64 store_id = 1;
-     */
-    storeId: bigint;
+export type CreateTaskRequest = Message<"sast.sastshopv2.errand.v1.CreateTaskRequest"> & {
+  /**
+   * 接单店铺 ID
+   *
+   * @generated from field: int64 store_id = 1;
+   */
+  storeId: bigint;
 
-    /**
-     * 团长选择的需求行列表
-     *
-     * @generated from field: repeated sast.sastshopv2.errand.v1.TaskDemandItem demand_items = 2;
-     */
-    demandItems: TaskDemandItem[];
-  };
+  /**
+   * 团长选择的需求行列表
+   *
+   * @generated from field: repeated sast.sastshopv2.errand.v1.TaskDemandItem demand_items = 2;
+   */
+  demandItems: TaskDemandItem[];
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.CreateTaskRequest.
  * Use `create(CreateTaskRequestSchema)` to create a new message.
  */
-export const CreateTaskRequestSchema: GenMessage<CreateTaskRequest> =
-  /*@__PURE__*/
+export const CreateTaskRequestSchema: GenMessage<CreateTaskRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 0);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.CreateTaskResponse
  */
-export type CreateTaskResponse =
-  Message<"sast.sastshopv2.errand.v1.CreateTaskResponse"> & {
-    /**
-     * 新创建的团长采购任务 ID
-     *
-     * @generated from field: int64 errand_task_id = 1;
-     */
-    errandTaskId: bigint;
-  };
+export type CreateTaskResponse = Message<"sast.sastshopv2.errand.v1.CreateTaskResponse"> & {
+  /**
+   * 新创建的团长采购任务 ID
+   *
+   * @generated from field: int64 errand_task_id = 1;
+   */
+  errandTaskId: bigint;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.CreateTaskResponse.
  * Use `create(CreateTaskResponseSchema)` to create a new message.
  */
-export const CreateTaskResponseSchema: GenMessage<CreateTaskResponse> =
-  /*@__PURE__*/
+export const CreateTaskResponseSchema: GenMessage<CreateTaskResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 1);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.GetShoppingTaskDetailRequest
  */
-export type GetShoppingTaskDetailRequest =
-  Message<"sast.sastshopv2.errand.v1.GetShoppingTaskDetailRequest"> & {
-    /**
-     * @generated from field: int64 errand_task_id = 1;
-     */
-    errandTaskId: bigint;
-  };
+export type GetShoppingTaskDetailRequest = Message<"sast.sastshopv2.errand.v1.GetShoppingTaskDetailRequest"> & {
+  /**
+   * @generated from field: int64 errand_task_id = 1;
+   */
+  errandTaskId: bigint;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.GetShoppingTaskDetailRequest.
  * Use `create(GetShoppingTaskDetailRequestSchema)` to create a new message.
  */
-export const GetShoppingTaskDetailRequestSchema: GenMessage<GetShoppingTaskDetailRequest> =
-  /*@__PURE__*/
+export const GetShoppingTaskDetailRequestSchema: GenMessage<GetShoppingTaskDetailRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 2);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.GetShoppingTaskDetailResponse
  */
-export type GetShoppingTaskDetailResponse =
-  Message<"sast.sastshopv2.errand.v1.GetShoppingTaskDetailResponse"> & {
-    /**
-     * @generated from field: int64 errand_task_id = 1;
-     */
-    errandTaskId: bigint;
+export type GetShoppingTaskDetailResponse = Message<"sast.sastshopv2.errand.v1.GetShoppingTaskDetailResponse"> & {
+  /**
+   * @generated from field: int64 errand_task_id = 1;
+   */
+  errandTaskId: bigint;
 
-    /**
-     * @generated from field: int64 store_id = 2;
-     */
-    storeId: bigint;
+  /**
+   * @generated from field: int64 store_id = 2;
+   */
+  storeId: bigint;
 
-    /**
-     * @generated from field: string store_name = 3;
-     */
-    storeName: string;
+  /**
+   * @generated from field: string store_name = 3;
+   */
+  storeName: string;
 
-    /**
-     * @generated from field: repeated sast.sastshopv2.errand.v1.ErrandTaskItem task_items = 4;
-     */
-    taskItems: ErrandTaskItem[];
+  /**
+   * @generated from field: repeated sast.sastshopv2.errand.v1.ErrandTaskItem task_items = 4;
+   */
+  taskItems: ErrandTaskItem[];
 
-    /**
-     * @generated from field: google.protobuf.Timestamp updated_at = 5;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 5;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.GetShoppingTaskDetailResponse.
  * Use `create(GetShoppingTaskDetailResponseSchema)` to create a new message.
  */
-export const GetShoppingTaskDetailResponseSchema: GenMessage<GetShoppingTaskDetailResponse> =
-  /*@__PURE__*/
+export const GetShoppingTaskDetailResponseSchema: GenMessage<GetShoppingTaskDetailResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 3);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.SaveShoppingTaskItemRequest
  */
-export type SaveShoppingTaskItemRequest =
-  Message<"sast.sastshopv2.errand.v1.SaveShoppingTaskItemRequest"> & {
-    /**
-     * @generated from field: int64 errand_task_id = 1;
-     */
-    errandTaskId: bigint;
+export type SaveShoppingTaskItemRequest = Message<"sast.sastshopv2.errand.v1.SaveShoppingTaskItemRequest"> & {
+  /**
+   * @generated from field: int64 errand_task_id = 1;
+   */
+  errandTaskId: bigint;
 
-    /**
-     * @generated from field: int64 errand_task_item_id = 2;
-     */
-    errandTaskItemId: bigint;
+  /**
+   * @generated from field: int64 errand_task_item_id = 2;
+   */
+  errandTaskItemId: bigint;
 
-    /**
-     * @generated from field: int32 purchased_quantity = 3;
-     */
-    purchasedQuantity: number;
+  /**
+   * @generated from field: int32 purchased_quantity = 3;
+   */
+  purchasedQuantity: number;
 
-    /**
-     * @generated from field: optional string non_purchase_reason = 4;
-     */
-    nonPurchaseReason?: string | undefined;
+  /**
+   * @generated from field: optional string non_purchase_reason = 4;
+   */
+  nonPurchaseReason?: string | undefined;
 
-    /**
-     * 前端读取 task_item 时拿到的 updated_at，用于采购结果并发校验
-     *
-     * @generated from field: google.protobuf.Timestamp errand_task_item_updated_at = 5;
-     */
-    errandTaskItemUpdatedAt?: Timestamp | undefined;
-  };
+  /**
+   * 前端读取 task_item 时拿到的 updated_at，用于采购结果并发校验
+   *
+   * @generated from field: google.protobuf.Timestamp errand_task_item_updated_at = 5;
+   */
+  errandTaskItemUpdatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.SaveShoppingTaskItemRequest.
  * Use `create(SaveShoppingTaskItemRequestSchema)` to create a new message.
  */
-export const SaveShoppingTaskItemRequestSchema: GenMessage<SaveShoppingTaskItemRequest> =
-  /*@__PURE__*/
+export const SaveShoppingTaskItemRequestSchema: GenMessage<SaveShoppingTaskItemRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 4);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.SaveShoppingTaskItemResponse
  */
-export type SaveShoppingTaskItemResponse =
-  Message<"sast.sastshopv2.errand.v1.SaveShoppingTaskItemResponse"> & {
-    /**
-     * @generated from field: google.protobuf.Timestamp errand_task_item_updated_at = 1;
-     */
-    errandTaskItemUpdatedAt?: Timestamp | undefined;
-  };
+export type SaveShoppingTaskItemResponse = Message<"sast.sastshopv2.errand.v1.SaveShoppingTaskItemResponse"> & {
+  /**
+   * @generated from field: google.protobuf.Timestamp errand_task_item_updated_at = 1;
+   */
+  errandTaskItemUpdatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.SaveShoppingTaskItemResponse.
  * Use `create(SaveShoppingTaskItemResponseSchema)` to create a new message.
  */
-export const SaveShoppingTaskItemResponseSchema: GenMessage<SaveShoppingTaskItemResponse> =
-  /*@__PURE__*/
+export const SaveShoppingTaskItemResponseSchema: GenMessage<SaveShoppingTaskItemResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 5);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.TransitionToPendingDistributingRequest
  */
-export type TransitionToPendingDistributingRequest =
-  Message<"sast.sastshopv2.errand.v1.TransitionToPendingDistributingRequest"> & {
-    /**
-     * @generated from field: int64 errand_task_id = 1;
-     */
-    errandTaskId: bigint;
+export type TransitionToPendingDistributingRequest = Message<"sast.sastshopv2.errand.v1.TransitionToPendingDistributingRequest"> & {
+  /**
+   * @generated from field: int64 errand_task_id = 1;
+   */
+  errandTaskId: bigint;
 
-    /**
-     * @generated from field: google.protobuf.Timestamp updated_at = 2;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 2;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.TransitionToPendingDistributingRequest.
  * Use `create(TransitionToPendingDistributingRequestSchema)` to create a new message.
  */
-export const TransitionToPendingDistributingRequestSchema: GenMessage<TransitionToPendingDistributingRequest> =
-  /*@__PURE__*/
+export const TransitionToPendingDistributingRequestSchema: GenMessage<TransitionToPendingDistributingRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 6);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.TransitionToPendingDistributingResponse
  */
-export type TransitionToPendingDistributingResponse =
-  Message<"sast.sastshopv2.errand.v1.TransitionToPendingDistributingResponse"> & {
-    /**
-     * @generated from field: google.protobuf.Timestamp updated_at = 1;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+export type TransitionToPendingDistributingResponse = Message<"sast.sastshopv2.errand.v1.TransitionToPendingDistributingResponse"> & {
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 1;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.TransitionToPendingDistributingResponse.
  * Use `create(TransitionToPendingDistributingResponseSchema)` to create a new message.
  */
-export const TransitionToPendingDistributingResponseSchema: GenMessage<TransitionToPendingDistributingResponse> =
-  /*@__PURE__*/
+export const TransitionToPendingDistributingResponseSchema: GenMessage<TransitionToPendingDistributingResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 7);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.GetDistributingTaskDetailRequest
  */
-export type GetDistributingTaskDetailRequest =
-  Message<"sast.sastshopv2.errand.v1.GetDistributingTaskDetailRequest"> & {
-    /**
-     * @generated from field: int64 errand_task_id = 1;
-     */
-    errandTaskId: bigint;
-  };
+export type GetDistributingTaskDetailRequest = Message<"sast.sastshopv2.errand.v1.GetDistributingTaskDetailRequest"> & {
+  /**
+   * @generated from field: int64 errand_task_id = 1;
+   */
+  errandTaskId: bigint;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.GetDistributingTaskDetailRequest.
  * Use `create(GetDistributingTaskDetailRequestSchema)` to create a new message.
  */
-export const GetDistributingTaskDetailRequestSchema: GenMessage<GetDistributingTaskDetailRequest> =
-  /*@__PURE__*/
+export const GetDistributingTaskDetailRequestSchema: GenMessage<GetDistributingTaskDetailRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 8);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.GetDistributingTaskDetailResponse
  */
-export type GetDistributingTaskDetailResponse =
-  Message<"sast.sastshopv2.errand.v1.GetDistributingTaskDetailResponse"> & {
-    /**
-     * @generated from field: int64 errand_task_id = 1;
-     */
-    errandTaskId: bigint;
+export type GetDistributingTaskDetailResponse = Message<"sast.sastshopv2.errand.v1.GetDistributingTaskDetailResponse"> & {
+  /**
+   * @generated from field: int64 errand_task_id = 1;
+   */
+  errandTaskId: bigint;
 
-    /**
-     * @generated from field: int64 store_id = 2;
-     */
-    storeId: bigint;
+  /**
+   * @generated from field: int64 store_id = 2;
+   */
+  storeId: bigint;
 
-    /**
-     * @generated from field: string store_name = 3;
-     */
-    storeName: string;
+  /**
+   * @generated from field: string store_name = 3;
+   */
+  storeName: string;
 
-    /**
-     * @generated from field: int32 packaging_fee_cents = 4;
-     */
-    packagingFeeCents: number;
+  /**
+   * @generated from field: int32 packaging_fee_cents = 4;
+   */
+  packagingFeeCents: number;
 
-    /**
-     * @generated from field: repeated sast.sastshopv2.errand.v1.DistributingItem distributing_items = 5;
-     */
-    distributingItems: DistributingItem[];
+  /**
+   * @generated from field: repeated sast.sastshopv2.errand.v1.DistributingItem distributing_items = 5;
+   */
+  distributingItems: DistributingItem[];
 
-    /**
-     * @generated from field: google.protobuf.Timestamp updated_at = 6;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 6;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.GetDistributingTaskDetailResponse.
  * Use `create(GetDistributingTaskDetailResponseSchema)` to create a new message.
  */
-export const GetDistributingTaskDetailResponseSchema: GenMessage<GetDistributingTaskDetailResponse> =
-  /*@__PURE__*/
+export const GetDistributingTaskDetailResponseSchema: GenMessage<GetDistributingTaskDetailResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 9);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.UpdateActualPriceRequest
  */
-export type UpdateActualPriceRequest =
-  Message<"sast.sastshopv2.errand.v1.UpdateActualPriceRequest"> & {
-    /**
-     * @generated from field: int64 errand_task_id = 1;
-     */
-    errandTaskId: bigint;
+export type UpdateActualPriceRequest = Message<"sast.sastshopv2.errand.v1.UpdateActualPriceRequest"> & {
+  /**
+   * @generated from field: int64 errand_task_id = 1;
+   */
+  errandTaskId: bigint;
 
-    /**
-     * @generated from field: int64 errand_task_item_id = 2;
-     */
-    errandTaskItemId: bigint;
+  /**
+   * @generated from field: int64 errand_task_item_id = 2;
+   */
+  errandTaskItemId: bigint;
 
-    /**
-     * @generated from field: int32 actual_unit_price_cents = 3;
-     */
-    actualUnitPriceCents: number;
+  /**
+   * @generated from field: int32 actual_unit_price_cents = 3;
+   */
+  actualUnitPriceCents: number;
 
-    /**
-     * 前端读取 task_item 时拿到的 updated_at，用于改价并发校验
-     *
-     * @generated from field: google.protobuf.Timestamp errand_task_item_updated_at = 4;
-     */
-    errandTaskItemUpdatedAt?: Timestamp | undefined;
-  };
+  /**
+   * 前端读取 task_item 时拿到的 updated_at，用于改价并发校验
+   *
+   * @generated from field: google.protobuf.Timestamp errand_task_item_updated_at = 4;
+   */
+  errandTaskItemUpdatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.UpdateActualPriceRequest.
  * Use `create(UpdateActualPriceRequestSchema)` to create a new message.
  */
-export const UpdateActualPriceRequestSchema: GenMessage<UpdateActualPriceRequest> =
-  /*@__PURE__*/
+export const UpdateActualPriceRequestSchema: GenMessage<UpdateActualPriceRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 10);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.UpdateActualPriceResponse
  */
-export type UpdateActualPriceResponse =
-  Message<"sast.sastshopv2.errand.v1.UpdateActualPriceResponse"> & {
-    /**
-     * @generated from field: google.protobuf.Timestamp errand_task_item_updated_at = 1;
-     */
-    errandTaskItemUpdatedAt?: Timestamp | undefined;
-  };
+export type UpdateActualPriceResponse = Message<"sast.sastshopv2.errand.v1.UpdateActualPriceResponse"> & {
+  /**
+   * @generated from field: google.protobuf.Timestamp errand_task_item_updated_at = 1;
+   */
+  errandTaskItemUpdatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.UpdateActualPriceResponse.
  * Use `create(UpdateActualPriceResponseSchema)` to create a new message.
  */
-export const UpdateActualPriceResponseSchema: GenMessage<UpdateActualPriceResponse> =
-  /*@__PURE__*/
+export const UpdateActualPriceResponseSchema: GenMessage<UpdateActualPriceResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 11);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.TransitionToDistributingRequest
  */
-export type TransitionToDistributingRequest =
-  Message<"sast.sastshopv2.errand.v1.TransitionToDistributingRequest"> & {
-    /**
-     * @generated from field: int64 errand_task_id = 1;
-     */
-    errandTaskId: bigint;
+export type TransitionToDistributingRequest = Message<"sast.sastshopv2.errand.v1.TransitionToDistributingRequest"> & {
+  /**
+   * @generated from field: int64 errand_task_id = 1;
+   */
+  errandTaskId: bigint;
 
-    /**
-     * 包装费总额，单位为分，由参与人向上取整平摊
-     *
-     * @generated from field: int32 packaging_fee_cents = 2;
-     */
-    packagingFeeCents: number;
+  /**
+   * 包装费总额，单位为分，由参与人向上取整平摊
+   *
+   * @generated from field: int32 packaging_fee_cents = 2;
+   */
+  packagingFeeCents: number;
 
-    /**
-     * 前端读取 task 时拿到的 updated_at，用于状态流转并发校验
-     *
-     * @generated from field: google.protobuf.Timestamp updated_at = 3;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+  /**
+   * 前端读取 task 时拿到的 updated_at，用于状态流转并发校验
+   *
+   * @generated from field: google.protobuf.Timestamp updated_at = 3;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.TransitionToDistributingRequest.
  * Use `create(TransitionToDistributingRequestSchema)` to create a new message.
  */
-export const TransitionToDistributingRequestSchema: GenMessage<TransitionToDistributingRequest> =
-  /*@__PURE__*/
+export const TransitionToDistributingRequestSchema: GenMessage<TransitionToDistributingRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 12);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.TransitionToDistributingResponse
  */
-export type TransitionToDistributingResponse =
-  Message<"sast.sastshopv2.errand.v1.TransitionToDistributingResponse"> & {
-    /**
-     * @generated from field: google.protobuf.Timestamp updated_at = 1;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+export type TransitionToDistributingResponse = Message<"sast.sastshopv2.errand.v1.TransitionToDistributingResponse"> & {
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 1;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.TransitionToDistributingResponse.
  * Use `create(TransitionToDistributingResponseSchema)` to create a new message.
  */
-export const TransitionToDistributingResponseSchema: GenMessage<TransitionToDistributingResponse> =
-  /*@__PURE__*/
+export const TransitionToDistributingResponseSchema: GenMessage<TransitionToDistributingResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 13);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.SaveDistributingTaskAssignmentRequest
  */
-export type SaveDistributingTaskAssignmentRequest =
-  Message<"sast.sastshopv2.errand.v1.SaveDistributingTaskAssignmentRequest"> & {
-    /**
-     * 团长采购任务商品行 ID
-     *
-     * @generated from field: int64 errand_task_item_id = 1;
-     */
-    errandTaskItemId: bigint;
+export type SaveDistributingTaskAssignmentRequest = Message<"sast.sastshopv2.errand.v1.SaveDistributingTaskAssignmentRequest"> & {
+  /**
+   * 团长采购任务商品行 ID
+   *
+   * @generated from field: int64 errand_task_item_id = 1;
+   */
+  errandTaskItemId: bigint;
 
-    /**
-     * 分发明细 ID
-     *
-     * @generated from field: int64 errand_task_assignment_id = 2;
-     */
-    errandTaskAssignmentId: bigint;
+  /**
+   * 分发明细 ID
+   *
+   * @generated from field: int64 errand_task_assignment_id = 2;
+   */
+  errandTaskAssignmentId: bigint;
 
-    /**
-     * 实际分发数量
-     *
-     * @generated from field: int32 distributed_quantity = 3;
-     */
-    distributedQuantity: number;
+  /**
+   * 实际分发数量
+   *
+   * @generated from field: int32 distributed_quantity = 3;
+   */
+  distributedQuantity: number;
 
-    /**
-     * 前端读取 assignment 时拿到的 updated_at，用于分发结果并发校验
-     *
-     * @generated from field: google.protobuf.Timestamp errand_task_assignment_updated_at = 4;
-     */
-    errandTaskAssignmentUpdatedAt?: Timestamp | undefined;
-  };
+  /**
+   * 前端读取 assignment 时拿到的 updated_at，用于分发结果并发校验
+   *
+   * @generated from field: google.protobuf.Timestamp errand_task_assignment_updated_at = 4;
+   */
+  errandTaskAssignmentUpdatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.SaveDistributingTaskAssignmentRequest.
  * Use `create(SaveDistributingTaskAssignmentRequestSchema)` to create a new message.
  */
-export const SaveDistributingTaskAssignmentRequestSchema: GenMessage<SaveDistributingTaskAssignmentRequest> =
-  /*@__PURE__*/
+export const SaveDistributingTaskAssignmentRequestSchema: GenMessage<SaveDistributingTaskAssignmentRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 14);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.SaveDistributingTaskAssignmentResponse
  */
-export type SaveDistributingTaskAssignmentResponse =
-  Message<"sast.sastshopv2.errand.v1.SaveDistributingTaskAssignmentResponse"> & {
-    /**
-     * @generated from field: google.protobuf.Timestamp errand_task_assignment_updated_at = 1;
-     */
-    errandTaskAssignmentUpdatedAt?: Timestamp | undefined;
-  };
+export type SaveDistributingTaskAssignmentResponse = Message<"sast.sastshopv2.errand.v1.SaveDistributingTaskAssignmentResponse"> & {
+  /**
+   * @generated from field: google.protobuf.Timestamp errand_task_assignment_updated_at = 1;
+   */
+  errandTaskAssignmentUpdatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.SaveDistributingTaskAssignmentResponse.
  * Use `create(SaveDistributingTaskAssignmentResponseSchema)` to create a new message.
  */
-export const SaveDistributingTaskAssignmentResponseSchema: GenMessage<SaveDistributingTaskAssignmentResponse> =
-  /*@__PURE__*/
+export const SaveDistributingTaskAssignmentResponseSchema: GenMessage<SaveDistributingTaskAssignmentResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 15);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.TransitionToCollectingPaymentRequest
  */
-export type TransitionToCollectingPaymentRequest =
-  Message<"sast.sastshopv2.errand.v1.TransitionToCollectingPaymentRequest"> & {
-    /**
-     * @generated from field: int64 errand_task_id = 1;
-     */
-    errandTaskId: bigint;
+export type TransitionToCollectingPaymentRequest = Message<"sast.sastshopv2.errand.v1.TransitionToCollectingPaymentRequest"> & {
+  /**
+   * @generated from field: int64 errand_task_id = 1;
+   */
+  errandTaskId: bigint;
 
-    /**
-     * @generated from field: google.protobuf.Timestamp updated_at = 2;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 2;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.TransitionToCollectingPaymentRequest.
  * Use `create(TransitionToCollectingPaymentRequestSchema)` to create a new message.
  */
-export const TransitionToCollectingPaymentRequestSchema: GenMessage<TransitionToCollectingPaymentRequest> =
-  /*@__PURE__*/
+export const TransitionToCollectingPaymentRequestSchema: GenMessage<TransitionToCollectingPaymentRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 16);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.TransitionToCollectingPaymentResponse
  */
-export type TransitionToCollectingPaymentResponse =
-  Message<"sast.sastshopv2.errand.v1.TransitionToCollectingPaymentResponse"> & {
-    /**
-     * @generated from field: google.protobuf.Timestamp updated_at = 1;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+export type TransitionToCollectingPaymentResponse = Message<"sast.sastshopv2.errand.v1.TransitionToCollectingPaymentResponse"> & {
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 1;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.TransitionToCollectingPaymentResponse.
  * Use `create(TransitionToCollectingPaymentResponseSchema)` to create a new message.
  */
-export const TransitionToCollectingPaymentResponseSchema: GenMessage<TransitionToCollectingPaymentResponse> =
-  /*@__PURE__*/
+export const TransitionToCollectingPaymentResponseSchema: GenMessage<TransitionToCollectingPaymentResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 17);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.GetCollectingPaymentDetailRequest
  */
-export type GetCollectingPaymentDetailRequest =
-  Message<"sast.sastshopv2.errand.v1.GetCollectingPaymentDetailRequest"> & {
-    /**
-     * @generated from field: int64 errand_task_id = 1;
-     */
-    errandTaskId: bigint;
-  };
+export type GetCollectingPaymentDetailRequest = Message<"sast.sastshopv2.errand.v1.GetCollectingPaymentDetailRequest"> & {
+  /**
+   * @generated from field: int64 errand_task_id = 1;
+   */
+  errandTaskId: bigint;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.GetCollectingPaymentDetailRequest.
  * Use `create(GetCollectingPaymentDetailRequestSchema)` to create a new message.
  */
-export const GetCollectingPaymentDetailRequestSchema: GenMessage<GetCollectingPaymentDetailRequest> =
-  /*@__PURE__*/
+export const GetCollectingPaymentDetailRequestSchema: GenMessage<GetCollectingPaymentDetailRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 18);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.GetCollectingPaymentDetailResponse
  */
-export type GetCollectingPaymentDetailResponse =
-  Message<"sast.sastshopv2.errand.v1.GetCollectingPaymentDetailResponse"> & {
-    /**
-     * @generated from field: repeated sast.sastshopv2.errand.v1.CollectingPaymentBillDetail bills = 1;
-     */
-    bills: CollectingPaymentBillDetail[];
+export type GetCollectingPaymentDetailResponse = Message<"sast.sastshopv2.errand.v1.GetCollectingPaymentDetailResponse"> & {
+  /**
+   * @generated from field: repeated sast.sastshopv2.errand.v1.CollectingPaymentBillDetail bills = 1;
+   */
+  bills: CollectingPaymentBillDetail[];
 
-    /**
-     * @generated from field: int64 errand_task_id = 2;
-     */
-    errandTaskId: bigint;
+  /**
+   * @generated from field: int64 errand_task_id = 2;
+   */
+  errandTaskId: bigint;
 
-    /**
-     * @generated from field: google.protobuf.Timestamp updated_at = 3;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 3;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.GetCollectingPaymentDetailResponse.
  * Use `create(GetCollectingPaymentDetailResponseSchema)` to create a new message.
  */
-export const GetCollectingPaymentDetailResponseSchema: GenMessage<GetCollectingPaymentDetailResponse> =
-  /*@__PURE__*/
+export const GetCollectingPaymentDetailResponseSchema: GenMessage<GetCollectingPaymentDetailResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 19);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.TransitionToCompletedRequest
  */
-export type TransitionToCompletedRequest =
-  Message<"sast.sastshopv2.errand.v1.TransitionToCompletedRequest"> & {
-    /**
-     * @generated from field: int64 errand_task_id = 1;
-     */
-    errandTaskId: bigint;
+export type TransitionToCompletedRequest = Message<"sast.sastshopv2.errand.v1.TransitionToCompletedRequest"> & {
+  /**
+   * @generated from field: int64 errand_task_id = 1;
+   */
+  errandTaskId: bigint;
 
-    /**
-     * @generated from field: google.protobuf.Timestamp updated_at = 2;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 2;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.TransitionToCompletedRequest.
  * Use `create(TransitionToCompletedRequestSchema)` to create a new message.
  */
-export const TransitionToCompletedRequestSchema: GenMessage<TransitionToCompletedRequest> =
-  /*@__PURE__*/
+export const TransitionToCompletedRequestSchema: GenMessage<TransitionToCompletedRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 20);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.TransitionToCompletedResponse
  */
-export type TransitionToCompletedResponse =
-  Message<"sast.sastshopv2.errand.v1.TransitionToCompletedResponse"> & {
-    /**
-     * @generated from field: google.protobuf.Timestamp updated_at = 1;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+export type TransitionToCompletedResponse = Message<"sast.sastshopv2.errand.v1.TransitionToCompletedResponse"> & {
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 1;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.TransitionToCompletedResponse.
  * Use `create(TransitionToCompletedResponseSchema)` to create a new message.
  */
-export const TransitionToCompletedResponseSchema: GenMessage<TransitionToCompletedResponse> =
-  /*@__PURE__*/
+export const TransitionToCompletedResponseSchema: GenMessage<TransitionToCompletedResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 21);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.GetErrandTaskListRequest
  */
-export type GetErrandTaskListRequest =
-  Message<"sast.sastshopv2.errand.v1.GetErrandTaskListRequest"> & {
-    /**
-     * @generated from field: int32 page = 1;
-     */
-    page: number;
+export type GetErrandTaskListRequest = Message<"sast.sastshopv2.errand.v1.GetErrandTaskListRequest"> & {
+  /**
+   * @generated from field: int32 page = 1;
+   */
+  page: number;
 
-    /**
-     * @generated from field: int32 page_size = 2;
-     */
-    pageSize: number;
+  /**
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
 
-    /**
-     * @generated from field: optional sast.sastshopv2.errand.v1.ErrandTaskStatus filter_status = 3;
-     */
-    filterStatus?: ErrandTaskStatus | undefined;
-  };
+  /**
+   * @generated from field: optional sast.sastshopv2.errand.v1.ErrandTaskStatus filter_status = 3;
+   */
+  filterStatus?: ErrandTaskStatus | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.GetErrandTaskListRequest.
  * Use `create(GetErrandTaskListRequestSchema)` to create a new message.
  */
-export const GetErrandTaskListRequestSchema: GenMessage<GetErrandTaskListRequest> =
-  /*@__PURE__*/
+export const GetErrandTaskListRequestSchema: GenMessage<GetErrandTaskListRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 22);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.GetErrandTaskListResponse
  */
-export type GetErrandTaskListResponse =
-  Message<"sast.sastshopv2.errand.v1.GetErrandTaskListResponse"> & {
-    /**
-     * @generated from field: repeated sast.sastshopv2.errand.v1.ErrandTask errand_tasks = 1;
-     */
-    errandTasks: ErrandTask[];
+export type GetErrandTaskListResponse = Message<"sast.sastshopv2.errand.v1.GetErrandTaskListResponse"> & {
+  /**
+   * @generated from field: repeated sast.sastshopv2.errand.v1.ErrandTask errand_tasks = 1;
+   */
+  errandTasks: ErrandTask[];
 
-    /**
-     * @generated from field: int32 current_page = 2;
-     */
-    currentPage: number;
+  /**
+   * @generated from field: int32 current_page = 2;
+   */
+  currentPage: number;
 
-    /**
-     * @generated from field: int32 total_count = 3;
-     */
-    totalCount: number;
-  };
+  /**
+   * @generated from field: int32 total_count = 3;
+   */
+  totalCount: number;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.GetErrandTaskListResponse.
  * Use `create(GetErrandTaskListResponseSchema)` to create a new message.
  */
-export const GetErrandTaskListResponseSchema: GenMessage<GetErrandTaskListResponse> =
-  /*@__PURE__*/
+export const GetErrandTaskListResponseSchema: GenMessage<GetErrandTaskListResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 23);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.CancelTaskRequest
  */
-export type CancelTaskRequest =
-  Message<"sast.sastshopv2.errand.v1.CancelTaskRequest"> & {
-    /**
-     * @generated from field: int64 errand_task_id = 1;
-     */
-    errandTaskId: bigint;
+export type CancelTaskRequest = Message<"sast.sastshopv2.errand.v1.CancelTaskRequest"> & {
+  /**
+   * @generated from field: int64 errand_task_id = 1;
+   */
+  errandTaskId: bigint;
 
-    /**
-     * @generated from field: google.protobuf.Timestamp updated_at = 2;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 2;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.CancelTaskRequest.
  * Use `create(CancelTaskRequestSchema)` to create a new message.
  */
-export const CancelTaskRequestSchema: GenMessage<CancelTaskRequest> =
-  /*@__PURE__*/
+export const CancelTaskRequestSchema: GenMessage<CancelTaskRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 24);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.CancelTaskResponse
  */
-export type CancelTaskResponse =
-  Message<"sast.sastshopv2.errand.v1.CancelTaskResponse"> & {
-    /**
-     * @generated from field: google.protobuf.Timestamp updated_at = 1;
-     */
-    updatedAt?: Timestamp | undefined;
-  };
+export type CancelTaskResponse = Message<"sast.sastshopv2.errand.v1.CancelTaskResponse"> & {
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 1;
+   */
+  updatedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.CancelTaskResponse.
  * Use `create(CancelTaskResponseSchema)` to create a new message.
  */
-export const CancelTaskResponseSchema: GenMessage<CancelTaskResponse> =
-  /*@__PURE__*/
+export const CancelTaskResponseSchema: GenMessage<CancelTaskResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 25);
 
 /**
@@ -735,7 +663,7 @@ export const ErrandTaskService: GenService<{
     methodKind: "unary";
     input: typeof CreateTaskRequestSchema;
     output: typeof CreateTaskResponseSchema;
-  };
+  },
   /**
    * 获取采购中的跑腿任务详情
    *
@@ -745,7 +673,7 @@ export const ErrandTaskService: GenService<{
     methodKind: "unary";
     input: typeof GetShoppingTaskDetailRequestSchema;
     output: typeof GetShoppingTaskDetailResponseSchema;
-  };
+  },
   /**
    * 更新采购中的跑腿任务商品项
    *
@@ -755,7 +683,7 @@ export const ErrandTaskService: GenService<{
     methodKind: "unary";
     input: typeof SaveShoppingTaskItemRequestSchema;
     output: typeof SaveShoppingTaskItemResponseSchema;
-  };
+  },
   /**
    * 将采购任务从采购中流转到待分发
    *
@@ -765,7 +693,7 @@ export const ErrandTaskService: GenService<{
     methodKind: "unary";
     input: typeof TransitionToPendingDistributingRequestSchema;
     output: typeof TransitionToPendingDistributingResponseSchema;
-  };
+  },
   /**
    * 获取待分发和分发中的跑腿任务详情
    *
@@ -775,7 +703,7 @@ export const ErrandTaskService: GenService<{
     methodKind: "unary";
     input: typeof GetDistributingTaskDetailRequestSchema;
     output: typeof GetDistributingTaskDetailResponseSchema;
-  };
+  },
   /**
    * 待分发阶段修改实际采购单价
    *
@@ -785,7 +713,7 @@ export const ErrandTaskService: GenService<{
     methodKind: "unary";
     input: typeof UpdateActualPriceRequestSchema;
     output: typeof UpdateActualPriceResponseSchema;
-  };
+  },
   /**
    * 将采购任务从待分发流转到分发中
    *
@@ -795,7 +723,7 @@ export const ErrandTaskService: GenService<{
     methodKind: "unary";
     input: typeof TransitionToDistributingRequestSchema;
     output: typeof TransitionToDistributingResponseSchema;
-  };
+  },
   /**
    * 更新分发中的购买人分发结果
    *
@@ -805,7 +733,7 @@ export const ErrandTaskService: GenService<{
     methodKind: "unary";
     input: typeof SaveDistributingTaskAssignmentRequestSchema;
     output: typeof SaveDistributingTaskAssignmentResponseSchema;
-  };
+  },
   /**
    * 分发完成后流转到收款中，并创建支付账单
    *
@@ -815,7 +743,7 @@ export const ErrandTaskService: GenService<{
     methodKind: "unary";
     input: typeof TransitionToCollectingPaymentRequestSchema;
     output: typeof TransitionToCollectingPaymentResponseSchema;
-  };
+  },
   /**
    * 获取收款中状态的跑腿任务详情
    *
@@ -825,7 +753,7 @@ export const ErrandTaskService: GenService<{
     methodKind: "unary";
     input: typeof GetCollectingPaymentDetailRequestSchema;
     output: typeof GetCollectingPaymentDetailResponseSchema;
-  };
+  },
   /**
    * 所有账单确认后将采购任务标记为完成
    *
@@ -835,7 +763,7 @@ export const ErrandTaskService: GenService<{
     methodKind: "unary";
     input: typeof TransitionToCompletedRequestSchema;
     output: typeof TransitionToCompletedResponseSchema;
-  };
+  },
   /**
    * 获取当前团长的跑腿任务列表
    *
@@ -845,7 +773,7 @@ export const ErrandTaskService: GenService<{
     methodKind: "unary";
     input: typeof GetErrandTaskListRequestSchema;
     output: typeof GetErrandTaskListResponseSchema;
-  };
+  },
   /**
    * 取消未完成的跑腿任务
    *
@@ -855,7 +783,7 @@ export const ErrandTaskService: GenService<{
     methodKind: "unary";
     input: typeof CancelTaskRequestSchema;
     output: typeof CancelTaskResponseSchema;
-  };
-}> =
-  /*@__PURE__*/
+  },
+}> = /*@__PURE__*/
   serviceDesc(file_sast_sastshopv2_errand_v1_errand_task_service, 0);
+

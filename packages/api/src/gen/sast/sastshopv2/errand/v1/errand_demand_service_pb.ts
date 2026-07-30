@@ -2,16 +2,8 @@
 // @generated from file sast/sastshopv2/errand/v1/errand_demand_service.proto (package sast.sastshopv2.errand.v1, syntax proto3)
 /* eslint-disable */
 
-import type {
-  GenFile,
-  GenMessage,
-  GenService,
-} from "@bufbuild/protobuf/codegenv2";
-import {
-  fileDesc,
-  messageDesc,
-  serviceDesc,
-} from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_buf_validate_validate } from "../../../../buf/validate/validate_pb";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
@@ -26,173 +18,151 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/errand/v1/errand_demand_service.proto.
  */
-export const file_sast_sastshopv2_errand_v1_errand_demand_service: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "CjVzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF9kZW1hbmRfc2VydmljZS5wcm90bxIZc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MSK3AQoZQ3JlYXRlRXJyYW5kRGVtYW5kUmVxdWVzdBIQCghzdG9yZV9pZBgBIAEoAxI2CghkZWFkbGluZRgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCCLpIBbIBAkABElAKDGRlbWFuZF9pdGVtcxgDIAMoCzIwLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuRXJyYW5kRGVtYW5kSXRlbURyYWZ0Qgi6SAWSAQIIASI2ChpDcmVhdGVFcnJhbmREZW1hbmRSZXNwb25zZRIYChBlcnJhbmRfZGVtYW5kX2lkGAEgASgDIl8KFEdldERlbWFuZExpc3RSZXF1ZXN0EgwKBHBhZ2UYASABKAUSEQoJcGFnZV9zaXplGAIgASgFEhcKCnN0b3JlX25hbWUYAyABKAlIAIgBAUINCgtfc3RvcmVfbmFtZSKDAQoVR2V0RGVtYW5kTGlzdFJlc3BvbnNlEj8KB2RlbWFuZHMYASADKAsyLi5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZERlbWFuZEJ5U3RvcmUSFAoMY3VycmVudF9wYWdlGAIgASgFEhMKC3RvdGFsX2NvdW50GAMgASgFIioKFkdldERlbWFuZERldGFpbFJlcXVlc3QSEAoIc3RvcmVfaWQYASABKAMiWQoXR2V0RGVtYW5kRGV0YWlsUmVzcG9uc2USPgoHZGV0YWlscxgBIAMoCzItLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuRXJyYW5kRGVtYW5kRGV0YWlsMocDChNFcnJhbmREZW1hbmRTZXJ2aWNlEoEBChJDcmVhdGVFcnJhbmREZW1hbmQSNC5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkNyZWF0ZUVycmFuZERlbWFuZFJlcXVlc3QaNS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkNyZWF0ZUVycmFuZERlbWFuZFJlc3BvbnNlEnIKDUdldERlbWFuZExpc3QSLy5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkdldERlbWFuZExpc3RSZXF1ZXN0GjAuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXREZW1hbmRMaXN0UmVzcG9uc2USeAoPR2V0RGVtYW5kRGV0YWlsEjEuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXREZW1hbmREZXRhaWxSZXF1ZXN0GjIuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXREZW1hbmREZXRhaWxSZXNwb25zZWIGcHJvdG8z",
-    [
-      file_buf_validate_validate,
-      file_google_protobuf_timestamp,
-      file_sast_sastshopv2_errand_v1_errand_demand,
-      file_sast_sastshopv2_errand_v1_errand_demand_by_store,
-      file_sast_sastshopv2_errand_v1_errand_demand_detail,
-    ],
-  );
+export const file_sast_sastshopv2_errand_v1_errand_demand_service: GenFile = /*@__PURE__*/
+  fileDesc("CjVzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF9kZW1hbmRfc2VydmljZS5wcm90bxIZc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MSK3AQoZQ3JlYXRlRXJyYW5kRGVtYW5kUmVxdWVzdBIQCghzdG9yZV9pZBgBIAEoAxI2CghkZWFkbGluZRgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCCLpIBbIBAkABElAKDGRlbWFuZF9pdGVtcxgDIAMoCzIwLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuRXJyYW5kRGVtYW5kSXRlbURyYWZ0Qgi6SAWSAQIIASI2ChpDcmVhdGVFcnJhbmREZW1hbmRSZXNwb25zZRIYChBlcnJhbmRfZGVtYW5kX2lkGAEgASgDIl8KFEdldERlbWFuZExpc3RSZXF1ZXN0EgwKBHBhZ2UYASABKAUSEQoJcGFnZV9zaXplGAIgASgFEhcKCnN0b3JlX25hbWUYAyABKAlIAIgBAUINCgtfc3RvcmVfbmFtZSKDAQoVR2V0RGVtYW5kTGlzdFJlc3BvbnNlEj8KB2RlbWFuZHMYASADKAsyLi5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZERlbWFuZEJ5U3RvcmUSFAoMY3VycmVudF9wYWdlGAIgASgFEhMKC3RvdGFsX2NvdW50GAMgASgFIioKFkdldERlbWFuZERldGFpbFJlcXVlc3QSEAoIc3RvcmVfaWQYASABKAMiWQoXR2V0RGVtYW5kRGV0YWlsUmVzcG9uc2USPgoHZGV0YWlscxgBIAMoCzItLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuRXJyYW5kRGVtYW5kRGV0YWlsMocDChNFcnJhbmREZW1hbmRTZXJ2aWNlEoEBChJDcmVhdGVFcnJhbmREZW1hbmQSNC5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkNyZWF0ZUVycmFuZERlbWFuZFJlcXVlc3QaNS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkNyZWF0ZUVycmFuZERlbWFuZFJlc3BvbnNlEnIKDUdldERlbWFuZExpc3QSLy5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkdldERlbWFuZExpc3RSZXF1ZXN0GjAuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXREZW1hbmRMaXN0UmVzcG9uc2USeAoPR2V0RGVtYW5kRGV0YWlsEjEuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXREZW1hbmREZXRhaWxSZXF1ZXN0GjIuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXREZW1hbmREZXRhaWxSZXNwb25zZWIGcHJvdG8z", [file_buf_validate_validate, file_google_protobuf_timestamp, file_sast_sastshopv2_errand_v1_errand_demand, file_sast_sastshopv2_errand_v1_errand_demand_by_store, file_sast_sastshopv2_errand_v1_errand_demand_detail]);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.CreateErrandDemandRequest
  */
-export type CreateErrandDemandRequest =
-  Message<"sast.sastshopv2.errand.v1.CreateErrandDemandRequest"> & {
-    /**
-     * 目标店铺 ID
-     *
-     * @generated from field: int64 store_id = 1;
-     */
-    storeId: bigint;
+export type CreateErrandDemandRequest = Message<"sast.sastshopv2.errand.v1.CreateErrandDemandRequest"> & {
+  /**
+   * 目标店铺 ID
+   *
+   * @generated from field: int64 store_id = 1;
+   */
+  storeId: bigint;
 
-    /**
-     * 买家期望送达时间
-     *
-     * @generated from field: google.protobuf.Timestamp deadline = 2;
-     */
-    deadline?: Timestamp | undefined;
+  /**
+   * 买家期望送达时间
+   *
+   * @generated from field: google.protobuf.Timestamp deadline = 2;
+   */
+  deadline?: Timestamp | undefined;
 
-    /**
-     * 买家一次提交的商品需求行
-     *
-     * @generated from field: repeated sast.sastshopv2.errand.v1.ErrandDemandItemDraft demand_items = 3;
-     */
-    demandItems: ErrandDemandItemDraft[];
-  };
+  /**
+   * 买家一次提交的商品需求行
+   *
+   * @generated from field: repeated sast.sastshopv2.errand.v1.ErrandDemandItemDraft demand_items = 3;
+   */
+  demandItems: ErrandDemandItemDraft[];
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.CreateErrandDemandRequest.
  * Use `create(CreateErrandDemandRequestSchema)` to create a new message.
  */
-export const CreateErrandDemandRequestSchema: GenMessage<CreateErrandDemandRequest> =
-  /*@__PURE__*/
+export const CreateErrandDemandRequestSchema: GenMessage<CreateErrandDemandRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_demand_service, 0);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.CreateErrandDemandResponse
  */
-export type CreateErrandDemandResponse =
-  Message<"sast.sastshopv2.errand.v1.CreateErrandDemandResponse"> & {
-    /**
-     * 买家视角跑腿订单 ID
-     *
-     * @generated from field: int64 errand_demand_id = 1;
-     */
-    errandDemandId: bigint;
-  };
+export type CreateErrandDemandResponse = Message<"sast.sastshopv2.errand.v1.CreateErrandDemandResponse"> & {
+  /**
+   * 买家视角跑腿订单 ID
+   *
+   * @generated from field: int64 errand_demand_id = 1;
+   */
+  errandDemandId: bigint;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.CreateErrandDemandResponse.
  * Use `create(CreateErrandDemandResponseSchema)` to create a new message.
  */
-export const CreateErrandDemandResponseSchema: GenMessage<CreateErrandDemandResponse> =
-  /*@__PURE__*/
+export const CreateErrandDemandResponseSchema: GenMessage<CreateErrandDemandResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_demand_service, 1);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.GetDemandListRequest
  */
-export type GetDemandListRequest =
-  Message<"sast.sastshopv2.errand.v1.GetDemandListRequest"> & {
-    /**
-     * @generated from field: int32 page = 1;
-     */
-    page: number;
+export type GetDemandListRequest = Message<"sast.sastshopv2.errand.v1.GetDemandListRequest"> & {
+  /**
+   * @generated from field: int32 page = 1;
+   */
+  page: number;
 
-    /**
-     * @generated from field: int32 page_size = 2;
-     */
-    pageSize: number;
+  /**
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
 
-    /**
-     * 可选店铺名搜索
-     *
-     * @generated from field: optional string store_name = 3;
-     */
-    storeName?: string | undefined;
-  };
+  /**
+   * 可选店铺名搜索
+   *
+   * @generated from field: optional string store_name = 3;
+   */
+  storeName?: string | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.GetDemandListRequest.
  * Use `create(GetDemandListRequestSchema)` to create a new message.
  */
-export const GetDemandListRequestSchema: GenMessage<GetDemandListRequest> =
-  /*@__PURE__*/
+export const GetDemandListRequestSchema: GenMessage<GetDemandListRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_demand_service, 2);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.GetDemandListResponse
  */
-export type GetDemandListResponse =
-  Message<"sast.sastshopv2.errand.v1.GetDemandListResponse"> & {
-    /**
-     * @generated from field: repeated sast.sastshopv2.errand.v1.ErrandDemandByStore demands = 1;
-     */
-    demands: ErrandDemandByStore[];
+export type GetDemandListResponse = Message<"sast.sastshopv2.errand.v1.GetDemandListResponse"> & {
+  /**
+   * @generated from field: repeated sast.sastshopv2.errand.v1.ErrandDemandByStore demands = 1;
+   */
+  demands: ErrandDemandByStore[];
 
-    /**
-     * @generated from field: int32 current_page = 2;
-     */
-    currentPage: number;
+  /**
+   * @generated from field: int32 current_page = 2;
+   */
+  currentPage: number;
 
-    /**
-     * @generated from field: int32 total_count = 3;
-     */
-    totalCount: number;
-  };
+  /**
+   * @generated from field: int32 total_count = 3;
+   */
+  totalCount: number;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.GetDemandListResponse.
  * Use `create(GetDemandListResponseSchema)` to create a new message.
  */
-export const GetDemandListResponseSchema: GenMessage<GetDemandListResponse> =
-  /*@__PURE__*/
+export const GetDemandListResponseSchema: GenMessage<GetDemandListResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_demand_service, 3);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.GetDemandDetailRequest
  */
-export type GetDemandDetailRequest =
-  Message<"sast.sastshopv2.errand.v1.GetDemandDetailRequest"> & {
-    /**
-     * 按店铺查看当前未接单需求
-     *
-     * @generated from field: int64 store_id = 1;
-     */
-    storeId: bigint;
-  };
+export type GetDemandDetailRequest = Message<"sast.sastshopv2.errand.v1.GetDemandDetailRequest"> & {
+  /**
+   * 按店铺查看当前未接单需求
+   *
+   * @generated from field: int64 store_id = 1;
+   */
+  storeId: bigint;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.GetDemandDetailRequest.
  * Use `create(GetDemandDetailRequestSchema)` to create a new message.
  */
-export const GetDemandDetailRequestSchema: GenMessage<GetDemandDetailRequest> =
-  /*@__PURE__*/
+export const GetDemandDetailRequestSchema: GenMessage<GetDemandDetailRequest> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_demand_service, 4);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.GetDemandDetailResponse
  */
-export type GetDemandDetailResponse =
-  Message<"sast.sastshopv2.errand.v1.GetDemandDetailResponse"> & {
-    /**
-     * @generated from field: repeated sast.sastshopv2.errand.v1.ErrandDemandDetail details = 1;
-     */
-    details: ErrandDemandDetail[];
-  };
+export type GetDemandDetailResponse = Message<"sast.sastshopv2.errand.v1.GetDemandDetailResponse"> & {
+  /**
+   * @generated from field: repeated sast.sastshopv2.errand.v1.ErrandDemandDetail details = 1;
+   */
+  details: ErrandDemandDetail[];
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.GetDemandDetailResponse.
  * Use `create(GetDemandDetailResponseSchema)` to create a new message.
  */
-export const GetDemandDetailResponseSchema: GenMessage<GetDemandDetailResponse> =
-  /*@__PURE__*/
+export const GetDemandDetailResponseSchema: GenMessage<GetDemandDetailResponse> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_errand_demand_service, 5);
 
 /**
@@ -208,7 +178,7 @@ export const ErrandDemandService: GenService<{
     methodKind: "unary";
     input: typeof CreateErrandDemandRequestSchema;
     output: typeof CreateErrandDemandResponseSchema;
-  };
+  },
   /**
    * 团长获取未接单跑腿需求大厅列表
    *
@@ -218,7 +188,7 @@ export const ErrandDemandService: GenService<{
     methodKind: "unary";
     input: typeof GetDemandListRequestSchema;
     output: typeof GetDemandListResponseSchema;
-  };
+  },
   /**
    * 团长查看某个店铺下可接单的需求详情
    *
@@ -228,7 +198,7 @@ export const ErrandDemandService: GenService<{
     methodKind: "unary";
     input: typeof GetDemandDetailRequestSchema;
     output: typeof GetDemandDetailResponseSchema;
-  };
-}> =
-  /*@__PURE__*/
+  },
+}> = /*@__PURE__*/
   serviceDesc(file_sast_sastshopv2_errand_v1_errand_demand_service, 0);
+

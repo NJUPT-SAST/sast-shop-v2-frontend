@@ -2,40 +2,31 @@
 // @generated from file sast/sastshopv2/payment/v1/error.proto (package sast.sastshopv2.payment.v1, syntax proto3)
 /* eslint-disable */
 
-import type {
-  GenEnum,
-  GenFile,
-  GenMessage,
-} from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file sast/sastshopv2/payment/v1/error.proto.
  */
-export const file_sast_sastshopv2_payment_v1_error: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "CiZzYXN0L3Nhc3RzaG9wdjIvcGF5bWVudC92MS9lcnJvci5wcm90bxIac2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEiSgoMUGF5bWVudEVycm9yEjoKBGNvZGUYASABKA4yLC5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5QYXltZW50RXJyb3JDb2RlKtwBChBQYXltZW50RXJyb3JDb2RlEiIKHlBBWU1FTlRfRVJST1JfQ09ERV9VTlNQRUNJRklFRBAAEiYKIVBBWU1FTlRfRVJST1JfQ09ERV9CSUxMX05PVF9GT1VORBCgHxIrCiZQQVlNRU5UX0VSUk9SX0NPREVfSU5WQUxJRF9CSUxMX1NUQVRVUxChHxInCiJQQVlNRU5UX0VSUk9SX0NPREVfSU5WQUxJRF9DSEFOTkVMEKIfEiYKIVBBWU1FTlRfRVJST1JfQ09ERV9EVVBMSUNBVEVfQklMTBCjH2IGcHJvdG8z",
-  );
+export const file_sast_sastshopv2_payment_v1_error: GenFile = /*@__PURE__*/
+  fileDesc("CiZzYXN0L3Nhc3RzaG9wdjIvcGF5bWVudC92MS9lcnJvci5wcm90bxIac2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEiSgoMUGF5bWVudEVycm9yEjoKBGNvZGUYASABKA4yLC5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5QYXltZW50RXJyb3JDb2RlKtwBChBQYXltZW50RXJyb3JDb2RlEiIKHlBBWU1FTlRfRVJST1JfQ09ERV9VTlNQRUNJRklFRBAAEiYKIVBBWU1FTlRfRVJST1JfQ09ERV9CSUxMX05PVF9GT1VORBCgHxIrCiZQQVlNRU5UX0VSUk9SX0NPREVfSU5WQUxJRF9CSUxMX1NUQVRVUxChHxInCiJQQVlNRU5UX0VSUk9SX0NPREVfSU5WQUxJRF9DSEFOTkVMEKIfEiYKIVBBWU1FTlRfRVJST1JfQ09ERV9EVVBMSUNBVEVfQklMTBCjH2IGcHJvdG8z");
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.PaymentError
  */
-export type PaymentError =
-  Message<"sast.sastshopv2.payment.v1.PaymentError"> & {
-    /**
-     * @generated from field: sast.sastshopv2.payment.v1.PaymentErrorCode code = 1;
-     */
-    code: PaymentErrorCode;
-  };
+export type PaymentError = Message<"sast.sastshopv2.payment.v1.PaymentError"> & {
+  /**
+   * @generated from field: sast.sastshopv2.payment.v1.PaymentErrorCode code = 1;
+   */
+  code: PaymentErrorCode;
+};
 
 /**
  * Describes the message sast.sastshopv2.payment.v1.PaymentError.
  * Use `create(PaymentErrorSchema)` to create a new message.
  */
-export const PaymentErrorSchema: GenMessage<PaymentError> =
-  /*@__PURE__*/
+export const PaymentErrorSchema: GenMessage<PaymentError> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_error, 0);
 
 /**
@@ -79,6 +70,6 @@ export enum PaymentErrorCode {
 /**
  * Describes the enum sast.sastshopv2.payment.v1.PaymentErrorCode.
  */
-export const PaymentErrorCodeSchema: GenEnum<PaymentErrorCode> =
-  /*@__PURE__*/
+export const PaymentErrorCodeSchema: GenEnum<PaymentErrorCode> = /*@__PURE__*/
   enumDesc(file_sast_sastshopv2_payment_v1_error, 0);
+

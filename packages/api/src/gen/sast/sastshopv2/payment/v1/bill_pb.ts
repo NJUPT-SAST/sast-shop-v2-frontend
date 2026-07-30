@@ -2,11 +2,7 @@
 // @generated from file sast/sastshopv2/payment/v1/bill.proto (package sast.sastshopv2.payment.v1, syntax proto3)
 /* eslint-disable */
 
-import type {
-  GenEnum,
-  GenFile,
-  GenMessage,
-} from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
@@ -19,16 +15,8 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/payment/v1/bill.proto.
  */
-export const file_sast_sastshopv2_payment_v1_bill: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "CiVzYXN0L3Nhc3RzaG9wdjIvcGF5bWVudC92MS9iaWxsLnByb3RvEhpzYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MSLQBQoEQmlsbBIKCgJpZBgBIAEoAxIPCgdiaWxsX25vGAIgASgJEjAKBXBheWVyGAMgASgLMiEuc2FzdC5zYXN0c2hvcHYyLnVzZXIudjEuVXNlckluZm8SMAoFcGF5ZWUYBCABKAsyIS5zYXN0LnNhc3RzaG9wdjIudXNlci52MS5Vc2VySW5mbxI2CgZzdGF0dXMYBSABKA4yJi5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5CaWxsU3RhdHVzEhQKDGFtb3VudF9jZW50cxgGIAEoBRITCgt2ZXJpZnlfY29kZRgHIAEoCRI0CgdjaGFubmVsGAggASgOMiMuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ2hhbm5lbBIaCg1zZXJpYWxfbnVtYmVyGAkgASgJSACIAQESNQoMc3VibWl0dGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEgBiAEBEjUKDGNvbXBsZXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBIAogBARIyCgljbG9zZWRfYXQYDCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSAOIAQESLgoKY3JlYXRlZF9hdBgNIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgOIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASGAoLc291cmNlX3R5cGUYDyABKAlIBIgBARIWCglzb3VyY2VfaWQYECABKANIBYgBAUIQCg5fc2VyaWFsX251bWJlckIPCg1fc3VibWl0dGVkX2F0Qg8KDV9jb21wbGV0ZWRfYXRCDAoKX2Nsb3NlZF9hdEIOCgxfc291cmNlX3R5cGVCDAoKX3NvdXJjZV9pZCqPAQoKQmlsbFN0YXR1cxIbChdCSUxMX1NUQVRVU19VTlNQRUNJRklFRBAAEhYKEkJJTExfU1RBVFVTX1VOUEFJRBABEhkKFUJJTExfU1RBVFVTX1NVQk1JVFRFRBACEhkKFUJJTExfU1RBVFVTX0NPTVBMRVRFRBADEhYKEkJJTExfU1RBVFVTX0NMT1NFRBAEYgZwcm90bzM",
-    [
-      file_google_protobuf_timestamp,
-      file_sast_sastshopv2_payment_v1_channel,
-      file_sast_sastshopv2_user_v1_user_info,
-    ],
-  );
+export const file_sast_sastshopv2_payment_v1_bill: GenFile = /*@__PURE__*/
+  fileDesc("CiVzYXN0L3Nhc3RzaG9wdjIvcGF5bWVudC92MS9iaWxsLnByb3RvEhpzYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MSLQBQoEQmlsbBIKCgJpZBgBIAEoAxIPCgdiaWxsX25vGAIgASgJEjAKBXBheWVyGAMgASgLMiEuc2FzdC5zYXN0c2hvcHYyLnVzZXIudjEuVXNlckluZm8SMAoFcGF5ZWUYBCABKAsyIS5zYXN0LnNhc3RzaG9wdjIudXNlci52MS5Vc2VySW5mbxI2CgZzdGF0dXMYBSABKA4yJi5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5CaWxsU3RhdHVzEhQKDGFtb3VudF9jZW50cxgGIAEoBRITCgt2ZXJpZnlfY29kZRgHIAEoCRI0CgdjaGFubmVsGAggASgOMiMuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ2hhbm5lbBIaCg1zZXJpYWxfbnVtYmVyGAkgASgJSACIAQESNQoMc3VibWl0dGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEgBiAEBEjUKDGNvbXBsZXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBIAogBARIyCgljbG9zZWRfYXQYDCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSAOIAQESLgoKY3JlYXRlZF9hdBgNIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgOIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASGAoLc291cmNlX3R5cGUYDyABKAlIBIgBARIWCglzb3VyY2VfaWQYECABKANIBYgBAUIQCg5fc2VyaWFsX251bWJlckIPCg1fc3VibWl0dGVkX2F0Qg8KDV9jb21wbGV0ZWRfYXRCDAoKX2Nsb3NlZF9hdEIOCgxfc291cmNlX3R5cGVCDAoKX3NvdXJjZV9pZCqPAQoKQmlsbFN0YXR1cxIbChdCSUxMX1NUQVRVU19VTlNQRUNJRklFRBAAEhYKEkJJTExfU1RBVFVTX1VOUEFJRBABEhkKFUJJTExfU1RBVFVTX1NVQk1JVFRFRBACEhkKFUJJTExfU1RBVFVTX0NPTVBMRVRFRBADEhYKEkJJTExfU1RBVFVTX0NMT1NFRBAEYgZwcm90bzM", [file_google_protobuf_timestamp, file_sast_sastshopv2_payment_v1_channel, file_sast_sastshopv2_user_v1_user_info]);
 
 /**
  * 支付账单
@@ -153,8 +141,7 @@ export type Bill = Message<"sast.sastshopv2.payment.v1.Bill"> & {
  * Describes the message sast.sastshopv2.payment.v1.Bill.
  * Use `create(BillSchema)` to create a new message.
  */
-export const BillSchema: GenMessage<Bill> =
-  /*@__PURE__*/
+export const BillSchema: GenMessage<Bill> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_payment_v1_bill, 0);
 
 /**
@@ -198,6 +185,6 @@ export enum BillStatus {
 /**
  * Describes the enum sast.sastshopv2.payment.v1.BillStatus.
  */
-export const BillStatusSchema: GenEnum<BillStatus> =
-  /*@__PURE__*/
+export const BillStatusSchema: GenEnum<BillStatus> = /*@__PURE__*/
   enumDesc(file_sast_sastshopv2_payment_v1_bill, 0);
+

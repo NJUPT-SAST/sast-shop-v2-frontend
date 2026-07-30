@@ -2,40 +2,31 @@
 // @generated from file sast/sastshopv2/catalog/v1/error.proto (package sast.sastshopv2.catalog.v1, syntax proto3)
 /* eslint-disable */
 
-import type {
-  GenEnum,
-  GenFile,
-  GenMessage,
-} from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file sast/sastshopv2/catalog/v1/error.proto.
  */
-export const file_sast_sastshopv2_catalog_v1_error: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "CiZzYXN0L3Nhc3RzaG9wdjIvY2F0YWxvZy92MS9lcnJvci5wcm90bxIac2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEiSgoMQ2F0YWxvZ0Vycm9yEjoKBGNvZGUYASABKA4yLC5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5DYXRhbG9nRXJyb3JDb2RlKl4KEENhdGFsb2dFcnJvckNvZGUSIgoeQ0FUQUxPR19FUlJPUl9DT0RFX1VOU1BFQ0lGSUVEEAASJgohQ0FUQUxPR19FUlJPUl9DT0RFX0lOVEVSTkFMX0VSUk9SELgXYgZwcm90bzM",
-  );
+export const file_sast_sastshopv2_catalog_v1_error: GenFile = /*@__PURE__*/
+  fileDesc("CiZzYXN0L3Nhc3RzaG9wdjIvY2F0YWxvZy92MS9lcnJvci5wcm90bxIac2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEiSgoMQ2F0YWxvZ0Vycm9yEjoKBGNvZGUYASABKA4yLC5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5DYXRhbG9nRXJyb3JDb2RlKl4KEENhdGFsb2dFcnJvckNvZGUSIgoeQ0FUQUxPR19FUlJPUl9DT0RFX1VOU1BFQ0lGSUVEEAASJgohQ0FUQUxPR19FUlJPUl9DT0RFX0lOVEVSTkFMX0VSUk9SELgXYgZwcm90bzM");
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.CatalogError
  */
-export type CatalogError =
-  Message<"sast.sastshopv2.catalog.v1.CatalogError"> & {
-    /**
-     * @generated from field: sast.sastshopv2.catalog.v1.CatalogErrorCode code = 1;
-     */
-    code: CatalogErrorCode;
-  };
+export type CatalogError = Message<"sast.sastshopv2.catalog.v1.CatalogError"> & {
+  /**
+   * @generated from field: sast.sastshopv2.catalog.v1.CatalogErrorCode code = 1;
+   */
+  code: CatalogErrorCode;
+};
 
 /**
  * Describes the message sast.sastshopv2.catalog.v1.CatalogError.
  * Use `create(CatalogErrorSchema)` to create a new message.
  */
-export const CatalogErrorSchema: GenMessage<CatalogError> =
-  /*@__PURE__*/
+export const CatalogErrorSchema: GenMessage<CatalogError> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_catalog_v1_error, 0);
 
 /**
@@ -56,6 +47,6 @@ export enum CatalogErrorCode {
 /**
  * Describes the enum sast.sastshopv2.catalog.v1.CatalogErrorCode.
  */
-export const CatalogErrorCodeSchema: GenEnum<CatalogErrorCode> =
-  /*@__PURE__*/
+export const CatalogErrorCodeSchema: GenEnum<CatalogErrorCode> = /*@__PURE__*/
   enumDesc(file_sast_sastshopv2_catalog_v1_error, 0);
+

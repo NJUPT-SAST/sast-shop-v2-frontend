@@ -21,83 +21,64 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/common/v1/business_error.proto.
  */
-export const file_sast_sastshopv2_common_v1_business_error: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "Ci5zYXN0L3Nhc3RzaG9wdjIvY29tbW9uL3YxL2J1c2luZXNzX2Vycm9yLnByb3RvEhlzYXN0LnNhc3RzaG9wdjIuY29tbW9uLnYxIqoDCg1CdXNpbmVzc0Vycm9yEhUKDWVycm9yX21lc3NhZ2UYASABKAkSPgoMY29tbW9uX2Vycm9yGAkgASgLMiYuc2FzdC5zYXN0c2hvcHYyLmNvbW1vbi52MS5Db21tb25FcnJvckgAEjgKCnVzZXJfZXJyb3IYCiABKAsyIi5zYXN0LnNhc3RzaG9wdjIudXNlci52MS5Vc2VyRXJyb3JIABJBCg1jYXRhbG9nX2Vycm9yGAsgASgLMiguc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuQ2F0YWxvZ0Vycm9ySAASQQoNcGF5bWVudF9lcnJvchgMIAEoCzIoLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLlBheW1lbnRFcnJvckgAEjgKCnNwb3RfZXJyb3IYDSABKAsyIi5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5TcG90RXJyb3JIABI+CgxlcnJhbmRfZXJyb3IYDiABKAsyJi5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZEVycm9ySABCCAoGZGV0YWlsYgZwcm90bzM",
-    [
-      file_sast_sastshopv2_catalog_v1_error,
-      file_sast_sastshopv2_common_v1_error,
-      file_sast_sastshopv2_errand_v1_error,
-      file_sast_sastshopv2_payment_v1_error,
-      file_sast_sastshopv2_spot_v1_error,
-      file_sast_sastshopv2_user_v1_error,
-    ],
-  );
+export const file_sast_sastshopv2_common_v1_business_error: GenFile = /*@__PURE__*/
+  fileDesc("Ci5zYXN0L3Nhc3RzaG9wdjIvY29tbW9uL3YxL2J1c2luZXNzX2Vycm9yLnByb3RvEhlzYXN0LnNhc3RzaG9wdjIuY29tbW9uLnYxIqoDCg1CdXNpbmVzc0Vycm9yEhUKDWVycm9yX21lc3NhZ2UYASABKAkSPgoMY29tbW9uX2Vycm9yGAkgASgLMiYuc2FzdC5zYXN0c2hvcHYyLmNvbW1vbi52MS5Db21tb25FcnJvckgAEjgKCnVzZXJfZXJyb3IYCiABKAsyIi5zYXN0LnNhc3RzaG9wdjIudXNlci52MS5Vc2VyRXJyb3JIABJBCg1jYXRhbG9nX2Vycm9yGAsgASgLMiguc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuQ2F0YWxvZ0Vycm9ySAASQQoNcGF5bWVudF9lcnJvchgMIAEoCzIoLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLlBheW1lbnRFcnJvckgAEjgKCnNwb3RfZXJyb3IYDSABKAsyIi5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5TcG90RXJyb3JIABI+CgxlcnJhbmRfZXJyb3IYDiABKAsyJi5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZEVycm9ySABCCAoGZGV0YWlsYgZwcm90bzM", [file_sast_sastshopv2_catalog_v1_error, file_sast_sastshopv2_common_v1_error, file_sast_sastshopv2_errand_v1_error, file_sast_sastshopv2_payment_v1_error, file_sast_sastshopv2_spot_v1_error, file_sast_sastshopv2_user_v1_error]);
 
 /**
  * @generated from message sast.sastshopv2.common.v1.BusinessError
  */
-export type BusinessError =
-  Message<"sast.sastshopv2.common.v1.BusinessError"> & {
-    /**
-     * @generated from field: string error_message = 1;
-     */
-    errorMessage: string;
+export type BusinessError = Message<"sast.sastshopv2.common.v1.BusinessError"> & {
+  /**
+   * @generated from field: string error_message = 1;
+   */
+  errorMessage: string;
 
+  /**
+   * @generated from oneof sast.sastshopv2.common.v1.BusinessError.detail
+   */
+  detail: {
     /**
-     * @generated from oneof sast.sastshopv2.common.v1.BusinessError.detail
+     * @generated from field: sast.sastshopv2.common.v1.CommonError common_error = 9;
      */
-    detail:
-      | {
-          /**
-           * @generated from field: sast.sastshopv2.common.v1.CommonError common_error = 9;
-           */
-          value: CommonError;
-          case: "commonError";
-        }
-      | {
-          /**
-           * @generated from field: sast.sastshopv2.user.v1.UserError user_error = 10;
-           */
-          value: UserError;
-          case: "userError";
-        }
-      | {
-          /**
-           * @generated from field: sast.sastshopv2.catalog.v1.CatalogError catalog_error = 11;
-           */
-          value: CatalogError;
-          case: "catalogError";
-        }
-      | {
-          /**
-           * @generated from field: sast.sastshopv2.payment.v1.PaymentError payment_error = 12;
-           */
-          value: PaymentError;
-          case: "paymentError";
-        }
-      | {
-          /**
-           * @generated from field: sast.sastshopv2.spot.v1.SpotError spot_error = 13;
-           */
-          value: SpotError;
-          case: "spotError";
-        }
-      | {
-          /**
-           * @generated from field: sast.sastshopv2.errand.v1.ErrandError errand_error = 14;
-           */
-          value: ErrandError;
-          case: "errandError";
-        }
-      | { case: undefined; value?: undefined };
-  };
+    value: CommonError;
+    case: "commonError";
+  } | {
+    /**
+     * @generated from field: sast.sastshopv2.user.v1.UserError user_error = 10;
+     */
+    value: UserError;
+    case: "userError";
+  } | {
+    /**
+     * @generated from field: sast.sastshopv2.catalog.v1.CatalogError catalog_error = 11;
+     */
+    value: CatalogError;
+    case: "catalogError";
+  } | {
+    /**
+     * @generated from field: sast.sastshopv2.payment.v1.PaymentError payment_error = 12;
+     */
+    value: PaymentError;
+    case: "paymentError";
+  } | {
+    /**
+     * @generated from field: sast.sastshopv2.spot.v1.SpotError spot_error = 13;
+     */
+    value: SpotError;
+    case: "spotError";
+  } | {
+    /**
+     * @generated from field: sast.sastshopv2.errand.v1.ErrandError errand_error = 14;
+     */
+    value: ErrandError;
+    case: "errandError";
+  } | { case: undefined; value?: undefined };
+};
 
 /**
  * Describes the message sast.sastshopv2.common.v1.BusinessError.
  * Use `create(BusinessErrorSchema)` to create a new message.
  */
-export const BusinessErrorSchema: GenMessage<BusinessError> =
-  /*@__PURE__*/
+export const BusinessErrorSchema: GenMessage<BusinessError> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_common_v1_business_error, 0);
+

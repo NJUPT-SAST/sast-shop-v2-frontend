@@ -21,97 +21,84 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file sast/sastshopv2/errand/v1/buyer_errand_order.proto.
  */
-export const file_sast_sastshopv2_errand_v1_buyer_errand_order: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "CjJzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2J1eWVyX2VycmFuZF9vcmRlci5wcm90bxIZc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MSKpAwobQnV5ZXJFcnJhbmRPcmRlclByb2R1Y3RJdGVtEkUKEHByb2R1Y3RfdGVtcGxhdGUYASABKAsyKy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5Qcm9kdWN0VGVtcGxhdGUSHwoXYWN0dWFsX3VuaXRfcHJpY2VfY2VudHMYAiABKAUSGQoRcmVxdWlyZWRfcXVhbnRpdHkYAyABKAUSHwoScHVyY2hhc2VkX3F1YW50aXR5GAQgASgFSACIAQESIAoTbm9uX3B1cmNoYXNlX3JlYXNvbhgFIAEoCUgBiAEBEiEKFGRpc3RyaWJ1dGVkX3F1YW50aXR5GAYgASgFSAKIAQESIgoac2VydmljZV9mZWVfcGVyX3VuaXRfY2VudHMYByABKAUSFgoOc3VidG90YWxfY2VudHMYCCABKAUSHQoVZXJyYW5kX2RlbWFuZF9pdGVtX2lkGAkgASgDQhUKE19wdXJjaGFzZWRfcXVhbnRpdHlCFgoUX25vbl9wdXJjaGFzZV9yZWFzb25CFwoVX2Rpc3RyaWJ1dGVkX3F1YW50aXR5ItgDChVCdXllckVycmFuZE9yZGVyQnJpZWYSGAoQZXJyYW5kX2RlbWFuZF9pZBgBIAEoAxIQCghzdG9yZV9pZBgCIAEoAxIuCgpjcmVhdGVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBI1CgpzdG9yZV9pbmZvGAQgASgLMiEuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuU3RvcmUSPQoGc3RhdHVzGAUgASgOMi0uc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5FcnJhbmREZW1hbmRTdGF0dXMSRgoRcHJvZHVjdF90ZW1wbGF0ZXMYBiADKAsyKy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5Qcm9kdWN0VGVtcGxhdGUSIQoZdG90YWxfb3JpZ2luX2Ftb3VudF9jZW50cxgHIAEoBRImChl0b3RhbF9hY3R1YWxfYW1vdW50X2NlbnRzGAggASgFSACIAQESHwoXdG90YWxfc2VydmljZV9mZWVfY2VudHMYCSABKAUSGwoTcHJvZHVjdF90b3RhbF9jb3VudBgKIAEoBUIcChpfdG90YWxfYWN0dWFsX2Ftb3VudF9jZW50cyKFBwoWQnV5ZXJFcnJhbmRPcmRlckRldGFpbBIYChBlcnJhbmRfZGVtYW5kX2lkGAEgASgDEhAKCHN0b3JlX2lkGAIgASgDEi4KCmNyZWF0ZWRfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjUKCnN0b3JlX2luZm8YBCABKAsyIS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5TdG9yZRI9CgZzdGF0dXMYBSABKA4yLS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZERlbWFuZFN0YXR1cxJNCg1wcm9kdWN0X2l0ZW1zGAYgAygLMjYuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5CdXllckVycmFuZE9yZGVyUHJvZHVjdEl0ZW0SIQoZdG90YWxfb3JpZ2luX2Ftb3VudF9jZW50cxgHIAEoBRImChl0b3RhbF9hY3R1YWxfYW1vdW50X2NlbnRzGAggASgFSACIAQESHwoXdG90YWxfc2VydmljZV9mZWVfY2VudHMYCSABKAUSNwoMY2FwdGFpbl9pbmZvGAogASgLMiEuc2FzdC5zYXN0c2hvcHYyLnVzZXIudjEuVXNlckluZm8SMwoEYmlsbBgLIAEoCzIgLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJpbGxIAYgBARIsCghkZWFkbGluZRgMIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASNQoRc2hvcHBpbmdfc3RhcnRfYXQYDSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjkKFXNob3BwaW5nX2NvbXBsZXRlZF9hdBgOIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASPQoZZGlzdHJpYnV0aW9uX2NvbXBsZXRlZF9hdBgPIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASOAoUcGF5bWVudF9jb21wbGV0ZWRfYXQYECABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGNhbmNlbGxlZF9hdBgRIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCHAoaX3RvdGFsX2FjdHVhbF9hbW91bnRfY2VudHNCBwoFX2JpbGxiBnByb3RvMw",
-    [
-      file_google_protobuf_timestamp,
-      file_sast_sastshopv2_catalog_v1_product_template,
-      file_sast_sastshopv2_catalog_v1_store,
-      file_sast_sastshopv2_errand_v1_errand_demand_status,
-      file_sast_sastshopv2_payment_v1_bill,
-      file_sast_sastshopv2_user_v1_user_info,
-    ],
-  );
+export const file_sast_sastshopv2_errand_v1_buyer_errand_order: GenFile = /*@__PURE__*/
+  fileDesc("CjJzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2J1eWVyX2VycmFuZF9vcmRlci5wcm90bxIZc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MSKpAwobQnV5ZXJFcnJhbmRPcmRlclByb2R1Y3RJdGVtEkUKEHByb2R1Y3RfdGVtcGxhdGUYASABKAsyKy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5Qcm9kdWN0VGVtcGxhdGUSHwoXYWN0dWFsX3VuaXRfcHJpY2VfY2VudHMYAiABKAUSGQoRcmVxdWlyZWRfcXVhbnRpdHkYAyABKAUSHwoScHVyY2hhc2VkX3F1YW50aXR5GAQgASgFSACIAQESIAoTbm9uX3B1cmNoYXNlX3JlYXNvbhgFIAEoCUgBiAEBEiEKFGRpc3RyaWJ1dGVkX3F1YW50aXR5GAYgASgFSAKIAQESIgoac2VydmljZV9mZWVfcGVyX3VuaXRfY2VudHMYByABKAUSFgoOc3VidG90YWxfY2VudHMYCCABKAUSHQoVZXJyYW5kX2RlbWFuZF9pdGVtX2lkGAkgASgDQhUKE19wdXJjaGFzZWRfcXVhbnRpdHlCFgoUX25vbl9wdXJjaGFzZV9yZWFzb25CFwoVX2Rpc3RyaWJ1dGVkX3F1YW50aXR5ItgDChVCdXllckVycmFuZE9yZGVyQnJpZWYSGAoQZXJyYW5kX2RlbWFuZF9pZBgBIAEoAxIQCghzdG9yZV9pZBgCIAEoAxIuCgpjcmVhdGVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBI1CgpzdG9yZV9pbmZvGAQgASgLMiEuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuU3RvcmUSPQoGc3RhdHVzGAUgASgOMi0uc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5FcnJhbmREZW1hbmRTdGF0dXMSRgoRcHJvZHVjdF90ZW1wbGF0ZXMYBiADKAsyKy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5Qcm9kdWN0VGVtcGxhdGUSIQoZdG90YWxfb3JpZ2luX2Ftb3VudF9jZW50cxgHIAEoBRImChl0b3RhbF9hY3R1YWxfYW1vdW50X2NlbnRzGAggASgFSACIAQESHwoXdG90YWxfc2VydmljZV9mZWVfY2VudHMYCSABKAUSGwoTcHJvZHVjdF90b3RhbF9jb3VudBgKIAEoBUIcChpfdG90YWxfYWN0dWFsX2Ftb3VudF9jZW50cyKFBwoWQnV5ZXJFcnJhbmRPcmRlckRldGFpbBIYChBlcnJhbmRfZGVtYW5kX2lkGAEgASgDEhAKCHN0b3JlX2lkGAIgASgDEi4KCmNyZWF0ZWRfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjUKCnN0b3JlX2luZm8YBCABKAsyIS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5TdG9yZRI9CgZzdGF0dXMYBSABKA4yLS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZERlbWFuZFN0YXR1cxJNCg1wcm9kdWN0X2l0ZW1zGAYgAygLMjYuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5CdXllckVycmFuZE9yZGVyUHJvZHVjdEl0ZW0SIQoZdG90YWxfb3JpZ2luX2Ftb3VudF9jZW50cxgHIAEoBRImChl0b3RhbF9hY3R1YWxfYW1vdW50X2NlbnRzGAggASgFSACIAQESHwoXdG90YWxfc2VydmljZV9mZWVfY2VudHMYCSABKAUSNwoMY2FwdGFpbl9pbmZvGAogASgLMiEuc2FzdC5zYXN0c2hvcHYyLnVzZXIudjEuVXNlckluZm8SMwoEYmlsbBgLIAEoCzIgLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJpbGxIAYgBARIsCghkZWFkbGluZRgMIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASNQoRc2hvcHBpbmdfc3RhcnRfYXQYDSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjkKFXNob3BwaW5nX2NvbXBsZXRlZF9hdBgOIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASPQoZZGlzdHJpYnV0aW9uX2NvbXBsZXRlZF9hdBgPIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASOAoUcGF5bWVudF9jb21wbGV0ZWRfYXQYECABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGNhbmNlbGxlZF9hdBgRIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCHAoaX3RvdGFsX2FjdHVhbF9hbW91bnRfY2VudHNCBwoFX2JpbGxiBnByb3RvMw", [file_google_protobuf_timestamp, file_sast_sastshopv2_catalog_v1_product_template, file_sast_sastshopv2_catalog_v1_store, file_sast_sastshopv2_errand_v1_errand_demand_status, file_sast_sastshopv2_payment_v1_bill, file_sast_sastshopv2_user_v1_user_info]);
 
 /**
  * 买家跑腿订单中的商品明细
  *
  * @generated from message sast.sastshopv2.errand.v1.BuyerErrandOrderProductItem
  */
-export type BuyerErrandOrderProductItem =
-  Message<"sast.sastshopv2.errand.v1.BuyerErrandOrderProductItem"> & {
-    /**
-     * 商品模板快照
-     *
-     * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 1;
-     */
-    productTemplate?: ProductTemplate | undefined;
+export type BuyerErrandOrderProductItem = Message<"sast.sastshopv2.errand.v1.BuyerErrandOrderProductItem"> & {
+  /**
+   * 商品模板快照
+   *
+   * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 1;
+   */
+  productTemplate?: ProductTemplate | undefined;
 
-    /**
-     * 实际采购单价，单位为分
-     *
-     * @generated from field: int32 actual_unit_price_cents = 2;
-     */
-    actualUnitPriceCents: number;
+  /**
+   * 实际采购单价，单位为分
+   *
+   * @generated from field: int32 actual_unit_price_cents = 2;
+   */
+  actualUnitPriceCents: number;
 
-    /**
-     * 买家需求数量
-     *
-     * @generated from field: int32 required_quantity = 3;
-     */
-    requiredQuantity: number;
+  /**
+   * 买家需求数量
+   *
+   * @generated from field: int32 required_quantity = 3;
+   */
+  requiredQuantity: number;
 
-    /**
-     * 团长实际购买数量
-     *
-     * @generated from field: optional int32 purchased_quantity = 4;
-     */
-    purchasedQuantity?: number | undefined;
+  /**
+   * 团长实际购买数量
+   *
+   * @generated from field: optional int32 purchased_quantity = 4;
+   */
+  purchasedQuantity?: number | undefined;
 
-    /**
-     * 未购买原因
-     *
-     * @generated from field: optional string non_purchase_reason = 5;
-     */
-    nonPurchaseReason?: string | undefined;
+  /**
+   * 未购买原因
+   *
+   * @generated from field: optional string non_purchase_reason = 5;
+   */
+  nonPurchaseReason?: string | undefined;
 
-    /**
-     * 实际分发数量
-     *
-     * @generated from field: optional int32 distributed_quantity = 6;
-     */
-    distributedQuantity?: number | undefined;
+  /**
+   * 实际分发数量
+   *
+   * @generated from field: optional int32 distributed_quantity = 6;
+   */
+  distributedQuantity?: number | undefined;
 
-    /**
-     * 单件跑腿费，单位为分
-     *
-     * @generated from field: int32 service_fee_per_unit_cents = 7;
-     */
-    serviceFeePerUnitCents: number;
+  /**
+   * 单件跑腿费，单位为分
+   *
+   * @generated from field: int32 service_fee_per_unit_cents = 7;
+   */
+  serviceFeePerUnitCents: number;
 
-    /**
-     * 当前商品明细小计，单位为分
-     *
-     * @generated from field: int32 subtotal_cents = 8;
-     */
-    subtotalCents: number;
+  /**
+   * 当前商品明细小计，单位为分
+   *
+   * @generated from field: int32 subtotal_cents = 8;
+   */
+  subtotalCents: number;
 
-    /**
-     * 对应的买家需求行 ID
-     *
-     * @generated from field: int64 errand_demand_item_id = 9;
-     */
-    errandDemandItemId: bigint;
-  };
+  /**
+   * 对应的买家需求行 ID
+   *
+   * @generated from field: int64 errand_demand_item_id = 9;
+   */
+  errandDemandItemId: bigint;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.BuyerErrandOrderProductItem.
  * Use `create(BuyerErrandOrderProductItemSchema)` to create a new message.
  */
-export const BuyerErrandOrderProductItemSchema: GenMessage<BuyerErrandOrderProductItem> =
-  /*@__PURE__*/
+export const BuyerErrandOrderProductItemSchema: GenMessage<BuyerErrandOrderProductItem> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_buyer_errand_order, 0);
 
 /**
@@ -119,85 +106,83 @@ export const BuyerErrandOrderProductItemSchema: GenMessage<BuyerErrandOrderProdu
  *
  * @generated from message sast.sastshopv2.errand.v1.BuyerErrandOrderBrief
  */
-export type BuyerErrandOrderBrief =
-  Message<"sast.sastshopv2.errand.v1.BuyerErrandOrderBrief"> & {
-    /**
-     * 买家视角跑腿订单 ID
-     *
-     * @generated from field: int64 errand_demand_id = 1;
-     */
-    errandDemandId: bigint;
+export type BuyerErrandOrderBrief = Message<"sast.sastshopv2.errand.v1.BuyerErrandOrderBrief"> & {
+  /**
+   * 买家视角跑腿订单 ID
+   *
+   * @generated from field: int64 errand_demand_id = 1;
+   */
+  errandDemandId: bigint;
 
-    /**
-     * 店铺 ID
-     *
-     * @generated from field: int64 store_id = 2;
-     */
-    storeId: bigint;
+  /**
+   * 店铺 ID
+   *
+   * @generated from field: int64 store_id = 2;
+   */
+  storeId: bigint;
 
-    /**
-     * 订单创建时间
-     *
-     * @generated from field: google.protobuf.Timestamp created_at = 3;
-     */
-    createdAt?: Timestamp | undefined;
+  /**
+   * 订单创建时间
+   *
+   * @generated from field: google.protobuf.Timestamp created_at = 3;
+   */
+  createdAt?: Timestamp | undefined;
 
-    /**
-     * 店铺信息
-     *
-     * @generated from field: sast.sastshopv2.catalog.v1.Store store_info = 4;
-     */
-    storeInfo?: Store | undefined;
+  /**
+   * 店铺信息
+   *
+   * @generated from field: sast.sastshopv2.catalog.v1.Store store_info = 4;
+   */
+  storeInfo?: Store | undefined;
 
-    /**
-     * 买家视角订单状态
-     *
-     * @generated from field: sast.sastshopv2.errand.v1.ErrandDemandStatus status = 5;
-     */
-    status: ErrandDemandStatus;
+  /**
+   * 买家视角订单状态
+   *
+   * @generated from field: sast.sastshopv2.errand.v1.ErrandDemandStatus status = 5;
+   */
+  status: ErrandDemandStatus;
 
-    /**
-     * 列表预览商品，最多 3 件
-     *
-     * @generated from field: repeated sast.sastshopv2.catalog.v1.ProductTemplate product_templates = 6;
-     */
-    productTemplates: ProductTemplate[];
+  /**
+   * 列表预览商品，最多 3 件
+   *
+   * @generated from field: repeated sast.sastshopv2.catalog.v1.ProductTemplate product_templates = 6;
+   */
+  productTemplates: ProductTemplate[];
 
-    /**
-     * 原始预估商品总金额，单位为分
-     *
-     * @generated from field: int32 total_origin_amount_cents = 7;
-     */
-    totalOriginAmountCents: number;
+  /**
+   * 原始预估商品总金额，单位为分
+   *
+   * @generated from field: int32 total_origin_amount_cents = 7;
+   */
+  totalOriginAmountCents: number;
 
-    /**
-     * 实际采购商品总金额，单位为分
-     *
-     * @generated from field: optional int32 total_actual_amount_cents = 8;
-     */
-    totalActualAmountCents?: number | undefined;
+  /**
+   * 实际采购商品总金额，单位为分
+   *
+   * @generated from field: optional int32 total_actual_amount_cents = 8;
+   */
+  totalActualAmountCents?: number | undefined;
 
-    /**
-     * 跑腿费总额，单位为分
-     *
-     * @generated from field: int32 total_service_fee_cents = 9;
-     */
-    totalServiceFeeCents: number;
+  /**
+   * 跑腿费总额，单位为分
+   *
+   * @generated from field: int32 total_service_fee_cents = 9;
+   */
+  totalServiceFeeCents: number;
 
-    /**
-     * 商品种类总数
-     *
-     * @generated from field: int32 product_total_count = 10;
-     */
-    productTotalCount: number;
-  };
+  /**
+   * 商品种类总数
+   *
+   * @generated from field: int32 product_total_count = 10;
+   */
+  productTotalCount: number;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.BuyerErrandOrderBrief.
  * Use `create(BuyerErrandOrderBriefSchema)` to create a new message.
  */
-export const BuyerErrandOrderBriefSchema: GenMessage<BuyerErrandOrderBrief> =
-  /*@__PURE__*/
+export const BuyerErrandOrderBriefSchema: GenMessage<BuyerErrandOrderBrief> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_buyer_errand_order, 1);
 
 /**
@@ -205,114 +190,113 @@ export const BuyerErrandOrderBriefSchema: GenMessage<BuyerErrandOrderBrief> =
  *
  * @generated from message sast.sastshopv2.errand.v1.BuyerErrandOrderDetail
  */
-export type BuyerErrandOrderDetail =
-  Message<"sast.sastshopv2.errand.v1.BuyerErrandOrderDetail"> & {
-    /**
-     * @generated from field: int64 errand_demand_id = 1;
-     */
-    errandDemandId: bigint;
+export type BuyerErrandOrderDetail = Message<"sast.sastshopv2.errand.v1.BuyerErrandOrderDetail"> & {
+  /**
+   * @generated from field: int64 errand_demand_id = 1;
+   */
+  errandDemandId: bigint;
 
-    /**
-     * @generated from field: int64 store_id = 2;
-     */
-    storeId: bigint;
+  /**
+   * @generated from field: int64 store_id = 2;
+   */
+  storeId: bigint;
 
-    /**
-     * @generated from field: google.protobuf.Timestamp created_at = 3;
-     */
-    createdAt?: Timestamp | undefined;
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 3;
+   */
+  createdAt?: Timestamp | undefined;
 
-    /**
-     * @generated from field: sast.sastshopv2.catalog.v1.Store store_info = 4;
-     */
-    storeInfo?: Store | undefined;
+  /**
+   * @generated from field: sast.sastshopv2.catalog.v1.Store store_info = 4;
+   */
+  storeInfo?: Store | undefined;
 
-    /**
-     * @generated from field: sast.sastshopv2.errand.v1.ErrandDemandStatus status = 5;
-     */
-    status: ErrandDemandStatus;
+  /**
+   * @generated from field: sast.sastshopv2.errand.v1.ErrandDemandStatus status = 5;
+   */
+  status: ErrandDemandStatus;
 
-    /**
-     * @generated from field: repeated sast.sastshopv2.errand.v1.BuyerErrandOrderProductItem product_items = 6;
-     */
-    productItems: BuyerErrandOrderProductItem[];
+  /**
+   * @generated from field: repeated sast.sastshopv2.errand.v1.BuyerErrandOrderProductItem product_items = 6;
+   */
+  productItems: BuyerErrandOrderProductItem[];
 
-    /**
-     * @generated from field: int32 total_origin_amount_cents = 7;
-     */
-    totalOriginAmountCents: number;
+  /**
+   * @generated from field: int32 total_origin_amount_cents = 7;
+   */
+  totalOriginAmountCents: number;
 
-    /**
-     * @generated from field: optional int32 total_actual_amount_cents = 8;
-     */
-    totalActualAmountCents?: number | undefined;
+  /**
+   * @generated from field: optional int32 total_actual_amount_cents = 8;
+   */
+  totalActualAmountCents?: number | undefined;
 
-    /**
-     * @generated from field: int32 total_service_fee_cents = 9;
-     */
-    totalServiceFeeCents: number;
+  /**
+   * @generated from field: int32 total_service_fee_cents = 9;
+   */
+  totalServiceFeeCents: number;
 
-    /**
-     * 接单团长信息，仅详情返回
-     *
-     * @generated from field: sast.sastshopv2.user.v1.UserInfo captain_info = 10;
-     */
-    captainInfo?: UserInfo | undefined;
+  /**
+   * 接单团长信息，仅详情返回
+   *
+   * @generated from field: sast.sastshopv2.user.v1.UserInfo captain_info = 10;
+   */
+  captainInfo?: UserInfo | undefined;
 
-    /**
-     * 关联支付账单，进入待支付后存在
-     *
-     * @generated from field: optional sast.sastshopv2.payment.v1.Bill bill = 11;
-     */
-    bill?: Bill | undefined;
+  /**
+   * 关联支付账单，进入待支付后存在
+   *
+   * @generated from field: optional sast.sastshopv2.payment.v1.Bill bill = 11;
+   */
+  bill?: Bill | undefined;
 
-    /**
-     * 期望送达时间
-     *
-     * @generated from field: google.protobuf.Timestamp deadline = 12;
-     */
-    deadline?: Timestamp | undefined;
+  /**
+   * 期望送达时间
+   *
+   * @generated from field: google.protobuf.Timestamp deadline = 12;
+   */
+  deadline?: Timestamp | undefined;
 
-    /**
-     * 采购开始时间
-     *
-     * @generated from field: google.protobuf.Timestamp shopping_start_at = 13;
-     */
-    shoppingStartAt?: Timestamp | undefined;
+  /**
+   * 采购开始时间
+   *
+   * @generated from field: google.protobuf.Timestamp shopping_start_at = 13;
+   */
+  shoppingStartAt?: Timestamp | undefined;
 
-    /**
-     * 采购完成时间
-     *
-     * @generated from field: google.protobuf.Timestamp shopping_completed_at = 14;
-     */
-    shoppingCompletedAt?: Timestamp | undefined;
+  /**
+   * 采购完成时间
+   *
+   * @generated from field: google.protobuf.Timestamp shopping_completed_at = 14;
+   */
+  shoppingCompletedAt?: Timestamp | undefined;
 
-    /**
-     * 分发完成时间
-     *
-     * @generated from field: google.protobuf.Timestamp distribution_completed_at = 15;
-     */
-    distributionCompletedAt?: Timestamp | undefined;
+  /**
+   * 分发完成时间
+   *
+   * @generated from field: google.protobuf.Timestamp distribution_completed_at = 15;
+   */
+  distributionCompletedAt?: Timestamp | undefined;
 
-    /**
-     * 支付完成时间
-     *
-     * @generated from field: google.protobuf.Timestamp payment_completed_at = 16;
-     */
-    paymentCompletedAt?: Timestamp | undefined;
+  /**
+   * 支付完成时间
+   *
+   * @generated from field: google.protobuf.Timestamp payment_completed_at = 16;
+   */
+  paymentCompletedAt?: Timestamp | undefined;
 
-    /**
-     * 订单取消时间
-     *
-     * @generated from field: google.protobuf.Timestamp cancelled_at = 17;
-     */
-    cancelledAt?: Timestamp | undefined;
-  };
+  /**
+   * 订单取消时间
+   *
+   * @generated from field: google.protobuf.Timestamp cancelled_at = 17;
+   */
+  cancelledAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message sast.sastshopv2.errand.v1.BuyerErrandOrderDetail.
  * Use `create(BuyerErrandOrderDetailSchema)` to create a new message.
  */
-export const BuyerErrandOrderDetailSchema: GenMessage<BuyerErrandOrderDetail> =
-  /*@__PURE__*/
+export const BuyerErrandOrderDetailSchema: GenMessage<BuyerErrandOrderDetail> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_errand_v1_buyer_errand_order, 2);
+
