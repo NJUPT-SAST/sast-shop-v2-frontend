@@ -85,7 +85,7 @@ export function ShoppingTaskView({
   const allProcessed = processedCount === items.length && items.length > 0;
   const productAmount = items.reduce(
     (total, item) =>
-      total + item.actualUnitPriceCents * (item.purchasedQuantity ?? 0),
+      total + (item.actualUnitPriceCents ?? 0) * (item.purchasedQuantity ?? 0),
     0,
   );
 
@@ -450,7 +450,9 @@ function ShoppingItemCard({
           ) : null}
           <p className="mt-3 text-sm">
             需求 {item.requiredQuantity} 件 · 参考单价{" "}
-            {formatPrice(item.actualUnitPriceCents)}
+            {item.actualUnitPriceCents != null
+              ? formatPrice(item.actualUnitPriceCents)
+              : "未定价"}
           </p>
           {item.nonPurchaseReason ? (
             <p className="mt-2 text-sm text-destructive">

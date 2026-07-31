@@ -450,7 +450,7 @@ export interface ShoppingTaskItem {
   requiredQuantity: number;
   purchasedQuantity: number | null;
   nonPurchaseReason: string | null;
-  actualUnitPriceCents: number;
+  actualUnitPriceCents: number | null;
   updatedAt: string | null;
 }
 
@@ -479,7 +479,8 @@ export interface DistributingTaskItem {
   description: string;
   imageUrl: string;
   originUnitPriceCents: number;
-  actualUnitPriceCents: number;
+  actualUnitPriceCents: number | null;
+  purchasedQuantity: number | null;
   itemUpdatedAt: string | null;
   requesters: DistributingRequester[];
 }
@@ -999,7 +1000,7 @@ function mapErrandTaskItem(item: ErrandTaskItem): ShoppingTaskItem {
         ? null
         : item.purchasedQuantity,
     nonPurchaseReason: item.nonPurchaseReason ?? null,
-    actualUnitPriceCents: item.actualUnitPriceCents,
+    actualUnitPriceCents: item.actualUnitPriceCents ?? null,
     updatedAt: formatTimestamp(item.updatedAt),
   };
 }
@@ -1091,7 +1092,8 @@ function mapDistributingItem(
     description: item.descriptionSnapshot,
     imageUrl: item.imageUrlSnapshot,
     originUnitPriceCents: item.originUnitPriceCents,
-    actualUnitPriceCents: item.actualUnitPriceCents,
+    actualUnitPriceCents: item.actualUnitPriceCents ?? null,
+    purchasedQuantity: item.purchasedQuantity ?? null,
     itemUpdatedAt: itemUpdatedAtById.get(errandTaskItemId) ?? null,
     requesters: item.requesters.map(mapDistributingRequester),
   };

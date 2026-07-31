@@ -88,7 +88,7 @@ export function ShoppingTaskView({
 
   const totalProductCents = items.reduce((sum, i) => {
     if (i.purchasedQuantity === null || i.purchasedQuantity === 0) return sum;
-    return sum + i.actualUnitPriceCents * i.purchasedQuantity;
+    return sum + (i.actualUnitPriceCents ?? 0) * i.purchasedQuantity;
   }, 0);
   const updateItem = (updated: ShoppingTaskItem) => {
     setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));

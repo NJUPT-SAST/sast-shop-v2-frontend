@@ -85,7 +85,9 @@ export function DistributingTaskView({
     Object.fromEntries(
       detail.items.map((item) => [
         item.errandTaskItemId,
-        formatYuan(item.actualUnitPriceCents),
+        item.actualUnitPriceCents != null
+          ? formatYuan(item.actualUnitPriceCents)
+          : "",
       ]),
     ),
   );
@@ -119,12 +121,14 @@ export function DistributingTaskView({
   const allProcessed =
     items.length > 0 &&
     items.every((item) => {
-      const totalTarget = item.requesters.reduce((s, r) => s + r.quantity, 0);
+      if (item.purchasedQuantity == null || item.purchasedQuantity === 0) {
+        return true; // 未采购，无需分发
+      }
       const totalDistributed = item.requesters.reduce(
         (s, r) => s + Math.max(0, r.distributedQuantity),
         0,
       );
-      return totalTarget > 0 && totalDistributed >= totalTarget;
+      return totalDistributed >= item.purchasedQuantity;
     });
   const distributionGroups =
     mode === "pending_distributing"
@@ -232,14 +236,17 @@ export function DistributingTaskView({
         serviceOptions,
       );
       applyRefreshedDetail(refreshed);
-      setPriceDrafts(
-        Object.fromEntries(
-          refreshed.items.map((entry) => [
-            entry.errandTaskItemId,
-            formatYuan(entry.actualUnitPriceCents),
-          ]),
-        ),
-      );
+      setPriceDrafts((current) => {
+        const updated = { ...current };
+        for (const entry of refreshed.items) {
+          if (entry.actualUnitPriceCents != null) {
+            updated[entry.errandTaskItemId] = formatYuan(
+              entry.actualUnitPriceCents,
+            );
+          }
+        }
+        return updated;
+      });
       toast.success("实际价格已保存");
     } catch {
       toast.error("价格保存失败，请刷新任务后重试");
@@ -470,57 +477,58 @@ export function DistributingTaskView({
                   ) : null}
                   <p className="mt-2 text-sm">
                     参考价 {formatPrice(item.originUnitPriceCents)} · 实购{" "}
-                    {item.requesters.reduce(
-                      (total, requester) => total + requester.quantity,
-                      0,
-                    )}{" "}
-                    件
+                    {item.purchasedQuantity ?? 0} 件
                   </p>
                 </div>
                 <div className="flex shrink-0 items-end gap-2">
                   {mode === "pending_distributing" ? (
-                    <div className="flex w-64 items-end gap-2">
-                      <Field>
-                        <FieldLabel
-                          htmlFor={`actual-price-${item.errandTaskItemId}`}
+                    item.purchasedQuantity == null ||
+                    item.purchasedQuantity === 0 ? (
+                      <Badge variant="neutral">未采购</Badge>
+                    ) : (
+                      <div className="flex w-64 items-end gap-2">
+                        <Field>
+                          <FieldLabel
+                            htmlFor={`actual-price-${item.errandTaskItemId}`}
+                          >
+                            实际单价
+                          </FieldLabel>
+                          <InputGroup>
+                            <InputGroupAddon>
+                              <InputGroupText>¥</InputGroupText>
+                            </InputGroupAddon>
+                            <InputGroupInput
+                              id={`actual-price-${item.errandTaskItemId}`}
+                              value={priceDrafts[item.errandTaskItemId] ?? ""}
+                              onChange={(event) =>
+                                moneyPattern.test(event.target.value) &&
+                                setPriceDrafts((current) => ({
+                                  ...current,
+                                  [item.errandTaskItemId]: event.target.value,
+                                }))
+                              }
+                            />
+                          </InputGroup>
+                        </Field>
+                        <Button
+                          variant="outline"
+                          disabled={
+                            pendingKeys.has(`price-${item.errandTaskItemId}`) ||
+                            parseCents(
+                              priceDrafts[item.errandTaskItemId] ?? "",
+                            ) === null
+                          }
+                          onClick={() => void savePrice(item)}
                         >
-                          实际单价
-                        </FieldLabel>
-                        <InputGroup>
-                          <InputGroupAddon>
-                            <InputGroupText>¥</InputGroupText>
-                          </InputGroupAddon>
-                          <InputGroupInput
-                            id={`actual-price-${item.errandTaskItemId}`}
-                            value={priceDrafts[item.errandTaskItemId] ?? ""}
-                            onChange={(event) =>
-                              moneyPattern.test(event.target.value) &&
-                              setPriceDrafts((current) => ({
-                                ...current,
-                                [item.errandTaskItemId]: event.target.value,
-                              }))
-                            }
-                          />
-                        </InputGroup>
-                      </Field>
-                      <Button
-                        variant="outline"
-                        disabled={
-                          pendingKeys.has(`price-${item.errandTaskItemId}`) ||
-                          parseCents(
-                            priceDrafts[item.errandTaskItemId] ?? "",
-                          ) === null
-                        }
-                        onClick={() => void savePrice(item)}
-                      >
-                        {pendingKeys.has(`price-${item.errandTaskItemId}`) ? (
-                          <Spinner />
-                        ) : (
-                          <RiPriceTag3Line />
-                        )}
-                        保存
-                      </Button>
-                    </div>
+                          {pendingKeys.has(`price-${item.errandTaskItemId}`) ? (
+                            <Spinner />
+                          ) : (
+                            <RiPriceTag3Line />
+                          )}
+                          保存
+                        </Button>
+                      </div>
+                    )
                   ) : (
                     <Badge
                       variant={
