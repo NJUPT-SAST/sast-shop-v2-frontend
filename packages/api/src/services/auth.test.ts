@@ -274,6 +274,49 @@ describe("auth service", () => {
     });
   });
 
+  it("sends the redirect URI when exchanging a web OAuth code", async () => {
+    const fetchMock = vi.fn(async () =>
+      Response.json({
+        accessToken: "local-session-token",
+        expiresIn: 3600,
+        member: {
+          id: "10001",
+          displayName: "南邮同学",
+          avatarUrl: "https://example.test/avatar.png",
+        },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await loginWithLarkCode("web-oauth-code", {
+      dataSource: "local",
+      connectBaseUrl: "http://127.0.0.1:6660",
+      redirectUri: "http://localhost:3002/auth/callback",
+    });
+
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.user.v1.AuthService/Login",
+      body: {
+        code: "web-oauth-code",
+        redirectUri: "http://localhost:3002/auth/callback",
+      },
+    });
+  });
+
+  it.each([
+    "javascript:alert(1)",
+    "https://user:secret@shop.example.com/auth/callback",
+    "https://shop.example.com/auth/callback#code",
+  ])("rejects an unsafe login redirect URI %s", async (redirectUri) => {
+    await expect(
+      loginWithLarkCode("web-oauth-code", {
+        dataSource: "local",
+        connectBaseUrl: "http://127.0.0.1:6660",
+        redirectUri,
+      }),
+    ).rejects.toThrow("登录回调地址不正确");
+  });
+
   it.each([
     { accessToken: "", expiresIn: 3600, member: true },
     { accessToken: "token", expiresIn: 0, member: true },

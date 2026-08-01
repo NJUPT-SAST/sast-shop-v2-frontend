@@ -99,6 +99,7 @@ Keep root-level `postcss.config.mjs` because both apps can reuse it.
 ### Task 1: Workspace Configuration
 
 **Files:**
+
 - Modify: `package.json`
 - Modify: `pnpm-workspace.yaml`
 - Create: `tsconfig.base.json`
@@ -193,8 +194,8 @@ Create `tsconfig.base.json`:
 Replace `eslint.config.mjs` with:
 
 ```js
-import nextVitals from "eslint-config-next/core-web-vitals"
-import nextTypescript from "eslint-config-next/typescript"
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
 
 const eslintConfig = [
   ...nextVitals,
@@ -207,12 +208,12 @@ const eslintConfig = [
       "build/**",
       "next-env.d.ts",
       "apps/*/.next/**",
-      "packages/*/dist/**"
+      "packages/*/dist/**",
     ],
   },
-]
+];
 
-export default eslintConfig
+export default eslintConfig;
 ```
 
 - [ ] **Step 5: Install workspace dependencies**
@@ -254,6 +255,7 @@ git commit -m "chore: configure pnpm workspace"
 ### Task 2: Shared UI Package
 
 **Files:**
+
 - Create: `packages/ui/package.json`
 - Create: `packages/ui/tsconfig.json`
 - Create: `packages/ui/src/lib/utils.ts`
@@ -317,11 +319,11 @@ git commit -m "chore: configure pnpm workspace"
 Create `packages/ui/src/lib/utils.ts`:
 
 ```ts
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 ```
 
@@ -357,8 +359,11 @@ Create `packages/ui/src/styles/globals.css`:
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-ring: var(--ring);
-  --font-sans: ui-sans-serif, -apple-system, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+  --font-sans:
+    ui-sans-serif, -apple-system, "PingFang SC", "Microsoft YaHei",
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
 }
 
 * {
@@ -378,9 +383,9 @@ body {
 Create `packages/ui/src/components/button.tsx`:
 
 ```tsx
-import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "../lib/utils"
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "../lib/utils";
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
@@ -403,11 +408,12 @@ const buttonVariants = cva(
       variant: "default",
       size: "default",
     },
-  }
-)
+  },
+);
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+  extends
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {}
 
 export function Button({ className, variant, size, ...props }: ButtonProps) {
@@ -416,7 +422,7 @@ export function Button({ className, variant, size, ...props }: ButtonProps) {
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
-  )
+  );
 }
 ```
 
@@ -425,14 +431,18 @@ export function Button({ className, variant, size, ...props }: ButtonProps) {
 Create `packages/ui/src/components/badge.tsx`:
 
 ```tsx
-import * as React from "react"
-import { cn } from "../lib/utils"
+import * as React from "react";
+import { cn } from "../lib/utils";
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: "default" | "outline" | "muted"
+  variant?: "default" | "outline" | "muted";
 }
 
-export function Badge({ className, variant = "default", ...props }: BadgeProps) {
+export function Badge({
+  className,
+  variant = "default",
+  ...props
+}: BadgeProps) {
   return (
     <span
       className={cn(
@@ -440,11 +450,11 @@ export function Badge({ className, variant = "default", ...props }: BadgeProps) 
         variant === "default" && "bg-primary text-primary-foreground",
         variant === "outline" && "border text-foreground",
         variant === "muted" && "bg-muted text-muted-foreground",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 ```
 
@@ -453,32 +463,56 @@ export function Badge({ className, variant = "default", ...props }: BadgeProps) 
 Create `packages/ui/src/components/card.tsx`:
 
 ```tsx
-import * as React from "react"
-import { cn } from "../lib/utils"
+import * as React from "react";
+import { cn } from "../lib/utils";
 
-export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+export function Card({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("rounded-lg border bg-card text-card-foreground", className)}
+      className={cn(
+        "rounded-lg border bg-card text-card-foreground",
+        className,
+      )}
       {...props}
     />
-  )
+  );
 }
 
-export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("flex flex-col gap-1.5 p-4", className)} {...props} />
+export function CardHeader({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn("flex flex-col gap-1.5 p-4", className)} {...props} />
+  );
 }
 
-export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn("font-semibold leading-none", className)} {...props} />
+export function CardTitle({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLHeadingElement>) {
+  return (
+    <h3 className={cn("font-semibold leading-none", className)} {...props} />
+  );
 }
 
-export function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn("text-sm text-muted-foreground", className)} {...props} />
+export function CardDescription({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLParagraphElement>) {
+  return (
+    <p className={cn("text-sm text-muted-foreground", className)} {...props} />
+  );
 }
 
-export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("p-4 pt-0", className)} {...props} />
+export function CardContent({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("p-4 pt-0", className)} {...props} />;
 }
 ```
 
@@ -507,6 +541,7 @@ git commit -m "feat: add shared ui package"
 ### Task 3: Domain Package
 
 **Files:**
+
 - Create: `packages/domain/package.json`
 - Create: `packages/domain/tsconfig.json`
 - Create: `packages/domain/vitest.config.ts`
@@ -556,13 +591,13 @@ Create `packages/domain/tsconfig.json`:
 Create `packages/domain/vitest.config.ts`:
 
 ```ts
-import { defineConfig } from "vitest/config"
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
     environment: "node",
   },
-})
+});
 ```
 
 - [ ] **Step 3: Write money formatting test**
@@ -570,18 +605,18 @@ export default defineConfig({
 Create `packages/domain/src/money/format-price.test.ts`:
 
 ```ts
-import { describe, expect, it } from "vitest"
-import { formatPrice } from "./format-price"
+import { describe, expect, it } from "vitest";
+import { formatPrice } from "./format-price";
 
 describe("formatPrice", () => {
   it("formats cents as Chinese yuan", () => {
-    expect(formatPrice(1234)).toBe("¥12.34")
-  })
+    expect(formatPrice(1234)).toBe("¥12.34");
+  });
 
   it("keeps integer yuan compact", () => {
-    expect(formatPrice(1200)).toBe("¥12")
-  })
-})
+    expect(formatPrice(1200)).toBe("¥12");
+  });
+});
 ```
 
 - [ ] **Step 4: Run the money test and verify it fails**
@@ -600,9 +635,9 @@ Create `packages/domain/src/money/format-price.ts`:
 
 ```ts
 export function formatPrice(cents: number) {
-  const yuan = cents / 100
-  const formatted = Number.isInteger(yuan) ? yuan.toFixed(0) : yuan.toFixed(2)
-  return `¥${formatted}`
+  const yuan = cents / 100;
+  const formatted = Number.isInteger(yuan) ? yuan.toFixed(0) : yuan.toFixed(2);
+  return `¥${formatted}`;
 }
 ```
 
@@ -611,17 +646,17 @@ export function formatPrice(cents: number) {
 Create `packages/domain/src/orders/status.test.ts`:
 
 ```ts
-import { describe, expect, it } from "vitest"
-import { getOrderStatusMeta } from "./status"
+import { describe, expect, it } from "vitest";
+import { getOrderStatusMeta } from "./status";
 
 describe("getOrderStatusMeta", () => {
   it("returns buyer-facing pending payment copy", () => {
     expect(getOrderStatusMeta("pending_payment")).toEqual({
       label: "待支付",
       tone: "orange",
-    })
-  })
-})
+    });
+  });
+});
 ```
 
 - [ ] **Step 7: Implement order status metadata**
@@ -635,21 +670,24 @@ export type OrderStatus =
   | "paid"
   | "processing"
   | "complete"
-  | "cancelled"
+  | "cancelled";
 
-export type StatusTone = "orange" | "blue" | "amber" | "emerald" | "muted"
+export type StatusTone = "orange" | "blue" | "amber" | "emerald" | "muted";
 
-const ORDER_STATUS_META: Record<OrderStatus, { label: string; tone: StatusTone }> = {
+const ORDER_STATUS_META: Record<
+  OrderStatus,
+  { label: string; tone: StatusTone }
+> = {
   pending_payment: { label: "待支付", tone: "orange" },
   pending_confirm: { label: "待确认收款", tone: "blue" },
   paid: { label: "已付款", tone: "amber" },
   processing: { label: "处理中", tone: "blue" },
   complete: { label: "已完成", tone: "emerald" },
   cancelled: { label: "已取消", tone: "muted" },
-}
+};
 
 export function getOrderStatusMeta(status: OrderStatus) {
-  return ORDER_STATUS_META[status]
+  return ORDER_STATUS_META[status];
 }
 ```
 
@@ -658,7 +696,7 @@ export function getOrderStatusMeta(status: OrderStatus) {
 Create `packages/domain/src/payments/platforms.ts`:
 
 ```ts
-export type PaymentPlatform = "wechat" | "alipay"
+export type PaymentPlatform = "wechat" | "alipay";
 
 export const PAYMENT_PLATFORM_META: Record<
   PaymentPlatform,
@@ -672,7 +710,7 @@ export const PAYMENT_PLATFORM_META: Record<
     label: "支付宝",
     tone: "alipay",
   },
-}
+};
 ```
 
 - [ ] **Step 9: Add payment platform metadata test**
@@ -680,21 +718,21 @@ export const PAYMENT_PLATFORM_META: Record<
 Create `packages/domain/src/payments/platforms.test.ts`:
 
 ```ts
-import { describe, expect, it } from "vitest"
-import { PAYMENT_PLATFORM_META } from "./platforms"
+import { describe, expect, it } from "vitest";
+import { PAYMENT_PLATFORM_META } from "./platforms";
 
 describe("PAYMENT_PLATFORM_META", () => {
   it("returns semantic payment platform metadata", () => {
     expect(PAYMENT_PLATFORM_META.wechat).toEqual({
       label: "微信支付",
       tone: "wechat",
-    })
+    });
     expect(PAYMENT_PLATFORM_META.alipay).toEqual({
       label: "支付宝",
       tone: "alipay",
-    })
-  })
-})
+    });
+  });
+});
 ```
 
 - [ ] **Step 10: Export domain API**
@@ -702,9 +740,16 @@ describe("PAYMENT_PLATFORM_META", () => {
 Create `packages/domain/src/index.ts`:
 
 ```ts
-export { formatPrice } from "./money/format-price"
-export { getOrderStatusMeta, type OrderStatus, type StatusTone } from "./orders/status"
-export { PAYMENT_PLATFORM_META, type PaymentPlatform } from "./payments/platforms"
+export { formatPrice } from "./money/format-price";
+export {
+  getOrderStatusMeta,
+  type OrderStatus,
+  type StatusTone,
+} from "./orders/status";
+export {
+  PAYMENT_PLATFORM_META,
+  type PaymentPlatform,
+} from "./payments/platforms";
 ```
 
 - [ ] **Step 11: Verify domain package**
@@ -732,6 +777,7 @@ git commit -m "feat: add shared domain package"
 ### Task 4: Mock Package
 
 **Files:**
+
 - Create: `packages/mocks/package.json`
 - Create: `packages/mocks/tsconfig.json`
 - Create: `packages/mocks/src/index.ts`
@@ -779,10 +825,10 @@ Create `packages/mocks/src/fixtures/current-user.ts`:
 
 ```ts
 export interface MockUser {
-  id: string
-  name: string
-  department: string
-  avatarUrl: string
+  id: string;
+  name: string;
+  department: string;
+  avatarUrl: string;
 }
 
 export const currentUser: MockUser = {
@@ -790,7 +836,7 @@ export const currentUser: MockUser = {
   name: "南邮同学",
   department: "SAST",
   avatarUrl: "https://api.dicebear.com/9.x/initials/svg?seed=SAST",
-}
+};
 ```
 
 - [ ] **Step 4: Create mock auth service**
@@ -798,10 +844,10 @@ export const currentUser: MockUser = {
 Create `packages/mocks/src/services/auth.ts`:
 
 ```ts
-import { currentUser } from "../fixtures/current-user"
+import { currentUser } from "../fixtures/current-user";
 
 export async function getMockCurrentUser() {
-  return currentUser
+  return currentUser;
 }
 
 export async function loginWithMockCode(code: string) {
@@ -809,7 +855,7 @@ export async function loginWithMockCode(code: string) {
     sessionToken: `mock-session-${code || "default"}`,
     expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
     user: currentUser,
-  }
+  };
 }
 ```
 
@@ -818,8 +864,8 @@ export async function loginWithMockCode(code: string) {
 Create `packages/mocks/src/index.ts`:
 
 ```ts
-export { currentUser, type MockUser } from "./fixtures/current-user"
-export { getMockCurrentUser, loginWithMockCode } from "./services/auth"
+export { currentUser, type MockUser } from "./fixtures/current-user";
+export { getMockCurrentUser, loginWithMockCode } from "./services/auth";
 ```
 
 - [ ] **Step 6: Verify mock package**
@@ -846,6 +892,7 @@ git commit -m "feat: add mock data package"
 ### Task 5: API Package and Data Source Switching
 
 **Files:**
+
 - Create: `packages/api/package.json`
 - Create: `packages/api/tsconfig.json`
 - Create: `packages/api/vitest.config.ts`
@@ -897,13 +944,13 @@ Create `packages/api/tsconfig.json`:
 Create `packages/api/vitest.config.ts`:
 
 ```ts
-import { defineConfig } from "vitest/config"
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
     environment: "node",
   },
-})
+});
 ```
 
 - [ ] **Step 3: Write auth service tests**
@@ -911,27 +958,27 @@ export default defineConfig({
 Create `packages/api/src/services/auth.test.ts`:
 
 ```ts
-import { describe, expect, it } from "vitest"
-import { FeatureUnavailableError } from "../errors"
-import { getCurrentUser, loginWithLarkCode } from "./auth"
+import { describe, expect, it } from "vitest";
+import { FeatureUnavailableError } from "../errors";
+import { getCurrentUser, loginWithLarkCode } from "./auth";
 
 describe("auth service", () => {
   it("returns mock user in mock mode", async () => {
-    const user = await getCurrentUser({ dataSource: "mock" })
-    expect(user.name).toBe("南邮同学")
-  })
+    const user = await getCurrentUser({ dataSource: "mock" });
+    expect(user.name).toBe("南邮同学");
+  });
 
   it("throws for local mode before backend client is wired", async () => {
-    await expect(getCurrentUser({ dataSource: "local" })).rejects.toBeInstanceOf(
-      FeatureUnavailableError
-    )
-  })
+    await expect(
+      getCurrentUser({ dataSource: "local" }),
+    ).rejects.toBeInstanceOf(FeatureUnavailableError);
+  });
 
   it("returns a mock session in mock mode", async () => {
-    const session = await loginWithLarkCode("abc", { dataSource: "mock" })
-    expect(session.sessionToken).toBe("mock-session-abc")
-  })
-})
+    const session = await loginWithLarkCode("abc", { dataSource: "mock" });
+    expect(session.sessionToken).toBe("mock-session-abc");
+  });
+});
 ```
 
 - [ ] **Step 4: Run the auth tests and verify they fail**
@@ -949,14 +996,14 @@ Expected: FAIL because `../errors` and `./auth` do not exist.
 Create `packages/api/src/data-source.ts`:
 
 ```ts
-export type DataSource = "mock" | "local" | "remote"
+export type DataSource = "mock" | "local" | "remote";
 
 export interface ServiceOptions {
-  dataSource?: DataSource
+  dataSource?: DataSource;
 }
 
 export function resolveDataSource(options: ServiceOptions = {}): DataSource {
-  return options.dataSource ?? "mock"
+  return options.dataSource ?? "mock";
 }
 ```
 
@@ -967,15 +1014,15 @@ Create `packages/api/src/errors.ts`:
 ```ts
 export class FeatureUnavailableError extends Error {
   constructor(feature: string) {
-    super(`${feature} is not available for the selected data source`)
-    this.name = "FeatureUnavailableError"
+    super(`${feature} is not available for the selected data source`);
+    this.name = "FeatureUnavailableError";
   }
 }
 
 export class AuthRequiredError extends Error {
   constructor() {
-    super("Authentication is required")
-    this.name = "AuthRequiredError"
+    super("Authentication is required");
+    this.name = "AuthRequiredError";
   }
 }
 ```
@@ -985,28 +1032,31 @@ export class AuthRequiredError extends Error {
 Create `packages/api/src/services/auth.ts`:
 
 ```ts
-import { getMockCurrentUser, loginWithMockCode } from "@sast-shop/mocks"
-import { resolveDataSource, type ServiceOptions } from "../data-source"
-import { FeatureUnavailableError } from "../errors"
+import { getMockCurrentUser, loginWithMockCode } from "@sast-shop/mocks";
+import { resolveDataSource, type ServiceOptions } from "../data-source";
+import { FeatureUnavailableError } from "../errors";
 
 export async function getCurrentUser(options: ServiceOptions = {}) {
-  const dataSource = resolveDataSource(options)
+  const dataSource = resolveDataSource(options);
 
   if (dataSource === "mock") {
-    return getMockCurrentUser()
+    return getMockCurrentUser();
   }
 
-  throw new FeatureUnavailableError("getCurrentUser")
+  throw new FeatureUnavailableError("getCurrentUser");
 }
 
-export async function loginWithLarkCode(code: string, options: ServiceOptions = {}) {
-  const dataSource = resolveDataSource(options)
+export async function loginWithLarkCode(
+  code: string,
+  options: ServiceOptions = {},
+) {
+  const dataSource = resolveDataSource(options);
 
   if (dataSource === "mock") {
-    return loginWithMockCode(code)
+    return loginWithMockCode(code);
   }
 
-  throw new FeatureUnavailableError("loginWithLarkCode")
+  throw new FeatureUnavailableError("loginWithLarkCode");
 }
 ```
 
@@ -1015,9 +1065,13 @@ export async function loginWithLarkCode(code: string, options: ServiceOptions = 
 Create `packages/api/src/index.ts`:
 
 ```ts
-export { resolveDataSource, type DataSource, type ServiceOptions } from "./data-source"
-export { AuthRequiredError, FeatureUnavailableError } from "./errors"
-export { getCurrentUser, loginWithLarkCode } from "./services/auth"
+export {
+  resolveDataSource,
+  type DataSource,
+  type ServiceOptions,
+} from "./data-source";
+export { AuthRequiredError, FeatureUnavailableError } from "./errors";
+export { getCurrentUser, loginWithLarkCode } from "./services/auth";
 ```
 
 - [ ] **Step 9: Verify API package**
@@ -1045,6 +1099,7 @@ git commit -m "feat: add api data source facade"
 ### Task 6: Mobile App Shell
 
 **Files:**
+
 - Create: `apps/mobile/package.json`
 - Create: `apps/mobile/next.config.ts`
 - Create: `apps/mobile/tsconfig.json`
@@ -1093,13 +1148,18 @@ Create `apps/mobile/package.json`:
 Create `apps/mobile/next.config.ts`:
 
 ```ts
-import type { NextConfig } from "next"
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@workspace/ui", "@sast-shop/api", "@sast-shop/domain", "@sast-shop/mocks"],
-}
+  transpilePackages: [
+    "@workspace/ui",
+    "@sast-shop/api",
+    "@sast-shop/domain",
+    "@sast-shop/mocks",
+  ],
+};
 
-export default nextConfig
+export default nextConfig;
 ```
 
 - [ ] **Step 3: Create mobile TypeScript config**
@@ -1134,13 +1194,14 @@ Create `apps/mobile/app/globals.css`:
 Create `apps/mobile/lib/app-config.ts`:
 
 ```ts
-import type { DataSource } from "@sast-shop/api"
+import type { DataSource } from "@sast-shop/api";
 
 export const mobileAppConfig = {
   appName: "SAST 商城",
   dataSource: (process.env.NEXT_PUBLIC_DATA_SOURCE ?? "mock") as DataSource,
-  appOrigin: process.env.NEXT_PUBLIC_APP_ORIGIN ?? "https://m.sast-shop.example.com",
-}
+  appOrigin:
+    process.env.NEXT_PUBLIC_APP_ORIGIN ?? "https://m.sast-shop.example.com",
+};
 ```
 
 - [ ] **Step 6: Create mobile shell**
@@ -1148,9 +1209,9 @@ export const mobileAppConfig = {
 Create `apps/mobile/components/mobile-shell.tsx`:
 
 ```tsx
-import { Button } from "@workspace/ui/components/button"
+import { Button } from "@workspace/ui/components/button";
 
-const navItems = ["团购", "现货", "订单", "发布", "我的"]
+const navItems = ["团购", "现货", "订单", "发布", "我的"];
 
 export function MobileShell({ children }: { children: React.ReactNode }) {
   return (
@@ -1161,14 +1222,18 @@ export function MobileShell({ children }: { children: React.ReactNode }) {
       <nav className="fixed inset-x-0 bottom-0 border-t bg-background/95 px-4 pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto grid h-14 max-w-md grid-cols-5 gap-1">
           {navItems.map((item) => (
-            <Button key={item} variant="ghost" className="h-full rounded-none px-1 text-xs">
+            <Button
+              key={item}
+              variant="ghost"
+              className="h-full rounded-none px-1 text-xs"
+            >
               {item}
             </Button>
           ))}
         </div>
       </nav>
     </div>
-  )
+  );
 }
 ```
 
@@ -1177,23 +1242,27 @@ export function MobileShell({ children }: { children: React.ReactNode }) {
 Create `apps/mobile/app/layout.tsx`:
 
 ```tsx
-import type { Metadata } from "next"
-import { MobileShell } from "@/components/mobile-shell"
-import "./globals.css"
+import type { Metadata } from "next";
+import { MobileShell } from "@/components/mobile-shell";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "SAST 商城",
   description: "SAST 商城移动端",
-}
+};
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="zh-CN">
       <body>
         <MobileShell>{children}</MobileShell>
       </body>
     </html>
-  )
+  );
 }
 ```
 
@@ -1202,14 +1271,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 Create `apps/mobile/app/page.tsx`:
 
 ```tsx
-import { getCurrentUser } from "@sast-shop/api"
-import { formatPrice } from "@sast-shop/domain"
-import { Badge } from "@workspace/ui/components/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card"
-import { mobileAppConfig } from "@/lib/app-config"
+import { getCurrentUser } from "@sast-shop/api";
+import { formatPrice } from "@sast-shop/domain";
+import { Badge } from "@workspace/ui/components/badge";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@workspace/ui/components/card";
+import { mobileAppConfig } from "@/lib/app-config";
 
 export default async function Page() {
-  const user = await getCurrentUser({ dataSource: mobileAppConfig.dataSource })
+  const user = await getCurrentUser({ dataSource: mobileAppConfig.dataSource });
 
   return (
     <div className="flex flex-1 flex-col gap-4 py-6">
@@ -1231,7 +1305,7 @@ export default async function Page() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
 ```
 
@@ -1261,6 +1335,7 @@ git commit -m "feat: add mobile app shell"
 ### Task 7: Desktop App Shell
 
 **Files:**
+
 - Create: `apps/desktop/package.json`
 - Create: `apps/desktop/next.config.ts`
 - Create: `apps/desktop/tsconfig.json`
@@ -1309,13 +1384,18 @@ Create `apps/desktop/package.json`:
 Create `apps/desktop/next.config.ts`:
 
 ```ts
-import type { NextConfig } from "next"
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@workspace/ui", "@sast-shop/api", "@sast-shop/domain", "@sast-shop/mocks"],
-}
+  transpilePackages: [
+    "@workspace/ui",
+    "@sast-shop/api",
+    "@sast-shop/domain",
+    "@sast-shop/mocks",
+  ],
+};
 
-export default nextConfig
+export default nextConfig;
 ```
 
 - [ ] **Step 3: Create desktop TypeScript config**
@@ -1350,13 +1430,14 @@ Create `apps/desktop/app/globals.css`:
 Create `apps/desktop/lib/app-config.ts`:
 
 ```ts
-import type { DataSource } from "@sast-shop/api"
+import type { DataSource } from "@sast-shop/api";
 
 export const desktopAppConfig = {
   appName: "SAST 商城 PC 端",
   dataSource: (process.env.NEXT_PUBLIC_DATA_SOURCE ?? "mock") as DataSource,
-  appOrigin: process.env.NEXT_PUBLIC_APP_ORIGIN ?? "https://shop.sast-shop.example.com",
-}
+  appOrigin:
+    process.env.NEXT_PUBLIC_APP_ORIGIN ?? "https://shop.sast-shop.example.com",
+};
 ```
 
 - [ ] **Step 6: Create desktop shell**
@@ -1364,9 +1445,9 @@ export const desktopAppConfig = {
 Create `apps/desktop/components/desktop-shell.tsx`:
 
 ```tsx
-import { Button } from "@workspace/ui/components/button"
+import { Button } from "@workspace/ui/components/button";
 
-const navItems = ["工作台", "团购", "现货", "订单", "发布", "我的"]
+const navItems = ["工作台", "团购", "现货", "订单", "发布", "我的"];
 
 export function DesktopShell({ children }: { children: React.ReactNode }) {
   return (
@@ -1387,7 +1468,7 @@ export function DesktopShell({ children }: { children: React.ReactNode }) {
         </div>
       </main>
     </div>
-  )
+  );
 }
 ```
 
@@ -1396,23 +1477,27 @@ export function DesktopShell({ children }: { children: React.ReactNode }) {
 Create `apps/desktop/app/layout.tsx`:
 
 ```tsx
-import type { Metadata } from "next"
-import { DesktopShell } from "@/components/desktop-shell"
-import "./globals.css"
+import type { Metadata } from "next";
+import { DesktopShell } from "@/components/desktop-shell";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "SAST 商城 PC 端",
   description: "SAST 商城桌面端",
-}
+};
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="zh-CN">
       <body>
         <DesktopShell>{children}</DesktopShell>
       </body>
     </html>
-  )
+  );
 }
 ```
 
@@ -1421,15 +1506,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 Create `apps/desktop/app/page.tsx`:
 
 ```tsx
-import { getCurrentUser } from "@sast-shop/api"
-import { getOrderStatusMeta } from "@sast-shop/domain"
-import { Badge } from "@workspace/ui/components/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card"
-import { desktopAppConfig } from "@/lib/app-config"
+import { getCurrentUser } from "@sast-shop/api";
+import { getOrderStatusMeta } from "@sast-shop/domain";
+import { Badge } from "@workspace/ui/components/badge";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@workspace/ui/components/card";
+import { desktopAppConfig } from "@/lib/app-config";
 
 export default async function Page() {
-  const user = await getCurrentUser({ dataSource: desktopAppConfig.dataSource })
-  const pendingPayment = getOrderStatusMeta("pending_payment")
+  const user = await getCurrentUser({
+    dataSource: desktopAppConfig.dataSource,
+  });
+  const pendingPayment = getOrderStatusMeta("pending_payment");
 
   return (
     <div className="flex flex-col gap-6">
@@ -1455,7 +1547,7 @@ export default async function Page() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
 ```
 
@@ -1485,6 +1577,7 @@ git commit -m "feat: add desktop app shell"
 ### Task 8: Caddy Routing and Root Template Cleanup
 
 **Files:**
+
 - Modify: `package.json`
 - Create: `infra/caddy/Caddyfile`
 - Remove: `app/`

@@ -9,6 +9,7 @@ import {
   RiArrowUpSLine,
   RiErrorWarningLine,
   RiFileList3Line,
+  RiInformationLine,
   RiTimeLine,
 } from "@remixicon/react";
 import type {
@@ -234,6 +235,16 @@ function StatusNotice({
     );
   }
 
+  if (paymentState === "self_purchase") {
+    return (
+      <Alert>
+        <RiInformationLine />
+        <AlertTitle>无需支付</AlertTitle>
+        <AlertDescription>团长自购，当前订单无需支付。</AlertDescription>
+      </Alert>
+    );
+  }
+
   if (paymentState === "unavailable") {
     return (
       <Alert variant="destructive">
@@ -339,9 +350,11 @@ function ProductItem({ item }: { item: BuyerErrandOrderProductItem }) {
       <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 text-sm">
         <dt className="text-muted-foreground">实际单价</dt>
         <dd>
-          {hasPurchaseResult
+          {item.actualUnitPriceCents != null
             ? formatPrice(item.actualUnitPriceCents)
-            : "待采购"}
+            : hasPurchaseResult
+              ? "未定价"
+              : "待采购"}
         </dd>
         <dt className="text-muted-foreground">单件跑腿费</dt>
         <dd>{formatPrice(item.serviceFeePerUnitCents)}</dd>

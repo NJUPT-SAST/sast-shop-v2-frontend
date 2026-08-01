@@ -5,7 +5,7 @@ import type {
 } from "@sast-shop/api";
 
 export type BuyerErrandPaymentState =
-  "payable" | "submitted" | "completed" | "unavailable" | "hidden";
+  "payable" | "submitted" | "completed" | "unavailable" | "self_purchase" | "hidden";
 
 export type BuyerErrandTimelineItem = {
   label: string;
@@ -70,7 +70,7 @@ export function resolveBuyerErrandPaymentState(
   }
 
   if (!bill) {
-    return "unavailable";
+    return "self_purchase";
   }
 
   if (bill.status === "submitted") {

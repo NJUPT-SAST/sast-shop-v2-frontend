@@ -6,6 +6,14 @@ const routeSource = readFileSync(
   resolve(process.cwd(), "app/api/auth/session/route.ts"),
   "utf8",
 );
+const sessionSource = readFileSync(
+  resolve(process.cwd(), "lib/auth-session.ts"),
+  "utf8",
+);
+const callbackSource = readFileSync(
+  resolve(process.cwd(), "app/auth/callback/route.ts"),
+  "utf8",
+);
 const serviceOptionsSource = readFileSync(
   resolve(process.cwd(), "lib/server-service-options.ts"),
   "utf8",
@@ -13,16 +21,23 @@ const serviceOptionsSource = readFileSync(
 
 describe("desktop OAuth session source", () => {
   it("binds the OAuth user to the session and clears both cookies", () => {
-    expect(routeSource).toContain("createSessionUserCookie(");
+    expect(sessionSource).toContain("createSessionUserCookie(");
     expect(routeSource).toContain("readSessionUserCookie(");
     expect(routeSource).toContain("getSessionCookieSecret()");
     expect(routeSource).toContain("Boolean(sessionToken && user)");
-    expect(routeSource).toContain(
-      "cookieStore.set(sessionUserCookieName, sessionUserCookie, cookieOptions)",
+    expect(sessionSource).toContain(
+      "response.cookies.set(sessionUserCookieName, sessionUserCookie,",
     );
-    expect(routeSource).toContain(
-      'cookieStore.set(sessionUserCookieName, "", expiredCookieOptions)',
+    expect(sessionSource).toContain(
+      'response.cookies.set(sessionUserCookieName, "", expiredCookieOptions)',
     );
+  });
+
+  it("guards desktop browser OAuth callback with state and redirect URI binding", () => {
+    expect(callbackSource).toContain("state !== storedState");
+    expect(callbackSource).toContain("isFreshFeishuOAuthState(parsedState)");
+    expect(callbackSource).toContain("redirectUri: config.redirectUri");
+    expect(callbackSource).toContain("setDesktopAuthSessionCookies(");
   });
 
   it("passes only the verified OAuth user to authenticated services", () => {

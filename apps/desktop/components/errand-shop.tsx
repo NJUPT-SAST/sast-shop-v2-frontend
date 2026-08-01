@@ -2,18 +2,19 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation"; //提交成功后跳转到订单跑腿页
 import {
-  RiAddLine,
-  RiArrowLeftLine,
-  RiShoppingBag3Line,
-  RiShoppingCartLine,
+  //Remix Icon 图标
+  RiAddLine, //加号
+  RiArrowLeftLine, //返回箭头
+  RiShoppingBag3Line, //购物袋
+  RiShoppingCartLine, //购物车图标
 } from "@remixicon/react";
 import {
   createErrandDemand,
-  listProductTemplatesPage,
-  type DataSource,
-  type PageResult,
+  listProductTemplatesPage, //分页拉取店铺商品模板（左侧商品列表
+  type DataSource, // 多环境区分表示，内部接口通用参数
+  type PageResult, // 分页接口标准返回结构
   type ProductTemplate,
   type Store,
 } from "@sast-shop/api";
@@ -26,6 +27,7 @@ import {
   toDateTimeLocalValue,
 } from "@sast-shop/domain";
 import { Button } from "@workspace/ui/components/button";
+// 展示商品列表，订单摘要，价格汇总面板
 import {
   Card,
   CardContent,
@@ -33,6 +35,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
+// 创建确认弹窗，详情弹窗，提示弹窗
 import {
   Dialog,
   DialogContent,
@@ -58,7 +61,6 @@ import { toast } from "sonner";
 import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
 
 import { ManagedImage } from "@/components/managed-image";
-
 type CartItem = {
   template: ProductTemplate;
   quantity: number;
@@ -108,7 +110,7 @@ export function ErrandShop({
     getKey: getTemplateKey,
     identity: `${dataSource}:${connectBaseUrl}:${store?.id ?? "none"}`,
   });
-  const submittingRef = useRef(false);
+  const submittingRef = useRef(false); //ref存储提交锁，防止用户多次点击提交
   const [items, setItems] = useState<CartItem[]>([]);
   const [feeDrafts, setFeeDrafts] = useState<Record<string, string>>({});
   const [deadlineValue, setDeadlineValue] = useState(() =>

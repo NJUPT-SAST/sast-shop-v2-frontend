@@ -28,6 +28,7 @@
 ### Task 1: Add shadcn Form And Toast Primitives
 
 **Files:**
+
 - Create: `packages/ui/src/components/field.tsx`
 - Create: `packages/ui/src/components/input-group.tsx`
 - Create: `packages/ui/src/components/sonner.tsx`
@@ -84,6 +85,7 @@ git commit -m "feat: add shadcn form and toast primitives"
 ### Task 2: Expose Seller ID And Owner QR Lookup
 
 **Files:**
+
 - Modify: `packages/api/src/services/spot-goods.ts`
 - Modify: `packages/api/src/services/spot-goods.test.ts`
 - Modify: `packages/api/src/services/payment-qr-codes.ts`
@@ -104,7 +106,7 @@ expect(goods).toMatchObject({
     id: "1001",
     title: "SAST 贴纸",
   },
-})
+});
 ```
 
 - [ ] **Step 2: Write failing owner QR test**
@@ -122,23 +124,23 @@ it("passes owner id when listing another user's payment QR codes", async () => {
           content: "https://example.test/pay/wechat/seller",
         },
       ],
-    })
-  )
-  vi.stubGlobal("fetch", fetchMock)
+    }),
+  );
+  vi.stubGlobal("fetch", fetchMock);
 
   const qrCodes = await listPaymentQrCodes({
     ...localOptions,
     ownerId: "42",
-  })
+  });
 
-  expect(qrCodes[0]?.content).toBe("https://example.test/pay/wechat/seller")
+  expect(qrCodes[0]?.content).toBe("https://example.test/pay/wechat/seller");
   await expectConnectRequest(fetchMock, {
     path: "/sast.sastshopv2.payment.v1.QrCodeService/GetQrCode",
     body: {
       ownerId: "42",
     },
-  })
-})
+  });
+});
 ```
 
 - [ ] **Step 3: Run tests to verify they fail**
@@ -155,13 +157,13 @@ In `packages/api/src/services/spot-goods.ts`, change `SpotGoods`:
 
 ```ts
 export interface SpotGoods {
-  id: string
-  product: SpotProductTemplate
-  salePriceCents: number
-  stock: number | null
-  sellerId: string | null
-  sellerName: string | null
-  updatedAt: string | null
+  id: string;
+  product: SpotProductTemplate;
+  salePriceCents: number;
+  stock: number | null;
+  sellerId: string | null;
+  sellerName: string | null;
+  updatedAt: string | null;
 }
 ```
 
@@ -197,8 +199,8 @@ const response = await requestLocal("listPaymentQrCodes", () =>
     ownerId: options.ownerId
       ? parseInt64(options.ownerId, "收款码用户 ID 不正确")
       : undefined,
-  })
-)
+  }),
+);
 ```
 
 Add:
@@ -206,10 +208,10 @@ Add:
 ```ts
 function parseInt64(value: string, message: string): bigint {
   if (!/^[1-9]\d*$/.test(value)) {
-    throw new ValidationError(message)
+    throw new ValidationError(message);
   }
 
-  return BigInt(value)
+  return BigInt(value);
 }
 ```
 
@@ -234,6 +236,7 @@ git commit -m "feat: expose seller payment qr lookup"
 ### Task 3: Add Local Payment Preference Helpers
 
 **Files:**
+
 - Create: `apps/mobile/lib/payment-preferences.ts`
 - Create: `apps/mobile/lib/payment-preferences.test.ts`
 
@@ -242,57 +245,57 @@ git commit -m "feat: expose seller payment qr lookup"
 Create `apps/mobile/lib/payment-preferences.test.ts`:
 
 ```ts
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest";
 import {
   DEFAULT_PAYMENT_PLATFORM,
   PAYMENT_PLATFORM_STORAGE_KEY,
   isPaymentPlatform,
   readDefaultPaymentPlatform,
   writeDefaultPaymentPlatform,
-} from "./payment-preferences"
+} from "./payment-preferences";
 
 class MemoryStorage implements Storage {
-  private values = new Map<string, string>()
+  private values = new Map<string, string>();
   get length() {
-    return this.values.size
+    return this.values.size;
   }
   clear() {
-    this.values.clear()
+    this.values.clear();
   }
   getItem(key: string) {
-    return this.values.get(key) ?? null
+    return this.values.get(key) ?? null;
   }
   key(index: number) {
-    return Array.from(this.values.keys())[index] ?? null
+    return Array.from(this.values.keys())[index] ?? null;
   }
   removeItem(key: string) {
-    this.values.delete(key)
+    this.values.delete(key);
   }
   setItem(key: string, value: string) {
-    this.values.set(key, value)
+    this.values.set(key, value);
   }
 }
 
 describe("payment preferences", () => {
   it("validates platforms", () => {
-    expect(isPaymentPlatform("wechat")).toBe(true)
-    expect(isPaymentPlatform("alipay")).toBe(true)
-    expect(isPaymentPlatform("cash")).toBe(false)
-  })
+    expect(isPaymentPlatform("wechat")).toBe(true);
+    expect(isPaymentPlatform("alipay")).toBe(true);
+    expect(isPaymentPlatform("cash")).toBe(false);
+  });
 
   it("falls back to wechat for empty or invalid storage", () => {
-    const storage = new MemoryStorage()
-    expect(readDefaultPaymentPlatform(storage)).toBe(DEFAULT_PAYMENT_PLATFORM)
-    storage.setItem(PAYMENT_PLATFORM_STORAGE_KEY, "cash")
-    expect(readDefaultPaymentPlatform(storage)).toBe(DEFAULT_PAYMENT_PLATFORM)
-  })
+    const storage = new MemoryStorage();
+    expect(readDefaultPaymentPlatform(storage)).toBe(DEFAULT_PAYMENT_PLATFORM);
+    storage.setItem(PAYMENT_PLATFORM_STORAGE_KEY, "cash");
+    expect(readDefaultPaymentPlatform(storage)).toBe(DEFAULT_PAYMENT_PLATFORM);
+  });
 
   it("persists the selected platform", () => {
-    const storage = new MemoryStorage()
-    writeDefaultPaymentPlatform("alipay", storage)
-    expect(readDefaultPaymentPlatform(storage)).toBe("alipay")
-  })
-})
+    const storage = new MemoryStorage();
+    writeDefaultPaymentPlatform("alipay", storage);
+    expect(readDefaultPaymentPlatform(storage)).toBe("alipay");
+  });
+});
 ```
 
 - [ ] **Step 2: Run failing test**
@@ -308,32 +311,33 @@ Expected: fails because implementation is missing.
 Create `apps/mobile/lib/payment-preferences.ts`:
 
 ```ts
-export type PaymentPlatform = "wechat" | "alipay"
+export type PaymentPlatform = "wechat" | "alipay";
 
-export const DEFAULT_PAYMENT_PLATFORM: PaymentPlatform = "wechat"
-export const PAYMENT_PLATFORM_STORAGE_KEY = "sast-shop.default-payment-platform"
+export const DEFAULT_PAYMENT_PLATFORM: PaymentPlatform = "wechat";
+export const PAYMENT_PLATFORM_STORAGE_KEY =
+  "sast-shop.default-payment-platform";
 
 export function isPaymentPlatform(value: unknown): value is PaymentPlatform {
-  return value === "wechat" || value === "alipay"
+  return value === "wechat" || value === "alipay";
 }
 
 export function readDefaultPaymentPlatform(
-  storage: Storage | undefined = getBrowserStorage()
+  storage: Storage | undefined = getBrowserStorage(),
 ): PaymentPlatform {
-  const value = storage?.getItem(PAYMENT_PLATFORM_STORAGE_KEY)
+  const value = storage?.getItem(PAYMENT_PLATFORM_STORAGE_KEY);
 
-  return isPaymentPlatform(value) ? value : DEFAULT_PAYMENT_PLATFORM
+  return isPaymentPlatform(value) ? value : DEFAULT_PAYMENT_PLATFORM;
 }
 
 export function writeDefaultPaymentPlatform(
   platform: PaymentPlatform,
-  storage: Storage | undefined = getBrowserStorage()
+  storage: Storage | undefined = getBrowserStorage(),
 ) {
-  storage?.setItem(PAYMENT_PLATFORM_STORAGE_KEY, platform)
+  storage?.setItem(PAYMENT_PLATFORM_STORAGE_KEY, platform);
 }
 
 function getBrowserStorage(): Storage | undefined {
-  return typeof window === "undefined" ? undefined : window.localStorage
+  return typeof window === "undefined" ? undefined : window.localStorage;
 }
 ```
 
@@ -351,6 +355,7 @@ git commit -m "feat: add local payment preference helpers"
 ### Task 4: Add Payment App Link Helpers
 
 **Files:**
+
 - Create: `apps/mobile/lib/payment-app-links.ts`
 - Create: `apps/mobile/lib/payment-app-links.test.ts`
 
@@ -359,25 +364,25 @@ git commit -m "feat: add local payment preference helpers"
 Create `apps/mobile/lib/payment-app-links.test.ts`:
 
 ```ts
-import { describe, expect, it, vi } from "vitest"
-import { getPaymentScanUrl, openPaymentScanner } from "./payment-app-links"
+import { describe, expect, it, vi } from "vitest";
+import { getPaymentScanUrl, openPaymentScanner } from "./payment-app-links";
 
 describe("payment app links", () => {
   it("returns scanner URL schemes", () => {
-    expect(getPaymentScanUrl("wechat")).toBe("weixin://scanqrcode")
+    expect(getPaymentScanUrl("wechat")).toBe("weixin://scanqrcode");
     expect(getPaymentScanUrl("alipay")).toBe(
-      "alipays://platformapi/startapp?saId=10000007"
-    )
-  })
+      "alipays://platformapi/startapp?saId=10000007",
+    );
+  });
 
   it("opens scanner links through location assignment", () => {
-    const assign = vi.fn()
+    const assign = vi.fn();
     openPaymentScanner("wechat", {
       assign: assign as unknown as Location["assign"],
-    })
-    expect(assign).toHaveBeenCalledWith("weixin://scanqrcode")
-  })
-})
+    });
+    expect(assign).toHaveBeenCalledWith("weixin://scanqrcode");
+  });
+});
 ```
 
 - [ ] **Step 2: Implement helper**
@@ -385,22 +390,22 @@ describe("payment app links", () => {
 Create `apps/mobile/lib/payment-app-links.ts`:
 
 ```ts
-import type { PaymentPlatform } from "./payment-preferences"
+import type { PaymentPlatform } from "./payment-preferences";
 
 const PAYMENT_SCAN_URLS: Record<PaymentPlatform, string> = {
   wechat: "weixin://scanqrcode",
   alipay: "alipays://platformapi/startapp?saId=10000007",
-}
+};
 
 export function getPaymentScanUrl(platform: PaymentPlatform) {
-  return PAYMENT_SCAN_URLS[platform]
+  return PAYMENT_SCAN_URLS[platform];
 }
 
 export function openPaymentScanner(
   platform: PaymentPlatform,
-  locationLike: Pick<Location, "assign"> = window.location
+  locationLike: Pick<Location, "assign"> = window.location,
 ) {
-  locationLike.assign(getPaymentScanUrl(platform))
+  locationLike.assign(getPaymentScanUrl(platform));
 }
 ```
 
@@ -418,6 +423,7 @@ git commit -m "feat: add payment scanner link helpers"
 ### Task 5: Mount Toaster And Add Default Payment Setting
 
 **Files:**
+
 - Modify: `apps/mobile/app/layout.tsx`
 - Modify: `apps/mobile/components/profile-dialogs-provider.tsx`
 - Modify: `apps/mobile/components/profile-management-client.tsx`
@@ -427,7 +433,7 @@ git commit -m "feat: add payment scanner link helpers"
 In `apps/mobile/app/layout.tsx`:
 
 ```tsx
-import { Toaster } from "@workspace/ui/components/sonner"
+import { Toaster } from "@workspace/ui/components/sonner";
 ```
 
 After `</ProfileDialogsProvider>`:
@@ -441,40 +447,40 @@ After `</ProfileDialogsProvider>`:
 In `apps/mobile/components/profile-dialogs-provider.tsx`, add `useEffect` to the React import and add:
 
 ```tsx
-import { toast } from "sonner"
+import { toast } from "sonner";
 import {
   DEFAULT_PAYMENT_PLATFORM,
   readDefaultPaymentPlatform,
   writeDefaultPaymentPlatform,
   type PaymentPlatform,
-} from "@/lib/payment-preferences"
+} from "@/lib/payment-preferences";
 ```
 
 Extend context:
 
 ```ts
 interface ProfileDialogsContextValue {
-  openAddressDialog: () => void
-  openQrCodeDialog: () => void
-  openPaymentPreferenceDialog: () => void
+  openAddressDialog: () => void;
+  openQrCodeDialog: () => void;
+  openPaymentPreferenceDialog: () => void;
 }
 ```
 
 Add state and functions:
 
 ```tsx
-const [paymentPreferenceOpen, setPaymentPreferenceOpen] = useState(false)
+const [paymentPreferenceOpen, setPaymentPreferenceOpen] = useState(false);
 const [defaultPaymentPlatform, setDefaultPaymentPlatform] =
-  useState<PaymentPlatform>(DEFAULT_PAYMENT_PLATFORM)
+  useState<PaymentPlatform>(DEFAULT_PAYMENT_PLATFORM);
 
 useEffect(() => {
-  setDefaultPaymentPlatform(readDefaultPaymentPlatform())
-}, [])
+  setDefaultPaymentPlatform(readDefaultPaymentPlatform());
+}, []);
 
 function saveDefaultPaymentPlatform(platform: PaymentPlatform) {
-  writeDefaultPaymentPlatform(platform)
-  setDefaultPaymentPlatform(platform)
-  toast.success("默认支付方式已更新")
+  writeDefaultPaymentPlatform(platform);
+  setDefaultPaymentPlatform(platform);
+  toast.success("默认支付方式已更新");
 }
 ```
 
@@ -513,6 +519,7 @@ git commit -m "feat: add default payment method setting"
 ### Task 6: Build Reusable Payment Dialog
 
 **Files:**
+
 - Create: `apps/mobile/components/payment-dialog.tsx`
 
 - [ ] **Step 1: Create component**
@@ -568,6 +575,7 @@ git commit -m "feat: add reusable payment dialog"
 ### Task 7: Refactor Spot Marketplace
 
 **Files:**
+
 - Modify: `apps/mobile/components/spot-marketplace.tsx`
 
 - [ ] **Step 1: Update imports and product mapping**
@@ -575,12 +583,15 @@ git commit -m "feat: add reusable payment dialog"
 Add imports:
 
 ```tsx
-import { useEffect, useMemo, useState } from "react"
-import { listPaymentQrCodes } from "@sast-shop/api"
-import { toast } from "sonner"
-import { readDefaultPaymentPlatform, type PaymentPlatform } from "@/lib/payment-preferences"
-import { PaymentDialog } from "./payment-dialog"
-import { Input } from "@workspace/ui/components/input"
+import { useEffect, useMemo, useState } from "react";
+import { listPaymentQrCodes } from "@sast-shop/api";
+import { toast } from "sonner";
+import {
+  readDefaultPaymentPlatform,
+  type PaymentPlatform,
+} from "@/lib/payment-preferences";
+import { PaymentDialog } from "./payment-dialog";
+import { Input } from "@workspace/ui/components/input";
 ```
 
 Add `sellerId: string | null` to `SpotProduct` and map:
@@ -592,15 +603,16 @@ sellerId: goods.sellerId,
 - [ ] **Step 2: Add search and QR state**
 
 ```tsx
-const [query, setQuery] = useState("")
-const [defaultPlatform, setDefaultPlatform] = useState<PaymentPlatform>("wechat")
+const [query, setQuery] = useState("");
+const [defaultPlatform, setDefaultPlatform] =
+  useState<PaymentPlatform>("wechat");
 const [paymentQrCodes, setPaymentQrCodes] = useState<
   Partial<Record<PaymentPlatform, string>>
->({})
+>({});
 
 useEffect(() => {
-  setDefaultPlatform(readDefaultPaymentPlatform())
-}, [])
+  setDefaultPlatform(readDefaultPaymentPlatform());
+}, []);
 ```
 
 Create `filteredProducts` by matching title, description, seller, and barcode.
@@ -609,36 +621,36 @@ Create `filteredProducts` by matching title, description, seller, and barcode.
 
 ```tsx
 async function startCheckout() {
-  if (!selectedProduct) return
+  if (!selectedProduct) return;
 
   if (!selectedProduct.sellerId) {
-    toast.error("发布者收款信息暂不可用")
-    return
+    toast.error("发布者收款信息暂不可用");
+    return;
   }
 
-  setDefaultPlatform(readDefaultPaymentPlatform())
-  setSubmitting(true)
+  setDefaultPlatform(readDefaultPaymentPlatform());
+  setSubmitting(true);
 
   try {
     const qrCodes = await listPaymentQrCodes({
       ...serviceOptions,
       ownerId: selectedProduct.sellerId,
-    })
+    });
 
     setPaymentQrCodes(
       Object.fromEntries(
-        qrCodes.map((qrCode) => [qrCode.channel, qrCode.content])
-      ) as Partial<Record<PaymentPlatform, string>>
-    )
-    setCheckoutDraft({ product: selectedProduct, quantity })
-    setSelectedProduct(null)
-    setSubmitted(false)
-    setSubmissionError(null)
-    setCreatedOrderNo(null)
+        qrCodes.map((qrCode) => [qrCode.channel, qrCode.content]),
+      ) as Partial<Record<PaymentPlatform, string>>,
+    );
+    setCheckoutDraft({ product: selectedProduct, quantity });
+    setSelectedProduct(null);
+    setSubmitted(false);
+    setSubmissionError(null);
+    setCreatedOrderNo(null);
   } catch {
-    toast.error("收款码暂不可用，请稍后再试")
+    toast.error("收款码暂不可用，请稍后再试");
   } finally {
-    setSubmitting(false)
+    setSubmitting(false);
   }
 }
 ```
@@ -651,7 +663,7 @@ Delete the inline payment `ResponsiveDialog` and render:
 <PaymentDialog
   open={checkoutDraft !== null}
   onOpenChange={(open) => {
-    if (!open) setCheckoutDraft(null)
+    if (!open) setCheckoutDraft(null);
   }}
   amountCents={amount}
   verifyCode={verifyCode}
@@ -659,11 +671,11 @@ Delete the inline payment `ResponsiveDialog` and render:
   defaultPlatform={defaultPlatform}
   submitting={submitting}
   onCancelPayment={() => {
-    setCheckoutDraft(null)
-    toast.message("已取消支付")
+    setCheckoutDraft(null);
+    toast.message("已取消支付");
   }}
   onPay={() => {
-    void submitOrder()
+    void submitOrder();
   }}
 />
 ```
@@ -675,13 +687,13 @@ Add an `Input` above the grid with placeholder `搜索商品、规格、卖家�
 In `submitOrder`, add:
 
 ```tsx
-toast.success("订单已提交，等待收款确认")
+toast.success("订单已提交，等待收款确认");
 ```
 
 on success, and:
 
 ```tsx
-toast.error("订单提交失败，请稍后再试")
+toast.error("订单提交失败，请稍后再试");
 ```
 
 on failure.
@@ -700,6 +712,7 @@ git commit -m "feat: polish spot marketplace payment flow"
 ### Task 8: Refactor Publish Spot Form
 
 **Files:**
+
 - Modify: `apps/mobile/components/publish-spot-form.tsx`
 
 - [ ] **Step 1: Add RHF/Zod and shadcn imports**
@@ -707,23 +720,23 @@ git commit -m "feat: polish spot marketplace payment flow"
 Add:
 
 ```tsx
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, useForm } from "react-hook-form"
-import { toast } from "sonner"
-import * as z from "zod"
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
+import * as z from "zod";
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from "@workspace/ui/components/field"
+} from "@workspace/ui/components/field";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "@workspace/ui/components/input-group"
+} from "@workspace/ui/components/input-group";
 ```
 
 Add:
@@ -733,9 +746,9 @@ const formSchema = z.object({
   barcode: z.string().trim().min(1, "请输入商品条码"),
   price: z.coerce.number().positive("售价必须大于 0"),
   stock: z.coerce.number().int("库存必须是整数").positive("库存必须大于 0"),
-})
+});
 
-type FormValues = z.infer<typeof formSchema>
+type FormValues = z.infer<typeof formSchema>;
 ```
 
 - [ ] **Step 2: Replace local field state**
@@ -750,8 +763,8 @@ const form = useForm<FormValues>({
     price: 0,
     stock: 1,
   },
-})
-const barcode = form.watch("barcode")
+});
+const barcode = form.watch("barcode");
 ```
 
 Keep query/template/submission states.
@@ -763,14 +776,14 @@ Use `Controller` + `Field` for barcode, price, and stock. Barcode uses `InputGro
 Barcode query button behavior:
 
 ```tsx
-const nextBarcode = form.getValues("barcode").trim()
+const nextBarcode = form.getValues("barcode").trim();
 if (!nextBarcode) {
-  form.setError("barcode", { message: "请输入商品条码" })
-  return
+  form.setError("barcode", { message: "请输入商品条码" });
+  return;
 }
-setQueried(true)
-setSelectedTemplate(null)
-setSubmitted(false)
+setQueried(true);
+setSelectedTemplate(null);
+setSubmitted(false);
 ```
 
 - [ ] **Step 4: Update submit**
@@ -778,12 +791,12 @@ setSubmitted(false)
 ```tsx
 async function submitSpotGoods(values: FormValues) {
   if (!selectedTemplate) {
-    toast.error("请先选择商品模板")
-    return
+    toast.error("请先选择商品模板");
+    return;
   }
 
-  setSubmitting(true)
-  setSubmissionError(null)
+  setSubmitting(true);
+  setSubmissionError(null);
 
   try {
     await createSpotGoods(
@@ -793,16 +806,16 @@ async function submitSpotGoods(values: FormValues) {
         stockTotal: values.stock,
         productTemplateUpdatedAt: selectedTemplate.updatedAt,
       },
-      serviceOptions
-    )
-    setSubmitted(true)
-    toast.success("已提交上架")
+      serviceOptions,
+    );
+    setSubmitted(true);
+    toast.success("已提交上架");
   } catch {
-    const message = "上架失败，请稍后再试"
-    setSubmissionError(message)
-    toast.error(message)
+    const message = "上架失败，请稍后再试";
+    setSubmissionError(message);
+    toast.error(message);
   } finally {
-    setSubmitting(false)
+    setSubmitting(false);
   }
 }
 ```
@@ -827,6 +840,7 @@ git commit -m "feat: polish spot publish form"
 ### Task 9: Final Verification
 
 **Files:**
+
 - No planned file edits.
 
 - [ ] **Step 1: Run automated checks**

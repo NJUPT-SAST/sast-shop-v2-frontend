@@ -49,7 +49,7 @@ export interface BuyerErrandOrder {
 
 export interface BuyerErrandOrderProductItem {
   productTemplate: ProductTemplate;
-  actualUnitPriceCents: number;
+  actualUnitPriceCents: number | null;
   requiredQuantity: number;
   purchasedQuantity: number | null;
   nonPurchaseReason: string | null;
@@ -256,7 +256,7 @@ function mapBuyerErrandOrderProductItem(
 
   return {
     productTemplate: mapProductTemplate(item.productTemplate),
-    actualUnitPriceCents: item.actualUnitPriceCents,
+    actualUnitPriceCents: item.actualUnitPriceCents ?? null,
     requiredQuantity: item.requiredQuantity,
     purchasedQuantity: item.purchasedQuantity ?? null,
     nonPurchaseReason: item.nonPurchaseReason ?? null,
