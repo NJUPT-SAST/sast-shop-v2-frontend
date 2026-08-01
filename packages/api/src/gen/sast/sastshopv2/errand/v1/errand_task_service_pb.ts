@@ -265,6 +265,11 @@ export type GetDistributingTaskDetailResponse = Message<"sast.sastshopv2.errand.
    * @generated from field: repeated sast.sastshopv2.errand.v1.DistributingItem distributing_items = 5;
    */
   distributingItems: DistributingItem[];
+
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 6;
+   */
+  updatedAt?: Timestamp | undefined;
 };
 
 /**
@@ -417,6 +422,10 @@ export const SaveDistributingTaskAssignmentRequestSchema: GenMessage<SaveDistrib
  * @generated from message sast.sastshopv2.errand.v1.SaveDistributingTaskAssignmentResponse
  */
 export type SaveDistributingTaskAssignmentResponse = Message<"sast.sastshopv2.errand.v1.SaveDistributingTaskAssignmentResponse"> & {
+  /**
+   * @generated from field: google.protobuf.Timestamp errand_task_assignment_updated_at = 1;
+   */
+  errandTaskAssignmentUpdatedAt?: Timestamp | undefined;
 };
 
 /**
