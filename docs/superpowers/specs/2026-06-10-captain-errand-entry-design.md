@@ -112,9 +112,9 @@ Input:
 
 ```ts
 interface ListErrandDemandStoresOptions extends ServiceOptions {
-  storeName?: string
-  page?: number
-  pageSize?: number
+  storeName?: string;
+  page?: number;
+  pageSize?: number;
 }
 ```
 
@@ -122,12 +122,12 @@ Output:
 
 ```ts
 interface ErrandDemandStoreSummary {
-  storeId: string
-  storeName: string
-  participantAvatars: string[]
-  totalOriginUnitPriceCents: number
-  totalServiceFeeCents: number
-  updatedAt: string | null
+  storeId: string;
+  storeName: string;
+  participantAvatars: string[];
+  totalOriginUnitPriceCents: number;
+  totalServiceFeeCents: number;
+  updatedAt: string | null;
 }
 ```
 
@@ -141,7 +141,7 @@ Input:
 
 ```ts
 interface GetErrandDemandDetailsInput {
-  storeId: string
+  storeId: string;
 }
 ```
 
@@ -149,22 +149,22 @@ Output:
 
 ```ts
 interface ErrandDemandDetailGroup {
-  errandDemandId: string
-  productTemplate: ProductTemplate | null
-  estimatedUnitPriceCents: number
-  quantity: number
-  requesters: ErrandDemandRequester[]
+  errandDemandId: string;
+  productTemplate: ProductTemplate | null;
+  estimatedUnitPriceCents: number;
+  quantity: number;
+  requesters: ErrandDemandRequester[];
 }
 
 interface ErrandDemandRequester {
-  requesterId: string
-  requesterName: string
-  requesterAvatarUrl: string
-  quantity: number
-  serviceFeePerUnitCents: number
-  errandDemandItemId: string
-  deadline: string | null
-  updatedAt: string | null
+  requesterId: string;
+  requesterName: string;
+  requesterAvatarUrl: string;
+  quantity: number;
+  serviceFeePerUnitCents: number;
+  errandDemandItemId: string;
+  deadline: string | null;
+  updatedAt: string | null;
 }
 ```
 
@@ -176,11 +176,11 @@ Input:
 
 ```ts
 interface CreateErrandTaskInput {
-  storeId: string
+  storeId: string;
   demandItems: Array<{
-    errandDemandItemId: string
-    updatedAt?: string | null
-  }>
+    errandDemandItemId: string;
+    updatedAt?: string | null;
+  }>;
 }
 ```
 
@@ -188,7 +188,7 @@ Output:
 
 ```ts
 interface CreateErrandTaskResult {
-  errandTaskId: string
+  errandTaskId: string;
 }
 ```
 
@@ -206,12 +206,19 @@ Output:
 
 ```ts
 interface ErrandTaskBrief {
-  id: string
-  storeId: string
-  storeName: string
-  status: "shopping" | "pending_distributing" | "distributing" | "collecting_payment" | "completed" | "cancelled" | "unknown"
-  itemCount: number
-  createdAt: string | null
+  id: string;
+  storeId: string;
+  storeName: string;
+  status:
+    | "shopping"
+    | "pending_distributing"
+    | "distributing"
+    | "collecting_payment"
+    | "completed"
+    | "cancelled"
+    | "unknown";
+  itemCount: number;
+  createdAt: string | null;
 }
 ```
 

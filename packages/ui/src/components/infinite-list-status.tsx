@@ -20,7 +20,7 @@ export function InfiniteListStatus({
   loadingFallback: ReactNode;
   endMessage?: ReactNode;
 }) {
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null); //当哨兵进入视口 → 代表用户滚动接近底部 → 触发加载下一页。
 
   useEffect(() => {
     const sentinel = sentinelRef.current;

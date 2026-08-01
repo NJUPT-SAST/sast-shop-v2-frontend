@@ -69,61 +69,77 @@ export function AuthBootstrap({
     return true;
   }, [connectBaseUrl, dataSource]);
 
-  const authenticate = useCallback(async (clearSession = false) => {
-    if (authenticatingRef.current) return false;
-    if (retryAfterRef.current > 0) return false;
-    authenticatingRef.current = true;
-    setError("");
-    setState("checking");
-    try {
-      if (clearSession) {
-        const cleared = await fetch("/api/auth/session", { method: "DELETE" });
-        if (!cleared.ok) throw new Error("旧登录会话清理失败，请重新登录");
-      }
-      if (!clearSession) {
-        try {
-          if (await verifyCurrentSession()) {
-            setState("authenticated");
-            return true;
-          }
-        } catch (reason) {
-          if (!(reason instanceof AuthRequiredError)) throw reason;
+  const authenticate = useCallback(
+    async (clearSession = false) => {
+      if (authenticatingRef.current) return false;
+      if (retryAfterRef.current > 0) return false;
+      authenticatingRef.current = true;
+      setError("");
+      setState("checking");
+      try {
+        if (clearSession) {
+          const cleared = await fetch("/api/auth/session", {
+            method: "DELETE",
+          });
+          if (!cleared.ok) throw new Error("旧登录会话清理失败，请重新登录");
         }
+        if (!clearSession) {
+          try {
+            if (await verifyCurrentSession()) {
+              setState("authenticated");
+              return true;
+            }
+          } catch (reason) {
+            if (!(reason instanceof AuthRequiredError)) throw reason;
+          }
+        }
+
+        if (!appId || !window.h5sdk?.ready || !window.tt) {
+          setState("authenticating");
+          const loginUrl = new URL(
+            "/api/auth/lark/authorize",
+            window.location.origin,
+          );
+          loginUrl.searchParams.set(
+            "returnTo",
+            `${window.location.pathname}${window.location.search}`,
+          );
+          window.location.assign(loginUrl.href);
+          return false;
+        }
+
+        const sdk = window.h5sdk;
+        const client = window.tt;
+        setState("authenticating");
+        await waitForLarkReady(sdk);
+        const code = await requestLarkAuthorizationCode(client, appId);
+        const response = await fetch("/api/auth/session", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ code }),
+        });
+        if (response.status === 429) {
+          const seconds = parseRetryAfter(response.headers.get("retry-after"));
+          retryAfterRef.current = seconds;
+          setRetryAfter(seconds);
+          throw new Error(`登录请求过于频繁，请 ${seconds} 秒后重试`);
+        }
+        if (!response.ok) throw new Error("登录会话建立失败，请重新授权");
+        setState("authenticated");
+        router.refresh();
+        return true;
+      } catch (reason) {
+        setError(
+          reason instanceof Error ? reason.message : "登录失败，请稍后重试",
+        );
+        setState("error");
+        return false;
+      } finally {
+        authenticatingRef.current = false;
       }
-      if (!appId) throw new Error("缺少飞书应用 ID，请联系管理员完成部署配置");
-      if (!window.h5sdk?.ready || !window.tt) {
-        throw new Error("请在飞书客户端内打开该应用");
-      }
-      const sdk = window.h5sdk;
-      const client = window.tt;
-      setState("authenticating");
-      await waitForLarkReady(sdk);
-      const code = await requestLarkAuthorizationCode(client, appId);
-      const response = await fetch("/api/auth/session", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
-      if (response.status === 429) {
-        const seconds = parseRetryAfter(response.headers.get("retry-after"));
-        retryAfterRef.current = seconds;
-        setRetryAfter(seconds);
-        throw new Error(`登录请求过于频繁，请 ${seconds} 秒后重试`);
-      }
-      if (!response.ok) throw new Error("登录会话建立失败，请重新授权");
-      setState("authenticated");
-      router.refresh();
-      return true;
-    } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : "登录失败，请稍后重试",
-      );
-      setState("error");
-      return false;
-    } finally {
-      authenticatingRef.current = false;
-    }
-  }, [appId, router, verifyCurrentSession]);
+    },
+    [appId, router, verifyCurrentSession],
+  );
 
   useEffect(() => {
     if (retryAfter <= 0) return;
