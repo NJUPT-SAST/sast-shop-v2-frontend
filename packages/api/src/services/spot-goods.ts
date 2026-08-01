@@ -37,6 +37,19 @@ export interface SpotGoods {
   updatedAt: string;
 }
 
+/**
+ * The create endpoint returns the newly-created row, rather than the full
+ * detail shape returned by getSpotGoods. Keep that response separate so a
+ * successful create does not require productTemplate or seller to be present.
+ */
+export interface CreatedSpotGoods {
+  id: string;
+  salePriceCents: number;
+  stock: number;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
 export interface SpotGoodsBrief {
   id: string;
   product: SpotProductTemplate;
@@ -148,7 +161,7 @@ export async function getSpotGoods(
 export async function createSpotGoods(
   input: CreateSpotGoodsInput,
   options: ServiceOptions = {},
-): Promise<SpotGoods> {
+): Promise<CreatedSpotGoods> {
   const parsedInput = validateCreateSpotGoodsInput(input);
   const dataSource = resolveDataSource(options);
 
@@ -163,14 +176,24 @@ export async function createSpotGoods(
       }),
     );
 
-    if (!response.spotGoodsDetail) {
+    if (!response.spotGoodsDetail || response.spotGoodsDetail.id <= 0n) {
       throw new FeatureUnavailableError("createSpotGoods");
     }
 
-    return mapSpotGoodsDetail(response.spotGoodsDetail);
+    return mapCreatedSpotGoods(response.spotGoodsDetail);
   }
 
   throw new FeatureUnavailableError("createSpotGoods");
+}
+
+function mapCreatedSpotGoods(goods: ProtoSpotGoodsDetail): CreatedSpotGoods {
+  return {
+    id: goods.id.toString(),
+    salePriceCents: goods.salePriceCents,
+    stock: goods.stock,
+    createdAt: formatProtoTimestamp(goods.createdAt),
+    updatedAt: formatProtoTimestamp(goods.updatedAt),
+  };
 }
 
 function mapSpotGoodsBrief(
