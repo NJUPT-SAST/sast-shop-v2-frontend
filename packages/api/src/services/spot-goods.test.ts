@@ -10,6 +10,7 @@ import {
   getSpotGoods,
   listSpotGoods,
   type CreateSpotGoodsInput,
+  type CreatedSpotGoods,
   type SpotGoods,
   type SpotGoodsBrief,
 } from "./spot-goods";
@@ -41,7 +42,7 @@ describe("spot goods service", () => {
       }>
     >();
     expectTypeOf<ReturnType<typeof createSpotGoods>>().toEqualTypeOf<
-      Promise<SpotGoods>
+      Promise<CreatedSpotGoods>
     >();
     expectTypeOf<ReturnType<typeof getSpotGoods>>().toEqualTypeOf<
       Promise<SpotGoods>
@@ -476,13 +477,8 @@ describe("spot goods service", () => {
       id: "2001",
       salePriceCents: 1299,
       stock: 8,
-      sellerId: "42",
-      sellerName: "南邮同学",
-      sellerAvatarUrl: "",
-      product: {
-        id: "1001",
-        title: "SAST 贴纸",
-      },
+      createdAt: null,
+      updatedAt: "1970-01-01T00:00:02.000Z",
     });
     expect(fetchMock).toHaveBeenCalledOnce();
     await expectConnectRequest(fetchMock, {
@@ -493,6 +489,40 @@ describe("spot goods service", () => {
         stockTotal: 8,
         productTemplateUpdatedAt: "1970-01-01T00:00:01Z",
       },
+    });
+  });
+
+  it("accepts a sparse spot goods detail from the create backend", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        spotGoodsDetail: {
+          id: "6",
+          salePriceCents: 3900,
+          createdAt: "2026-08-01T08:22:24.069210Z",
+          updatedAt: "2026-08-01T08:22:24.069210Z",
+          stock: 1,
+        },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const goods = await createSpotGoods(
+      {
+        ...validInput,
+        salePriceCents: 3900,
+        stockTotal: 1,
+        productTemplateId: "93009",
+        productTemplateUpdatedAt: "2026-07-31T17:13:51.808197Z",
+      },
+      localOptions,
+    );
+
+    expect(goods).toMatchObject({
+      id: "6",
+      salePriceCents: 3900,
+      stock: 1,
+      createdAt: "2026-08-01T08:22:24.06921Z",
+      updatedAt: "2026-08-01T08:22:24.06921Z",
     });
   });
 

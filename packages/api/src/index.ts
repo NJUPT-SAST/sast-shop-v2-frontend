@@ -76,6 +76,7 @@ export {
   getSpotGoods,
   listSpotGoods,
   type CreateSpotGoodsInput,
+  type CreatedSpotGoods,
   type ListSpotGoodsResult,
   type SpotGoods,
   type SpotGoodsBrief,
