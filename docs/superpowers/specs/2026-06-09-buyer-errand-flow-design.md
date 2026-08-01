@@ -125,21 +125,21 @@ Add `packages/api/src/services/errand-demands.ts`.
 Expose:
 
 ```ts
-createErrandDemand(input, options);
+createErrandDemand(input, options)
 ```
 
 Input shape:
 
 ```ts
 interface CreateErrandDemandInput {
-  storeId: string;
-  deadline: string;
+  storeId: string
+  deadline: string
   items: Array<{
-    productTemplateId: string;
-    quantity: number;
-    serviceFeePerUnitCents: number;
-    updatedAt?: string | null;
-  }>;
+    productTemplateId: string
+    quantity: number
+    serviceFeePerUnitCents: number
+    updatedAt?: string | null
+  }>
 }
 ```
 
@@ -147,7 +147,7 @@ Output shape:
 
 ```ts
 interface CreateErrandDemandResult {
-  errandDemandId: string;
+  errandDemandId: string
 }
 ```
 
@@ -166,7 +166,7 @@ Add `packages/api/src/services/buyer-errand-orders.ts`.
 Expose:
 
 ```ts
-listBuyerErrandOrders(options);
+listBuyerErrandOrders(options)
 ```
 
 This slice only adds list support. Buyer errand order detail mapping stays out of scope and should be designed with the future order detail route.

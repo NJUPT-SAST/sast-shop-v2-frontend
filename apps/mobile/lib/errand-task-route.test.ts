@@ -117,8 +117,6 @@ function createTask(
     storeName: "SAST 小卖部",
     status,
     itemCount: 2,
-    items: [],
-    updatedAt: `2026-06-${id.slice(-2)}T09:00:00.000Z`,
     createdAt: `2026-06-${id.slice(-2)}T09:00:00.000Z`,
   };
 }

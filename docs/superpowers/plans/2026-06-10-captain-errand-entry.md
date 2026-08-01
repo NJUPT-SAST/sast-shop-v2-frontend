@@ -34,7 +34,6 @@
 ## Task 1: Demand Facade Tests
 
 **Files:**
-
 - Modify: `packages/api/src/services/errand-demands.test.ts`
 
 - [ ] **Step 1: Add failing type and mapping tests**
@@ -50,7 +49,7 @@ import {
   type CreateErrandDemandResult,
   type ErrandDemandDetailGroup,
   type ErrandDemandStoreSummary,
-} from "./errand-demands";
+} from "./errand-demands"
 ```
 
 Add these tests inside the existing `describe("errand demand service", () => { ... })` block:
@@ -59,11 +58,11 @@ Add these tests inside the existing `describe("errand demand service", () => { .
 it("exposes stable captain demand return types", () => {
   expectTypeOf<ReturnType<typeof listErrandDemandStores>>().toEqualTypeOf<
     Promise<ErrandDemandStoreSummary[]>
-  >();
+  >()
   expectTypeOf<ReturnType<typeof getErrandDemandDetails>>().toEqualTypeOf<
     Promise<ErrandDemandDetailGroup[]>
-  >();
-});
+  >()
+})
 
 it("lists open errand demand stores through the local Connect backend", async () => {
   const fetchMock = vi.fn(async () =>
@@ -83,16 +82,16 @@ it("lists open errand demand stores through the local Connect backend", async ()
       ],
       currentPage: 1,
       totalCount: 1,
-    }),
-  );
-  vi.stubGlobal("fetch", fetchMock);
+    })
+  )
+  vi.stubGlobal("fetch", fetchMock)
 
   const demands = await listErrandDemandStores({
     ...localOptions,
     storeName: "SAST",
     page: 1,
     pageSize: 20,
-  });
+  })
 
   expect(demands).toEqual([
     {
@@ -106,7 +105,7 @@ it("lists open errand demand stores through the local Connect backend", async ()
       totalServiceFeeCents: 800,
       updatedAt: "1970-01-01T00:00:04.000Z",
     },
-  ]);
+  ])
   await expectConnectRequest(fetchMock, {
     path: "/sast.sastshopv2.errand.v1.ErrandDemandService/GetDemandList",
     body: {
@@ -114,8 +113,8 @@ it("lists open errand demand stores through the local Connect backend", async ()
       pageSize: 20,
       storeName: "SAST",
     },
-  });
-});
+  })
+})
 
 it("gets errand demand details through the local Connect backend", async () => {
   const fetchMock = vi.fn(async () =>
@@ -149,14 +148,11 @@ it("gets errand demand details through the local Connect backend", async () => {
           ],
         },
       ],
-    }),
-  );
-  vi.stubGlobal("fetch", fetchMock);
+    })
+  )
+  vi.stubGlobal("fetch", fetchMock)
 
-  const details = await getErrandDemandDetails(
-    { storeId: "3001" },
-    localOptions,
-  );
+  const details = await getErrandDemandDetails({ storeId: "3001" }, localOptions)
 
   expect(details).toEqual([
     expect.objectContaining({
@@ -179,14 +175,14 @@ it("gets errand demand details through the local Connect backend", async () => {
         }),
       ],
     }),
-  ]);
+  ])
   await expectConnectRequest(fetchMock, {
     path: "/sast.sastshopv2.errand.v1.ErrandDemandService/GetDemandDetail",
     body: {
       storeId: "3001",
     },
-  });
-});
+  })
+})
 ```
 
 - [ ] **Step 2: Run tests to verify failure**
@@ -209,7 +205,6 @@ git commit -m "test: specify captain demand facades"
 ## Task 2: Demand Facade Implementation And Stubs
 
 **Files:**
-
 - Modify: `packages/api/src/services/errand-demands.ts`
 - Modify: `packages/api/src/index.ts`
 - Create: `mock/fauxrpc/stubs/errand-demand.yaml`
@@ -224,12 +219,12 @@ import {
   timestampDate,
   timestampFromDate,
   type Timestamp,
-} from "@bufbuild/protobuf/wkt";
-import type { ProductTemplate as ProtoProductTemplate } from "../gen/sast/sastshopv2/catalog/v1/product_template_pb";
-import type { ErrandDemandByStore as ProtoErrandDemandByStore } from "../gen/sast/sastshopv2/errand/v1/errand_demand_by_store_pb";
-import type { ErrandDemandDetail as ProtoErrandDemandDetail } from "../gen/sast/sastshopv2/errand/v1/errand_demand_detail_pb";
-import type { ErrandDemandDetailRequester as ProtoErrandDemandDetailRequester } from "../gen/sast/sastshopv2/errand/v1/errand_demand_detail_requester_pb";
-import type { ProductTemplate } from "./product-templates";
+} from "@bufbuild/protobuf/wkt"
+import type { ProductTemplate as ProtoProductTemplate } from "../gen/sast/sastshopv2/catalog/v1/product_template_pb"
+import type { ErrandDemandByStore as ProtoErrandDemandByStore } from "../gen/sast/sastshopv2/errand/v1/errand_demand_by_store_pb"
+import type { ErrandDemandDetail as ProtoErrandDemandDetail } from "../gen/sast/sastshopv2/errand/v1/errand_demand_detail_pb"
+import type { ErrandDemandDetailRequester as ProtoErrandDemandDetailRequester } from "../gen/sast/sastshopv2/errand/v1/errand_demand_detail_requester_pb"
+import type { ProductTemplate } from "./product-templates"
 ```
 
 Replace the existing `@bufbuild/protobuf/wkt` import with the combined import above so `timestampFromDate` is not imported twice.
@@ -238,31 +233,31 @@ Add these public interfaces below `CreateErrandDemandResult`:
 
 ```ts
 export interface ErrandDemandStoreSummary {
-  storeId: string;
-  storeName: string;
-  participantAvatars: string[];
-  totalOriginUnitPriceCents: number;
-  totalServiceFeeCents: number;
-  updatedAt: string | null;
+  storeId: string
+  storeName: string
+  participantAvatars: string[]
+  totalOriginUnitPriceCents: number
+  totalServiceFeeCents: number
+  updatedAt: string | null
 }
 
 export interface ErrandDemandRequester {
-  requesterId: string;
-  requesterName: string;
-  requesterAvatarUrl: string;
-  quantity: number;
-  serviceFeePerUnitCents: number;
-  errandDemandItemId: string;
-  deadline: string | null;
-  updatedAt: string | null;
+  requesterId: string
+  requesterName: string
+  requesterAvatarUrl: string
+  quantity: number
+  serviceFeePerUnitCents: number
+  errandDemandItemId: string
+  deadline: string | null
+  updatedAt: string | null
 }
 
 export interface ErrandDemandDetailGroup {
-  errandDemandId: string;
-  productTemplate: ProductTemplate | null;
-  estimatedUnitPriceCents: number;
-  quantity: number;
-  requesters: ErrandDemandRequester[];
+  errandDemandId: string
+  productTemplate: ProductTemplate | null
+  estimatedUnitPriceCents: number
+  quantity: number
+  requesters: ErrandDemandRequester[]
 }
 ```
 
@@ -271,58 +266,49 @@ Add these functions below `createErrandDemand`:
 ```ts
 export async function listErrandDemandStores(
   options: ServiceOptions & {
-    storeName?: string;
-    page?: number;
-    pageSize?: number;
-  } = {},
+    storeName?: string
+    page?: number
+    pageSize?: number
+  } = {}
 ): Promise<ErrandDemandStoreSummary[]> {
-  const dataSource = resolveDataSource(options);
+  const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock" || dataSource === "local") {
-    const client = createClient(
-      ErrandDemandService,
-      createLocalTransport(options),
-    );
+    const client = createClient(ErrandDemandService, createLocalTransport(options))
     const response = await requestLocal("listErrandDemandStores", () =>
       client.getDemandList({
         page: parsePositiveInteger(options.page ?? 1, "页码不正确"),
-        pageSize: parsePositiveInteger(
-          options.pageSize ?? 50,
-          "每页数量不正确",
-        ),
+        pageSize: parsePositiveInteger(options.pageSize ?? 50, "每页数量不正确"),
         ...(options.storeName?.trim()
           ? { storeName: options.storeName.trim() }
           : {}),
-      }),
-    );
+      })
+    )
 
-    return response.demands.map(mapErrandDemandStore);
+    return response.demands.map(mapErrandDemandStore)
   }
 
-  throw new FeatureUnavailableError("listErrandDemandStores");
+  throw new FeatureUnavailableError("listErrandDemandStores")
 }
 
 export async function getErrandDemandDetails(
   input: { storeId: string },
-  options: ServiceOptions = {},
+  options: ServiceOptions = {}
 ): Promise<ErrandDemandDetailGroup[]> {
-  const dataSource = resolveDataSource(options);
+  const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock" || dataSource === "local") {
-    const client = createClient(
-      ErrandDemandService,
-      createLocalTransport(options),
-    );
+    const client = createClient(ErrandDemandService, createLocalTransport(options))
     const response = await requestLocal("getErrandDemandDetails", () =>
       client.getDemandDetail({
         storeId: parseInt64(input.storeId, "店铺 ID 不正确"),
-      }),
-    );
+      })
+    )
 
-    return response.details.map(mapErrandDemandDetail);
+    return response.details.map(mapErrandDemandDetail)
   }
 
-  throw new FeatureUnavailableError("getErrandDemandDetails");
+  throw new FeatureUnavailableError("getErrandDemandDetails")
 }
 ```
 
@@ -330,7 +316,7 @@ Add these mapping helpers near the bottom of the file:
 
 ```ts
 function mapErrandDemandStore(
-  demand: ProtoErrandDemandByStore,
+  demand: ProtoErrandDemandByStore
 ): ErrandDemandStoreSummary {
   return {
     storeId: demand.storeId.toString(),
@@ -339,11 +325,11 @@ function mapErrandDemandStore(
     totalOriginUnitPriceCents: demand.totalOriginUnitPriceCents,
     totalServiceFeeCents: demand.totalServiceFeeCents,
     updatedAt: formatTimestamp(demand.updatedAt),
-  };
+  }
 }
 
 function mapErrandDemandDetail(
-  detail: ProtoErrandDemandDetail,
+  detail: ProtoErrandDemandDetail
 ): ErrandDemandDetailGroup {
   return {
     errandDemandId: detail.errandDemandId.toString(),
@@ -351,11 +337,11 @@ function mapErrandDemandDetail(
     estimatedUnitPriceCents: detail.estimatedUnitPriceCents,
     quantity: detail.quantity,
     requesters: detail.requesters.map(mapErrandDemandRequester),
-  };
+  }
 }
 
 function mapErrandDemandRequester(
-  requester: ProtoErrandDemandDetailRequester,
+  requester: ProtoErrandDemandDetailRequester
 ): ErrandDemandRequester {
   return {
     requesterId: requester.requesterId.toString(),
@@ -366,14 +352,14 @@ function mapErrandDemandRequester(
     errandDemandItemId: requester.errandDemandItemId.toString(),
     deadline: formatTimestamp(requester.deadline),
     updatedAt: formatTimestamp(requester.updatedAt),
-  };
+  }
 }
 
 function mapProductTemplate(
-  template?: ProtoProductTemplate,
+  template?: ProtoProductTemplate
 ): ProductTemplate | null {
   if (!template) {
-    return null;
+    return null
   }
 
   return {
@@ -385,11 +371,11 @@ function mapProductTemplate(
     mainImageUrl: template.mainImageUrl,
     barcode: template.barcode,
     updatedAt: formatTimestamp(template.updatedAt),
-  };
+  }
 }
 
 function formatTimestamp(timestamp?: Timestamp): string | null {
-  return timestamp ? timestampDate(timestamp).toISOString() : null;
+  return timestamp ? timestampDate(timestamp).toISOString() : null
 }
 ```
 
@@ -407,7 +393,7 @@ export {
   type ErrandDemandDetailGroup,
   type ErrandDemandRequester,
   type ErrandDemandStoreSummary,
-} from "./services/errand-demands";
+} from "./services/errand-demands"
 ```
 
 - [ ] **Step 3: Add fauxrpc errand demand stubs**
@@ -494,22 +480,19 @@ Add this test to `packages/api/src/services/catalog.test.ts`:
 ```ts
 it("commits fauxrpc errand demand stubs for captain demand hall data", async () => {
   const errandDemandStub = await readFile(
-    new URL(
-      "../../../../mock/fauxrpc/stubs/errand-demand.yaml",
-      import.meta.url,
-    ),
-    "utf8",
-  );
+    new URL("../../../../mock/fauxrpc/stubs/errand-demand.yaml", import.meta.url),
+    "utf8"
+  )
 
   expect(errandDemandStub).toContain(
-    "target: sast.sastshopv2.errand.v1.ErrandDemandService/GetDemandList",
-  );
+    "target: sast.sastshopv2.errand.v1.ErrandDemandService/GetDemandList"
+  )
   expect(errandDemandStub).toContain(
-    "target: sast.sastshopv2.errand.v1.ErrandDemandService/GetDemandDetail",
-  );
-  expect(errandDemandStub).toContain('errandDemandItemId: "9101"');
-  expect(errandDemandStub).toContain("serviceFeePerUnitCents: 50");
-});
+    "target: sast.sastshopv2.errand.v1.ErrandDemandService/GetDemandDetail"
+  )
+  expect(errandDemandStub).toContain("errandDemandItemId: \"9101\"")
+  expect(errandDemandStub).toContain("serviceFeePerUnitCents: 50")
+})
 ```
 
 - [ ] **Step 5: Run tests**
@@ -532,7 +515,6 @@ git commit -m "feat: add captain demand facades"
 ## Task 3: Errand Task Facade
 
 **Files:**
-
 - Create: `packages/api/src/services/errand-tasks.ts`
 - Create: `packages/api/src/services/errand-tasks.test.ts`
 - Modify: `packages/api/src/index.ts`
@@ -543,25 +525,25 @@ git commit -m "feat: add captain demand facades"
 Create `packages/api/src/services/errand-tasks.test.ts`:
 
 ```ts
-import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest";
+import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest"
 import {
   ApiConfigurationError,
   ApiRequestError,
   FeatureUnavailableError,
   ValidationError,
-} from "../errors";
+} from "../errors"
 import {
   createErrandTask,
   listErrandTasks,
   type CreateErrandTaskInput,
   type CreateErrandTaskResult,
   type ErrandTaskBrief,
-} from "./errand-tasks";
+} from "./errand-tasks"
 
 const localOptions = {
   dataSource: "local" as const,
   connectBaseUrl: "http://127.0.0.1:6660",
-};
+}
 
 const validInput: CreateErrandTaskInput = {
   storeId: "3001",
@@ -571,31 +553,31 @@ const validInput: CreateErrandTaskInput = {
       updatedAt: "1970-01-01T00:00:05.000Z",
     },
   ],
-};
+}
 
 describe("errand task service", () => {
   afterEach(() => {
-    vi.unstubAllGlobals();
-  });
+    vi.unstubAllGlobals()
+  })
 
   it("exposes stable errand task return types", () => {
     expectTypeOf<ReturnType<typeof createErrandTask>>().toEqualTypeOf<
       Promise<CreateErrandTaskResult>
-    >();
+    >()
     expectTypeOf<ReturnType<typeof listErrandTasks>>().toEqualTypeOf<
       Promise<ErrandTaskBrief[]>
-    >();
-  });
+    >()
+  })
 
   it("creates an errand task through the local Connect backend", async () => {
     const fetchMock = vi.fn(async () =>
-      stubJsonResponse({ errandTaskId: "7001" }),
-    );
-    vi.stubGlobal("fetch", fetchMock);
+      stubJsonResponse({ errandTaskId: "7001" })
+    )
+    vi.stubGlobal("fetch", fetchMock)
 
-    const result = await createErrandTask(validInput, localOptions);
+    const result = await createErrandTask(validInput, localOptions)
 
-    expect(result).toEqual({ errandTaskId: "7001" });
+    expect(result).toEqual({ errandTaskId: "7001" })
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/CreateTask",
       body: {
@@ -607,8 +589,8 @@ describe("errand task service", () => {
           },
         ],
       },
-    });
-  });
+    })
+  })
 
   it("lists captain errand tasks through the local Connect backend", async () => {
     const fetchMock = vi.fn(async () =>
@@ -630,11 +612,11 @@ describe("errand task service", () => {
         ],
         currentPage: 1,
         totalCount: 1,
-      }),
-    );
-    vi.stubGlobal("fetch", fetchMock);
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
 
-    const tasks = await listErrandTasks(localOptions);
+    const tasks = await listErrandTasks(localOptions)
 
     expect(tasks).toEqual([
       {
@@ -645,25 +627,21 @@ describe("errand task service", () => {
         itemCount: 1,
         createdAt: "1970-01-01T00:00:06.000Z",
       },
-    ]);
-  });
+    ])
+  })
 
   it("validates create errand task input before submitting requests", async () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
 
-    await expect(
-      createErrandTask({ ...validInput, storeId: "0" }, localOptions),
-    ).rejects.toBeInstanceOf(ValidationError);
-    await expect(
-      createErrandTask({ ...validInput, demandItems: [] }, localOptions),
-    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(createErrandTask({ ...validInput, storeId: "0" }, localOptions)).rejects.toBeInstanceOf(ValidationError)
+    await expect(createErrandTask({ ...validInput, demandItems: [] }, localOptions)).rejects.toBeInstanceOf(ValidationError)
     await expect(
       createErrandTask(
         { ...validInput, demandItems: [{ errandDemandItemId: "0" }] },
-        localOptions,
-      ),
-    ).rejects.toBeInstanceOf(ValidationError);
+        localOptions
+      )
+    ).rejects.toBeInstanceOf(ValidationError)
     await expect(
       createErrandTask(
         {
@@ -672,18 +650,16 @@ describe("errand task service", () => {
             { errandDemandItemId: "9101", updatedAt: "not-a-date" },
           ],
         },
-        localOptions,
-      ),
-    ).rejects.toBeInstanceOf(ValidationError);
+        localOptions
+      )
+    ).rejects.toBeInstanceOf(ValidationError)
 
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
 
   it("requires a configured Connect base URL for local mode", async () => {
-    await expect(
-      createErrandTask(validInput, { dataSource: "local" }),
-    ).rejects.toBeInstanceOf(ApiConfigurationError);
-  });
+    await expect(createErrandTask(validInput, { dataSource: "local" })).rejects.toBeInstanceOf(ApiConfigurationError)
+  })
 
   it("wraps local create failures in an API request error", async () => {
     vi.stubGlobal(
@@ -694,25 +670,19 @@ describe("errand task service", () => {
             code: "unavailable",
             message: "backend unavailable",
           },
-          { status: 503 },
-        ),
-      ),
-    );
+          { status: 503 }
+        )
+      )
+    )
 
-    await expect(
-      createErrandTask(validInput, localOptions),
-    ).rejects.toBeInstanceOf(ApiRequestError);
-  });
+    await expect(createErrandTask(validInput, localOptions)).rejects.toBeInstanceOf(ApiRequestError)
+  })
 
   it("throws for remote mode before backend client is wired", async () => {
-    await expect(
-      createErrandTask(validInput, { dataSource: "remote" }),
-    ).rejects.toBeInstanceOf(FeatureUnavailableError);
-    await expect(
-      listErrandTasks({ dataSource: "remote" }),
-    ).rejects.toBeInstanceOf(FeatureUnavailableError);
-  });
-});
+    await expect(createErrandTask(validInput, { dataSource: "remote" })).rejects.toBeInstanceOf(FeatureUnavailableError)
+    await expect(listErrandTasks({ dataSource: "remote" })).rejects.toBeInstanceOf(FeatureUnavailableError)
+  })
+})
 
 function stubJsonResponse(body: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(body), {
@@ -721,37 +691,35 @@ function stubJsonResponse(body: unknown, init: ResponseInit = {}) {
       "content-type": "application/json",
       ...init.headers,
     },
-  });
+  })
 }
 
 async function expectConnectRequest(
   fetchMock: ReturnType<typeof vi.fn>,
   expected: {
-    path: string;
-    body: Record<string, unknown>;
-  },
+    path: string
+    body: Record<string, unknown>
+  }
 ) {
-  const [input, init] = fetchMock.mock.calls[0] ?? [];
-  const url = typeof input === "string" ? input : (input as Request).url;
+  const [input, init] = fetchMock.mock.calls[0] ?? []
+  const url = typeof input === "string" ? input : (input as Request).url
   const body =
-    typeof input === "string"
-      ? init?.body
-      : await (input as Request).clone().text();
+    typeof input === "string" ? init?.body : await (input as Request).clone().text()
 
-  expect(new URL(url).pathname).toBe(expected.path);
-  expect(JSON.parse(bodyToText(body))).toEqual(expected.body);
+  expect(new URL(url).pathname).toBe(expected.path)
+  expect(JSON.parse(bodyToText(body))).toEqual(expected.body)
 }
 
 function bodyToText(body: unknown): string {
   if (body instanceof Uint8Array) {
-    return new TextDecoder().decode(body);
+    return new TextDecoder().decode(body)
   }
 
   if (body instanceof ArrayBuffer) {
-    return new TextDecoder().decode(body);
+    return new TextDecoder().decode(body)
   }
 
-  return String(body);
+  return String(body)
 }
 ```
 
@@ -770,20 +738,20 @@ Expected: FAIL because `./errand-tasks` does not exist.
 Create `packages/api/src/services/errand-tasks.ts`:
 
 ```ts
-import { createClient } from "@connectrpc/connect";
+import { createClient } from "@connectrpc/connect"
 import {
   timestampDate,
   timestampFromDate,
   type Timestamp,
-} from "@bufbuild/protobuf/wkt";
-import type { ErrandTask as ProtoErrandTask } from "../gen/sast/sastshopv2/errand/v1/errand_task_pb";
-import { ErrandTaskService } from "../gen/sast/sastshopv2/errand/v1/errand_task_service_pb";
-import { ErrandTaskStatus } from "../gen/sast/sastshopv2/errand/v1/errand_task_status_pb";
-import { resolveDataSource, type ServiceOptions } from "../data-source";
-import { FeatureUnavailableError, ValidationError } from "../errors";
-import { createLocalTransport, requestLocal } from "../local-connect";
+} from "@bufbuild/protobuf/wkt"
+import type { ErrandTask as ProtoErrandTask } from "../gen/sast/sastshopv2/errand/v1/errand_task_pb"
+import { ErrandTaskService } from "../gen/sast/sastshopv2/errand/v1/errand_task_service_pb"
+import { ErrandTaskStatus } from "../gen/sast/sastshopv2/errand/v1/errand_task_status_pb"
+import { resolveDataSource, type ServiceOptions } from "../data-source"
+import { FeatureUnavailableError, ValidationError } from "../errors"
+import { createLocalTransport, requestLocal } from "../local-connect"
 
-const MAX_SIGNED_INT64 = 9223372036854775807n;
+const MAX_SIGNED_INT64 = 9223372036854775807n
 
 export type ErrandTaskStatusValue =
   | "shopping"
@@ -792,87 +760,76 @@ export type ErrandTaskStatusValue =
   | "collecting_payment"
   | "completed"
   | "cancelled"
-  | "unknown";
+  | "unknown"
 
 export interface CreateErrandTaskInput {
-  storeId: string;
+  storeId: string
   demandItems: Array<{
-    errandDemandItemId: string;
-    updatedAt?: string | null;
-  }>;
+    errandDemandItemId: string
+    updatedAt?: string | null
+  }>
 }
 
 export interface CreateErrandTaskResult {
-  errandTaskId: string;
+  errandTaskId: string
 }
 
 export interface ErrandTaskBrief {
-  id: string;
-  storeId: string;
-  storeName: string;
-  status: ErrandTaskStatusValue;
-  itemCount: number;
-  createdAt: string | null;
+  id: string
+  storeId: string
+  storeName: string
+  status: ErrandTaskStatusValue
+  itemCount: number
+  createdAt: string | null
 }
 
 export async function createErrandTask(
   input: CreateErrandTaskInput,
-  options: ServiceOptions = {},
+  options: ServiceOptions = {}
 ): Promise<CreateErrandTaskResult> {
-  const request = parseCreateErrandTaskInput(input);
-  const dataSource = resolveDataSource(options);
+  const request = parseCreateErrandTaskInput(input)
+  const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock" || dataSource === "local") {
-    const client = createClient(
-      ErrandTaskService,
-      createLocalTransport(options),
-    );
+    const client = createClient(ErrandTaskService, createLocalTransport(options))
     const response = await requestLocal("createErrandTask", () =>
-      client.createTask(request),
-    );
+      client.createTask(request)
+    )
 
-    return { errandTaskId: response.errandTaskId.toString() };
+    return { errandTaskId: response.errandTaskId.toString() }
   }
 
-  throw new FeatureUnavailableError("createErrandTask");
+  throw new FeatureUnavailableError("createErrandTask")
 }
 
 export async function listErrandTasks(
   options: ServiceOptions & {
-    page?: number;
-    pageSize?: number;
-    status?: ErrandTaskStatusValue;
-  } = {},
+    page?: number
+    pageSize?: number
+    status?: ErrandTaskStatusValue
+  } = {}
 ): Promise<ErrandTaskBrief[]> {
-  const dataSource = resolveDataSource(options);
+  const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock" || dataSource === "local") {
-    const client = createClient(
-      ErrandTaskService,
-      createLocalTransport(options),
-    );
+    const client = createClient(ErrandTaskService, createLocalTransport(options))
     const response = await requestLocal("listErrandTasks", () =>
       client.getErrandTaskList({
         page: parsePositiveInteger(options.page ?? 1, "页码不正确"),
-        pageSize: parsePositiveInteger(
-          options.pageSize ?? 50,
-          "每页数量不正确",
-        ),
-        ...(options.status
-          ? { filterStatus: mapStatusToProto(options.status) }
-          : {}),
-      }),
-    );
+        pageSize: parsePositiveInteger(options.pageSize ?? 50, "每页数量不正确"),
+        ...(options.status ? { filterStatus: mapStatusToProto(options.status) } : {}),
+      })
+    )
 
-    return response.errandTasks.map(mapErrandTask);
+    return response.errandTasks.map(mapErrandTask)
   }
 
-  throw new FeatureUnavailableError("listErrandTasks");
+  throw new FeatureUnavailableError("listErrandTasks")
 }
 
 function parseCreateErrandTaskInput(input: CreateErrandTaskInput) {
   if (input.demandItems.length === 0) {
-    throw new ValidationError("接单需求不能为空");
+    throw new ValidationError("接单需求不能为空")
   }
 
   return {
@@ -880,18 +837,18 @@ function parseCreateErrandTaskInput(input: CreateErrandTaskInput) {
     demandItems: input.demandItems.map((item) => {
       const updatedAt = parseOptionalTimestamp(
         item.updatedAt,
-        "需求行更新时间不正确",
-      );
+        "需求行更新时间不正确"
+      )
 
       return {
         errandDemandItemId: parseInt64(
           item.errandDemandItemId,
-          "需求行 ID 不正确",
+          "需求行 ID 不正确"
         ),
         ...(updatedAt ? { updatedAt } : {}),
-      };
+      }
     }),
-  };
+  }
 }
 
 function mapErrandTask(task: ProtoErrandTask): ErrandTaskBrief {
@@ -902,76 +859,74 @@ function mapErrandTask(task: ProtoErrandTask): ErrandTaskBrief {
     status: mapStatusFromProto(task.status),
     itemCount: task.items.length,
     createdAt: formatTimestamp(task.createdAt),
-  };
+  }
 }
 
 function mapStatusFromProto(status: ErrandTaskStatus): ErrandTaskStatusValue {
-  if (status === ErrandTaskStatus.SHOPPING) return "shopping";
+  if (status === ErrandTaskStatus.SHOPPING) return "shopping"
   if (status === ErrandTaskStatus.PENDING_DISTRIBUTING) {
-    return "pending_distributing";
+    return "pending_distributing"
   }
-  if (status === ErrandTaskStatus.DISTRIBUTING) return "distributing";
-  if (status === ErrandTaskStatus.COLLECTING_PAYMENT)
-    return "collecting_payment";
-  if (status === ErrandTaskStatus.COMPLETED) return "completed";
-  if (status === ErrandTaskStatus.CANCELLED) return "cancelled";
-  return "unknown";
+  if (status === ErrandTaskStatus.DISTRIBUTING) return "distributing"
+  if (status === ErrandTaskStatus.COLLECTING_PAYMENT) return "collecting_payment"
+  if (status === ErrandTaskStatus.COMPLETED) return "completed"
+  if (status === ErrandTaskStatus.CANCELLED) return "cancelled"
+  return "unknown"
 }
 
 function mapStatusToProto(status: ErrandTaskStatusValue): ErrandTaskStatus {
-  if (status === "shopping") return ErrandTaskStatus.SHOPPING;
+  if (status === "shopping") return ErrandTaskStatus.SHOPPING
   if (status === "pending_distributing") {
-    return ErrandTaskStatus.PENDING_DISTRIBUTING;
+    return ErrandTaskStatus.PENDING_DISTRIBUTING
   }
-  if (status === "distributing") return ErrandTaskStatus.DISTRIBUTING;
-  if (status === "collecting_payment")
-    return ErrandTaskStatus.COLLECTING_PAYMENT;
-  if (status === "completed") return ErrandTaskStatus.COMPLETED;
-  if (status === "cancelled") return ErrandTaskStatus.CANCELLED;
-  throw new ValidationError("采购任务状态不正确");
+  if (status === "distributing") return ErrandTaskStatus.DISTRIBUTING
+  if (status === "collecting_payment") return ErrandTaskStatus.COLLECTING_PAYMENT
+  if (status === "completed") return ErrandTaskStatus.COMPLETED
+  if (status === "cancelled") return ErrandTaskStatus.CANCELLED
+  throw new ValidationError("采购任务状态不正确")
 }
 
 function parseInt64(value: string, message: string): bigint {
   if (!/^[1-9]\d*$/.test(value)) {
-    throw new ValidationError(message);
+    throw new ValidationError(message)
   }
 
-  const parsed = BigInt(value);
+  const parsed = BigInt(value)
 
   if (parsed > MAX_SIGNED_INT64) {
-    throw new ValidationError(message);
+    throw new ValidationError(message)
   }
 
-  return parsed;
+  return parsed
 }
 
 function parsePositiveInteger(value: number, message: string): number {
   if (!Number.isInteger(value) || value <= 0) {
-    throw new ValidationError(message);
+    throw new ValidationError(message)
   }
 
-  return value;
+  return value
 }
 
 function parseOptionalTimestamp(
   value: string | null | undefined,
-  message: string,
+  message: string
 ): Timestamp | undefined {
   if (!value) {
-    return undefined;
+    return undefined
   }
 
-  const date = new Date(value);
+  const date = new Date(value)
 
   if (Number.isNaN(date.getTime())) {
-    throw new ValidationError(message);
+    throw new ValidationError(message)
   }
 
-  return timestampFromDate(date);
+  return timestampFromDate(date)
 }
 
 function formatTimestamp(timestamp?: Timestamp): string | null {
-  return timestamp ? timestampDate(timestamp).toISOString() : null;
+  return timestamp ? timestampDate(timestamp).toISOString() : null
 }
 ```
 
@@ -987,7 +942,7 @@ export {
   type CreateErrandTaskResult,
   type ErrandTaskBrief,
   type ErrandTaskStatusValue,
-} from "./services/errand-tasks";
+} from "./services/errand-tasks"
 ```
 
 - [ ] **Step 5: Add CreateTask fauxrpc stub**
@@ -995,10 +950,10 @@ export {
 Append to `mock/fauxrpc/stubs/errand-task.yaml`:
 
 ```yaml
-- id: errand-task-create
-  target: sast.sastshopv2.errand.v1.ErrandTaskService/CreateTask
-  content:
-    errandTaskId: "7002"
+  - id: errand-task-create
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/CreateTask
+    content:
+      errandTaskId: "7002"
 ```
 
 - [ ] **Step 6: Run tests**
@@ -1021,7 +976,6 @@ git commit -m "feat: add captain errand task facade"
 ## Task 4: Selection Helpers
 
 **Files:**
-
 - Create: `apps/mobile/lib/errand-selection.ts`
 - Create: `apps/mobile/lib/errand-selection.test.ts`
 
@@ -1030,14 +984,14 @@ git commit -m "feat: add captain errand task facade"
 Create `apps/mobile/lib/errand-selection.test.ts`:
 
 ```ts
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest"
 import {
   calculateErrandSelectionTotals,
   getSelectableRequesterIds,
   toggleRequesterSelection,
   toggleProductSelection,
   type ErrandSelectionGroup,
-} from "./errand-selection";
+} from "./errand-selection"
 
 const groups: ErrandSelectionGroup[] = [
   {
@@ -1070,43 +1024,39 @@ const groups: ErrandSelectionGroup[] = [
       },
     ],
   },
-];
+]
 
 describe("errand selection helpers", () => {
   it("collects selectable requester row ids", () => {
-    expect(getSelectableRequesterIds(groups)).toEqual(["9101", "9102", "9103"]);
-  });
+    expect(getSelectableRequesterIds(groups)).toEqual(["9101", "9102", "9103"])
+  })
 
   it("toggles a single requester row", () => {
-    expect(toggleRequesterSelection(new Set(["9101"]), "9101")).toEqual(
-      new Set(),
-    );
+    expect(toggleRequesterSelection(new Set(["9101"]), "9101")).toEqual(new Set())
     expect(toggleRequesterSelection(new Set(["9101"]), "9102")).toEqual(
-      new Set(["9101", "9102"]),
-    );
-  });
+      new Set(["9101", "9102"])
+    )
+  })
 
   it("toggles all requester rows in a product group", () => {
     expect(toggleProductSelection(new Set(), groups[0]!)).toEqual(
-      new Set(["9101", "9102"]),
-    );
-    expect(
-      toggleProductSelection(new Set(["9101", "9102"]), groups[0]!),
-    ).toEqual(new Set());
-  });
+      new Set(["9101", "9102"])
+    )
+    expect(toggleProductSelection(new Set(["9101", "9102"]), groups[0]!)).toEqual(
+      new Set()
+    )
+  })
 
   it("calculates totals from selected rows", () => {
-    expect(
-      calculateErrandSelectionTotals(groups, new Set(["9101", "9103"])),
-    ).toEqual({
+    expect(calculateErrandSelectionTotals(groups, new Set(["9101", "9103"]))).toEqual({
       selectedRowCount: 2,
       selectedQuantity: 8,
       productAmountCents: 3600,
       serviceFeeCents: 500,
       totalAmountCents: 4100,
-    });
-  });
-});
+    })
+  })
+})
 ```
 
 - [ ] **Step 2: Run tests to verify failure**
@@ -1125,113 +1075,105 @@ Create `apps/mobile/lib/errand-selection.ts`:
 
 ```ts
 export type ErrandSelectionRequester = {
-  errandDemandItemId: string;
-  quantity: number;
-  serviceFeePerUnitCents: number;
-  updatedAt: string | null;
-};
+  errandDemandItemId: string
+  quantity: number
+  serviceFeePerUnitCents: number
+  updatedAt: string | null
+}
 
 export type ErrandSelectionGroup = {
-  productId: string;
-  estimatedUnitPriceCents: number;
-  requesters: ErrandSelectionRequester[];
-};
+  productId: string
+  estimatedUnitPriceCents: number
+  requesters: ErrandSelectionRequester[]
+}
 
 export type ErrandSelectionTotals = {
-  selectedRowCount: number;
-  selectedQuantity: number;
-  productAmountCents: number;
-  serviceFeeCents: number;
-  totalAmountCents: number;
-};
+  selectedRowCount: number
+  selectedQuantity: number
+  productAmountCents: number
+  serviceFeeCents: number
+  totalAmountCents: number
+}
 
 export function getSelectableRequesterIds(
-  groups: ErrandSelectionGroup[],
+  groups: ErrandSelectionGroup[]
 ): string[] {
   return groups.flatMap((group) =>
     group.requesters
-      .filter(
-        (requester) => requester.errandDemandItemId && requester.updatedAt,
-      )
-      .map((requester) => requester.errandDemandItemId),
-  );
+      .filter((requester) => requester.errandDemandItemId && requester.updatedAt)
+      .map((requester) => requester.errandDemandItemId)
+  )
 }
 
 export function toggleRequesterSelection(
   selectedIds: Set<string>,
-  requesterId: string,
+  requesterId: string
 ): Set<string> {
-  const nextSelectedIds = new Set(selectedIds);
+  const nextSelectedIds = new Set(selectedIds)
 
   if (nextSelectedIds.has(requesterId)) {
-    nextSelectedIds.delete(requesterId);
+    nextSelectedIds.delete(requesterId)
   } else {
-    nextSelectedIds.add(requesterId);
+    nextSelectedIds.add(requesterId)
   }
 
-  return nextSelectedIds;
+  return nextSelectedIds
 }
 
 export function toggleProductSelection(
   selectedIds: Set<string>,
-  group: ErrandSelectionGroup,
+  group: ErrandSelectionGroup
 ): Set<string> {
   const selectableIds = group.requesters
     .filter((requester) => requester.errandDemandItemId && requester.updatedAt)
-    .map((requester) => requester.errandDemandItemId);
-  const nextSelectedIds = new Set(selectedIds);
-  const allSelected = selectableIds.every((id) => nextSelectedIds.has(id));
+    .map((requester) => requester.errandDemandItemId)
+  const nextSelectedIds = new Set(selectedIds)
+  const allSelected = selectableIds.every((id) => nextSelectedIds.has(id))
 
   selectableIds.forEach((id) => {
     if (allSelected) {
-      nextSelectedIds.delete(id);
+      nextSelectedIds.delete(id)
     } else {
-      nextSelectedIds.add(id);
+      nextSelectedIds.add(id)
     }
-  });
+  })
 
-  return nextSelectedIds;
+  return nextSelectedIds
 }
 
 export function calculateErrandSelectionTotals(
   groups: ErrandSelectionGroup[],
-  selectedIds: Set<string>,
+  selectedIds: Set<string>
 ): ErrandSelectionTotals {
   return groups.reduce<ErrandSelectionTotals>(
     (totals, group) =>
-      group.requesters.reduce<ErrandSelectionTotals>(
-        (nextTotals, requester) => {
-          if (!selectedIds.has(requester.errandDemandItemId)) {
-            return nextTotals;
-          }
+      group.requesters.reduce<ErrandSelectionTotals>((nextTotals, requester) => {
+        if (!selectedIds.has(requester.errandDemandItemId)) {
+          return nextTotals
+        }
 
-          const productAmountCents =
-            group.estimatedUnitPriceCents * requester.quantity;
-          const serviceFeeCents =
-            requester.serviceFeePerUnitCents * requester.quantity;
+        const productAmountCents =
+          group.estimatedUnitPriceCents * requester.quantity
+        const serviceFeeCents =
+          requester.serviceFeePerUnitCents * requester.quantity
 
-          return {
-            selectedRowCount: nextTotals.selectedRowCount + 1,
-            selectedQuantity: nextTotals.selectedQuantity + requester.quantity,
-            productAmountCents:
-              nextTotals.productAmountCents + productAmountCents,
-            serviceFeeCents: nextTotals.serviceFeeCents + serviceFeeCents,
-            totalAmountCents:
-              nextTotals.totalAmountCents +
-              productAmountCents +
-              serviceFeeCents,
-          };
-        },
-        totals,
-      ),
+        return {
+          selectedRowCount: nextTotals.selectedRowCount + 1,
+          selectedQuantity: nextTotals.selectedQuantity + requester.quantity,
+          productAmountCents: nextTotals.productAmountCents + productAmountCents,
+          serviceFeeCents: nextTotals.serviceFeeCents + serviceFeeCents,
+          totalAmountCents:
+            nextTotals.totalAmountCents + productAmountCents + serviceFeeCents,
+        }
+      }, totals),
     {
       selectedRowCount: 0,
       selectedQuantity: 0,
       productAmountCents: 0,
       serviceFeeCents: 0,
       totalAmountCents: 0,
-    },
-  );
+    }
+  )
 }
 ```
 
@@ -1255,7 +1197,6 @@ git commit -m "test: add errand demand selection helpers"
 ## Task 5: Captain Demand Hall Route
 
 **Files:**
-
 - Create: `apps/mobile/app/group/errand/page.tsx`
 - Create: `apps/mobile/app/group/errand/loading.tsx`
 - Create: `apps/mobile/components/errand-demand-hall.tsx`
@@ -1266,16 +1207,13 @@ git commit -m "test: add errand demand selection helpers"
 Create `apps/mobile/app/group/errand/page.tsx`:
 
 ```tsx
-import {
-  listErrandDemandStores,
-  type ErrandDemandStoreSummary,
-} from "@sast-shop/api";
-import { ErrandDemandHall } from "@/components/errand-demand-hall";
-import { mobileAppConfig } from "@/lib/app-config";
+import { listErrandDemandStores, type ErrandDemandStoreSummary } from "@sast-shop/api"
+import { ErrandDemandHall } from "@/components/errand-demand-hall"
+import { mobileAppConfig } from "@/lib/app-config"
 
 async function loadErrandDemandStores(): Promise<{
-  demands: ErrandDemandStoreSummary[];
-  error: string | null;
+  demands: ErrandDemandStoreSummary[]
+  error: string | null
 }> {
   try {
     return {
@@ -1284,19 +1222,19 @@ async function loadErrandDemandStores(): Promise<{
         connectBaseUrl: mobileAppConfig.connectBaseUrl,
       }),
       error: null,
-    };
+    }
   } catch {
     return {
       demands: [],
       error: "跑腿需求暂不可用，请确认 mock 服务或稍后再试",
-    };
+    }
   }
 }
 
 export default async function ErrandDemandHallPage() {
-  const result = await loadErrandDemandStores();
+  const result = await loadErrandDemandStores()
 
-  return <ErrandDemandHall demands={result.demands} error={result.error} />;
+  return <ErrandDemandHall demands={result.demands} error={result.error} />
 }
 ```
 
@@ -1305,7 +1243,7 @@ export default async function ErrandDemandHallPage() {
 Create `apps/mobile/app/group/errand/loading.tsx`:
 
 ```tsx
-import { Skeleton } from "@workspace/ui/components/skeleton";
+import { Skeleton } from "@workspace/ui/components/skeleton"
 
 export default function ErrandDemandHallLoading() {
   return (
@@ -1341,7 +1279,7 @@ export default function ErrandDemandHallLoading() {
         ))}
       </section>
     </div>
-  );
+  )
 }
 ```
 
@@ -1350,51 +1288,47 @@ export default function ErrandDemandHallLoading() {
 Create `apps/mobile/components/errand-demand-hall.tsx`:
 
 ```tsx
-"use client";
+"use client"
 
-import { useMemo, useState } from "react";
-import Link from "next/link";
+import { useMemo, useState } from "react"
+import Link from "next/link"
 import {
   RiArrowRightSLine,
   RiSearchLine,
   RiStore2Line,
-} from "@remixicon/react";
-import type { ErrandDemandStoreSummary } from "@sast-shop/api";
-import { formatPrice } from "@sast-shop/domain";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@workspace/ui/components/avatar";
-import { Badge } from "@workspace/ui/components/badge";
-import { Button } from "@workspace/ui/components/button";
+} from "@remixicon/react"
+import type { ErrandDemandStoreSummary } from "@sast-shop/api"
+import { formatPrice } from "@sast-shop/domain"
+import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
+import { Badge } from "@workspace/ui/components/badge"
+import { Button } from "@workspace/ui/components/button"
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "@workspace/ui/components/card";
-import { Empty } from "@workspace/ui/components/empty";
-import { Input } from "@workspace/ui/components/input";
+} from "@workspace/ui/components/card"
+import { Empty } from "@workspace/ui/components/empty"
+import { Input } from "@workspace/ui/components/input"
 
 export function ErrandDemandHall({
   demands,
   error,
 }: {
-  demands: ErrandDemandStoreSummary[];
-  error: string | null;
+  demands: ErrandDemandStoreSummary[]
+  error: string | null
 }) {
-  const [query, setQuery] = useState("");
-  const normalizedQuery = query.trim().toLowerCase();
+  const [query, setQuery] = useState("")
+  const normalizedQuery = query.trim().toLowerCase()
   const filteredDemands = useMemo(
     () =>
       demands.filter(
         (demand) =>
           !normalizedQuery ||
-          demand.storeName.toLowerCase().includes(normalizedQuery),
+          demand.storeName.toLowerCase().includes(normalizedQuery)
       ),
-    [demands, normalizedQuery],
-  );
+    [demands, normalizedQuery]
+  )
 
   return (
     <div className="flex flex-1 flex-col gap-5 py-6">
@@ -1436,12 +1370,12 @@ export function ErrandDemandHall({
         />
       )}
     </div>
-  );
+  )
 }
 
 function DemandStoreCard({ demand }: { demand: ErrandDemandStoreSummary }) {
   const totalAmount =
-    demand.totalOriginUnitPriceCents + demand.totalServiceFeeCents;
+    demand.totalOriginUnitPriceCents + demand.totalServiceFeeCents
 
   return (
     <Card className="rounded-lg">
@@ -1475,10 +1409,7 @@ function DemandStoreCard({ demand }: { demand: ErrandDemandStoreSummary }) {
         <CardContent className="flex items-center gap-3">
           <div className="flex -space-x-2">
             {demand.participantAvatars.slice(0, 3).map((avatar, index) => (
-              <Avatar
-                key={`${avatar}-${index}`}
-                className="size-7 border-2 border-card"
-              >
+              <Avatar key={`${avatar}-${index}`} className="size-7 border-2 border-card">
                 <AvatarImage src={avatar} alt="购买人头像" />
                 <AvatarFallback className="text-xs">买</AvatarFallback>
               </Avatar>
@@ -1496,12 +1427,12 @@ function DemandStoreCard({ demand }: { demand: ErrandDemandStoreSummary }) {
         </CardContent>
       </Link>
     </Card>
-  );
+  )
 }
 
 function formatUpdatedAt(value: string | null) {
   if (!value) {
-    return "更新时间未知";
+    return "更新时间未知"
   }
 
   return `更新于 ${new Intl.DateTimeFormat("zh-CN", {
@@ -1509,7 +1440,7 @@ function formatUpdatedAt(value: string | null) {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date(value))}`;
+  }).format(new Date(value))}`
 }
 ```
 
@@ -1526,7 +1457,9 @@ In `apps/mobile/app/group/page.tsx`, import `Button` if needed and wrap the `跑
     <CardHeader className="gap-3">
       <RiRunLine className="size-8 text-primary" />
       <div className="min-w-0">
-        <CardTitle className="truncate text-base leading-5">跑腿大厅</CardTitle>
+        <CardTitle className="truncate text-base leading-5">
+          跑腿大厅
+        </CardTitle>
         <CardDescription>接单、分发、收款</CardDescription>
       </div>
     </CardHeader>
@@ -1554,7 +1487,6 @@ git commit -m "feat: add captain errand demand hall"
 ## Task 6: Captain Demand Detail Route
 
 **Files:**
-
 - Create: `apps/mobile/app/group/errand/[storeId]/page.tsx`
 - Create: `apps/mobile/app/group/errand/[storeId]/loading.tsx`
 - Create: `apps/mobile/components/errand-demand-detail.tsx`
@@ -1569,22 +1501,22 @@ import {
   getErrandDemandDetails,
   listStores,
   type ErrandDemandDetailGroup,
-} from "@sast-shop/api";
-import { RiStore2Line } from "@remixicon/react";
-import { Empty } from "@workspace/ui/components/empty";
-import { ErrandDemandDetail } from "@/components/errand-demand-detail";
-import { mobileAppConfig } from "@/lib/app-config";
+} from "@sast-shop/api"
+import { RiStore2Line } from "@remixicon/react"
+import { Empty } from "@workspace/ui/components/empty"
+import { ErrandDemandDetail } from "@/components/errand-demand-detail"
+import { mobileAppConfig } from "@/lib/app-config"
 
 type PageProps = {
   params: Promise<{
-    storeId: string;
-  }>;
-};
+    storeId: string
+  }>
+}
 
 async function loadDemandDetails(storeId: string): Promise<{
-  details: ErrandDemandDetailGroup[];
-  storeName: string;
-  error: string | null;
+  details: ErrandDemandDetailGroup[]
+  storeName: string
+  error: string | null
 }> {
   try {
     const [stores, details] = await Promise.all([
@@ -1597,28 +1529,28 @@ async function loadDemandDetails(storeId: string): Promise<{
         {
           dataSource: mobileAppConfig.dataSource,
           connectBaseUrl: mobileAppConfig.connectBaseUrl,
-        },
+        }
       ),
-    ]);
+    ])
 
     return {
       details,
       storeName:
         stores.find((store) => store.id === storeId)?.name ?? "店铺需求",
       error: null,
-    };
+    }
   } catch {
     return {
       details: [],
       storeName: "店铺需求",
       error: "跑腿需求详情暂不可用，请稍后再试",
-    };
+    }
   }
 }
 
 export default async function ErrandDemandDetailPage({ params }: PageProps) {
-  const { storeId } = await params;
-  const { details, storeName, error } = await loadDemandDetails(storeId);
+  const { storeId } = await params
+  const { details, storeName, error } = await loadDemandDetails(storeId)
 
   if (error) {
     return (
@@ -1629,7 +1561,7 @@ export default async function ErrandDemandDetailPage({ params }: PageProps) {
           description={error}
         />
       </div>
-    );
+    )
   }
 
   return (
@@ -1640,7 +1572,7 @@ export default async function ErrandDemandDetailPage({ params }: PageProps) {
       storeName={storeName}
       details={details}
     />
-  );
+  )
 }
 ```
 
@@ -1649,7 +1581,7 @@ export default async function ErrandDemandDetailPage({ params }: PageProps) {
 Create `apps/mobile/app/group/errand/[storeId]/loading.tsx`:
 
 ```tsx
-import { Skeleton } from "@workspace/ui/components/skeleton";
+import { Skeleton } from "@workspace/ui/components/skeleton"
 
 export default function ErrandDemandDetailLoading() {
   return (
@@ -1686,7 +1618,7 @@ export default function ErrandDemandDetailLoading() {
         </div>
       </div>
     </div>
-  );
+  )
 }
 ```
 
@@ -1695,26 +1627,25 @@ export default function ErrandDemandDetailLoading() {
 Create `apps/mobile/components/errand-demand-detail.tsx` with these core imports and structure:
 
 ```tsx
-"use client";
+"use client"
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { RiCheckboxCircleLine, RiStore2Line } from "@remixicon/react";
+import { useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import {
+  RiCheckboxCircleLine,
+  RiStore2Line,
+} from "@remixicon/react"
 import {
   createErrandTask,
   type DataSource,
   type ErrandDemandDetailGroup,
-} from "@sast-shop/api";
-import { formatPrice } from "@sast-shop/domain";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@workspace/ui/components/avatar";
-import { Badge } from "@workspace/ui/components/badge";
-import { Button } from "@workspace/ui/components/button";
-import { Card } from "@workspace/ui/components/card";
-import { Empty } from "@workspace/ui/components/empty";
+} from "@sast-shop/api"
+import { formatPrice } from "@sast-shop/domain"
+import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
+import { Badge } from "@workspace/ui/components/badge"
+import { Button } from "@workspace/ui/components/button"
+import { Card } from "@workspace/ui/components/card"
+import { Empty } from "@workspace/ui/components/empty"
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -1722,16 +1653,16 @@ import {
   ResponsiveDialogFooter,
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
-} from "@workspace/ui/components/responsive-dialog";
-import { cn } from "@workspace/ui/lib/utils";
-import { toast } from "sonner";
-import { ManagedImage } from "./managed-image";
+} from "@workspace/ui/components/responsive-dialog"
+import { cn } from "@workspace/ui/lib/utils"
+import { toast } from "sonner"
+import { ManagedImage } from "./managed-image"
 import {
   calculateErrandSelectionTotals,
   toggleProductSelection,
   toggleRequesterSelection,
   type ErrandSelectionGroup,
-} from "@/lib/errand-selection";
+} from "@/lib/errand-selection"
 
 export function ErrandDemandDetail({
   dataSource,
@@ -1740,16 +1671,16 @@ export function ErrandDemandDetail({
   storeName,
   details,
 }: {
-  dataSource: DataSource;
-  connectBaseUrl: string;
-  storeId: string;
-  storeName: string;
-  details: ErrandDemandDetailGroup[];
+  dataSource: DataSource
+  connectBaseUrl: string
+  storeId: string
+  storeName: string
+  details: ErrandDemandDetailGroup[]
 }) {
-  const router = useRouter();
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const router = useRouter()
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const selectionGroups = useMemo<ErrandSelectionGroup[]>(
     () =>
       details.map((group) => ({
@@ -1762,51 +1693,48 @@ export function ErrandDemandDetail({
           updatedAt: requester.updatedAt,
         })),
       })),
-    [details],
-  );
+    [details]
+  )
   const totals = useMemo(
     () => calculateErrandSelectionTotals(selectionGroups, selectedIds),
-    [selectionGroups, selectedIds],
-  );
+    [selectionGroups, selectedIds]
+  )
 
   async function submitTask() {
     if (totals.selectedRowCount === 0 || submitting) {
-      return;
+      return
     }
 
-    setSubmitting(true);
+    setSubmitting(true)
     try {
       const byId = new Map(
         details.flatMap((group) =>
-          group.requesters.map((requester) => [
-            requester.errandDemandItemId,
-            requester,
-          ]),
-        ),
-      );
+          group.requesters.map((requester) => [requester.errandDemandItemId, requester])
+        )
+      )
       const result = await createErrandTask(
         {
           storeId,
           demandItems: Array.from(selectedIds).map((id) => {
-            const requester = byId.get(id);
+            const requester = byId.get(id)
 
             return {
               errandDemandItemId: id,
               updatedAt: requester?.updatedAt,
-            };
+            }
           }),
         },
-        { dataSource, connectBaseUrl },
-      );
+        { dataSource, connectBaseUrl }
+      )
 
-      toast.success("接单成功");
-      setConfirmOpen(false);
-      router.push(`/group/purchase/${result.errandTaskId}`);
+      toast.success("接单成功")
+      setConfirmOpen(false)
+      router.push(`/group/purchase/${result.errandTaskId}`)
     } catch {
-      toast.error("部分需求已被接单，请刷新后重试");
-      router.refresh();
+      toast.error("部分需求已被接单，请刷新后重试")
+      router.refresh()
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
   }
 
@@ -1819,13 +1747,15 @@ export function ErrandDemandDetail({
           description="可以返回跑腿采购大厅查看其他店铺。"
         />
       </div>
-    );
+    )
   }
 
   return (
     <div className="flex flex-1 flex-col gap-5 py-6">
       <section className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold md:text-2xl">{storeName}</h1>
+        <h1 className="text-xl font-semibold md:text-2xl">
+          {storeName}
+        </h1>
         <p className="text-sm text-muted-foreground">
           勾选完整需求行，创建采购任务。
         </p>
@@ -1839,7 +1769,7 @@ export function ErrandDemandDetail({
             selectedIds={selectedIds}
             onToggleProduct={() =>
               setSelectedIds((current) =>
-                toggleProductSelection(current, selectionGroups[groupIndex]!),
+                toggleProductSelection(current, selectionGroups[groupIndex]!)
               )
             }
             onToggleRequester={(id) =>
@@ -1899,7 +1829,7 @@ export function ErrandDemandDetail({
         </ResponsiveDialogContent>
       </ResponsiveDialog>
     </div>
-  );
+  )
 }
 ```
 
@@ -1912,17 +1842,17 @@ function DemandProductGroup({
   onToggleProduct,
   onToggleRequester,
 }: {
-  group: ErrandDemandDetailGroup;
-  selectedIds: Set<string>;
-  onToggleProduct: () => void;
-  onToggleRequester: (id: string) => void;
+  group: ErrandDemandDetailGroup
+  selectedIds: Set<string>
+  onToggleProduct: () => void
+  onToggleRequester: (id: string) => void
 }) {
   const selectedCount = group.requesters.filter((requester) =>
-    selectedIds.has(requester.errandDemandItemId),
-  ).length;
+    selectedIds.has(requester.errandDemandItemId)
+  ).length
   const allSelected =
-    group.requesters.length > 0 && selectedCount === group.requesters.length;
-  const product = group.productTemplate;
+    group.requesters.length > 0 && selectedCount === group.requesters.length
+  const product = group.productTemplate
 
   return (
     <Card className="rounded-lg p-3">
@@ -1976,7 +1906,7 @@ function DemandProductGroup({
         ))}
       </div>
     </Card>
-  );
+  )
 }
 
 function RequesterRow({
@@ -1984,18 +1914,18 @@ function RequesterRow({
   selected,
   onToggle,
 }: {
-  requester: ErrandDemandDetailGroup["requesters"][number];
-  selected: boolean;
-  onToggle: () => void;
+  requester: ErrandDemandDetailGroup["requesters"][number]
+  selected: boolean
+  onToggle: () => void
 }) {
-  const disabled = !requester.errandDemandItemId || !requester.updatedAt;
+  const disabled = !requester.errandDemandItemId || !requester.updatedAt
 
   return (
     <label
       className={cn(
         "flex items-center gap-2 rounded-lg border p-2",
         selected && "border-primary/40 bg-primary/5",
-        disabled && "opacity-60",
+        disabled && "opacity-60"
       )}
     >
       <input
@@ -2006,10 +1936,7 @@ function RequesterRow({
         className="size-4 accent-primary"
       />
       <Avatar className="size-8">
-        <AvatarImage
-          src={requester.requesterAvatarUrl}
-          alt={requester.requesterName}
-        />
+        <AvatarImage src={requester.requesterAvatarUrl} alt={requester.requesterName} />
         <AvatarFallback className="text-xs">
           {nameInitial(requester.requesterName)}
         </AvatarFallback>
@@ -2026,20 +1953,19 @@ function RequesterRow({
         </span>
       </span>
       <span className="shrink-0 text-xs font-semibold text-primary">
-        跑腿{" "}
-        {formatPrice(requester.serviceFeePerUnitCents * requester.quantity)}
+        跑腿 {formatPrice(requester.serviceFeePerUnitCents * requester.quantity)}
       </span>
     </label>
-  );
+  )
 }
 
 function nameInitial(name: string) {
-  return name.trim().slice(0, 1) || "买";
+  return name.trim().slice(0, 1) || "买"
 }
 
 function formatDeadline(value: string | null) {
   if (!value) {
-    return "期望送达未知";
+    return "期望送达未知"
   }
 
   return `期望 ${new Intl.DateTimeFormat("zh-CN", {
@@ -2047,7 +1973,7 @@ function formatDeadline(value: string | null) {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date(value))}`;
+  }).format(new Date(value))}`
 }
 ```
 
@@ -2056,21 +1982,19 @@ function formatDeadline(value: string | null) {
 Create `apps/mobile/app/group/purchase/[id]/page.tsx`:
 
 ```tsx
-import { RiFileList3Line } from "@remixicon/react";
-import Link from "next/link";
-import { Button } from "@workspace/ui/components/button";
-import { Empty } from "@workspace/ui/components/empty";
+import { RiFileList3Line } from "@remixicon/react"
+import Link from "next/link"
+import { Button } from "@workspace/ui/components/button"
+import { Empty } from "@workspace/ui/components/empty"
 
 type PageProps = {
   params: Promise<{
-    id: string;
-  }>;
-};
+    id: string
+  }>
+}
 
-export default async function CaptainPurchaseHandoffPage({
-  params,
-}: PageProps) {
-  const { id } = await params;
+export default async function CaptainPurchaseHandoffPage({ params }: PageProps) {
+  const { id } = await params
 
   return (
     <div className="flex flex-1 items-center justify-center py-6">
@@ -2085,7 +2009,7 @@ export default async function CaptainPurchaseHandoffPage({
         }
       />
     </div>
-  );
+  )
 }
 ```
 
@@ -2110,7 +2034,6 @@ git commit -m "feat: add captain errand demand detail"
 ## Task 7: Integration Verification
 
 **Files:**
-
 - No planned edits. If a verification command fails, fix only the files named by the failing output and rerun the same command before continuing.
 
 - [ ] **Step 1: Run API tests**

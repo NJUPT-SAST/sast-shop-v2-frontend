@@ -90,12 +90,12 @@ Switching rules:
 
 Valid combinations:
 
-| Type     | View          | Meaning                                                |
-| -------- | ------------- | ------------------------------------------------------ |
-| `spot`   | `buyer`       | Spot orders where current user is buyer                |
-| `spot`   | `seller`      | Spot orders where current user is seller               |
+| Type | View | Meaning |
+| --- | --- | --- |
+| `spot` | `buyer` | Spot orders where current user is buyer |
+| `spot` | `seller` | Spot orders where current user is seller |
 | `errand` | `participant` | Errand demand orders where current user is participant |
-| `errand` | `captain`     | Errand tasks where current user is captain             |
+| `errand` | `captain` | Errand tasks where current user is captain |
 
 ## Status Filters
 
@@ -147,16 +147,16 @@ Status badges need more color than the current `Badge` variants provide, but col
 
 Proposed tones:
 
-| Tone        | Example statuses |
-| ----------- | ---------------- |
-| `neutral`   | 未接单           |
-| `warning`   | 采购中           |
-| `info`      | 待分发, 分发中   |
-| `payment`   | 待支付           |
-| `attention` | 待收款           |
-| `review`    | 已付款           |
-| `success`   | 已完成           |
-| `danger`    | 已取消           |
+| Tone | Example statuses |
+| --- | --- |
+| `neutral` | 未接单 |
+| `warning` | 采购中 |
+| `info` | 待分发, 分发中 |
+| `payment` | 待支付 |
+| `attention` | 待收款 |
+| `review` | 已付款 |
+| `success` | 已完成 |
+| `danger` | 已取消 |
 
 Implementation can either extend `Badge` with controlled tone variants or add an order-specific helper that maps tone to approved semantic classes. The preferred path is extending `Badge` so other surfaces can reuse the tones.
 

@@ -22,7 +22,9 @@ describe("tab swipe", () => {
 
   it("requires the horizontal distance threshold", () => {
     expect(resolveTabSwipe({ x: 100, y: 100 }, { x: 45, y: 100 })).toBeNull();
-    expect(resolveTabSwipe({ x: 100, y: 100 }, { x: 44, y: 100 })).toBe("next");
+    expect(resolveTabSwipe({ x: 100, y: 100 }, { x: 44, y: 100 })).toBe(
+      "next",
+    );
   });
 
   it("ignores vertical scrolling and diagonally vertical gestures", () => {

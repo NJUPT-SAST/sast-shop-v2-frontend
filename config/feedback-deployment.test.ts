@@ -4,7 +4,10 @@ import { describe, expect, it } from "vitest";
 
 const root = resolve(import.meta.dirname, "..");
 const dockerfile = readFileSync(resolve(root, "Dockerfile"), "utf8");
-const entrypoint = readFileSync(resolve(root, "docker/entrypoint.sh"), "utf8");
+const entrypoint = readFileSync(
+  resolve(root, "docker/entrypoint.sh"),
+  "utf8",
+);
 const publishWorkflow = readFileSync(
   resolve(root, ".github/workflows/publish.yml"),
   "utf8",
@@ -22,9 +25,7 @@ describe("optional feedback form deployment configuration", () => {
 
   it("only validates the feedback URL when one is configured", () => {
     expect(entrypoint).toContain("if (feedbackFormUrl)");
-    expect(entrypoint).toContain(
-      'const allowedHosts = ["feishu.cn", "larksuite.com"]',
-    );
+    expect(entrypoint).toContain('const allowedHosts = ["feishu.cn", "larksuite.com"]');
   });
 
   it("publishes images when the optional repository variable is empty", () => {

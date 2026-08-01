@@ -42,7 +42,6 @@ export type ShoppingTaskViewProps = {
   dataSource: DataSource;
   connectBaseUrl: string;
   detail: ShoppingTaskDetail;
-  taskUpdatedAt: string | null;
 };
 
 type DialogState =
@@ -69,7 +68,6 @@ export function ShoppingTaskView({
   dataSource,
   connectBaseUrl,
   detail,
-  taskUpdatedAt,
 }: ShoppingTaskViewProps) {
   const router = useRouter();
   const submittingRef = useRef(false);
@@ -88,7 +86,7 @@ export function ShoppingTaskView({
 
   const totalProductCents = items.reduce((sum, i) => {
     if (i.purchasedQuantity === null || i.purchasedQuantity === 0) return sum;
-    return sum + (i.actualUnitPriceCents ?? 0) * i.purchasedQuantity;
+    return sum + i.actualUnitPriceCents * i.purchasedQuantity;
   }, 0);
   const updateItem = (updated: ShoppingTaskItem) => {
     setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
@@ -176,7 +174,7 @@ export function ShoppingTaskView({
     try {
       await transitionToPendingDistributing(
         detail.taskId,
-        taskUpdatedAt,
+        null,
         serviceOptions,
       );
       setDialog({ type: "none" });
@@ -194,7 +192,7 @@ export function ShoppingTaskView({
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      await cancelTask(detail.taskId, taskUpdatedAt, serviceOptions);
+      await cancelTask(detail.taskId, null, serviceOptions);
       setDialog({ type: "none" });
       router.push("/group");
     } catch {

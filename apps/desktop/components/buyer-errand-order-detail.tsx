@@ -235,15 +235,6 @@ function StatusNotice({
       </Alert>
     );
   }
-  if (paymentState === "self_purchase") {
-    return (
-      <Alert>
-        <RiInformationLine />
-        <AlertTitle>无需支付</AlertTitle>
-        <AlertDescription>团长自购，当前订单无需支付。</AlertDescription>
-      </Alert>
-    );
-  }
   if (paymentState === "unavailable") {
     return (
       <Alert variant="destructive">
