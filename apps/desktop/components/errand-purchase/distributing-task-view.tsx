@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   RiArrowLeftLine,
   RiCheckboxCircleLine,
-  RiCloseCircleLine,
   RiPriceTag3Line,
 } from "@remixicon/react";
 import {
@@ -266,12 +265,17 @@ export function DistributingTaskView({
   ) {
     const key = requester.errandTaskAssignmentId;
     if (pendingKeys.has(key)) return;
+    const remaining =
+      (item.purchasedQuantity ?? 0) -
+      item.requesters
+        .filter((r) => r.errandTaskAssignmentId !== requester.errandTaskAssignmentId)
+        .reduce((sum, r) => sum + Math.max(0, r.distributedQuantity), 0);
     if (
       !Number.isInteger(quantity) ||
       quantity < 0 ||
-      quantity > requester.quantity
+      quantity > remaining
     ) {
-      toast.error(`分发数量应为 0 到 ${requester.quantity}`);
+      toast.error(`分发数量应为 0 到 ${Math.max(0, remaining)}`);
       return;
     }
     setPendingKeys((current) => new Set(current).add(key));
@@ -568,6 +572,20 @@ export function DistributingTaskView({
                     <RequesterRow
                       key={requester.errandTaskAssignmentId}
                       requester={requester}
+                      maxQuantity={Math.max(
+                        0,
+                        (item.purchasedQuantity ?? 0) -
+                          item.requesters
+                            .filter(
+                              (r) =>
+                                r.errandTaskAssignmentId !==
+                                requester.errandTaskAssignmentId,
+                            )
+                            .reduce(
+                              (sum, r) => sum + Math.max(0, r.distributedQuantity),
+                              0,
+                            ),
+                      )}
                       draft={
                         assignmentDrafts[requester.errandTaskAssignmentId] ?? ""
                       }
@@ -631,12 +649,14 @@ export function DistributingTaskView({
 
 function RequesterRow({
   requester,
+  maxQuantity,
   draft,
   busy,
   onDraftChange,
   onSave,
 }: {
   requester: DistributingRequester;
+  maxQuantity: number;
   draft: string;
   busy: boolean;
   onDraftChange: (value: string) => void;
@@ -682,27 +702,18 @@ function RequesterRow({
             className="w-24"
             type="number"
             min={0}
-            max={requester.quantity}
+            max={maxQuantity}
             value={draft}
             onChange={(event) => onDraftChange(event.target.value)}
             aria-label={`${requester.purchaserName}分发数量`}
           />
           <Button
-            variant="outline"
-            size="sm"
-            disabled={busy}
-            onClick={() => onSave(0)}
-          >
-            <RiCloseCircleLine data-icon="inline-start" />
-            不分发
-          </Button>
-          <Button
             size="sm"
             disabled={
               busy ||
               !Number.isInteger(Number(draft)) ||
-              Number(draft) <= 0 ||
-              Number(draft) > requester.quantity
+              Number(draft) < 0 ||
+              Number(draft) > maxQuantity
             }
             onClick={() => onSave(Number(draft))}
           >
