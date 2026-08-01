@@ -9,10 +9,10 @@ export const PAYMENT_PLATFORM_META: Record<
 > = {
   wechat: {
     label: "微信支付",
-    tone: "wechat"
+    tone: "wechat",
   },
   alipay: {
     label: "支付宝",
-    tone: "alipay"
-  }
+    tone: "alipay",
+  },
 };

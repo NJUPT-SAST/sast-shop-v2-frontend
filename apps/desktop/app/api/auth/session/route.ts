@@ -1,8 +1,5 @@
-import { loginWithLarkCode } from "@sast-shop/api";
 import {
-  createSessionUserCookie,
   getSessionCookieSecret,
-  loginExchangeGuard,
   readSessionUserCookie,
   sessionCookieName,
   sessionUserCookieName,
@@ -10,9 +7,14 @@ import {
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 
-import { desktopAppConfig } from "@/lib/app-config";
+import {
+  clearDesktopAuthSessionCookies,
+  createDesktopAuthSessionFromLarkCode,
+  LoginConfigurationError,
+  LoginRateLimitedError,
+  setDesktopAuthSessionCookies,
+} from "@/lib/auth-session";
 import { getServerAuthMode } from "@/lib/auth-mode";
-import { getServerConnectBaseUrl } from "@/lib/server-service-options";
 
 const maxCodeLength = 4096;
 const maxBodyBytes = 16 * 1024;
@@ -109,71 +111,43 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let connectBaseUrl: string;
-  let sessionSecret: string;
   try {
-    connectBaseUrl = getServerConnectBaseUrl();
-    sessionSecret = getSessionCookieSecret();
-  } catch {
-    return NextResponse.json(
-      { error: "Authentication service is not configured" },
-      { status: 500 },
-    );
-  }
-
-  const permit = loginExchangeGuard.tryAcquire();
-  if (!permit.allowed) {
-    return NextResponse.json(
-      { error: "Too many login attempts" },
+    const { session, sessionUserCookie } =
+      await createDesktopAuthSessionFromLarkCode(code.trim());
+    const response = NextResponse.json(
       {
-        status: 429,
-        headers: {
-          "cache-control": "no-store",
-          "retry-after": String(permit.retryAfterSeconds),
-        },
+        authenticated: true,
+        user: session.user,
+        expiresAt: session.expiresAt,
       },
+      { headers: { "cache-control": "no-store" } },
     );
-  }
-  let session;
-  let sessionUserCookie: string;
-  try {
-    session = await loginWithLarkCode(code.trim(), {
-      dataSource: desktopAppConfig.dataSource,
-      connectBaseUrl,
-    });
-    sessionUserCookie = await createSessionUserCookie(
-      session.user,
-      session.sessionToken,
-      session.expiresAt,
-      sessionSecret,
-    );
-  } catch {
+    setDesktopAuthSessionCookies(response, session, sessionUserCookie);
+    return response;
+  } catch (error) {
+    if (error instanceof LoginRateLimitedError) {
+      return NextResponse.json(
+        { error: "Too many login attempts" },
+        {
+          status: 429,
+          headers: {
+            "cache-control": "no-store",
+            "retry-after": String(error.retryAfterSeconds),
+          },
+        },
+      );
+    }
+    if (error instanceof LoginConfigurationError) {
+      return NextResponse.json(
+        { error: "Authentication service is not configured" },
+        { status: 500 },
+      );
+    }
     return NextResponse.json(
       { error: "Authorization code exchange failed" },
       { status: 401 },
     );
-  } finally {
-    permit.release();
   }
-  const expires = new Date(session.expiresAt);
-  const cookieOptions = {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    expires,
-  } as const;
-  const cookieStore = await cookies();
-  cookieStore.set(sessionCookieName, session.sessionToken, cookieOptions);
-  cookieStore.set(sessionUserCookieName, sessionUserCookie, cookieOptions);
-  return NextResponse.json(
-    {
-      authenticated: true,
-      user: session.user,
-      expiresAt: session.expiresAt,
-    },
-    { headers: { "cache-control": "no-store" } },
-  );
 }
 
 export async function DELETE(request: NextRequest) {
@@ -183,18 +157,10 @@ export async function DELETE(request: NextRequest) {
       { status: 403 },
     );
   }
-  const expiredCookieOptions = {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    expires: new Date(0),
-  } as const;
-  const cookieStore = await cookies();
-  cookieStore.set(sessionCookieName, "", expiredCookieOptions);
-  cookieStore.set(sessionUserCookieName, "", expiredCookieOptions);
-  return NextResponse.json(
+  const response = NextResponse.json(
     { authenticated: false },
     { headers: { "cache-control": "no-store" } },
   );
+  clearDesktopAuthSessionCookies(response);
+  return response;
 }

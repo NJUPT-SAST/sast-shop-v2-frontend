@@ -14,8 +14,10 @@ import { getServerServiceOptions } from "@/lib/server-service-options";
 
 export default async function GroupShopPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id: rawId } = await params;
   const id = parsePositiveInt64RouteId(rawId);

@@ -3,12 +3,13 @@ import { NextResponse } from "next/server";
 import { parseConnectHealthUrl } from "../../../../../../config/connect-health-url";
 import { desktopAppConfig } from "@/lib/app-config";
 import { getServerAuthMode } from "@/lib/auth-mode";
+import { getFeishuOAuthConfig } from "@/lib/feishu-oauth-config";
 
 export async function GET() {
   try {
     if (process.env.NODE_ENV === "production") {
       if (getServerAuthMode() !== "required") throw new Error();
-      if (!process.env.NEXT_PUBLIC_FEISHU_APP_ID?.trim()) throw new Error();
+      getFeishuOAuthConfig();
       if (desktopAppConfig.dataSource === "remote") throw new Error();
     }
     const connectHealthUrl = parseConnectHealthUrl(

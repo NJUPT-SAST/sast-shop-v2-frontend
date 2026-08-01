@@ -69,11 +69,14 @@ export async function createErrandDemand(
   const dataSource = resolveDataSource(options);
 
   if (dataSource === "mock" || dataSource === "local") {
+    // remote线上远程环境暂未实现，走else分支
     const client = createClient(
+      //基于 Service 定义 + transport，生成 RPC 风格客户端；
       ErrandDemandService,
       createLocalTransport(options),
     );
     const response = await requestLocal("createErrandDemand", () =>
+      // requestLocal 内部合适时机再执行这个回调发起请求；
       client.createErrandDemand(request),
     );
 
@@ -260,9 +263,14 @@ function formatTimestamp(timestamp: Timestamp | undefined): string | null {
 
   return timestampDate(timestamp).toISOString();
 }
-
+// 解释字符串形式的数字ID
+//校验并转换为符合有符号 64 位整型（int64 signed）规范的 bigint；
+// 常用于解析数据库主键（MySQL BIGINT、Postgres bigint），杜绝 JS Number 浮点数精度丢失问题。
 function parseInt64(value: string, message: string): bigint {
   if (!/^[1-9]\d*$/.test(value)) {
+    /*^ 字符串开头，$ 字符串结尾（整串匹配，不能有多余字符）
+[1-9] 第一位必须是 1~9：不能以 0 开头，排除 00123、0、056 这类非法 ID
+\d* 后面可以跟任意数字（0 个或多个） */
     throw new ValidationError(message);
   }
 
