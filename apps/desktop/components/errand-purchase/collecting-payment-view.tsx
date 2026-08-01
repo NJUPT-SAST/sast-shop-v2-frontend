@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { RiArrowLeftLine, RiCheckboxCircleLine } from "@remixicon/react";
 import {
   confirmBill,
-  getErrandTaskBrief,
   transitionToCompleted,
   type CollectingPaymentBill,
   type CollectingPaymentDetail,
@@ -18,11 +17,6 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@workspace/ui/components/avatar";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@workspace/ui/components/alert";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -48,15 +42,11 @@ export function CollectingPaymentView({
   connectBaseUrl,
   detail,
   taskId,
-  taskUpdatedAt,
-  billingNotice = false,
 }: {
   dataSource: DataSource;
   connectBaseUrl?: string;
   detail: CollectingPaymentDetail;
   taskId: string;
-  taskUpdatedAt: string | null;
-  billingNotice?: boolean;
 }) {
   const router = useRouter();
   const confirmingRef = useRef(false);
@@ -71,18 +61,16 @@ export function CollectingPaymentView({
   const confirmedCount = bills.filter(
     (bill) => bill.paymentStatus === "confirmed",
   ).length;
-  const totalCount = bills.length;
-  const allConfirmed =
-    totalCount > 0 && bills.every((bill) => bill.paymentStatus === "confirmed");
+  const closedCount = bills.filter(
+    (bill) => bill.paymentStatus === "closed",
+  ).length;
+  const settledCount = confirmedCount + closedCount;
+  const allSettled = bills.length > 0 && settledCount === bills.length;
   const totalAmount = bills.reduce(
     (total, bill) => total + bill.totalAmountCents,
     0,
   );
   const serviceOptions = { dataSource, connectBaseUrl };
-  const abnormalBills = bills.filter(
-    (bill) =>
-      bill.paymentStatus === "closed" || bill.paymentStatus === "unknown",
-  );
   const billGroups = [
     {
       key: "pending_confirmation",
@@ -103,6 +91,18 @@ export function CollectingPaymentView({
       title: "已收款",
       description: "已经核对并确认到账的账单。",
       bills: bills.filter((bill) => bill.paymentStatus === "confirmed"),
+    },
+    {
+      key: "closed",
+      title: "已关闭",
+      description: "已关闭的终态账单，不再等待付款。",
+      bills: bills.filter((bill) => bill.paymentStatus === "closed"),
+    },
+    {
+      key: "unknown",
+      title: "状态异常",
+      description: "暂时无法识别状态，请刷新后重试。",
+      bills: bills.filter((bill) => bill.paymentStatus === "unknown"),
     },
   ];
 
@@ -137,33 +137,16 @@ export function CollectingPaymentView({
   }
 
   async function completeTask() {
-    if (!allConfirmed || completingRef.current) return;
+    if (!allSettled || completingRef.current) return;
     completingRef.current = true;
     setCompleting(true);
     try {
-      const latestTask = await getErrandTaskBrief(taskId, serviceOptions);
-      if (latestTask?.status === "completed") {
-        toast.success("订单已完成");
-        setCompleteOpen(false);
-        router.replace("/orders?type=errand&view=captain");
-        return;
-      }
-      if (latestTask?.status === "collecting_payment") {
-        await transitionToCompleted(
-          taskId,
-          latestTask.updatedAt ?? taskUpdatedAt,
-          serviceOptions,
-        );
-        toast.success("订单已完成");
-        setCompleteOpen(false);
-        router.replace("/orders?type=errand&view=captain");
-        return;
-      }
-      toast.error("任务状态已变化，请刷新后重试");
+      await transitionToCompleted(taskId, null, serviceOptions);
+      toast.success("跑腿任务已完成");
       setCompleteOpen(false);
-      router.refresh();
+      router.push("/orders?type=errand&view=captain");
     } catch {
-      toast.error("订单完成失败，请刷新账单后重试");
+      toast.error("完成任务失败，请刷新账单后重试");
     } finally {
       completingRef.current = false;
       setCompleting(false);
@@ -181,24 +164,18 @@ export function CollectingPaymentView({
             </Link>
           </Button>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-semibold tracking-tight">支付核对</h1>
-            <Badge variant="warning">收款中</Badge>
+            <h1 className="text-3xl font-semibold tracking-tight">
+              收款与完成
+            </h1>
           </div>
         </div>
       </section>
 
-      {billingNotice ? (
-        <Alert>
-          <AlertTitle>账单生成异常</AlertTitle>
-          <AlertDescription>请刷新或联系处理。</AlertDescription>
-        </Alert>
-      ) : null}
-
       <Card>
         <CardContent className="grid grid-cols-2 gap-6 p-5">
           <Metric
-            label={`共 ${totalCount} 笔账单`}
-            value={`${confirmedCount}/${totalCount} 人已收款`}
+            label={`共 ${bills.length} 笔账单`}
+            value={`${confirmedCount} 笔已收款 · ${closedCount} 笔已关闭`}
           />
           <Metric
             label="账单总额"
@@ -249,35 +226,21 @@ export function CollectingPaymentView({
         </section>
       ))}
 
-      {abnormalBills.length ? (
-        <Alert>
-          <AlertTitle>异常账单</AlertTitle>
-          <AlertDescription>
-            {abnormalBills
-              .map(
-                (bill) => bill.requesterName || bill.billNo || bill.requesterId,
-              )
-              .join("、")}
-            的账单状态不计入订单完成进度，请刷新后核对。
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
       {bills.length ? (
         <Card className="sticky bottom-4 z-10 border-primary/20 shadow-lg">
           <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4">
             <div>
               <p className="text-sm text-muted-foreground">账单处理进度</p>
               <p className="mt-1 font-semibold tabular-nums">
-                {confirmedCount}/{totalCount} 人已收款
+                {settledCount}/{bills.length} 笔已结束
               </p>
             </div>
             <Button
-              disabled={!allConfirmed}
+              disabled={!allSettled}
               onClick={() => setCompleteOpen(true)}
             >
               <RiCheckboxCircleLine data-icon="inline-start" />
-              订单完成
+              完成跑腿任务
             </Button>
           </CardContent>
         </Card>
@@ -289,9 +252,9 @@ export function CollectingPaymentView({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>订单完成</DialogTitle>
+            <DialogTitle>完成跑腿任务</DialogTitle>
             <DialogDescription>
-              {confirmedCount}/{totalCount} 人已确认到账。完成后不可继续修改。
+              {confirmedCount} 笔已确认到账，{closedCount} 笔已关闭。完成后不可继续修改。
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -303,10 +266,10 @@ export function CollectingPaymentView({
               返回检查
             </Button>
             <Button
-              disabled={completing || !allConfirmed}
+              disabled={completing || !allSettled}
               onClick={completeTask}
             >
-              {completing ? <Spinner /> : null}订单完成
+              {completing ? <Spinner /> : null}完成任务
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -382,7 +345,7 @@ export function CollectingPaymentView({
                 billToConfirm && void confirmPayment(billToConfirm)
               }
             >
-              {confirmingId !== null ? <Spinner /> : null}确认收款
+              {confirmingId !== null ? <Spinner /> : null}确认已到账
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -492,12 +455,6 @@ function BillCard({
                 {bill.billNo || bill.billId}
               </p>
             ) : null}
-            {bill.paymentStatus === "pending_confirmation" &&
-            bill.verifyCode ? (
-              <p className="mt-1 font-mono text-xs font-semibold tracking-widest text-foreground">
-                标识码 {bill.verifyCode}
-              </p>
-            ) : null}
           </div>
         </div>
         <div className="shrink-0 text-right">
@@ -540,7 +497,7 @@ function BillCard({
             disabled={confirming || !bill.billId || !bill.billUpdatedAt}
             onClick={onConfirm}
           >
-            {confirming ? <Spinner /> : null}确认收款
+            {confirming ? <Spinner /> : null}确认已到账
           </Button>
         ) : null}
       </CardContent>

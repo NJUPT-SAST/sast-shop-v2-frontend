@@ -53,12 +53,10 @@ export function ShoppingTaskView({
   dataSource,
   connectBaseUrl,
   detail,
-  taskUpdatedAt,
 }: {
   dataSource: DataSource;
   connectBaseUrl?: string;
   detail: ShoppingTaskDetail;
-  taskUpdatedAt: string | null;
 }) {
   const router = useRouter();
   const pendingRef = useRef(false);
@@ -85,7 +83,7 @@ export function ShoppingTaskView({
   const allProcessed = processedCount === items.length && items.length > 0;
   const productAmount = items.reduce(
     (total, item) =>
-      total + (item.actualUnitPriceCents ?? 0) * (item.purchasedQuantity ?? 0),
+      total + item.actualUnitPriceCents * (item.purchasedQuantity ?? 0),
     0,
   );
 
@@ -132,7 +130,7 @@ export function ShoppingTaskView({
     try {
       await transitionToPendingDistributing(
         detail.taskId,
-        taskUpdatedAt,
+        null,
         serviceOptions,
       );
       setDialog({ type: "none" });
@@ -151,7 +149,7 @@ export function ShoppingTaskView({
     pendingRef.current = true;
     setPending(true);
     try {
-      await cancelTask(detail.taskId, taskUpdatedAt, serviceOptions);
+      await cancelTask(detail.taskId, null, serviceOptions);
       toast.success("采购任务已取消");
       router.push("/orders?type=errand&view=captain");
     } catch {
@@ -450,9 +448,7 @@ function ShoppingItemCard({
           ) : null}
           <p className="mt-3 text-sm">
             需求 {item.requiredQuantity} 件 · 参考单价{" "}
-            {item.actualUnitPriceCents != null
-              ? formatPrice(item.actualUnitPriceCents)
-              : "未定价"}
+            {formatPrice(item.actualUnitPriceCents)}
           </p>
           {item.nonPurchaseReason ? (
             <p className="mt-2 text-sm text-destructive">

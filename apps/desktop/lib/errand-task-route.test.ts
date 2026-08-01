@@ -14,8 +14,6 @@ const baseTask: ErrandTaskBrief = {
   storeName: "仙林小卖部",
   status: "shopping",
   itemCount: 2,
-  items: [],
-  updatedAt: "2026-07-18T08:00:00.000Z",
   createdAt: "2026-07-18T08:00:00.000Z",
 };
 

@@ -78,14 +78,14 @@ cp apps/mobile/.env.example apps/mobile/.env.local
 cp apps/desktop/.env.example apps/desktop/.env.local
 ```
 
-非容器生产环境可复制为 `.env`，并至少配置 `NEXT_PUBLIC_DATA_SOURCE`、`NEXT_PUBLIC_APP_ORIGIN`、`NEXT_PUBLIC_FEISHU_APP_ID`、`NEXT_PUBLIC_FEEDBACK_FORM_URL`、私有 `SESSION_COOKIE_SECRET`、`CONNECT_BASE_URL` 和 `CONNECT_HEALTH_URL`；桌面端普通浏览器 OAuth 还需要服务端 `FEISHU_APP_ID` 与 `FEISHU_REDIRECT_URI`：
+非容器生产环境可复制为 `.env`，并至少配置 `NEXT_PUBLIC_DATA_SOURCE`、`NEXT_PUBLIC_APP_ORIGIN`、`NEXT_PUBLIC_FEISHU_APP_ID`、`NEXT_PUBLIC_FEEDBACK_FORM_URL`、私有 `SESSION_COOKIE_SECRET`、`CONNECT_BASE_URL` 和 `CONNECT_HEALTH_URL`：
 
 ```bash
 cp apps/mobile/.env.example apps/mobile/.env
 cp apps/desktop/.env.example apps/desktop/.env
 ```
 
-`.env.local` 与 `.env` 不提交。本地 fauxrpc URL 写在 `.env.local` 的 `NEXT_PUBLIC_CONNECT_BASE_URL` 与 `CONNECT_BASE_URL` 中；生产 `CONNECT_BASE_URL` 必须是无内嵌凭据的 HTTPS URL。`SESSION_COOKIE_SECRET` 是至少 32 字符的服务端随机密钥，用于签署 OAuth 返回的用户会话缓存，移动端和桌面端应分别配置且不得进入 `NEXT_PUBLIC_*`。桌面端 `FEISHU_REDIRECT_URI` 必须指向同源 `/auth/callback`，例如 `https://shop-admin.example.com/auth/callback`。`CONNECT_HEALTH_URL` 必须指向后端独立、无鉴权且返回 2xx 的 HTTPS 就绪检查端点，不能把业务 ConnectRPC 路由当作健康检查。
+`.env.local` 与 `.env` 不提交。本地 fauxrpc URL 写在 `.env.local` 的 `NEXT_PUBLIC_CONNECT_BASE_URL` 与 `CONNECT_BASE_URL` 中；生产 `CONNECT_BASE_URL` 必须是无内嵌凭据的 HTTPS URL。`SESSION_COOKIE_SECRET` 是至少 32 字符的服务端随机密钥，用于签署 OAuth 返回的用户会话缓存，移动端和桌面端应分别配置且不得进入 `NEXT_PUBLIC_*`。`CONNECT_HEALTH_URL` 必须指向后端独立、无鉴权且返回 2xx 的 HTTPS 就绪检查端点，不能把业务 ConnectRPC 路由当作健康检查。
 
 Next.js 会把 `NEXT_PUBLIC_*` 变量内联到静态渲染和客户端 bundle 中，部署镜像构建时必须提供目标环境的公开值。`CONNECT_BASE_URL` 只在容器启动时由 docker-compose 注入，不能作为 Docker build arg。
 
@@ -139,7 +139,7 @@ GHCR_READ_TOKEN
 
 `GHCR_READ_TOKEN` 只需要读取私有 package 的权限。推荐为 mobile 和 desktop 分别创建低权限 Linux 用户，只允许操作对应服务目录；若用户可直接访问 Docker daemon，应将它视为等同 root 的高权限账号，并进一步使用 rootless Docker 或受限的部署入口。
 
-仓库级 Secret 保留现有的 `NEXT_PUBLIC_FEISHU_APP_ID`，供镜像发布阶段读取；桌面端服务器 `.env` 同时配置同值的 `FEISHU_APP_ID` 与对应域名的 `FEISHU_REDIRECT_URI`。
+仓库级 Secret 保留现有的 `NEXT_PUBLIC_FEISHU_APP_ID`，供镜像发布阶段读取。
 
 仓库还需要配置以下 Repository Variables，用于 Docker build 阶段注入公开配置：
 
@@ -172,8 +172,6 @@ cp deploy/compose.desktop.yml /data/sast-shop-desktop/docker-compose.yml
 CONNECT_BASE_URL=https://api.example.com
 CONNECT_HEALTH_URL=https://api.example.com/health/ready
 SESSION_COOKIE_SECRET=replace-with-a-random-value-of-at-least-32-characters
-FEISHU_APP_ID=cli_xxxxxxxxxxxxxxxx
-FEISHU_REDIRECT_URI=https://shop-admin.example.com/auth/callback
 ```
 
 商品图片由前端同源代理上传到 `CONNECT_BASE_URL` 对应后端的 `/api/uploads/product-image`，不需要额外图床地址或图床令牌。

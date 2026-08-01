@@ -143,8 +143,9 @@ describe("product template service", () => {
 
   it("rejects a non-empty aggregate store page past its declared total", async () => {
     const fetchMock = vi.fn(async (input: string | Request) => {
-      const pathname = new URL(typeof input === "string" ? input : input.url)
-        .pathname;
+      const pathname = new URL(
+        typeof input === "string" ? input : input.url,
+      ).pathname;
       if (pathname.includes("GetStoreList")) {
         return stubJsonResponse({
           stores: [{ id: "3001", name: "SAST 小卖部" }],

@@ -1,6 +1,6 @@
 "use client";
 
-import { type PointerEvent, useEffect, useRef, useState } from "react";
+import { type PointerEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   RiArrowGoBackLine,
@@ -15,7 +15,6 @@ import {
 import {
   cancelTask,
   getDistributingTaskDetail,
-  getErrandTaskBrief,
   saveDistributingAssignment,
   transitionToCollectingPayment,
   transitionToDistributing,
@@ -31,7 +30,6 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@workspace/ui/components/avatar";
-import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
@@ -83,14 +81,7 @@ function formatYuan(cents: number): string {
 }
 
 function isItemFullyDistributed(item: DistributingTaskItem): boolean {
-  if (item.purchasedQuantity == null || item.purchasedQuantity === 0) {
-    return true; // 未采购，无需分发
-  }
-  const totalDistributed = item.requesters.reduce(
-    (s, r) => s + Math.max(0, r.distributedQuantity),
-    0,
-  );
-  return totalDistributed >= item.purchasedQuantity;
+  return item.requesters.every((r) => r.distributedQuantity >= 0);
 }
 
 export function DistributingTaskView({
@@ -102,11 +93,6 @@ export function DistributingTaskView({
   const router = useRouter();
   const submittingRef = useRef(false);
   const [items, setItems] = useState<DistributingTaskItem[]>(detail.items);
-  const [taskUpdatedAt, setTaskUpdatedAt] = useState(detail.taskUpdatedAt);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTaskUpdatedAt((current) => detail.taskUpdatedAt ?? current);
-  }, [detail.taskUpdatedAt]);
   const [packagingFee, setPackagingFee] = useState(
     formatYuan(detail.packagingFeeCents),
   );
@@ -117,32 +103,22 @@ export function DistributingTaskView({
 
   const serviceOptions = { dataSource, connectBaseUrl };
 
-  const purchasedItems = items.filter(
-    (i) => i.purchasedQuantity != null && i.purchasedQuantity > 0,
-  );
+  const purchasedItems = items.filter((i) => {
+    const totalPurchased = i.requesters.reduce((s, r) => s + r.quantity, 0);
+    return totalPurchased > 0;
+  });
 
   const undistributed = purchasedItems.filter(
     (i) => !isItemFullyDistributed(i),
   );
   const distributed = purchasedItems.filter((i) => isItemFullyDistributed(i));
   const allDistributed =
-    items.length > 0 &&
-    items.every((item) => {
-      if (item.purchasedQuantity == null || item.purchasedQuantity === 0) {
-        return true; // 未采购，无需分发
-      }
-      const totalDistributed = item.requesters.reduce(
-        (s, r) => s + Math.max(0, r.distributedQuantity),
-        0,
-      );
-      return totalDistributed >= item.purchasedQuantity;
-    });
+    undistributed.length === 0 && purchasedItems.length > 0;
 
   const updateRequester = (
     itemId: string,
     assignmentId: string,
     distributedQuantity: number,
-    assignmentUpdatedAt: string | null,
   ) => {
     setItems((prev) =>
       prev.map((item) =>
@@ -153,7 +129,7 @@ export function DistributingTaskView({
               requesters: item.requesters.map((r) =>
                 r.errandTaskAssignmentId !== assignmentId
                   ? r
-                  : { ...r, distributedQuantity, assignmentUpdatedAt },
+                  : { ...r, distributedQuantity },
               ),
             },
       ),
@@ -170,23 +146,6 @@ export function DistributingTaskView({
     );
   };
 
-  const applyRefreshedDetail = (refreshed: DistributingTaskDetail) => {
-    setTaskUpdatedAt((current) => refreshed.taskUpdatedAt ?? current);
-    setItems((current) => {
-      const currentItemUpdatedAtById = new Map(
-        current.map((item) => [item.errandTaskItemId, item.itemUpdatedAt]),
-      );
-
-      return refreshed.items.map((item) => ({
-        ...item,
-        itemUpdatedAt:
-          item.itemUpdatedAt ??
-          currentItemUpdatedAtById.get(item.errandTaskItemId) ??
-          null,
-      }));
-    });
-  };
-
   const handleSaveAssignment = async (
     item: DistributingTaskItem,
     requester: DistributingRequester,
@@ -196,7 +155,7 @@ export function DistributingTaskView({
     if (assigningIds.has(key)) return;
     setAssigningIds((prev) => new Set(prev).add(key));
     try {
-      const saved = await saveDistributingAssignment(
+      await saveDistributingAssignment(
         {
           errandTaskItemId: item.errandTaskItemId,
           errandTaskAssignmentId: requester.errandTaskAssignmentId,
@@ -209,7 +168,6 @@ export function DistributingTaskView({
         item.errandTaskItemId,
         requester.errandTaskAssignmentId,
         distributedQuantity,
-        saved.assignmentUpdatedAt ?? requester.assignmentUpdatedAt,
       );
       if (dataSource === "local") {
         try {
@@ -217,7 +175,7 @@ export function DistributingTaskView({
             detail.taskId,
             serviceOptions,
           );
-          applyRefreshedDetail(refreshed);
+          setItems(refreshed.items);
         } catch {
           toast.warning("结果已保存，但状态刷新失败，请重新进入任务");
         }
@@ -242,11 +200,11 @@ export function DistributingTaskView({
     if (assigningIds.has(key)) return;
     setAssigningIds((prev) => new Set(prev).add(key));
     try {
-      const saved = await saveDistributingAssignment(
+      await saveDistributingAssignment(
         {
           errandTaskItemId: item.errandTaskItemId,
           errandTaskAssignmentId: requester.errandTaskAssignmentId,
-          distributedQuantity: 0,
+          distributedQuantity: -1,
           assignmentUpdatedAt: requester.assignmentUpdatedAt,
         },
         serviceOptions,
@@ -254,8 +212,7 @@ export function DistributingTaskView({
       updateRequester(
         item.errandTaskItemId,
         requester.errandTaskAssignmentId,
-        0,
-        saved.assignmentUpdatedAt ?? requester.assignmentUpdatedAt,
+        -1,
       );
       if (dataSource === "local") {
         try {
@@ -263,7 +220,7 @@ export function DistributingTaskView({
             detail.taskId,
             serviceOptions,
           );
-          applyRefreshedDetail(refreshed);
+          setItems(refreshed.items);
         } catch {
           toast.warning("结果已撤销，但状态刷新失败，请重新进入任务");
         }
@@ -290,24 +247,13 @@ export function DistributingTaskView({
     submittingRef.current = true;
     try {
       await updateActualPrice(
-        {
-          errandTaskId: detail.taskId,
-          errandTaskItemId: dialog.item.errandTaskItemId,
-          actualUnitPriceCents: cents,
-          itemUpdatedAt: dialog.item.itemUpdatedAt,
-        },
+        detail.taskId,
+        dialog.item.errandTaskItemId,
+        cents,
+        null,
         serviceOptions,
       );
-      try {
-        const refreshed = await getDistributingTaskDetail(
-          detail.taskId,
-          serviceOptions,
-        );
-        applyRefreshedDetail(refreshed);
-      } catch {
-        updateItemPrice(dialog.item.errandTaskItemId, cents);
-        toast.warning("价格已保存，但状态刷新失败，请重新进入任务");
-      }
+      updateItemPrice(dialog.item.errandTaskItemId, cents);
       setDialog({ type: "none" });
     } catch {
       toast.error("修改价格失败，请稍后再试");
@@ -329,7 +275,7 @@ export function DistributingTaskView({
       await transitionToDistributing(
         detail.taskId,
         feeCents,
-        taskUpdatedAt,
+        null,
         serviceOptions,
       );
       setDialog({ type: "none" });
@@ -347,27 +293,10 @@ export function DistributingTaskView({
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      await transitionToCollectingPayment(
-        detail.taskId,
-        taskUpdatedAt,
-        serviceOptions,
-      );
+      await transitionToCollectingPayment(detail.taskId, null, serviceOptions);
       setDialog({ type: "none" });
       router.replace(buildErrandTaskPaymentHref(detail.taskId));
     } catch {
-      try {
-        const task = await getErrandTaskBrief(detail.taskId, serviceOptions);
-        if (task?.status === "collecting_payment") {
-          toast.error("账单生成异常，请刷新或联系处理");
-          router.replace(
-            `${buildErrandTaskPaymentHref(detail.taskId)}?notice=billing_generation_failed`,
-          );
-          return;
-        }
-      } catch {
-        // Keep the original transition error as the user-facing result.
-      }
-      router.refresh();
       toast.error("操作失败，请稍后再试");
       setSubmitting(false);
     } finally {
@@ -380,9 +309,9 @@ export function DistributingTaskView({
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      await cancelTask(detail.taskId, taskUpdatedAt, serviceOptions);
+      await cancelTask(detail.taskId, null, serviceOptions);
       setDialog({ type: "none" });
-      router.replace("/orders?type=errand&view=captain");
+      router.push("/group");
     } catch {
       toast.error("取消失败，请稍后再试");
       setSubmitting(false);
@@ -429,13 +358,12 @@ export function DistributingTaskView({
                     </p>
                     <div className="mt-1 flex flex-wrap items-center gap-1 text-xs text-muted-foreground tabular-nums">
                       <span>
-                        实购 {item.purchasedQuantity ?? 0} 件
+                        实购{" "}
+                        {item.requesters.reduce((s, r) => s + r.quantity, 0)} 件
                       </span>
                       <span aria-hidden="true">·</span>
-                      {item.actualUnitPriceCents == null ? (
-                        <span className="text-muted-foreground">未定价</span>
-                      ) : item.actualUnitPriceCents !==
-                        item.originUnitPriceCents ? (
+                      {item.actualUnitPriceCents !==
+                      item.originUnitPriceCents ? (
                         <span className="text-destructive">
                           改价后 {formatPrice(item.actualUnitPriceCents)}/件
                         </span>
@@ -474,38 +402,27 @@ export function DistributingTaskView({
                     id={`distributing-item-${item.errandTaskItemId}`}
                     className="border-t px-3 pb-3"
                   >
-                    {mode === "pending_distributing" &&
-                      (item.purchasedQuantity == null ||
-                      item.purchasedQuantity === 0 ? (
-                        <div className="mb-3 mt-3">
-                          <Badge variant="neutral">未采购</Badge>
-                        </div>
-                      ) : (
-                        <div className="mb-3 mt-3 flex items-center justify-between gap-3">
-                          <span className="text-sm text-muted-foreground tabular-nums">
-                            {item.actualUnitPriceCents != null
-                              ? `单价 ${formatPrice(item.actualUnitPriceCents)}/件`
-                              : "未定价"}
-                          </span>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() =>
-                              setDialog({
-                                type: "edit_price",
-                                item,
-                                draft:
-                                  item.actualUnitPriceCents != null
-                                    ? formatYuan(item.actualUnitPriceCents)
-                                    : "",
-                              })
-                            }
-                          >
-                            改价
-                          </Button>
-                        </div>
-                      ))}
+                    {mode === "pending_distributing" && (
+                      <div className="mb-3 mt-3 flex items-center justify-between gap-3">
+                        <span className="text-sm text-muted-foreground tabular-nums">
+                          单价 {formatPrice(item.actualUnitPriceCents)}/件
+                        </span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setDialog({
+                              type: "edit_price",
+                              item,
+                              draft: formatYuan(item.actualUnitPriceCents),
+                            })
+                          }
+                        >
+                          改价
+                        </Button>
+                      </div>
+                    )}
                     <div className="mt-3 flex flex-col gap-3">
                       {item.requesters.map((requester) => (
                         <RequesterRow
@@ -620,7 +537,7 @@ export function DistributingTaskView({
         ) : (
           <Button
             type="button"
-            disabled={!allDistributed || assigningIds.size > 0}
+            disabled={!allDistributed}
             className="h-12 w-full"
             onClick={() => setDialog({ type: "confirm_finish" })}
           >

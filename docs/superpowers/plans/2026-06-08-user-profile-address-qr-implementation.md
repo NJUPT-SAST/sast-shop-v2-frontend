@@ -44,7 +44,6 @@ Create or modify these files:
 ## Task 1: Shared API Error And Local Connect Helpers
 
 **Files:**
-
 - Modify: `packages/api/src/errors.ts`
 - Modify: `packages/api/src/index.ts`
 - Create: `packages/api/src/local-connect.ts`
@@ -57,32 +56,32 @@ Create or modify these files:
 Create `packages/api/src/errors.test.ts`:
 
 ```ts
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest"
 import {
   ApiConfigurationError,
   ApiRequestError,
   FeatureUnavailableError,
   ValidationError,
-} from "./errors";
+} from "./errors"
 
 describe("api errors", () => {
   it("names typed API errors consistently", () => {
     expect(new FeatureUnavailableError("profile").name).toBe(
-      "FeatureUnavailableError",
-    );
-    expect(new ApiRequestError("profile").name).toBe("ApiRequestError");
+      "FeatureUnavailableError"
+    )
+    expect(new ApiRequestError("profile").name).toBe("ApiRequestError")
     expect(new ApiConfigurationError("NEXT_PUBLIC_CONNECT_BASE_URL").name).toBe(
-      "ApiConfigurationError",
-    );
-    expect(new ValidationError("收件人不能为空").name).toBe("ValidationError");
-  });
+      "ApiConfigurationError"
+    )
+    expect(new ValidationError("收件人不能为空").name).toBe("ValidationError")
+  })
 
   it("keeps validation messages user-readable", () => {
     expect(new ValidationError("手机号格式不正确").message).toBe(
-      "手机号格式不正确",
-    );
-  });
-});
+      "手机号格式不正确"
+    )
+  })
+})
 ```
 
 - [ ] **Step 2: Run the failing test**
@@ -102,8 +101,8 @@ Append to `packages/api/src/errors.ts`:
 ```ts
 export class ValidationError extends Error {
   constructor(message: string) {
-    super(message);
-    this.name = "ValidationError";
+    super(message)
+    this.name = "ValidationError"
   }
 }
 ```
@@ -117,7 +116,7 @@ export {
   AuthRequiredError,
   FeatureUnavailableError,
   ValidationError,
-} from "./errors";
+} from "./errors"
 ```
 
 - [ ] **Step 4: Create the shared local Connect helper**
@@ -125,22 +124,25 @@ export {
 Create `packages/api/src/local-connect.ts`:
 
 ```ts
-import { createConnectTransport } from "@connectrpc/connect-web";
-import { resolveConnectBaseUrl, type ServiceOptions } from "./data-source";
-import { ApiRequestError } from "./errors";
+import { createConnectTransport } from "@connectrpc/connect-web"
+import {
+  resolveConnectBaseUrl,
+  type ServiceOptions,
+} from "./data-source"
+import { ApiRequestError } from "./errors"
 
 export function createLocalTransport(options: ServiceOptions = {}) {
-  return createConnectTransport({ baseUrl: resolveConnectBaseUrl(options) });
+  return createConnectTransport({ baseUrl: resolveConnectBaseUrl(options) })
 }
 
 export async function requestLocal<T>(
   feature: string,
-  request: () => Promise<T>,
+  request: () => Promise<T>
 ): Promise<T> {
   try {
-    return await request();
+    return await request()
   } catch (error) {
-    throw new ApiRequestError(feature, error);
+    throw new ApiRequestError(feature, error)
   }
 }
 ```
@@ -150,7 +152,7 @@ export async function requestLocal<T>(
 In `packages/api/src/services/auth.ts`, remove the direct `createConnectTransport` import and the private `createLocalTransport` / `requestLocal` functions. Add:
 
 ```ts
-import { createLocalTransport, requestLocal } from "../local-connect";
+import { createLocalTransport, requestLocal } from "../local-connect"
 ```
 
 Keep existing `createClient(AuthService, createLocalTransport(options))` and `requestLocal(...)` call sites unchanged.
@@ -175,7 +177,6 @@ git commit -m "feat: add shared api local connect helpers"
 ## Task 2: Mock Address And QR Code Services
 
 **Files:**
-
 - Create: `packages/mocks/src/fixtures/addresses.ts`
 - Create: `packages/mocks/src/fixtures/payment-qr-codes.ts`
 - Create: `packages/mocks/src/services/addresses.ts`
@@ -189,14 +190,14 @@ Create `packages/mocks/src/fixtures/addresses.ts`:
 
 ```ts
 export interface MockShippingAddress {
-  id: string;
-  recipientName: string;
-  recipientPhone: string;
-  province: string;
-  city: string;
-  district: string;
-  detailAddress: string;
-  isDefault: boolean;
+  id: string
+  recipientName: string
+  recipientPhone: string
+  province: string
+  city: string
+  district: string
+  detailAddress: string
+  isDefault: boolean
 }
 
 export const mockShippingAddresses: MockShippingAddress[] = [
@@ -220,7 +221,7 @@ export const mockShippingAddresses: MockShippingAddress[] = [
     detailAddress: "南京邮电大学三牌楼校区收发室",
     isDefault: false,
   },
-];
+]
 ```
 
 - [ ] **Step 2: Add QR code fixtures**
@@ -228,12 +229,12 @@ export const mockShippingAddresses: MockShippingAddress[] = [
 Create `packages/mocks/src/fixtures/payment-qr-codes.ts`:
 
 ```ts
-export type MockPaymentQrChannel = "wechat" | "alipay";
+export type MockPaymentQrChannel = "wechat" | "alipay"
 
 export interface MockPaymentQrCode {
-  id: string;
-  channel: MockPaymentQrChannel;
-  content: string;
+  id: string
+  channel: MockPaymentQrChannel
+  content: string
 }
 
 export const mockPaymentQrCodes: MockPaymentQrCode[] = [
@@ -247,7 +248,7 @@ export const mockPaymentQrCodes: MockPaymentQrCode[] = [
     channel: "alipay",
     content: "https://example.test/pay/alipay/sast",
   },
-];
+]
 ```
 
 - [ ] **Step 3: Add mock address service**
@@ -258,52 +259,52 @@ Create `packages/mocks/src/services/addresses.ts`:
 import {
   mockShippingAddresses,
   type MockShippingAddress,
-} from "../fixtures/addresses";
+} from "../fixtures/addresses"
 
-export type MockShippingAddressInput = Omit<MockShippingAddress, "id">;
+export type MockShippingAddressInput = Omit<MockShippingAddress, "id">
 
 export function listMockAddresses(): MockShippingAddress[] {
-  return mockShippingAddresses;
+  return mockShippingAddresses
 }
 
 export function getMockAddress(id: string): MockShippingAddress | null {
-  return mockShippingAddresses.find((address) => address.id === id) ?? null;
+  return mockShippingAddresses.find((address) => address.id === id) ?? null
 }
 
 export function createMockAddress(
-  input: MockShippingAddressInput,
+  input: MockShippingAddressInput
 ): MockShippingAddress {
   return {
     id: "1003",
     ...normalizeDefaultAddress(input),
-  };
+  }
 }
 
 export function updateMockAddress(
   id: string,
-  input: MockShippingAddressInput,
+  input: MockShippingAddressInput
 ): MockShippingAddress {
   return {
     id,
     ...normalizeDefaultAddress(input),
-  };
+  }
 }
 
 export function deleteMockAddress(id: string): { deletedId: string } {
-  return { deletedId: id };
+  return { deletedId: id }
 }
 
 function normalizeDefaultAddress(
-  input: MockShippingAddressInput,
+  input: MockShippingAddressInput
 ): MockShippingAddressInput {
   if (!input.isDefault) {
-    return input;
+    return input
   }
 
   return {
     ...input,
     isDefault: true,
-  };
+  }
 }
 ```
 
@@ -316,29 +317,29 @@ import {
   mockPaymentQrCodes,
   type MockPaymentQrChannel,
   type MockPaymentQrCode,
-} from "../fixtures/payment-qr-codes";
+} from "../fixtures/payment-qr-codes"
 
 export interface MockPaymentQrCodeInput {
-  channel: MockPaymentQrChannel;
-  content: string;
+  channel: MockPaymentQrChannel
+  content: string
 }
 
 export function listMockPaymentQrCodes(): MockPaymentQrCode[] {
-  return mockPaymentQrCodes;
+  return mockPaymentQrCodes
 }
 
 export function updateMockPaymentQrCode(
-  input: MockPaymentQrCodeInput,
+  input: MockPaymentQrCodeInput
 ): MockPaymentQrCode {
   const existing = mockPaymentQrCodes.find(
-    (qrCode) => qrCode.channel === input.channel,
-  );
+    (qrCode) => qrCode.channel === input.channel
+  )
 
   return {
     id: existing?.id ?? "2003",
     channel: input.channel,
     content: input.content,
-  };
+  }
 }
 ```
 
@@ -347,17 +348,17 @@ export function updateMockPaymentQrCode(
 Modify `packages/mocks/src/index.ts`:
 
 ```ts
-export { currentUser, type MockUser } from "./fixtures/current-user";
+export { currentUser, type MockUser } from "./fixtures/current-user"
 export {
   mockShippingAddresses,
   type MockShippingAddress,
-} from "./fixtures/addresses";
+} from "./fixtures/addresses"
 export {
   mockPaymentQrCodes,
   type MockPaymentQrChannel,
   type MockPaymentQrCode,
-} from "./fixtures/payment-qr-codes";
-export { getMockCurrentUser, loginWithMockCode } from "./services/auth";
+} from "./fixtures/payment-qr-codes"
+export { getMockCurrentUser, loginWithMockCode } from "./services/auth"
 export {
   createMockAddress,
   deleteMockAddress,
@@ -365,12 +366,12 @@ export {
   listMockAddresses,
   updateMockAddress,
   type MockShippingAddressInput,
-} from "./services/addresses";
+} from "./services/addresses"
 export {
   listMockPaymentQrCodes,
   updateMockPaymentQrCode,
   type MockPaymentQrCodeInput,
-} from "./services/payment-qr-codes";
+} from "./services/payment-qr-codes"
 ```
 
 - [ ] **Step 6: Run package checks**
@@ -393,7 +394,6 @@ git commit -m "feat: add profile mock data"
 ## Task 3: Address API Facade
 
 **Files:**
-
 - Create: `packages/api/src/services/addresses.ts`
 - Create: `packages/api/src/services/addresses.test.ts`
 - Modify: `packages/api/src/index.ts`
@@ -403,13 +403,13 @@ git commit -m "feat: add profile mock data"
 Create `packages/api/src/services/addresses.test.ts`:
 
 ```ts
-import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest";
+import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest"
 import {
   ApiConfigurationError,
   ApiRequestError,
   FeatureUnavailableError,
   ValidationError,
-} from "../errors";
+} from "../errors"
 import {
   createAddress,
   deleteAddress,
@@ -418,7 +418,7 @@ import {
   updateAddress,
   type ShippingAddress,
   type ShippingAddressInput,
-} from "./addresses";
+} from "./addresses"
 
 const validInput: ShippingAddressInput = {
   recipientName: "南邮同学",
@@ -428,42 +428,38 @@ const validInput: ShippingAddressInput = {
   district: "栖霞区",
   detailAddress: "南京邮电大学仙林校区 SAST 活动室",
   isDefault: true,
-};
+}
 
 describe("address service", () => {
   afterEach(() => {
-    vi.unstubAllGlobals();
-  });
+    vi.unstubAllGlobals()
+  })
 
   it("exposes stable address return types", () => {
-    expectTypeOf(listAddresses()).toEqualTypeOf<Promise<ShippingAddress[]>>();
-    expectTypeOf(getAddress("1001")).toEqualTypeOf<Promise<ShippingAddress>>();
-    expectTypeOf(createAddress(validInput)).toEqualTypeOf<
-      Promise<ShippingAddress>
-    >();
+    expectTypeOf(listAddresses()).toEqualTypeOf<Promise<ShippingAddress[]>>()
+    expectTypeOf(getAddress("1001")).toEqualTypeOf<Promise<ShippingAddress>>()
+    expectTypeOf(createAddress(validInput)).toEqualTypeOf<Promise<ShippingAddress>>()
     expectTypeOf(updateAddress("1001", validInput)).toEqualTypeOf<
       Promise<ShippingAddress>
-    >();
-    expectTypeOf(deleteAddress("1001")).toEqualTypeOf<Promise<void>>();
-  });
+    >()
+    expectTypeOf(deleteAddress("1001")).toEqualTypeOf<Promise<void>>()
+  })
 
   it("returns mock addresses in mock mode", async () => {
-    const addresses = await listAddresses({ dataSource: "mock" });
+    const addresses = await listAddresses({ dataSource: "mock" })
     expect(addresses[0]).toMatchObject({
       id: "1001",
       recipientName: "南邮同学",
       isDefault: true,
-    });
-  });
+    })
+  })
 
   it("returns one mock address by id", async () => {
-    await expect(
-      getAddress("1001", { dataSource: "mock" }),
-    ).resolves.toMatchObject({
+    await expect(getAddress("1001", { dataSource: "mock" })).resolves.toMatchObject({
       id: "1001",
       recipientPhone: "13800000001",
-    });
-  });
+    })
+  })
 
   it("validates address input before submitting", async () => {
     await expect(
@@ -472,10 +468,10 @@ describe("address service", () => {
           ...validInput,
           recipientName: "",
         },
-        { dataSource: "mock" },
-      ),
-    ).rejects.toBeInstanceOf(ValidationError);
-  });
+        { dataSource: "mock" }
+      )
+    ).rejects.toBeInstanceOf(ValidationError)
+  })
 
   it("lists local addresses through Connect", async () => {
     const fetchMock = stubJsonResponse({
@@ -491,20 +487,20 @@ describe("address service", () => {
           isDefault: true,
         },
       ],
-    });
+    })
 
     const addresses = await listAddresses({
       dataSource: "local",
       connectBaseUrl: "http://127.0.0.1:6660",
-    });
+    })
 
-    expect(addresses).toHaveLength(1);
-    expect(addresses[0]?.id).toBe("1001");
+    expect(addresses).toHaveLength(1)
+    expect(addresses[0]?.id).toBe("1001")
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.user.v1.AddressService/GetAddress",
       body: {},
-    });
-  });
+    })
+  })
 
   it("gets one local address through Connect", async () => {
     const fetchMock = stubJsonResponse({
@@ -520,19 +516,19 @@ describe("address service", () => {
           isDefault: false,
         },
       ],
-    });
+    })
 
     const address = await getAddress("1002", {
       dataSource: "local",
       connectBaseUrl: "http://127.0.0.1:6660",
-    });
+    })
 
-    expect(address.id).toBe("1002");
+    expect(address.id).toBe("1002")
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.user.v1.AddressService/GetAddress",
       body: { addressId: "1002" },
-    });
-  });
+    })
+  })
 
   it("creates a local address through Connect", async () => {
     const fetchMock = stubJsonResponse({
@@ -540,19 +536,19 @@ describe("address service", () => {
         id: "1003",
         ...validInput,
       },
-    });
+    })
 
     const address = await createAddress(validInput, {
       dataSource: "local",
       connectBaseUrl: "http://127.0.0.1:6660",
-    });
+    })
 
-    expect(address.id).toBe("1003");
+    expect(address.id).toBe("1003")
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.user.v1.AddressService/CreateAddress",
       body: validInput,
-    });
-  });
+    })
+  })
 
   it("updates a local address through Connect", async () => {
     const fetchMock = stubJsonResponse({
@@ -561,7 +557,7 @@ describe("address service", () => {
         ...validInput,
         detailAddress: "更新后的地址",
       },
-    });
+    })
 
     const address = await updateAddress(
       "1001",
@@ -569,10 +565,10 @@ describe("address service", () => {
       {
         dataSource: "local",
         connectBaseUrl: "http://127.0.0.1:6660",
-      },
-    );
+      }
+    )
 
-    expect(address.detailAddress).toBe("更新后的地址");
+    expect(address.detailAddress).toBe("更新后的地址")
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.user.v1.AddressService/UpdateAddress",
       body: {
@@ -580,49 +576,49 @@ describe("address service", () => {
         ...validInput,
         detailAddress: "更新后的地址",
       },
-    });
-  });
+    })
+  })
 
   it("deletes a local address through Connect", async () => {
-    const fetchMock = stubJsonResponse({});
+    const fetchMock = stubJsonResponse({})
 
     await deleteAddress("1001", {
       dataSource: "local",
       connectBaseUrl: "http://127.0.0.1:6660",
-    });
+    })
 
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.user.v1.AddressService/DeleteAddress",
       body: { addressId: "1001" },
-    });
-  });
+    })
+  })
 
   it("requires a Connect base URL for local mode", async () => {
     await expect(listAddresses({ dataSource: "local" })).rejects.toBeInstanceOf(
-      ApiConfigurationError,
-    );
-  });
+      ApiConfigurationError
+    )
+  })
 
   it("wraps local Connect failures", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => new Response("{}", { status: 503 })),
-    );
+      vi.fn(async () => new Response("{}", { status: 503 }))
+    )
 
     await expect(
       listAddresses({
         dataSource: "local",
         connectBaseUrl: "http://127.0.0.1:6660",
-      }),
-    ).rejects.toBeInstanceOf(ApiRequestError);
-  });
+      })
+    ).rejects.toBeInstanceOf(ApiRequestError)
+  })
 
   it("throws for remote mode before backend client is wired", async () => {
-    await expect(
-      listAddresses({ dataSource: "remote" }),
-    ).rejects.toBeInstanceOf(FeatureUnavailableError);
-  });
-});
+    await expect(listAddresses({ dataSource: "remote" })).rejects.toBeInstanceOf(
+      FeatureUnavailableError
+    )
+  })
+})
 
 function stubJsonResponse(body: unknown) {
   const fetchMock = vi.fn(async () => {
@@ -630,40 +626,38 @@ function stubJsonResponse(body: unknown) {
       headers: {
         "content-type": "application/json",
       },
-    });
-  });
-  vi.stubGlobal("fetch", fetchMock);
-  return fetchMock;
+    })
+  })
+  vi.stubGlobal("fetch", fetchMock)
+  return fetchMock
 }
 
 async function expectConnectRequest(
   fetchMock: ReturnType<typeof vi.fn>,
   expected: {
-    path: string;
-    body: Record<string, unknown>;
-  },
+    path: string
+    body: Record<string, unknown>
+  }
 ) {
-  const [input, init] = fetchMock.mock.calls[0] ?? [];
-  const url = typeof input === "string" ? input : (input as Request).url;
+  const [input, init] = fetchMock.mock.calls[0] ?? []
+  const url = typeof input === "string" ? input : (input as Request).url
   const body =
-    typeof input === "string"
-      ? init?.body
-      : await (input as Request).clone().text();
+    typeof input === "string" ? init?.body : await (input as Request).clone().text()
 
-  expect(new URL(url).pathname).toBe(expected.path);
-  expect(JSON.parse(bodyToText(body))).toEqual(expected.body);
+  expect(new URL(url).pathname).toBe(expected.path)
+  expect(JSON.parse(bodyToText(body))).toEqual(expected.body)
 }
 
 function bodyToText(body: unknown): string {
   if (body instanceof Uint8Array) {
-    return new TextDecoder().decode(body);
+    return new TextDecoder().decode(body)
   }
 
   if (body instanceof ArrayBuffer) {
-    return new TextDecoder().decode(body);
+    return new TextDecoder().decode(body)
   }
 
-  return String(body);
+  return String(body)
 }
 ```
 
@@ -682,7 +676,7 @@ Expected: FAIL because `./addresses` does not exist.
 Create `packages/api/src/services/addresses.ts`:
 
 ```ts
-import { createClient } from "@connectrpc/connect";
+import { createClient } from "@connectrpc/connect"
 import {
   createMockAddress,
   deleteMockAddress,
@@ -691,163 +685,163 @@ import {
   updateMockAddress,
   type MockShippingAddress,
   type MockShippingAddressInput,
-} from "@sast-shop/mocks";
-import type { ShippingAddress as ProtoShippingAddress } from "../gen/sast/sastshopv2/user/v1/address_pb";
-import { AddressService } from "../gen/sast/sastshopv2/user/v1/address_service_pb";
-import { resolveDataSource, type ServiceOptions } from "../data-source";
-import { FeatureUnavailableError, ValidationError } from "../errors";
-import { createLocalTransport, requestLocal } from "../local-connect";
+} from "@sast-shop/mocks"
+import type { ShippingAddress as ProtoShippingAddress } from "../gen/sast/sastshopv2/user/v1/address_pb"
+import { AddressService } from "../gen/sast/sastshopv2/user/v1/address_service_pb"
+import { resolveDataSource, type ServiceOptions } from "../data-source"
+import { FeatureUnavailableError, ValidationError } from "../errors"
+import { createLocalTransport, requestLocal } from "../local-connect"
 
 export interface ShippingAddress {
-  id: string;
-  recipientName: string;
-  recipientPhone: string;
-  province: string;
-  city: string;
-  district: string;
-  detailAddress: string;
-  isDefault: boolean;
+  id: string
+  recipientName: string
+  recipientPhone: string
+  province: string
+  city: string
+  district: string
+  detailAddress: string
+  isDefault: boolean
 }
 
-export type ShippingAddressInput = Omit<ShippingAddress, "id">;
+export type ShippingAddressInput = Omit<ShippingAddress, "id">
 
 export async function listAddresses(
-  options: ServiceOptions = {},
+  options: ServiceOptions = {}
 ): Promise<ShippingAddress[]> {
-  const dataSource = resolveDataSource(options);
+  const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock") {
-    return listMockAddresses().map(mapMockAddress);
+    return listMockAddresses().map(mapMockAddress)
   }
 
   if (dataSource === "local") {
-    const client = createClient(AddressService, createLocalTransport(options));
+    const client = createClient(AddressService, createLocalTransport(options))
     const response = await requestLocal("listAddresses", () =>
-      client.getAddress({}),
-    );
+      client.getAddress({})
+    )
 
-    return response.shippingAddresses.map(mapProtoAddress);
+    return response.shippingAddresses.map(mapProtoAddress)
   }
 
-  throw new FeatureUnavailableError("listAddresses");
+  throw new FeatureUnavailableError("listAddresses")
 }
 
 export async function getAddress(
   id: string,
-  options: ServiceOptions = {},
+  options: ServiceOptions = {}
 ): Promise<ShippingAddress> {
-  const dataSource = resolveDataSource(options);
+  const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock") {
-    const address = getMockAddress(id);
+    const address = getMockAddress(id)
     if (!address) {
-      throw new FeatureUnavailableError("getAddress");
+      throw new FeatureUnavailableError("getAddress")
     }
-    return mapMockAddress(address);
+    return mapMockAddress(address)
   }
 
   if (dataSource === "local") {
-    const client = createClient(AddressService, createLocalTransport(options));
+    const client = createClient(AddressService, createLocalTransport(options))
     const response = await requestLocal("getAddress", () =>
-      client.getAddress({ addressId: BigInt(id) }),
-    );
-    const address = response.shippingAddresses[0];
+      client.getAddress({ addressId: BigInt(id) })
+    )
+    const address = response.shippingAddresses[0]
     if (!address) {
-      throw new FeatureUnavailableError("getAddress");
+      throw new FeatureUnavailableError("getAddress")
     }
-    return mapProtoAddress(address);
+    return mapProtoAddress(address)
   }
 
-  throw new FeatureUnavailableError("getAddress");
+  throw new FeatureUnavailableError("getAddress")
 }
 
 export async function createAddress(
   input: ShippingAddressInput,
-  options: ServiceOptions = {},
+  options: ServiceOptions = {}
 ): Promise<ShippingAddress> {
-  validateAddressInput(input);
-  const dataSource = resolveDataSource(options);
+  validateAddressInput(input)
+  const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock") {
-    return mapMockAddress(createMockAddress(input));
+    return mapMockAddress(createMockAddress(input))
   }
 
   if (dataSource === "local") {
-    const client = createClient(AddressService, createLocalTransport(options));
+    const client = createClient(AddressService, createLocalTransport(options))
     const response = await requestLocal("createAddress", () =>
-      client.createAddress(input),
-    );
+      client.createAddress(input)
+    )
 
     if (!response.shippingAddresses) {
-      throw new FeatureUnavailableError("createAddress");
+      throw new FeatureUnavailableError("createAddress")
     }
 
-    return mapProtoAddress(response.shippingAddresses);
+    return mapProtoAddress(response.shippingAddresses)
   }
 
-  throw new FeatureUnavailableError("createAddress");
+  throw new FeatureUnavailableError("createAddress")
 }
 
 export async function updateAddress(
   id: string,
   input: ShippingAddressInput,
-  options: ServiceOptions = {},
+  options: ServiceOptions = {}
 ): Promise<ShippingAddress> {
-  validateAddressInput(input);
-  const dataSource = resolveDataSource(options);
+  validateAddressInput(input)
+  const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock") {
-    return mapMockAddress(updateMockAddress(id, input));
+    return mapMockAddress(updateMockAddress(id, input))
   }
 
   if (dataSource === "local") {
-    const client = createClient(AddressService, createLocalTransport(options));
+    const client = createClient(AddressService, createLocalTransport(options))
     const response = await requestLocal("updateAddress", () =>
       client.updateAddress({
         addressId: BigInt(id),
         ...input,
-      }),
-    );
+      })
+    )
 
     if (!response.shippingAddresses) {
-      throw new FeatureUnavailableError("updateAddress");
+      throw new FeatureUnavailableError("updateAddress")
     }
 
-    return mapProtoAddress(response.shippingAddresses);
+    return mapProtoAddress(response.shippingAddresses)
   }
 
-  throw new FeatureUnavailableError("updateAddress");
+  throw new FeatureUnavailableError("updateAddress")
 }
 
 export async function deleteAddress(
   id: string,
-  options: ServiceOptions = {},
+  options: ServiceOptions = {}
 ): Promise<void> {
-  const dataSource = resolveDataSource(options);
+  const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock") {
-    deleteMockAddress(id);
-    return;
+    deleteMockAddress(id)
+    return
   }
 
   if (dataSource === "local") {
-    const client = createClient(AddressService, createLocalTransport(options));
+    const client = createClient(AddressService, createLocalTransport(options))
     await requestLocal("deleteAddress", () =>
-      client.deleteAddress({ addressId: BigInt(id) }),
-    );
-    return;
+      client.deleteAddress({ addressId: BigInt(id) })
+    )
+    return
   }
 
-  throw new FeatureUnavailableError("deleteAddress");
+  throw new FeatureUnavailableError("deleteAddress")
 }
 
 function validateAddressInput(input: ShippingAddressInput): void {
   if (!input.recipientName.trim()) {
-    throw new ValidationError("收件人不能为空");
+    throw new ValidationError("收件人不能为空")
   }
 
   if (!/^1[3-9]\d{9}$/.test(input.recipientPhone)) {
-    throw new ValidationError("手机号格式不正确");
+    throw new ValidationError("手机号格式不正确")
   }
 
   if (
@@ -856,12 +850,12 @@ function validateAddressInput(input: ShippingAddressInput): void {
     !input.district.trim() ||
     !input.detailAddress.trim()
   ) {
-    throw new ValidationError("地址信息不完整");
+    throw new ValidationError("地址信息不完整")
   }
 }
 
 function mapMockAddress(address: MockShippingAddress): ShippingAddress {
-  return { ...address };
+  return { ...address }
 }
 
 function mapProtoAddress(address: ProtoShippingAddress): ShippingAddress {
@@ -874,7 +868,7 @@ function mapProtoAddress(address: ProtoShippingAddress): ShippingAddress {
     district: address.district,
     detailAddress: address.detailAddress,
     isDefault: address.isDefault,
-  };
+  }
 }
 
 const _typecheckMockInput: MockShippingAddressInput = {
@@ -885,8 +879,8 @@ const _typecheckMockInput: MockShippingAddressInput = {
   district: "",
   detailAddress: "",
   isDefault: false,
-};
-void _typecheckMockInput;
+}
+void _typecheckMockInput
 ```
 
 - [ ] **Step 4: Export address facade**
@@ -902,7 +896,7 @@ export {
   updateAddress,
   type ShippingAddress,
   type ShippingAddressInput,
-} from "./services/addresses";
+} from "./services/addresses"
 ```
 
 - [ ] **Step 5: Run focused tests**
@@ -925,7 +919,6 @@ git commit -m "feat: add address api facade"
 ## Task 4: Payment QR Code API Facade
 
 **Files:**
-
 - Create: `packages/api/src/services/payment-qr-codes.ts`
 - Create: `packages/api/src/services/payment-qr-codes.test.ts`
 - Modify: `packages/api/src/index.ts`
@@ -935,53 +928,45 @@ git commit -m "feat: add address api facade"
 Create `packages/api/src/services/payment-qr-codes.test.ts`:
 
 ```ts
-import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest";
+import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest"
 import {
   ApiConfigurationError,
   ApiRequestError,
   FeatureUnavailableError,
   ValidationError,
-} from "../errors";
+} from "../errors"
 import {
   listPaymentQrCodes,
   updatePaymentQrCode,
   type PaymentQrCode,
   type PaymentQrCodeInput,
-} from "./payment-qr-codes";
+} from "./payment-qr-codes"
 
 describe("payment QR code service", () => {
   afterEach(() => {
-    vi.unstubAllGlobals();
-  });
+    vi.unstubAllGlobals()
+  })
 
   it("exposes stable QR code return types", () => {
-    expectTypeOf(listPaymentQrCodes()).toEqualTypeOf<
-      Promise<PaymentQrCode[]>
-    >();
+    expectTypeOf(listPaymentQrCodes()).toEqualTypeOf<Promise<PaymentQrCode[]>>()
     expectTypeOf(
-      updatePaymentQrCode({
-        channel: "wechat",
-        content: "https://example.test",
-      }),
-    ).toEqualTypeOf<Promise<PaymentQrCode>>();
-  });
+      updatePaymentQrCode({ channel: "wechat", content: "https://example.test" })
+    ).toEqualTypeOf<Promise<PaymentQrCode>>()
+  })
 
   it("returns mock QR codes in mock mode", async () => {
-    const qrCodes = await listPaymentQrCodes({ dataSource: "mock" });
-    expect(qrCodes.map((qrCode) => qrCode.channel)).toEqual([
-      "wechat",
-      "alipay",
-    ]);
-  });
+    const qrCodes = await listPaymentQrCodes({ dataSource: "mock" })
+    expect(qrCodes.map((qrCode) => qrCode.channel)).toEqual(["wechat", "alipay"])
+  })
 
   it("validates QR code content", async () => {
     await expect(
       updatePaymentQrCode(
         { channel: "wechat", content: "" },
-        { dataSource: "mock" },
-      ),
-    ).rejects.toBeInstanceOf(ValidationError);
-  });
+        { dataSource: "mock" }
+      )
+    ).rejects.toBeInstanceOf(ValidationError)
+  })
 
   it("lists local QR codes through Connect", async () => {
     const fetchMock = stubJsonResponse({
@@ -992,12 +977,12 @@ describe("payment QR code service", () => {
           content: "https://example.test/pay/wechat/sast",
         },
       ],
-    });
+    })
 
     const qrCodes = await listPaymentQrCodes({
       dataSource: "local",
       connectBaseUrl: "http://127.0.0.1:6660",
-    });
+    })
 
     expect(qrCodes).toEqual([
       {
@@ -1005,71 +990,71 @@ describe("payment QR code service", () => {
         channel: "wechat",
         content: "https://example.test/pay/wechat/sast",
       },
-    ]);
+    ])
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.payment.v1.QrCodeService/GetQrCode",
       body: {},
-    });
-  });
+    })
+  })
 
   it("updates a local QR code through Connect", async () => {
     const input: PaymentQrCodeInput = {
       channel: "alipay",
       content: "https://example.test/pay/alipay/new",
-    };
+    }
     const fetchMock = stubJsonResponse({
       qrCode: {
         id: "2002",
         channel: "CHANNEL_ALIPAY",
         content: input.content,
       },
-    });
+    })
 
     const qrCode = await updatePaymentQrCode(input, {
       dataSource: "local",
       connectBaseUrl: "http://127.0.0.1:6660",
-    });
+    })
 
     expect(qrCode).toEqual({
       id: "2002",
       channel: "alipay",
       content: input.content,
-    });
+    })
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.payment.v1.QrCodeService/UpdateQrCode",
       body: {
         channel: "CHANNEL_ALIPAY",
         content: input.content,
       },
-    });
-  });
+    })
+  })
 
   it("requires a Connect base URL for local mode", async () => {
     await expect(
-      listPaymentQrCodes({ dataSource: "local" }),
-    ).rejects.toBeInstanceOf(ApiConfigurationError);
-  });
+      listPaymentQrCodes({ dataSource: "local" })
+    ).rejects.toBeInstanceOf(ApiConfigurationError)
+  })
 
   it("wraps local Connect failures", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => new Response("{}", { status: 503 })),
-    );
+      vi.fn(async () => new Response("{}", { status: 503 }))
+    )
 
     await expect(
       listPaymentQrCodes({
         dataSource: "local",
         connectBaseUrl: "http://127.0.0.1:6660",
-      }),
-    ).rejects.toBeInstanceOf(ApiRequestError);
-  });
+      })
+    ).rejects.toBeInstanceOf(ApiRequestError)
+  })
 
   it("throws for remote mode before backend client is wired", async () => {
     await expect(
-      listPaymentQrCodes({ dataSource: "remote" }),
-    ).rejects.toBeInstanceOf(FeatureUnavailableError);
-  });
-});
+      listPaymentQrCodes({ dataSource: "remote" })
+    ).rejects.toBeInstanceOf(FeatureUnavailableError)
+  })
+})
 
 function stubJsonResponse(body: unknown) {
   const fetchMock = vi.fn(async () => {
@@ -1077,40 +1062,38 @@ function stubJsonResponse(body: unknown) {
       headers: {
         "content-type": "application/json",
       },
-    });
-  });
-  vi.stubGlobal("fetch", fetchMock);
-  return fetchMock;
+    })
+  })
+  vi.stubGlobal("fetch", fetchMock)
+  return fetchMock
 }
 
 async function expectConnectRequest(
   fetchMock: ReturnType<typeof vi.fn>,
   expected: {
-    path: string;
-    body: Record<string, unknown>;
-  },
+    path: string
+    body: Record<string, unknown>
+  }
 ) {
-  const [input, init] = fetchMock.mock.calls[0] ?? [];
-  const url = typeof input === "string" ? input : (input as Request).url;
+  const [input, init] = fetchMock.mock.calls[0] ?? []
+  const url = typeof input === "string" ? input : (input as Request).url
   const body =
-    typeof input === "string"
-      ? init?.body
-      : await (input as Request).clone().text();
+    typeof input === "string" ? init?.body : await (input as Request).clone().text()
 
-  expect(new URL(url).pathname).toBe(expected.path);
-  expect(JSON.parse(bodyToText(body))).toEqual(expected.body);
+  expect(new URL(url).pathname).toBe(expected.path)
+  expect(JSON.parse(bodyToText(body))).toEqual(expected.body)
 }
 
 function bodyToText(body: unknown): string {
   if (body instanceof Uint8Array) {
-    return new TextDecoder().decode(body);
+    return new TextDecoder().decode(body)
   }
 
   if (body instanceof ArrayBuffer) {
-    return new TextDecoder().decode(body);
+    return new TextDecoder().decode(body)
   }
 
-  return String(body);
+  return String(body)
 }
 ```
 
@@ -1129,87 +1112,87 @@ Expected: FAIL because `./payment-qr-codes` does not exist.
 Create `packages/api/src/services/payment-qr-codes.ts`:
 
 ```ts
-import { createClient } from "@connectrpc/connect";
+import { createClient } from "@connectrpc/connect"
 import {
   listMockPaymentQrCodes,
   updateMockPaymentQrCode,
   type MockPaymentQrChannel,
   type MockPaymentQrCode,
-} from "@sast-shop/mocks";
-import { Channel } from "../gen/sast/sastshopv2/payment/v1/channel_pb";
-import type { QrCode as ProtoQrCode } from "../gen/sast/sastshopv2/payment/v1/qr_code_pb";
-import { QrCodeService } from "../gen/sast/sastshopv2/payment/v1/qr_code_service_pb";
-import { resolveDataSource, type ServiceOptions } from "../data-source";
-import { FeatureUnavailableError, ValidationError } from "../errors";
-import { createLocalTransport, requestLocal } from "../local-connect";
+} from "@sast-shop/mocks"
+import { Channel } from "../gen/sast/sastshopv2/payment/v1/channel_pb"
+import type { QrCode as ProtoQrCode } from "../gen/sast/sastshopv2/payment/v1/qr_code_pb"
+import { QrCodeService } from "../gen/sast/sastshopv2/payment/v1/qr_code_service_pb"
+import { resolveDataSource, type ServiceOptions } from "../data-source"
+import { FeatureUnavailableError, ValidationError } from "../errors"
+import { createLocalTransport, requestLocal } from "../local-connect"
 
-export type PaymentQrChannel = "wechat" | "alipay";
+export type PaymentQrChannel = "wechat" | "alipay"
 
 export interface PaymentQrCode {
-  id: string;
-  channel: PaymentQrChannel;
-  content: string;
+  id: string
+  channel: PaymentQrChannel
+  content: string
 }
 
 export interface PaymentQrCodeInput {
-  channel: PaymentQrChannel;
-  content: string;
+  channel: PaymentQrChannel
+  content: string
 }
 
 export async function listPaymentQrCodes(
-  options: ServiceOptions = {},
+  options: ServiceOptions = {}
 ): Promise<PaymentQrCode[]> {
-  const dataSource = resolveDataSource(options);
+  const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock") {
-    return listMockPaymentQrCodes().map(mapMockQrCode);
+    return listMockPaymentQrCodes().map(mapMockQrCode)
   }
 
   if (dataSource === "local") {
-    const client = createClient(QrCodeService, createLocalTransport(options));
+    const client = createClient(QrCodeService, createLocalTransport(options))
     const response = await requestLocal("listPaymentQrCodes", () =>
-      client.getQrCode({}),
-    );
+      client.getQrCode({})
+    )
 
-    return response.qrCodes.map(mapProtoQrCode);
+    return response.qrCodes.map(mapProtoQrCode)
   }
 
-  throw new FeatureUnavailableError("listPaymentQrCodes");
+  throw new FeatureUnavailableError("listPaymentQrCodes")
 }
 
 export async function updatePaymentQrCode(
   input: PaymentQrCodeInput,
-  options: ServiceOptions = {},
+  options: ServiceOptions = {}
 ): Promise<PaymentQrCode> {
-  validatePaymentQrCodeInput(input);
-  const dataSource = resolveDataSource(options);
+  validatePaymentQrCodeInput(input)
+  const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock") {
-    return mapMockQrCode(updateMockPaymentQrCode(input));
+    return mapMockQrCode(updateMockPaymentQrCode(input))
   }
 
   if (dataSource === "local") {
-    const client = createClient(QrCodeService, createLocalTransport(options));
+    const client = createClient(QrCodeService, createLocalTransport(options))
     const response = await requestLocal("updatePaymentQrCode", () =>
       client.updateQrCode({
         channel: mapPaymentQrChannelToProto(input.channel),
         content: input.content,
-      }),
-    );
+      })
+    )
 
     if (!response.qrCode) {
-      throw new FeatureUnavailableError("updatePaymentQrCode");
+      throw new FeatureUnavailableError("updatePaymentQrCode")
     }
 
-    return mapProtoQrCode(response.qrCode);
+    return mapProtoQrCode(response.qrCode)
   }
 
-  throw new FeatureUnavailableError("updatePaymentQrCode");
+  throw new FeatureUnavailableError("updatePaymentQrCode")
 }
 
 function validatePaymentQrCodeInput(input: PaymentQrCodeInput): void {
   if (!input.content.trim()) {
-    throw new ValidationError("收款码内容不能为空");
+    throw new ValidationError("收款码内容不能为空")
   }
 }
 
@@ -1218,7 +1201,7 @@ function mapMockQrCode(qrCode: MockPaymentQrCode): PaymentQrCode {
     id: qrCode.id,
     channel: qrCode.channel,
     content: qrCode.content,
-  };
+  }
 }
 
 function mapProtoQrCode(qrCode: ProtoQrCode): PaymentQrCode {
@@ -1226,31 +1209,31 @@ function mapProtoQrCode(qrCode: ProtoQrCode): PaymentQrCode {
     id: qrCode.id.toString(),
     channel: mapPaymentQrChannelFromProto(qrCode.channel),
     content: qrCode.content,
-  };
+  }
 }
 
 function mapPaymentQrChannelToProto(channel: PaymentQrChannel): Channel {
   if (channel === "wechat") {
-    return Channel.WECHAT;
+    return Channel.WECHAT
   }
 
-  return Channel.ALIPAY;
+  return Channel.ALIPAY
 }
 
 function mapPaymentQrChannelFromProto(channel: Channel): PaymentQrChannel {
   if (channel === Channel.WECHAT) {
-    return "wechat";
+    return "wechat"
   }
 
   if (channel === Channel.ALIPAY) {
-    return "alipay";
+    return "alipay"
   }
 
-  throw new FeatureUnavailableError("paymentQrChannel");
+  throw new FeatureUnavailableError("paymentQrChannel")
 }
 
-const _typecheckMockChannel: MockPaymentQrChannel = "wechat";
-void _typecheckMockChannel;
+const _typecheckMockChannel: MockPaymentQrChannel = "wechat"
+void _typecheckMockChannel
 ```
 
 - [ ] **Step 4: Export QR code facade**
@@ -1264,7 +1247,7 @@ export {
   type PaymentQrChannel,
   type PaymentQrCode,
   type PaymentQrCodeInput,
-} from "./services/payment-qr-codes";
+} from "./services/payment-qr-codes"
 ```
 
 - [ ] **Step 5: Run focused tests**
@@ -1287,7 +1270,6 @@ git commit -m "feat: add payment qr code api facade"
 ## Task 5: Profile Overview Composition
 
 **Files:**
-
 - Create: `packages/api/src/services/profile.ts`
 - Create: `packages/api/src/services/profile.test.ts`
 - Modify: `packages/api/src/index.ts`
@@ -1297,37 +1279,35 @@ git commit -m "feat: add payment qr code api facade"
 Create `packages/api/src/services/profile.test.ts`:
 
 ```ts
-import { describe, expect, expectTypeOf, it } from "vitest";
-import type { CurrentUser } from "./auth";
-import type { PaymentQrCode } from "./payment-qr-codes";
-import type { ShippingAddress } from "./addresses";
-import { getProfileOverview, type ProfileOverview } from "./profile";
+import { describe, expect, expectTypeOf, it } from "vitest"
+import type { CurrentUser } from "./auth"
+import type { PaymentQrCode } from "./payment-qr-codes"
+import type { ShippingAddress } from "./addresses"
+import { getProfileOverview, type ProfileOverview } from "./profile"
 
 describe("profile service", () => {
   it("exposes a stable profile overview type", () => {
-    expectTypeOf(getProfileOverview()).toEqualTypeOf<
-      Promise<ProfileOverview>
-    >();
+    expectTypeOf(getProfileOverview()).toEqualTypeOf<Promise<ProfileOverview>>()
     expectTypeOf<ProfileOverview>().toEqualTypeOf<{
-      user: CurrentUser;
-      addresses: ShippingAddress[];
-      defaultAddress: ShippingAddress | null;
-      paymentQrCodes: PaymentQrCode[];
-    }>();
-  });
+      user: CurrentUser
+      addresses: ShippingAddress[]
+      defaultAddress: ShippingAddress | null
+      paymentQrCodes: PaymentQrCode[]
+    }>()
+  })
 
   it("combines user, default address, and payment QR codes", async () => {
-    const overview = await getProfileOverview({ dataSource: "mock" });
+    const overview = await getProfileOverview({ dataSource: "mock" })
 
-    expect(overview.user.name).toBe("南邮同学");
-    expect(overview.defaultAddress?.id).toBe("1001");
-    expect(overview.addresses).toHaveLength(2);
+    expect(overview.user.name).toBe("南邮同学")
+    expect(overview.defaultAddress?.id).toBe("1001")
+    expect(overview.addresses).toHaveLength(2)
     expect(overview.paymentQrCodes.map((qrCode) => qrCode.channel)).toEqual([
       "wechat",
       "alipay",
-    ]);
-  });
-});
+    ])
+  })
+})
 ```
 
 - [ ] **Step 2: Run the failing test**
@@ -1345,33 +1325,36 @@ Expected: FAIL because `./profile` does not exist.
 Create `packages/api/src/services/profile.ts`:
 
 ```ts
-import type { ServiceOptions } from "../data-source";
-import { getCurrentUser, type CurrentUser } from "./auth";
-import { listAddresses, type ShippingAddress } from "./addresses";
-import { listPaymentQrCodes, type PaymentQrCode } from "./payment-qr-codes";
+import type { ServiceOptions } from "../data-source"
+import { getCurrentUser, type CurrentUser } from "./auth"
+import { listAddresses, type ShippingAddress } from "./addresses"
+import {
+  listPaymentQrCodes,
+  type PaymentQrCode,
+} from "./payment-qr-codes"
 
 export interface ProfileOverview {
-  user: CurrentUser;
-  addresses: ShippingAddress[];
-  defaultAddress: ShippingAddress | null;
-  paymentQrCodes: PaymentQrCode[];
+  user: CurrentUser
+  addresses: ShippingAddress[]
+  defaultAddress: ShippingAddress | null
+  paymentQrCodes: PaymentQrCode[]
 }
 
 export async function getProfileOverview(
-  options: ServiceOptions = {},
+  options: ServiceOptions = {}
 ): Promise<ProfileOverview> {
   const [user, addresses, paymentQrCodes] = await Promise.all([
     getCurrentUser(options),
     listAddresses(options),
     listPaymentQrCodes(options),
-  ]);
+  ])
 
   return {
     user,
     addresses,
     defaultAddress: addresses.find((address) => address.isDefault) ?? null,
     paymentQrCodes,
-  };
+  }
 }
 ```
 
@@ -1380,7 +1363,10 @@ export async function getProfileOverview(
 Modify `packages/api/src/index.ts`:
 
 ```ts
-export { getProfileOverview, type ProfileOverview } from "./services/profile";
+export {
+  getProfileOverview,
+  type ProfileOverview,
+} from "./services/profile"
 ```
 
 - [ ] **Step 5: Run focused API tests**
@@ -1403,7 +1389,6 @@ git commit -m "feat: add profile overview facade"
 ## Task 6: Fauxrpc Stubs
 
 **Files:**
-
 - Create: `mock/fauxrpc/stubs/address.yaml`
 - Create: `mock/fauxrpc/stubs/payment-qr-code.yaml`
 - Modify: `mock/fauxrpc/README.md`
@@ -1516,7 +1501,6 @@ git commit -m "feat: add profile fauxrpc stubs"
 ## Task 7: Mobile Profile Overview And Global Drawers
 
 **Files:**
-
 - Create: `apps/mobile/app/profile/page.tsx`
 - Create: `apps/mobile/components/profile-management.tsx`
 - Create: `apps/mobile/components/profile-management-client.tsx`
@@ -1527,13 +1511,13 @@ git commit -m "feat: add profile fauxrpc stubs"
 Create `apps/mobile/components/profile-management.tsx`:
 
 ```tsx
-import { getProfileOverview, type ProfileOverview } from "@sast-shop/api";
-import { mobileAppConfig } from "@/lib/app-config";
-import { ProfileManagementClient } from "./profile-management-client";
+import { getProfileOverview, type ProfileOverview } from "@sast-shop/api"
+import { mobileAppConfig } from "@/lib/app-config"
+import { ProfileManagementClient } from "./profile-management-client"
 
 async function loadProfileOverview(): Promise<{
-  overview: ProfileOverview | null;
-  error: string | null;
+  overview: ProfileOverview | null
+  error: string | null
 }> {
   try {
     return {
@@ -1542,18 +1526,20 @@ async function loadProfileOverview(): Promise<{
         connectBaseUrl: mobileAppConfig.connectBaseUrl,
       }),
       error: null,
-    };
+    }
   } catch (error) {
     return {
       overview: null,
       error:
-        error instanceof Error ? error.message : "资料管理暂不可用，请稍后再试",
-    };
+        error instanceof Error
+          ? error.message
+          : "资料管理暂不可用，请稍后再试",
+    }
   }
 }
 
 export async function ProfileManagement() {
-  const result = await loadProfileOverview();
+  const result = await loadProfileOverview()
 
   return (
     <ProfileManagementClient
@@ -1561,7 +1547,7 @@ export async function ProfileManagement() {
       overview={result.overview}
       error={result.error}
     />
-  );
+  )
 }
 ```
 
@@ -1570,25 +1556,25 @@ export async function ProfileManagement() {
 Create `apps/mobile/components/profile-management-client.tsx`:
 
 ```tsx
-"use client";
+"use client"
 
-import { useState } from "react";
-import type { ProfileOverview } from "@sast-shop/api";
-import { Badge } from "@workspace/ui/components/badge";
-import { Button } from "@workspace/ui/components/button";
+import { useState } from "react"
+import type { ProfileOverview } from "@sast-shop/api"
+import { Badge } from "@workspace/ui/components/badge"
+import { Button } from "@workspace/ui/components/button"
 
-type ActivePanel = "addresses" | "qr-codes" | null;
+type ActivePanel = "addresses" | "qr-codes" | null
 
 export function ProfileManagementClient({
   dataSource,
   overview,
   error,
 }: {
-  dataSource: string;
-  overview: ProfileOverview | null;
-  error: string | null;
+  dataSource: string
+  overview: ProfileOverview | null
+  error: string | null
 }) {
-  const [activePanel, setActivePanel] = useState<ActivePanel>(null);
+  const [activePanel, setActivePanel] = useState<ActivePanel>(null)
 
   return (
     <>
@@ -1709,7 +1695,7 @@ export function ProfileManagementClient({
         </div>
       ) : null}
     </>
-  );
+  )
 }
 ```
 
@@ -1718,9 +1704,9 @@ export function ProfileManagementClient({
 Modify `apps/mobile/components/mobile-shell.tsx`:
 
 ```tsx
-import type { ReactNode } from "react";
-import { Button } from "@workspace/ui/components/button";
-import { ProfileManagement } from "./profile-management";
+import type { ReactNode } from "react"
+import { Button } from "@workspace/ui/components/button"
+import { ProfileManagement } from "./profile-management"
 ```
 
 Place `<ProfileManagement />` between the `main` element and fixed bottom `nav`, so the controls are available on every mobile page:
@@ -1740,16 +1726,16 @@ Place `<ProfileManagement />` between the `main` element and fixed bottom `nav`,
 Create `apps/mobile/app/profile/page.tsx`:
 
 ```tsx
-import { getProfileOverview } from "@sast-shop/api";
-import { Badge } from "@workspace/ui/components/badge";
+import { getProfileOverview } from "@sast-shop/api"
+import { Badge } from "@workspace/ui/components/badge"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@workspace/ui/components/card";
-import { mobileAppConfig } from "@/lib/app-config";
+} from "@workspace/ui/components/card"
+import { mobileAppConfig } from "@/lib/app-config"
 
 async function loadProfileOverview() {
   try {
@@ -1759,19 +1745,21 @@ async function loadProfileOverview() {
         connectBaseUrl: mobileAppConfig.connectBaseUrl,
       }),
       error: null,
-    };
+    }
   } catch (error) {
     return {
       overview: null,
       error:
-        error instanceof Error ? error.message : "个人资料暂不可用，请稍后再试",
-    };
+        error instanceof Error
+          ? error.message
+          : "个人资料暂不可用，请稍后再试",
+    }
   }
 }
 
 export default async function ProfilePage() {
-  const result = await loadProfileOverview();
-  const overview = result.overview;
+  const result = await loadProfileOverview()
+  const overview = result.overview
 
   return (
     <div className="flex flex-col gap-4">
@@ -1846,7 +1834,7 @@ export default async function ProfilePage() {
         </>
       ) : null}
     </div>
-  );
+  )
 }
 ```
 
@@ -1871,7 +1859,6 @@ git commit -m "feat: add mobile profile management"
 ## Task 8: Desktop Profile Overview And Global Dialogs
 
 **Files:**
-
 - Create: `apps/desktop/app/profile/page.tsx`
 - Create: `apps/desktop/components/profile-management.tsx`
 - Create: `apps/desktop/components/profile-management-client.tsx`
@@ -1882,13 +1869,13 @@ git commit -m "feat: add mobile profile management"
 Create `apps/desktop/components/profile-management.tsx`:
 
 ```tsx
-import { getProfileOverview, type ProfileOverview } from "@sast-shop/api";
-import { desktopAppConfig } from "@/lib/app-config";
-import { ProfileManagementClient } from "./profile-management-client";
+import { getProfileOverview, type ProfileOverview } from "@sast-shop/api"
+import { desktopAppConfig } from "@/lib/app-config"
+import { ProfileManagementClient } from "./profile-management-client"
 
 async function loadProfileOverview(): Promise<{
-  overview: ProfileOverview | null;
-  error: string | null;
+  overview: ProfileOverview | null
+  error: string | null
 }> {
   try {
     return {
@@ -1897,18 +1884,20 @@ async function loadProfileOverview(): Promise<{
         connectBaseUrl: desktopAppConfig.connectBaseUrl,
       }),
       error: null,
-    };
+    }
   } catch (error) {
     return {
       overview: null,
       error:
-        error instanceof Error ? error.message : "资料管理暂不可用，请稍后再试",
-    };
+        error instanceof Error
+          ? error.message
+          : "资料管理暂不可用，请稍后再试",
+    }
   }
 }
 
 export async function ProfileManagement() {
-  const result = await loadProfileOverview();
+  const result = await loadProfileOverview()
 
   return (
     <ProfileManagementClient
@@ -1916,7 +1905,7 @@ export async function ProfileManagement() {
       overview={result.overview}
       error={result.error}
     />
-  );
+  )
 }
 ```
 
@@ -1925,25 +1914,25 @@ export async function ProfileManagement() {
 Create `apps/desktop/components/profile-management-client.tsx`:
 
 ```tsx
-"use client";
+"use client"
 
-import { useState } from "react";
-import type { ProfileOverview } from "@sast-shop/api";
-import { Badge } from "@workspace/ui/components/badge";
-import { Button } from "@workspace/ui/components/button";
+import { useState } from "react"
+import type { ProfileOverview } from "@sast-shop/api"
+import { Badge } from "@workspace/ui/components/badge"
+import { Button } from "@workspace/ui/components/button"
 
-type ActiveDialog = "addresses" | "qr-codes" | null;
+type ActiveDialog = "addresses" | "qr-codes" | null
 
 export function ProfileManagementClient({
   dataSource,
   overview,
   error,
 }: {
-  dataSource: string;
-  overview: ProfileOverview | null;
-  error: string | null;
+  dataSource: string
+  overview: ProfileOverview | null
+  error: string | null
 }) {
-  const [activeDialog, setActiveDialog] = useState<ActiveDialog>(null);
+  const [activeDialog, setActiveDialog] = useState<ActiveDialog>(null)
 
   return (
     <>
@@ -2001,9 +1990,7 @@ export function ProfileManagementClient({
                     key={address.id}
                     className="grid min-h-14 grid-cols-[7rem_8rem_minmax(0,1fr)_5rem_9rem] items-center gap-4 rounded-lg border border-border px-4"
                   >
-                    <p className="truncate font-medium">
-                      {address.recipientName}
-                    </p>
+                    <p className="truncate font-medium">{address.recipientName}</p>
                     <p className="truncate text-sm text-muted-foreground">
                       {address.recipientPhone}
                     </p>
@@ -2051,7 +2038,7 @@ export function ProfileManagementClient({
         </div>
       ) : null}
     </>
-  );
+  )
 }
 ```
 
@@ -2060,23 +2047,23 @@ export function ProfileManagementClient({
 Modify `apps/desktop/components/desktop-shell.tsx`:
 
 ```tsx
-import type { ReactNode } from "react";
-import { Button } from "@workspace/ui/components/button";
-import { ProfileManagement } from "./profile-management";
+import type { ReactNode } from "react"
+import { Button } from "@workspace/ui/components/button"
+import { ProfileManagement } from "./profile-management"
 ```
 
 Place `<ProfileManagement />` in the sticky header action area before the existing message button:
 
 ```tsx
-<div className="flex shrink-0 items-center gap-2">
-  <ProfileManagement />
-  <Button type="button" variant="ghost" size="sm">
-    消息
-  </Button>
-  <Button type="button" size="sm">
-    新建发布
-  </Button>
-</div>
+              <div className="flex shrink-0 items-center gap-2">
+                <ProfileManagement />
+                <Button type="button" variant="ghost" size="sm">
+                  消息
+                </Button>
+                <Button type="button" size="sm">
+                  新建发布
+                </Button>
+              </div>
 ```
 
 - [ ] **Step 4: Create desktop profile overview page**
@@ -2084,17 +2071,17 @@ Place `<ProfileManagement />` in the sticky header action area before the existi
 Create `apps/desktop/app/profile/page.tsx`:
 
 ```tsx
-import { getProfileOverview } from "@sast-shop/api";
-import { Badge } from "@workspace/ui/components/badge";
-import { Button } from "@workspace/ui/components/button";
+import { getProfileOverview } from "@sast-shop/api"
+import { Badge } from "@workspace/ui/components/badge"
+import { Button } from "@workspace/ui/components/button"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@workspace/ui/components/card";
-import { desktopAppConfig } from "@/lib/app-config";
+} from "@workspace/ui/components/card"
+import { desktopAppConfig } from "@/lib/app-config"
 
 async function loadProfileOverview() {
   try {
@@ -2104,19 +2091,21 @@ async function loadProfileOverview() {
         connectBaseUrl: desktopAppConfig.connectBaseUrl,
       }),
       error: null,
-    };
+    }
   } catch (error) {
     return {
       overview: null,
       error:
-        error instanceof Error ? error.message : "个人资料暂不可用，请稍后再试",
-    };
+        error instanceof Error
+          ? error.message
+          : "个人资料暂不可用，请稍后再试",
+    }
   }
 }
 
 export default async function ProfilePage() {
-  const result = await loadProfileOverview();
-  const overview = result.overview;
+  const result = await loadProfileOverview()
+  const overview = result.overview
 
   return (
     <div className="flex flex-col gap-6">
@@ -2196,9 +2185,7 @@ export default async function ProfilePage() {
                   key={address.id}
                   className="grid min-h-16 grid-cols-[8rem_8rem_minmax(0,1fr)_5rem] items-center gap-4 rounded-lg border border-border px-4"
                 >
-                  <p className="truncate font-medium">
-                    {address.recipientName}
-                  </p>
+                  <p className="truncate font-medium">{address.recipientName}</p>
                   <p className="truncate text-sm text-muted-foreground">
                     {address.recipientPhone}
                   </p>
@@ -2216,7 +2203,7 @@ export default async function ProfilePage() {
         </section>
       ) : null}
     </div>
-  );
+  )
 }
 ```
 
@@ -2241,7 +2228,6 @@ git commit -m "feat: add desktop profile management"
 ## Task 9: Full Verification
 
 **Files:**
-
 - No planned file changes.
 
 - [ ] **Step 1: Run full non-build checks**

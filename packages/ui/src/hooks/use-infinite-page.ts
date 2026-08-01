@@ -35,7 +35,9 @@ export function useInfinitePage<T>({
   totalCount: number;
   loadMore: () => Promise<void>;
 } {
-  const [state, setState] = useState(() => createState(initialPage, identity));
+  const [state, setState] = useState(() =>
+    createState(initialPage, identity),
+  );
   const loadingSourceRef = useRef<object | null>(null);
 
   if (state.initialPage !== initialPage || state.identity !== identity) {

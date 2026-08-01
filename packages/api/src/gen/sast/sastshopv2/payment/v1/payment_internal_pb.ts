@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file sast/sastshopv2/payment/v1/payment_internal.proto.
  */
 export const file_sast_sastshopv2_payment_v1_payment_internal: GenFile = /*@__PURE__*/
-  fileDesc("CjFzYXN0L3Nhc3RzaG9wdjIvcGF5bWVudC92MS9wYXltZW50X2ludGVybmFsLnByb3RvEhpzYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MSJ9ChlDcmVhdGVCaWxsRm9yT3JkZXJSZXF1ZXN0EhMKC3NvdXJjZV90eXBlGAEgASgJEhEKCXNvdXJjZV9pZBgCIAEoAxIQCghwYXllcl9pZBgDIAEoAxIQCghwYXllZV9pZBgEIAEoAxIUCgxhbW91bnRfY2VudHMYBSABKAUiTAoaQ3JlYXRlQmlsbEZvck9yZGVyUmVzcG9uc2USLgoEYmlsbBgBIAEoCzIgLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJpbGwiZwoZQ2FuY2VsQmlsbEJ5U291cmNlUmVxdWVzdBITCgtzb3VyY2VfdHlwZRgBIAEoCRIRCglzb3VyY2VfaWQYAiABKAMSFQoIcGF5ZXJfaWQYAyABKANIAIgBAUILCglfcGF5ZXJfaWQiHAoaQ2FuY2VsQmlsbEJ5U291cmNlUmVzcG9uc2UiKAoUQmF0Y2hHZXRCaWxsc1JlcXVlc3QSEAoIYmlsbF9pZHMYASADKAMiSAoVQmF0Y2hHZXRCaWxsc1Jlc3BvbnNlEi8KBWJpbGxzGAEgAygLMiAuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQmlsbDKaAwoWUGF5bWVudEludGVybmFsU2VydmljZRKDAQoSQ3JlYXRlQmlsbEZvck9yZGVyEjUuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ3JlYXRlQmlsbEZvck9yZGVyUmVxdWVzdBo2LnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkNyZWF0ZUJpbGxGb3JPcmRlclJlc3BvbnNlEoMBChJDYW5jZWxCaWxsQnlTb3VyY2USNS5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5DYW5jZWxCaWxsQnlTb3VyY2VSZXF1ZXN0GjYuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ2FuY2VsQmlsbEJ5U291cmNlUmVzcG9uc2USdAoNQmF0Y2hHZXRCaWxscxIwLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJhdGNoR2V0QmlsbHNSZXF1ZXN0GjEuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQmF0Y2hHZXRCaWxsc1Jlc3BvbnNlYgZwcm90bzM", [file_sast_sastshopv2_payment_v1_bill]);
+  fileDesc("CjFzYXN0L3Nhc3RzaG9wdjIvcGF5bWVudC92MS9wYXltZW50X2ludGVybmFsLnByb3RvEhpzYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MSJ9ChlDcmVhdGVCaWxsRm9yT3JkZXJSZXF1ZXN0EhMKC3NvdXJjZV90eXBlGAEgASgJEhEKCXNvdXJjZV9pZBgCIAEoAxIQCghwYXllcl9pZBgDIAEoAxIQCghwYXllZV9pZBgEIAEoAxIUCgxhbW91bnRfY2VudHMYBSABKAUiTAoaQ3JlYXRlQmlsbEZvck9yZGVyUmVzcG9uc2USLgoEYmlsbBgBIAEoCzIgLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJpbGwiZwoZQ2FuY2VsQmlsbEJ5U291cmNlUmVxdWVzdBITCgtzb3VyY2VfdHlwZRgBIAEoCRIRCglzb3VyY2VfaWQYAiABKAMSFQoIcGF5ZXJfaWQYAyABKANIAIgBAUILCglfcGF5ZXJfaWQiHAoaQ2FuY2VsQmlsbEJ5U291cmNlUmVzcG9uc2UypAIKFlBheW1lbnRJbnRlcm5hbFNlcnZpY2USgwEKEkNyZWF0ZUJpbGxGb3JPcmRlchI1LnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkNyZWF0ZUJpbGxGb3JPcmRlclJlcXVlc3QaNi5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5DcmVhdGVCaWxsRm9yT3JkZXJSZXNwb25zZRKDAQoSQ2FuY2VsQmlsbEJ5U291cmNlEjUuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ2FuY2VsQmlsbEJ5U291cmNlUmVxdWVzdBo2LnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkNhbmNlbEJpbGxCeVNvdXJjZVJlc3BvbnNlYgZwcm90bzM", [file_sast_sastshopv2_payment_v1_bill]);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.CreateBillForOrderRequest
@@ -111,40 +111,6 @@ export const CancelBillBySourceResponseSchema: GenMessage<CancelBillBySourceResp
   messageDesc(file_sast_sastshopv2_payment_v1_payment_internal, 3);
 
 /**
- * @generated from message sast.sastshopv2.payment.v1.BatchGetBillsRequest
- */
-export type BatchGetBillsRequest = Message<"sast.sastshopv2.payment.v1.BatchGetBillsRequest"> & {
-  /**
-   * @generated from field: repeated int64 bill_ids = 1;
-   */
-  billIds: bigint[];
-};
-
-/**
- * Describes the message sast.sastshopv2.payment.v1.BatchGetBillsRequest.
- * Use `create(BatchGetBillsRequestSchema)` to create a new message.
- */
-export const BatchGetBillsRequestSchema: GenMessage<BatchGetBillsRequest> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_payment_v1_payment_internal, 4);
-
-/**
- * @generated from message sast.sastshopv2.payment.v1.BatchGetBillsResponse
- */
-export type BatchGetBillsResponse = Message<"sast.sastshopv2.payment.v1.BatchGetBillsResponse"> & {
-  /**
-   * @generated from field: repeated sast.sastshopv2.payment.v1.Bill bills = 1;
-   */
-  bills: Bill[];
-};
-
-/**
- * Describes the message sast.sastshopv2.payment.v1.BatchGetBillsResponse.
- * Use `create(BatchGetBillsResponseSchema)` to create a new message.
- */
-export const BatchGetBillsResponseSchema: GenMessage<BatchGetBillsResponse> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_payment_v1_payment_internal, 5);
-
-/**
  * @generated from service sast.sastshopv2.payment.v1.PaymentInternalService
  */
 export const PaymentInternalService: GenService<{
@@ -169,14 +135,6 @@ export const PaymentInternalService: GenService<{
     methodKind: "unary";
     input: typeof CancelBillBySourceRequestSchema;
     output: typeof CancelBillBySourceResponseSchema;
-  },
-  /**
-   * @generated from rpc sast.sastshopv2.payment.v1.PaymentInternalService.BatchGetBills
-   */
-  batchGetBills: {
-    methodKind: "unary";
-    input: typeof BatchGetBillsRequestSchema;
-    output: typeof BatchGetBillsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_sast_sastshopv2_payment_v1_payment_internal, 0);

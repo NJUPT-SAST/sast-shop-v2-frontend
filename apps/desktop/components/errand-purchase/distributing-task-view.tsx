@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -12,7 +12,6 @@ import {
 import {
   cancelTask,
   getDistributingTaskDetail,
-  getErrandTaskBrief,
   saveDistributingAssignment,
   transitionToCollectingPayment,
   transitionToDistributing,
@@ -76,18 +75,11 @@ export function DistributingTaskView({
   const router = useRouter();
   const pendingRef = useRef(false);
   const [items, setItems] = useState(detail.items);
-  const [taskUpdatedAt, setTaskUpdatedAt] = useState(detail.taskUpdatedAt);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTaskUpdatedAt((current) => detail.taskUpdatedAt ?? current);
-  }, [detail.taskUpdatedAt]);
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       detail.items.map((item) => [
         item.errandTaskItemId,
-        item.actualUnitPriceCents != null
-          ? formatYuan(item.actualUnitPriceCents)
-          : "",
+        formatYuan(item.actualUnitPriceCents),
       ]),
     ),
   );
@@ -119,17 +111,7 @@ export function DistributingTaskView({
   );
   const processedCount = requesters.filter(isRequesterProcessed).length;
   const allProcessed =
-    items.length > 0 &&
-    items.every((item) => {
-      if (item.purchasedQuantity == null || item.purchasedQuantity === 0) {
-        return true; // 未采购，无需分发
-      }
-      const totalDistributed = item.requesters.reduce(
-        (s, r) => s + Math.max(0, r.distributedQuantity),
-        0,
-      );
-      return totalDistributed >= item.purchasedQuantity;
-    });
+    requesters.length > 0 && processedCount === requesters.length;
   const distributionGroups =
     mode === "pending_distributing"
       ? [
@@ -164,54 +146,6 @@ export function DistributingTaskView({
       item.actualUnitPriceCents,
   );
 
-  function updateRequesterAssignment(
-    itemId: string,
-    assignmentId: string,
-    distributedQuantity: number,
-    assignmentUpdatedAt: string | null,
-  ) {
-    setItems((current) =>
-      current.map((item) =>
-        item.errandTaskItemId !== itemId
-          ? item
-          : {
-              ...item,
-              requesters: item.requesters.map((requester) =>
-                requester.errandTaskAssignmentId !== assignmentId
-                  ? requester
-                  : {
-                      ...requester,
-                      distributedQuantity,
-                      assignmentUpdatedAt,
-                    },
-              ),
-            },
-      ),
-    );
-    setAssignmentDrafts((current) => ({
-      ...current,
-      [assignmentId]:
-        distributedQuantity > 0 ? String(distributedQuantity) : "",
-    }));
-  }
-
-  function applyRefreshedDetail(refreshed: DistributingTaskDetail) {
-    setTaskUpdatedAt((current) => refreshed.taskUpdatedAt ?? current);
-    setItems((current) => {
-      const currentItemUpdatedAtById = new Map(
-        current.map((item) => [item.errandTaskItemId, item.itemUpdatedAt]),
-      );
-
-      return refreshed.items.map((item) => ({
-        ...item,
-        itemUpdatedAt:
-          item.itemUpdatedAt ??
-          currentItemUpdatedAtById.get(item.errandTaskItemId) ??
-          null,
-      }));
-    });
-  }
-
   async function savePrice(item: DistributingTaskItem) {
     const cents = parseCents(priceDrafts[item.errandTaskItemId] ?? "");
     const key = `price-${item.errandTaskItemId}`;
@@ -223,30 +157,25 @@ export function DistributingTaskView({
     setPendingKeys((current) => new Set(current).add(key));
     try {
       await updateActualPrice(
-        {
-          errandTaskId: detail.taskId,
-          errandTaskItemId: item.errandTaskItemId,
-          actualUnitPriceCents: cents,
-          itemUpdatedAt: item.itemUpdatedAt,
-        },
+        detail.taskId,
+        item.errandTaskItemId,
+        cents,
+        null,
         serviceOptions,
       );
       const refreshed = await getDistributingTaskDetail(
         detail.taskId,
         serviceOptions,
       );
-      applyRefreshedDetail(refreshed);
-      setPriceDrafts((current) => {
-        const updated = { ...current };
-        for (const entry of refreshed.items) {
-          if (entry.actualUnitPriceCents != null) {
-            updated[entry.errandTaskItemId] = formatYuan(
-              entry.actualUnitPriceCents,
-            );
-          }
-        }
-        return updated;
-      });
+      setItems(refreshed.items);
+      setPriceDrafts(
+        Object.fromEntries(
+          refreshed.items.map((entry) => [
+            entry.errandTaskItemId,
+            formatYuan(entry.actualUnitPriceCents),
+          ]),
+        ),
+      );
       toast.success("实际价格已保存");
     } catch {
       toast.error("价格保存失败，请刷新任务后重试");
@@ -267,16 +196,17 @@ export function DistributingTaskView({
     const key = requester.errandTaskAssignmentId;
     if (pendingKeys.has(key)) return;
     if (
-      !Number.isInteger(quantity) ||
-      quantity < 0 ||
-      quantity > requester.quantity
+      quantity !== -1 &&
+      (!Number.isInteger(quantity) ||
+        quantity < 0 ||
+        quantity > requester.quantity)
     ) {
       toast.error(`分发数量应为 0 到 ${requester.quantity}`);
       return;
     }
     setPendingKeys((current) => new Set(current).add(key));
     try {
-      const saved = await saveDistributingAssignment(
+      await saveDistributingAssignment(
         {
           errandTaskItemId: item.errandTaskItemId,
           errandTaskAssignmentId: requester.errandTaskAssignmentId,
@@ -285,13 +215,24 @@ export function DistributingTaskView({
         },
         serviceOptions,
       );
-      updateRequesterAssignment(
-        item.errandTaskItemId,
-        requester.errandTaskAssignmentId,
-        quantity,
-        saved.assignmentUpdatedAt ?? requester.assignmentUpdatedAt,
+      const refreshed = await getDistributingTaskDetail(
+        detail.taskId,
+        serviceOptions,
       );
-      toast.success(quantity === 0 ? "已撤销分发结果" : "分发结果已保存");
+      setItems(refreshed.items);
+      setAssignmentDrafts(
+        Object.fromEntries(
+          refreshed.items.flatMap((entry) =>
+            entry.requesters.map((candidate) => [
+              candidate.errandTaskAssignmentId,
+              candidate.distributedQuantity > 0
+                ? String(candidate.distributedQuantity)
+                : "",
+            ]),
+          ),
+        ),
+      );
+      toast.success(quantity === -1 ? "已撤销分发结果" : "分发结果已保存");
     } catch {
       toast.error("分发结果保存失败，请刷新后重试");
     } finally {
@@ -321,7 +262,7 @@ export function DistributingTaskView({
         await transitionToDistributing(
           detail.taskId,
           packagingFeeCents,
-          taskUpdatedAt,
+          null,
           serviceOptions,
         );
         toast.success("已进入分发阶段");
@@ -329,33 +270,18 @@ export function DistributingTaskView({
       } else if (action === "finish") {
         await transitionToCollectingPayment(
           detail.taskId,
-          taskUpdatedAt,
+          null,
           serviceOptions,
         );
         toast.success("已生成参与者账单");
-        router.replace(buildErrandTaskPaymentHref(detail.taskId));
+        router.refresh();
       } else {
-        await cancelTask(detail.taskId, taskUpdatedAt, serviceOptions);
+        await cancelTask(detail.taskId, null, serviceOptions);
         toast.success("采购任务已取消");
-        router.replace("/orders?type=errand&view=captain");
+        router.replace(buildErrandTaskPaymentHref(detail.taskId));
       }
       setConfirmation(null);
     } catch {
-      if (action === "finish") {
-        try {
-          const task = await getErrandTaskBrief(detail.taskId, serviceOptions);
-          if (task?.status === "collecting_payment") {
-            toast.error("账单生成异常，请刷新或联系处理");
-            router.replace(
-              `${buildErrandTaskPaymentHref(detail.taskId)}?notice=billing_generation_failed`,
-            );
-            return;
-          }
-        } catch {
-          // Keep the original transition error as the user-facing result.
-        }
-        router.refresh();
-      }
       toast.error("状态更新失败，请刷新任务后重试");
     } finally {
       pendingRef.current = false;
@@ -434,7 +360,7 @@ export function DistributingTaskView({
               </p>
             </div>
             <Button
-              disabled={!allProcessed || pending || pendingKeys.size > 0}
+              disabled={!allProcessed || pending}
               onClick={() => setConfirmation("finish")}
             >
               <RiCheckboxCircleLine data-icon="inline-start" />
@@ -456,136 +382,131 @@ export function DistributingTaskView({
             <Badge variant="neutral">{group.items.length} 种</Badge>
           </div>
           {group.items.map((item) => (
-            <Card
-              key={item.errandTaskItemId}
-              className="min-w-0 overflow-hidden"
-            >
-              <CardHeader className="flex-row items-start gap-4">
-                <ManagedImage
-                  src={item.imageUrl}
-                  alt={item.title}
-                  className="size-20 shrink-0 rounded-lg border"
-                />
-                <div className="min-w-0 flex-1">
-                  <CardTitle className="truncate text-base">
-                    {item.title}
-                  </CardTitle>
-                  {item.description ? (
-                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                      {item.description}
-                    </p>
-                  ) : null}
-                  <p className="mt-2 text-sm">
-                    参考价 {formatPrice(item.originUnitPriceCents)} · 实购{" "}
-                    {item.purchasedQuantity ?? 0} 件
+          <Card key={item.errandTaskItemId} className="min-w-0 overflow-hidden">
+            <CardHeader className="flex-row items-start gap-4">
+              <ManagedImage
+                src={item.imageUrl}
+                alt={item.title}
+                className="size-20 shrink-0 rounded-lg border"
+              />
+              <div className="min-w-0 flex-1">
+                <CardTitle className="truncate text-base">
+                  {item.title}
+                </CardTitle>
+                {item.description ? (
+                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                    {item.description}
                   </p>
-                </div>
-                <div className="flex shrink-0 items-end gap-2">
-                  {mode === "pending_distributing" ? (
-                    item.purchasedQuantity == null ||
-                    item.purchasedQuantity === 0 ? (
-                      <Badge variant="neutral">未采购</Badge>
+                ) : null}
+                <p className="mt-2 text-sm">
+                  参考价 {formatPrice(item.originUnitPriceCents)} · 实购{" "}
+                  {item.requesters.reduce(
+                    (total, requester) => total + requester.quantity,
+                    0,
+                  )}{" "}
+                  件
+                </p>
+              </div>
+              <div className="flex shrink-0 items-end gap-2">
+                {mode === "pending_distributing" ? (
+                  <div className="flex w-64 items-end gap-2">
+                  <Field>
+                    <FieldLabel
+                      htmlFor={`actual-price-${item.errandTaskItemId}`}
+                    >
+                      实际单价
+                    </FieldLabel>
+                    <InputGroup>
+                      <InputGroupAddon>
+                        <InputGroupText>¥</InputGroupText>
+                      </InputGroupAddon>
+                      <InputGroupInput
+                        id={`actual-price-${item.errandTaskItemId}`}
+                        value={priceDrafts[item.errandTaskItemId] ?? ""}
+                        onChange={(event) =>
+                          moneyPattern.test(event.target.value) &&
+                          setPriceDrafts((current) => ({
+                            ...current,
+                            [item.errandTaskItemId]: event.target.value,
+                          }))
+                        }
+                      />
+                    </InputGroup>
+                  </Field>
+                  <Button
+                    variant="outline"
+                    disabled={
+                      pendingKeys.has(`price-${item.errandTaskItemId}`) ||
+                      parseCents(priceDrafts[item.errandTaskItemId] ?? "") ===
+                        null
+                    }
+                    onClick={() => void savePrice(item)}
+                  >
+                    {pendingKeys.has(`price-${item.errandTaskItemId}`) ? (
+                      <Spinner />
                     ) : (
-                      <div className="flex w-64 items-end gap-2">
-                        <Field>
-                          <FieldLabel
-                            htmlFor={`actual-price-${item.errandTaskItemId}`}
-                          >
-                            实际单价
-                          </FieldLabel>
-                          <InputGroup>
-                            <InputGroupAddon>
-                              <InputGroupText>¥</InputGroupText>
-                            </InputGroupAddon>
-                            <InputGroupInput
-                              id={`actual-price-${item.errandTaskItemId}`}
-                              value={priceDrafts[item.errandTaskItemId] ?? ""}
-                              onChange={(event) =>
-                                moneyPattern.test(event.target.value) &&
-                                setPriceDrafts((current) => ({
-                                  ...current,
-                                  [item.errandTaskItemId]: event.target.value,
-                                }))
-                              }
-                            />
-                          </InputGroup>
-                        </Field>
-                        <Button
-                          variant="outline"
-                          disabled={
-                            pendingKeys.has(`price-${item.errandTaskItemId}`) ||
-                            parseCents(
-                              priceDrafts[item.errandTaskItemId] ?? "",
-                            ) === null
-                          }
-                          onClick={() => void savePrice(item)}
-                        >
-                          {pendingKeys.has(`price-${item.errandTaskItemId}`) ? (
-                            <Spinner />
-                          ) : (
-                            <RiPriceTag3Line />
-                          )}
-                          保存
-                        </Button>
-                      </div>
-                    )
-                  ) : (
-                    <Badge
-                      variant={
-                        item.requesters.every(isRequesterProcessed)
-                          ? "success"
-                          : "neutral"
-                      }
-                    >
-                      {item.requesters.filter(isRequesterProcessed).length}/
-                      {item.requesters.length} 已处理
-                    </Badge>
-                  )}
-                  {mode === "distributing" ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        setExpandedItemId((current) =>
-                          current === item.errandTaskItemId
-                            ? null
-                            : item.errandTaskItemId,
-                        )
-                      }
-                      aria-expanded={expandedItemId === item.errandTaskItemId}
-                    >
-                      {expandedItemId === item.errandTaskItemId
-                        ? "收起"
-                        : "展开"}
-                    </Button>
-                  ) : null}
-                </div>
-              </CardHeader>
-              {mode === "distributing" &&
-              expandedItemId === item.errandTaskItemId ? (
-                <CardContent className="grid gap-2 border-t pt-4">
-                  {item.requesters.map((requester) => (
-                    <RequesterRow
-                      key={requester.errandTaskAssignmentId}
-                      requester={requester}
-                      draft={
-                        assignmentDrafts[requester.errandTaskAssignmentId] ?? ""
-                      }
-                      busy={pendingKeys.has(requester.errandTaskAssignmentId)}
-                      onDraftChange={(value) =>
-                        setAssignmentDrafts((current) => ({
-                          ...current,
-                          [requester.errandTaskAssignmentId]: value,
-                        }))
-                      }
-                      onSave={(quantity) =>
-                        void saveAssignment(item, requester, quantity)
-                      }
-                    />
-                  ))}
-                </CardContent>
-              ) : null}
-            </Card>
+                      <RiPriceTag3Line />
+                    )}
+                    保存
+                  </Button>
+                  </div>
+                ) : (
+                  <Badge
+                    variant={
+                      item.requesters.every(isRequesterProcessed)
+                        ? "success"
+                        : "neutral"
+                    }
+                  >
+                    {item.requesters.filter(isRequesterProcessed).length}/
+                    {item.requesters.length} 已处理
+                  </Badge>
+                )}
+                {mode === "distributing" ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setExpandedItemId((current) =>
+                        current === item.errandTaskItemId
+                          ? null
+                          : item.errandTaskItemId,
+                      )
+                    }
+                    aria-expanded={expandedItemId === item.errandTaskItemId}
+                  >
+                    {expandedItemId === item.errandTaskItemId
+                      ? "收起"
+                      : "展开"}
+                  </Button>
+                ) : null}
+              </div>
+            </CardHeader>
+            {mode === "distributing" &&
+            expandedItemId === item.errandTaskItemId ? (
+              <CardContent className="grid gap-2 border-t pt-4">
+                {item.requesters.map((requester) => (
+                  <RequesterRow
+                    key={requester.errandTaskAssignmentId}
+                    requester={requester}
+                    draft={
+                      assignmentDrafts[requester.errandTaskAssignmentId] ?? ""
+                    }
+                    busy={pendingKeys.has(requester.errandTaskAssignmentId)}
+                    onDraftChange={(value) =>
+                      setAssignmentDrafts((current) => ({
+                        ...current,
+                        [requester.errandTaskAssignmentId]: value,
+                      }))
+                    }
+                    onSave={(quantity) =>
+                      void saveAssignment(item, requester, quantity)
+                    }
+                  />
+                ))}
+              </CardContent>
+            ) : null}
+          </Card>
           ))}
           {group.items.length === 0 ? (
             <Card>
@@ -672,7 +593,7 @@ function RequesterRow({
           variant="outline"
           size="sm"
           disabled={busy}
-          onClick={() => onSave(0)}
+          onClick={() => onSave(-1)}
         >
           撤销
         </Button>
@@ -762,7 +683,7 @@ function ConfirmationDialog({
 }
 
 function isRequesterProcessed(requester: DistributingRequester): boolean {
-  return requester.distributedQuantity > 0;
+  return requester.distributedQuantity >= 0;
 }
 
 function formatYuan(cents: number): string {
