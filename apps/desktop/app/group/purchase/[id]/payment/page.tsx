@@ -12,10 +12,13 @@ import { getServerServiceOptions } from "@/lib/server-service-options";
 
 export default async function PurchasePaymentPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ notice?: string | string[] | undefined }>;
 }) {
   const { id: rawId } = await params;
+  const query = await searchParams;
   const id = parsePositiveInt64RouteId(rawId);
   if (!id) notFound();
 
@@ -26,13 +29,20 @@ export default async function PurchasePaymentPage({
   if (!state) notFound();
   const routeDecision = resolveErrandTaskRoute(id, "payment", state);
   if (routeDecision.kind === "redirect") redirect(routeDecision.href);
+  const detail = await getCollectingPaymentDetail(id, options);
 
   return (
     <CollectingPaymentView
       dataSource={desktopAppConfig.dataSource}
       connectBaseUrl={desktopAppConfig.connectBaseUrl}
-      detail={await getCollectingPaymentDetail(id, options)}
+      detail={detail}
       taskId={id}
+      taskUpdatedAt={detail.taskUpdatedAt ?? state.task.updatedAt}
+      billingNotice={getNotice(query.notice) === "billing_generation_failed"}
     />
   );
+}
+
+function getNotice(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
 }

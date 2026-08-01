@@ -16,7 +16,8 @@ export function createConnectProxyAbort(
 
   return {
     signal,
-    didTimeout: () => timeoutController.signal.aborted && !requestSignal.aborted,
+    didTimeout: () =>
+      timeoutController.signal.aborted && !requestSignal.aborted,
     dispose: () => clearTimeout(timeout),
   };
 }

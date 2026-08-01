@@ -52,12 +52,17 @@ export default async function PurchaseTaskPage({
         dataSource={mobileAppConfig.dataSource}
         connectBaseUrl={mobileAppConfig.connectBaseUrl}
         detail={detail}
+        taskUpdatedAt={detail.taskUpdatedAt ?? state.task.updatedAt}
       />
     );
   }
 
   if (state.kind === "distributing") {
-    const detail = await getDistributingTaskDetail(id, serviceOptions);
+    const detail = await getDistributingTaskDetail(id, {
+      ...serviceOptions,
+      taskItems: state.task.items,
+      taskUpdatedAt: state.task.updatedAt,
+    });
 
     return (
       <DistributingTaskView

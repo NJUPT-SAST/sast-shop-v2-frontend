@@ -1,23 +1,23 @@
 export type ErrandSelectionRequester = {
-  errandDemandItemId: string
-  quantity: number
-  serviceFeePerUnitCents: number
-  updatedAt: string | null
-}
+  errandDemandItemId: string;
+  quantity: number;
+  serviceFeePerUnitCents: number;
+  updatedAt: string | null;
+};
 
 export type ErrandSelectionGroup = {
-  productId: string
-  estimatedUnitPriceCents: number
-  requesters: ErrandSelectionRequester[]
-}
+  productId: string;
+  estimatedUnitPriceCents: number;
+  requesters: ErrandSelectionRequester[];
+};
 
 export type ErrandSelectionTotals = {
-  selectedRowCount: number
-  selectedQuantity: number
-  productAmountCents: number
-  serviceFeeCents: number
-  totalAmountCents: number
-}
+  selectedRowCount: number;
+  selectedQuantity: number;
+  productAmountCents: number;
+  serviceFeeCents: number;
+  totalAmountCents: number;
+};
 
 export function getSelectableRequesterIds(
   groups: ErrandSelectionGroup[],
@@ -26,17 +26,17 @@ export function getSelectableRequesterIds(
     group.requesters
       .filter(isSelectableRequester)
       .map((requester) => requester.errandDemandItemId),
-  )
+  );
 }
 
 export function toggleRequesterSelection(
   selectedIds: Set<string>,
   requesterId: string,
 ): Set<string> {
-  const next = new Set(selectedIds)
-  if (next.has(requesterId)) next.delete(requesterId)
-  else next.add(requesterId)
-  return next
+  const next = new Set(selectedIds);
+  if (next.has(requesterId)) next.delete(requesterId);
+  else next.add(requesterId);
+  return next;
 }
 
 export function toggleProductSelection(
@@ -45,17 +45,17 @@ export function toggleProductSelection(
 ): Set<string> {
   const selectableIds = group.requesters
     .filter(isSelectableRequester)
-    .map((requester) => requester.errandDemandItemId)
-  const next = new Set(selectedIds)
+    .map((requester) => requester.errandDemandItemId);
+  const next = new Set(selectedIds);
   const allSelected =
-    selectableIds.length > 0 && selectableIds.every((id) => next.has(id))
+    selectableIds.length > 0 && selectableIds.every((id) => next.has(id));
 
   for (const id of selectableIds) {
-    if (allSelected) next.delete(id)
-    else next.add(id)
+    if (allSelected) next.delete(id);
+    else next.add(id);
   }
 
-  return next
+  return next;
 }
 
 export function calculateErrandSelectionTotals(
@@ -69,13 +69,13 @@ export function calculateErrandSelectionTotals(
           !isSelectableRequester(requester) ||
           !selectedIds.has(requester.errandDemandItemId)
         ) {
-          return next
+          return next;
         }
 
         const productAmountCents =
-          group.estimatedUnitPriceCents * requester.quantity
+          group.estimatedUnitPriceCents * requester.quantity;
         const serviceFeeCents =
-          requester.serviceFeePerUnitCents * requester.quantity
+          requester.serviceFeePerUnitCents * requester.quantity;
 
         return {
           selectedRowCount: next.selectedRowCount + 1,
@@ -84,7 +84,7 @@ export function calculateErrandSelectionTotals(
           serviceFeeCents: next.serviceFeeCents + serviceFeeCents,
           totalAmountCents:
             next.totalAmountCents + productAmountCents + serviceFeeCents,
-        }
+        };
       }, totals),
     {
       selectedRowCount: 0,
@@ -93,9 +93,9 @@ export function calculateErrandSelectionTotals(
       serviceFeeCents: 0,
       totalAmountCents: 0,
     },
-  )
+  );
 }
 
 function isSelectableRequester(requester: ErrandSelectionRequester): boolean {
-  return Boolean(requester.errandDemandItemId && requester.updatedAt)
+  return Boolean(requester.errandDemandItemId && requester.updatedAt);
 }
