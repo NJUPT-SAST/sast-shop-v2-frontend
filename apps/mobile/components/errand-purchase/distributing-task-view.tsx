@@ -31,6 +31,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@workspace/ui/components/avatar";
+import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
@@ -82,12 +83,14 @@ function formatYuan(cents: number): string {
 }
 
 function isItemFullyDistributed(item: DistributingTaskItem): boolean {
-  const totalTarget = item.requesters.reduce((s, r) => s + r.quantity, 0);
+  if (item.purchasedQuantity == null || item.purchasedQuantity === 0) {
+    return true; // 未采购，无需分发
+  }
   const totalDistributed = item.requesters.reduce(
     (s, r) => s + Math.max(0, r.distributedQuantity),
     0,
   );
-  return totalTarget > 0 && totalDistributed >= totalTarget;
+  return totalDistributed >= item.purchasedQuantity;
 }
 
 export function DistributingTaskView({
@@ -114,10 +117,9 @@ export function DistributingTaskView({
 
   const serviceOptions = { dataSource, connectBaseUrl };
 
-  const purchasedItems = items.filter((i) => {
-    const totalPurchased = i.requesters.reduce((s, r) => s + r.quantity, 0);
-    return totalPurchased > 0;
-  });
+  const purchasedItems = items.filter(
+    (i) => i.purchasedQuantity != null && i.purchasedQuantity > 0,
+  );
 
   const undistributed = purchasedItems.filter(
     (i) => !isItemFullyDistributed(i),
@@ -126,12 +128,14 @@ export function DistributingTaskView({
   const allDistributed =
     items.length > 0 &&
     items.every((item) => {
-      const totalTarget = item.requesters.reduce((s, r) => s + r.quantity, 0);
+      if (item.purchasedQuantity == null || item.purchasedQuantity === 0) {
+        return true; // 未采购，无需分发
+      }
       const totalDistributed = item.requesters.reduce(
         (s, r) => s + Math.max(0, r.distributedQuantity),
         0,
       );
-      return totalTarget > 0 && totalDistributed >= totalTarget;
+      return totalDistributed >= item.purchasedQuantity;
     });
 
   const updateRequester = (
@@ -425,12 +429,13 @@ export function DistributingTaskView({
                     </p>
                     <div className="mt-1 flex flex-wrap items-center gap-1 text-xs text-muted-foreground tabular-nums">
                       <span>
-                        实购{" "}
-                        {item.requesters.reduce((s, r) => s + r.quantity, 0)} 件
+                        实购 {item.purchasedQuantity ?? 0} 件
                       </span>
                       <span aria-hidden="true">·</span>
-                      {item.actualUnitPriceCents !==
-                      item.originUnitPriceCents ? (
+                      {item.actualUnitPriceCents == null ? (
+                        <span className="text-muted-foreground">未定价</span>
+                      ) : item.actualUnitPriceCents !==
+                        item.originUnitPriceCents ? (
                         <span className="text-destructive">
                           改价后 {formatPrice(item.actualUnitPriceCents)}/件
                         </span>
@@ -469,27 +474,38 @@ export function DistributingTaskView({
                     id={`distributing-item-${item.errandTaskItemId}`}
                     className="border-t px-3 pb-3"
                   >
-                    {mode === "pending_distributing" && (
-                      <div className="mb-3 mt-3 flex items-center justify-between gap-3">
-                        <span className="text-sm text-muted-foreground tabular-nums">
-                          单价 {formatPrice(item.actualUnitPriceCents)}/件
-                        </span>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            setDialog({
-                              type: "edit_price",
-                              item,
-                              draft: formatYuan(item.actualUnitPriceCents),
-                            })
-                          }
-                        >
-                          改价
-                        </Button>
-                      </div>
-                    )}
+                    {mode === "pending_distributing" &&
+                      (item.purchasedQuantity == null ||
+                      item.purchasedQuantity === 0 ? (
+                        <div className="mb-3 mt-3">
+                          <Badge variant="neutral">未采购</Badge>
+                        </div>
+                      ) : (
+                        <div className="mb-3 mt-3 flex items-center justify-between gap-3">
+                          <span className="text-sm text-muted-foreground tabular-nums">
+                            {item.actualUnitPriceCents != null
+                              ? `单价 ${formatPrice(item.actualUnitPriceCents)}/件`
+                              : "未定价"}
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              setDialog({
+                                type: "edit_price",
+                                item,
+                                draft:
+                                  item.actualUnitPriceCents != null
+                                    ? formatYuan(item.actualUnitPriceCents)
+                                    : "",
+                              })
+                            }
+                          >
+                            改价
+                          </Button>
+                        </div>
+                      ))}
                     <div className="mt-3 flex flex-col gap-3">
                       {item.requesters.map((requester) => (
                         <RequesterRow
