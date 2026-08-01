@@ -28,7 +28,6 @@
 ### Task 1: Extend UI Theme And Badge Tones
 
 **Files:**
-
 - Modify: `packages/ui/src/styles/globals.css`
 - Modify: `packages/ui/src/components/badge.tsx`
 
@@ -122,8 +121,8 @@ Add dark mode and badge tone variables in `packages/ui/src/styles/globals.css`.
 Modify `packages/ui/src/components/badge.tsx`.
 
 ```tsx
-import * as React from "react";
-import { cn } from "../lib/utils";
+import * as React from "react"
+import { cn } from "../lib/utils"
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?:
@@ -139,14 +138,10 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
     | "attention"
     | "review"
     | "success"
-    | "danger";
+    | "danger"
 }
 
-export function Badge({
-  className,
-  variant = "default",
-  ...props
-}: BadgeProps) {
+export function Badge({ className, variant = "default", ...props }: BadgeProps) {
   return (
     <span
       className={cn(
@@ -173,11 +168,11 @@ export function Badge({
           "border bg-[var(--badge-success)] text-[var(--badge-success-foreground)] border-[var(--badge-success-border)]",
         variant === "danger" &&
           "border bg-[var(--badge-danger)] text-[var(--badge-danger-foreground)] border-[var(--badge-danger-border)]",
-        className,
+        className
       )}
       {...props}
     />
-  );
+  )
 }
 ```
 
@@ -199,7 +194,6 @@ git commit -m "feat: add order status badge tones"
 ### Task 2: Add Errand Task API Facade
 
 **Files:**
-
 - Create: `packages/api/src/services/errand-tasks.ts`
 - Create: `packages/api/src/services/errand-tasks.test.ts`
 - Modify: `packages/api/src/index.ts`
@@ -209,26 +203,26 @@ git commit -m "feat: add order status badge tones"
 Create `packages/api/src/services/errand-tasks.test.ts`.
 
 ```ts
-import { describe, expect, expectTypeOf, it } from "vitest";
-import { FeatureUnavailableError, ValidationError } from "../errors";
+import { describe, expect, expectTypeOf, it } from "vitest"
+import { FeatureUnavailableError, ValidationError } from "../errors"
 import {
   listErrandTasks,
   type ErrandTask,
   type ErrandTaskStatusFilter,
-} from "./errand-tasks";
+} from "./errand-tasks"
 
 const localOptions = {
   dataSource: "mock" as const,
   connectBaseUrl: "http://127.0.0.1:6660",
-};
+}
 
 describe("listErrandTasks", () => {
   it("returns typed errand task briefs", async () => {
     expectTypeOf<ReturnType<typeof listErrandTasks>>().toEqualTypeOf<
       Promise<ErrandTask[]>
-    >();
+    >()
 
-    const tasks = await listErrandTasks(localOptions);
+    const tasks = await listErrandTasks(localOptions)
 
     expect(tasks[0]).toMatchObject({
       id: "7001",
@@ -236,33 +230,33 @@ describe("listErrandTasks", () => {
       storeName: "SAST 小卖部",
       status: "shopping",
       itemTotalCount: 2,
-    });
-  });
+    })
+  })
 
   it("accepts valid status filters", async () => {
-    const status: ErrandTaskStatusFilter = "shopping";
+    const status: ErrandTaskStatusFilter = "shopping"
 
-    await expect(listErrandTasks({ ...localOptions, status })).resolves.toEqual(
-      expect.any(Array),
-    );
-  });
+    await expect(
+      listErrandTasks({ ...localOptions, status })
+    ).resolves.toEqual(expect.any(Array))
+  })
 
   it("rejects invalid pagination", async () => {
     await expect(
-      listErrandTasks({ ...localOptions, page: 0 }),
-    ).rejects.toBeInstanceOf(ValidationError);
+      listErrandTasks({ ...localOptions, page: 0 })
+    ).rejects.toBeInstanceOf(ValidationError)
 
     await expect(
-      listErrandTasks({ ...localOptions, pageSize: 0 }),
-    ).rejects.toBeInstanceOf(ValidationError);
-  });
+      listErrandTasks({ ...localOptions, pageSize: 0 })
+    ).rejects.toBeInstanceOf(ValidationError)
+  })
 
   it("keeps remote explicitly unavailable", async () => {
-    await expect(
-      listErrandTasks({ dataSource: "remote" }),
-    ).rejects.toBeInstanceOf(FeatureUnavailableError);
-  });
-});
+    await expect(listErrandTasks({ dataSource: "remote" })).rejects.toBeInstanceOf(
+      FeatureUnavailableError
+    )
+  })
+})
 ```
 
 - [ ] **Step 2: Run test and verify failure**
@@ -276,15 +270,15 @@ Expected: FAIL because `./errand-tasks` does not exist.
 Create `packages/api/src/services/errand-tasks.ts`.
 
 ```ts
-import { createClient } from "@connectrpc/connect";
-import type { ErrandTask as ProtoErrandTask } from "../gen/sast/sastshopv2/errand/v1/errand_task_pb";
-import { ErrandTaskService } from "../gen/sast/sastshopv2/errand/v1/errand_task_service_pb";
-import { ErrandTaskStatus } from "../gen/sast/sastshopv2/errand/v1/errand_task_status_pb";
-import { resolveDataSource, type ServiceOptions } from "../data-source";
-import { FeatureUnavailableError, ValidationError } from "../errors";
-import { createLocalTransport, requestLocal } from "../local-connect";
+import { createClient } from "@connectrpc/connect"
+import type { ErrandTask as ProtoErrandTask } from "../gen/sast/sastshopv2/errand/v1/errand_task_pb"
+import { ErrandTaskService } from "../gen/sast/sastshopv2/errand/v1/errand_task_service_pb"
+import { ErrandTaskStatus } from "../gen/sast/sastshopv2/errand/v1/errand_task_status_pb"
+import { resolveDataSource, type ServiceOptions } from "../data-source"
+import { FeatureUnavailableError, ValidationError } from "../errors"
+import { createLocalTransport, requestLocal } from "../local-connect"
 
-const MAX_SIGNED_INT32 = 2147483647;
+const MAX_SIGNED_INT32 = 2147483647
 
 export type ErrandTaskStatusValue =
   | "shopping"
@@ -293,48 +287,45 @@ export type ErrandTaskStatusValue =
   | "collecting_payment"
   | "completed"
   | "cancelled"
-  | "unknown";
+  | "unknown"
 
-export type ErrandTaskStatusFilter = Exclude<ErrandTaskStatusValue, "unknown">;
+export type ErrandTaskStatusFilter = Exclude<ErrandTaskStatusValue, "unknown">
 
 export interface ErrandTask {
-  id: string;
-  storeId: string;
-  storeName: string;
-  status: ErrandTaskStatusValue;
-  itemTotalCount: number;
-  createdAt: string | null;
+  id: string
+  storeId: string
+  storeName: string
+  status: ErrandTaskStatusValue
+  itemTotalCount: number
+  createdAt: string | null
 }
 
 export async function listErrandTasks(
   options: ServiceOptions & {
-    status?: ErrandTaskStatusFilter;
-    page?: number;
-    pageSize?: number;
-  } = {},
+    status?: ErrandTaskStatusFilter
+    page?: number
+    pageSize?: number
+  } = {}
 ): Promise<ErrandTask[]> {
-  const request = parseListErrandTasksOptions(options);
-  const dataSource = resolveDataSource(options);
+  const request = parseListErrandTasksOptions(options)
+  const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock" || dataSource === "local") {
-    const client = createClient(
-      ErrandTaskService,
-      createLocalTransport(options),
-    );
+    const client = createClient(ErrandTaskService, createLocalTransport(options))
     const response = await requestLocal("listErrandTasks", () =>
-      client.getErrandTaskList(request),
-    );
+      client.getErrandTaskList(request)
+    )
 
-    return response.errandTasks.map(mapErrandTask);
+    return response.errandTasks.map(mapErrandTask)
   }
 
-  throw new FeatureUnavailableError("listErrandTasks");
+  throw new FeatureUnavailableError("listErrandTasks")
 }
 
 function parseListErrandTasksOptions(options: {
-  status?: ErrandTaskStatusFilter;
-  page?: number;
-  pageSize?: number;
+  status?: ErrandTaskStatusFilter
+  page?: number
+  pageSize?: number
 }) {
   return {
     page: parsePositiveInteger(options.page ?? 1, "页码不正确"),
@@ -342,7 +333,7 @@ function parseListErrandTasksOptions(options: {
     ...(options.status
       ? { filterStatus: parseStatusFilter(options.status) }
       : {}),
-  };
+  }
 }
 
 function mapErrandTask(task: ProtoErrandTask): ErrandTask {
@@ -353,64 +344,63 @@ function mapErrandTask(task: ProtoErrandTask): ErrandTask {
     status: mapStatusFromProto(task.status),
     itemTotalCount: task.items.length,
     createdAt: formatTimestamp(task.createdAt),
-  };
+  }
 }
 
 function parseStatusFilter(status: string): ErrandTaskStatus {
-  const protoStatus = mapStatusToProto(status);
+  const protoStatus = mapStatusToProto(status)
 
   if (protoStatus === undefined) {
-    throw new ValidationError("团长任务状态不正确");
+    throw new ValidationError("团长任务状态不正确")
   }
 
-  return protoStatus;
+  return protoStatus
 }
 
 function mapStatusFromProto(status: ErrandTaskStatus): ErrandTaskStatusValue {
-  if (status === ErrandTaskStatus.SHOPPING) return "shopping";
+  if (status === ErrandTaskStatus.SHOPPING) return "shopping"
   if (status === ErrandTaskStatus.PENDING_DISTRIBUTING) {
-    return "pending_distributing";
+    return "pending_distributing"
   }
-  if (status === ErrandTaskStatus.DISTRIBUTING) return "distributing";
-  if (status === ErrandTaskStatus.COLLECTING_PAYMENT)
-    return "collecting_payment";
-  if (status === ErrandTaskStatus.COMPLETED) return "completed";
-  if (status === ErrandTaskStatus.CANCELLED) return "cancelled";
-  return "unknown";
+  if (status === ErrandTaskStatus.DISTRIBUTING) return "distributing"
+  if (status === ErrandTaskStatus.COLLECTING_PAYMENT) return "collecting_payment"
+  if (status === ErrandTaskStatus.COMPLETED) return "completed"
+  if (status === ErrandTaskStatus.CANCELLED) return "cancelled"
+  return "unknown"
 }
 
 function mapStatusToProto(status: string): ErrandTaskStatus | undefined {
-  if (status === "shopping") return ErrandTaskStatus.SHOPPING;
+  if (status === "shopping") return ErrandTaskStatus.SHOPPING
   if (status === "pending_distributing") {
-    return ErrandTaskStatus.PENDING_DISTRIBUTING;
+    return ErrandTaskStatus.PENDING_DISTRIBUTING
   }
-  if (status === "distributing") return ErrandTaskStatus.DISTRIBUTING;
+  if (status === "distributing") return ErrandTaskStatus.DISTRIBUTING
   if (status === "collecting_payment") {
-    return ErrandTaskStatus.COLLECTING_PAYMENT;
+    return ErrandTaskStatus.COLLECTING_PAYMENT
   }
-  if (status === "completed") return ErrandTaskStatus.COMPLETED;
-  if (status === "cancelled") return ErrandTaskStatus.CANCELLED;
-  return undefined;
+  if (status === "completed") return ErrandTaskStatus.COMPLETED
+  if (status === "cancelled") return ErrandTaskStatus.CANCELLED
+  return undefined
 }
 
 function parsePositiveInteger(value: number, message: string): number {
   if (!Number.isInteger(value) || value <= 0 || value > MAX_SIGNED_INT32) {
-    throw new ValidationError(message);
+    throw new ValidationError(message)
   }
 
-  return value;
+  return value
 }
 
 function formatTimestamp(
-  timestamp: { seconds: bigint; nanos: number } | undefined,
+  timestamp: { seconds: bigint; nanos: number } | undefined
 ): string | null {
   if (!timestamp) {
-    return null;
+    return null
   }
 
   return new Date(
-    Number(timestamp.seconds) * 1000 + Math.floor(timestamp.nanos / 1_000_000),
-  ).toISOString();
+    Number(timestamp.seconds) * 1000 + Math.floor(timestamp.nanos / 1_000_000)
+  ).toISOString()
 }
 ```
 
@@ -424,7 +414,7 @@ export {
   type ErrandTask,
   type ErrandTaskStatusFilter,
   type ErrandTaskStatusValue,
-} from "./services/errand-tasks";
+} from "./services/errand-tasks"
 ```
 
 - [ ] **Step 5: Run tests**
@@ -445,7 +435,6 @@ git commit -m "feat: add errand task list facade"
 ### Task 3: Add Order Filter Model Helpers
 
 **Files:**
-
 - Create: `apps/mobile/lib/order-filters.ts`
 - Create: `apps/mobile/lib/order-filters.test.ts`
 
@@ -454,7 +443,7 @@ git commit -m "feat: add errand task list facade"
 Create `apps/mobile/lib/order-filters.test.ts`.
 
 ```ts
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest"
 import {
   DEFAULT_ORDER_FILTERS,
   getDefaultViewForType,
@@ -463,51 +452,47 @@ import {
   getViewOptions,
   isViewForType,
   updateOrderFilterParams,
-} from "./order-filters";
+} from "./order-filters"
 
 describe("order filters", () => {
   it("defaults to spot buyer", () => {
     expect(getOrderFiltersFromParams(new URLSearchParams())).toEqual(
-      DEFAULT_ORDER_FILTERS,
-    );
-  });
+      DEFAULT_ORDER_FILTERS
+    )
+  })
 
   it("coerces invalid view to the selected type default", () => {
-    const params = new URLSearchParams("type=spot&view=captain");
+    const params = new URLSearchParams("type=spot&view=captain")
 
     expect(getOrderFiltersFromParams(params)).toMatchObject({
       type: "spot",
       view: "buyer",
       status: "all",
       query: "",
-    });
-  });
+    })
+  })
 
   it("returns type-specific view options", () => {
     expect(getViewOptions("spot").map((option) => option.value)).toEqual([
       "buyer",
       "seller",
-    ]);
+    ])
     expect(getViewOptions("errand").map((option) => option.value)).toEqual([
       "participant",
       "captain",
-    ]);
-  });
+    ])
+  })
 
   it("returns status options for each type and view", () => {
-    expect(
-      getStatusOptions("spot", "seller").map((option) => option.value),
-    ).toEqual([
+    expect(getStatusOptions("spot", "seller").map((option) => option.value)).toEqual([
       "all",
       "pending_confirm",
       "paid",
       "processing",
       "completed",
       "cancelled",
-    ]);
-    expect(
-      getStatusOptions("errand", "captain").map((option) => option.value),
-    ).toEqual([
+    ])
+    expect(getStatusOptions("errand", "captain").map((option) => option.value)).toEqual([
       "all",
       "shopping",
       "pending_distributing",
@@ -515,41 +500,41 @@ describe("order filters", () => {
       "collecting_payment",
       "completed",
       "cancelled",
-    ]);
-  });
+    ])
+  })
 
   it("knows valid view and type combinations", () => {
-    expect(isViewForType("spot", "buyer")).toBe(true);
-    expect(isViewForType("spot", "captain")).toBe(false);
-    expect(getDefaultViewForType("errand")).toBe("participant");
-  });
+    expect(isViewForType("spot", "buyer")).toBe(true)
+    expect(isViewForType("spot", "captain")).toBe(false)
+    expect(getDefaultViewForType("errand")).toBe("participant")
+  })
 
   it("resets status and query when type changes", () => {
     const params = new URLSearchParams(
-      "type=spot&view=seller&status=paid&q=drink",
-    );
+      "type=spot&view=seller&status=paid&q=drink"
+    )
 
     const next = updateOrderFilterParams(params, {
       type: "errand",
       rememberedViews: { spot: "seller", errand: "captain" },
-    });
+    })
 
-    expect(next.toString()).toBe("type=errand&view=captain");
-  });
+    expect(next.toString()).toBe("type=errand&view=captain")
+  })
 
   it("resets status and query when view changes", () => {
     const params = new URLSearchParams(
-      "type=spot&view=buyer&status=pending_payment&q=sticker",
-    );
+      "type=spot&view=buyer&status=pending_payment&q=sticker"
+    )
 
     const next = updateOrderFilterParams(params, {
       view: "seller",
       rememberedViews: { spot: "buyer", errand: "participant" },
-    });
+    })
 
-    expect(next.toString()).toBe("view=seller");
-  });
-});
+    expect(next.toString()).toBe("view=seller")
+  })
+})
 ```
 
 - [ ] **Step 2: Run test and verify failure**
@@ -567,61 +552,61 @@ import type {
   BuyerErrandOrderStatus,
   ErrandTaskStatusValue,
   SpotOrderStatusValue,
-} from "@sast-shop/api";
-import type { BadgeProps } from "@workspace/ui/components/badge";
+} from "@sast-shop/api"
+import type { BadgeProps } from "@workspace/ui/components/badge"
 
-export type OrderType = "spot" | "errand";
-export type SpotOrderView = "buyer" | "seller";
-export type ErrandOrderView = "participant" | "captain";
-export type OrderView = SpotOrderView | ErrandOrderView;
+export type OrderType = "spot" | "errand"
+export type SpotOrderView = "buyer" | "seller"
+export type ErrandOrderView = "participant" | "captain"
+export type OrderView = SpotOrderView | ErrandOrderView
 export type OrderStatus =
   | "all"
   | "pending_confirm"
   | "processing"
   | BuyerErrandOrderStatus
   | ErrandTaskStatusValue
-  | SpotOrderStatusValue;
+  | SpotOrderStatusValue
 
-export type RememberedOrderViews = Record<OrderType, OrderView>;
+export type RememberedOrderViews = Record<OrderType, OrderView>
 
 export type OrderFilters = {
-  type: OrderType;
-  view: OrderView;
-  status: OrderStatus;
-  query: string;
-};
+  type: OrderType
+  view: OrderView
+  status: OrderStatus
+  query: string
+}
 
 export type OrderOption<T extends string> = {
-  value: T;
-  label: string;
-};
+  value: T
+  label: string
+}
 
 export const DEFAULT_REMEMBERED_ORDER_VIEWS: RememberedOrderViews = {
   spot: "buyer",
   errand: "participant",
-};
+}
 
 export const DEFAULT_ORDER_FILTERS = {
   type: "spot",
   view: "buyer",
   status: "all",
   query: "",
-} satisfies OrderFilters;
+} satisfies OrderFilters
 
 export const orderTypeOptions: OrderOption<OrderType>[] = [
   { value: "spot", label: "现货" },
   { value: "errand", label: "跑腿" },
-];
+]
 
 const spotViewOptions: OrderOption<SpotOrderView>[] = [
   { value: "buyer", label: "我买" },
   { value: "seller", label: "我卖" },
-];
+]
 
 const errandViewOptions: OrderOption<ErrandOrderView>[] = [
   { value: "participant", label: "拼单" },
   { value: "captain", label: "团长" },
-];
+]
 
 const spotBuyerStatusOptions: OrderOption<OrderStatus>[] = [
   { value: "all", label: "全部" },
@@ -629,7 +614,7 @@ const spotBuyerStatusOptions: OrderOption<OrderStatus>[] = [
   { value: "processing", label: "处理中" },
   { value: "completed", label: "已完成" },
   { value: "cancelled", label: "已取消" },
-];
+]
 
 const spotSellerStatusOptions: OrderOption<OrderStatus>[] = [
   { value: "all", label: "全部" },
@@ -638,7 +623,7 @@ const spotSellerStatusOptions: OrderOption<OrderStatus>[] = [
   { value: "processing", label: "处理中" },
   { value: "completed", label: "已完成" },
   { value: "cancelled", label: "已取消" },
-];
+]
 
 const errandParticipantStatusOptions: OrderOption<OrderStatus>[] = [
   { value: "all", label: "全部" },
@@ -649,7 +634,7 @@ const errandParticipantStatusOptions: OrderOption<OrderStatus>[] = [
   { value: "pending_payment", label: "待支付" },
   { value: "completed", label: "已完成" },
   { value: "cancelled", label: "已取消" },
-];
+]
 
 const errandCaptainStatusOptions: OrderOption<OrderStatus>[] = [
   { value: "all", label: "全部" },
@@ -659,26 +644,25 @@ const errandCaptainStatusOptions: OrderOption<OrderStatus>[] = [
   { value: "collecting_payment", label: "收款中" },
   { value: "completed", label: "已完成" },
   { value: "cancelled", label: "已取消" },
-];
+]
 
 export function getViewOptions(type: OrderType) {
-  return type === "spot" ? spotViewOptions : errandViewOptions;
+  return type === "spot" ? spotViewOptions : errandViewOptions
 }
 
 export function getStatusOptions(type: OrderType, view: OrderView) {
-  if (type === "spot" && view === "seller") return spotSellerStatusOptions;
-  if (type === "errand" && view === "captain")
-    return errandCaptainStatusOptions;
-  if (type === "errand") return errandParticipantStatusOptions;
-  return spotBuyerStatusOptions;
+  if (type === "spot" && view === "seller") return spotSellerStatusOptions
+  if (type === "errand" && view === "captain") return errandCaptainStatusOptions
+  if (type === "errand") return errandParticipantStatusOptions
+  return spotBuyerStatusOptions
 }
 
 export function getDefaultViewForType(type: OrderType): OrderView {
-  return type === "spot" ? "buyer" : "participant";
+  return type === "spot" ? "buyer" : "participant"
 }
 
 export function isOrderType(value: string | null): value is OrderType {
-  return value === "spot" || value === "errand";
+  return value === "spot" || value === "errand"
 }
 
 export function isOrderView(value: string | null): value is OrderView {
@@ -687,103 +671,99 @@ export function isOrderView(value: string | null): value is OrderView {
     value === "seller" ||
     value === "participant" ||
     value === "captain"
-  );
+  )
 }
 
 export function isViewForType(type: OrderType, view: OrderView) {
-  return getViewOptions(type).some((option) => option.value === view);
+  return getViewOptions(type).some((option) => option.value === view)
 }
 
 export function isStatusForView(
   type: OrderType,
   view: OrderView,
-  status: string | null,
+  status: string | null
 ): status is OrderStatus {
-  return getStatusOptions(type, view).some((option) => option.value === status);
+  return getStatusOptions(type, view).some((option) => option.value === status)
 }
 
-export function getOrderFiltersFromParams(
-  params: URLSearchParams,
-): OrderFilters {
+export function getOrderFiltersFromParams(params: URLSearchParams): OrderFilters {
   const type = isOrderType(params.get("type"))
     ? params.get("type")
-    : DEFAULT_ORDER_FILTERS.type;
-  const requestedView = params.get("view");
+    : DEFAULT_ORDER_FILTERS.type
+  const requestedView = params.get("view")
   const view =
     isOrderView(requestedView) && isViewForType(type, requestedView)
       ? requestedView
-      : getDefaultViewForType(type);
+      : getDefaultViewForType(type)
   const status = isStatusForView(type, view, params.get("status"))
     ? params.get("status")
-    : DEFAULT_ORDER_FILTERS.status;
+    : DEFAULT_ORDER_FILTERS.status
 
   return {
     type,
     view,
     status,
     query: params.get("q") ?? DEFAULT_ORDER_FILTERS.query,
-  };
+  }
 }
 
 export function updateOrderFilterParams(
   currentParams: URLSearchParams,
   updates: {
-    type?: OrderType;
-    view?: OrderView;
-    status?: OrderStatus;
-    q?: string;
-    rememberedViews: RememberedOrderViews;
-  },
+    type?: OrderType
+    view?: OrderView
+    status?: OrderStatus
+    q?: string
+    rememberedViews: RememberedOrderViews
+  }
 ) {
-  const current = getOrderFiltersFromParams(currentParams);
-  const nextType = updates.type ?? current.type;
-  const typeChanged = nextType !== current.type;
+  const current = getOrderFiltersFromParams(currentParams)
+  const nextType = updates.type ?? current.type
+  const typeChanged = nextType !== current.type
   const nextView =
     updates.view ??
     (typeChanged
-      ? (updates.rememberedViews[nextType] ?? getDefaultViewForType(nextType))
-      : current.view);
+      ? updates.rememberedViews[nextType] ?? getDefaultViewForType(nextType)
+      : current.view)
   const view = isViewForType(nextType, nextView)
     ? nextView
-    : getDefaultViewForType(nextType);
-  const viewChanged = view !== current.view;
+    : getDefaultViewForType(nextType)
+  const viewChanged = view !== current.view
   const nextStatus =
-    typeChanged || viewChanged ? "all" : (updates.status ?? current.status);
-  const nextQuery =
-    typeChanged || viewChanged ? "" : (updates.q ?? current.query);
-  const next = new URLSearchParams();
+    typeChanged || viewChanged
+      ? "all"
+      : updates.status ?? current.status
+  const nextQuery = typeChanged || viewChanged ? "" : updates.q ?? current.query
+  const next = new URLSearchParams()
 
-  setQueryParam(next, "type", nextType, "spot");
-  setQueryParam(next, "view", view, getDefaultViewForType(nextType));
-  setQueryParam(next, "status", nextStatus, "all");
-  setQueryParam(next, "q", nextQuery.trim(), "");
+  setQueryParam(next, "type", nextType, "spot")
+  setQueryParam(next, "view", view, getDefaultViewForType(nextType))
+  setQueryParam(next, "status", nextStatus, "all")
+  setQueryParam(next, "q", nextQuery.trim(), "")
 
-  return next;
+  return next
 }
 
 export function getStatusLabel(status: OrderStatus) {
-  return (
-    getAllStatusOptions().find((option) => option.value === status)?.label ??
-    "未知"
-  );
+  return getAllStatusOptions().find((option) => option.value === status)?.label ?? "未知"
 }
 
 export function getStatusBadgeVariant(
-  status: OrderStatus,
+  status: OrderStatus
 ): NonNullable<BadgeProps["variant"]> {
-  if (status === "open") return "neutral";
-  if (status === "shopping") return "warning";
+  if (status === "open") return "neutral"
+  if (status === "shopping") return "warning"
   if (status === "pending_distributing" || status === "distributing") {
-    return "info";
+    return "info"
   }
-  if (status === "pending_payment") return "payment";
+  if (status === "pending_payment") return "payment"
   if (status === "pending_confirm" || status === "collecting_payment") {
-    return "attention";
+    return "attention"
   }
-  if (status === "paid") return "review";
-  if (status === "completed") return "success";
-  if (status === "cancelled") return "danger";
-  return "neutral";
+  if (status === "paid") return "review"
+  if (status === "completed") return "success"
+  if (status === "cancelled") return "danger"
+  return "neutral"
 }
 
 function getAllStatusOptions() {
@@ -792,17 +772,17 @@ function getAllStatusOptions() {
     ...spotSellerStatusOptions,
     ...errandParticipantStatusOptions,
     ...errandCaptainStatusOptions,
-  ];
+  ]
 }
 
 function setQueryParam(
   params: URLSearchParams,
   key: string,
   value: string,
-  defaultValue: string,
+  defaultValue: string
 ) {
   if (value && value !== defaultValue) {
-    params.set(key, value);
+    params.set(key, value)
   }
 }
 ```
@@ -825,7 +805,6 @@ git commit -m "feat: model order page filters"
 ### Task 4: Add PerspectiveSwitch
 
 **Files:**
-
 - Create: `apps/mobile/components/perspective-switch.tsx`
 
 - [ ] **Step 1: Create component**
@@ -833,19 +812,19 @@ git commit -m "feat: model order page filters"
 Create `apps/mobile/components/perspective-switch.tsx`.
 
 ```tsx
-"use client";
+"use client"
 
-import { useId, type KeyboardEvent } from "react";
-import { cn } from "@workspace/ui/lib/utils";
-import type { OrderOption, OrderView } from "@/lib/order-filters";
+import { useId, type KeyboardEvent } from "react"
+import { cn } from "@workspace/ui/lib/utils"
+import type { OrderOption, OrderView } from "@/lib/order-filters"
 
 type PerspectiveSwitchProps<TValue extends OrderView> = {
-  label: string;
-  value: TValue;
-  options: OrderOption<TValue>[];
-  onValueChange: (value: TValue) => void;
-  className?: string;
-};
+  label: string
+  value: TValue
+  options: OrderOption<TValue>[]
+  onValueChange: (value: TValue) => void
+  className?: string
+}
 
 export function PerspectiveSwitch<TValue extends OrderView>({
   label,
@@ -854,32 +833,32 @@ export function PerspectiveSwitch<TValue extends OrderView>({
   onValueChange,
   className,
 }: PerspectiveSwitchProps<TValue>) {
-  const labelId = useId();
+  const labelId = useId()
   const activeIndex = Math.max(
     options.findIndex((option) => option.value === value),
-    0,
-  );
+    0
+  )
 
   function moveSelection(direction: 1 | -1) {
     const nextIndex =
-      (activeIndex + direction + options.length) % options.length;
-    const nextOption = options[nextIndex];
+      (activeIndex + direction + options.length) % options.length
+    const nextOption = options[nextIndex]
 
     if (nextOption) {
-      onValueChange(nextOption.value);
+      onValueChange(nextOption.value)
     }
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === "ArrowRight" || event.key === "ArrowDown") {
-      event.preventDefault();
-      moveSelection(1);
-      return;
+      event.preventDefault()
+      moveSelection(1)
+      return
     }
 
     if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
-      event.preventDefault();
-      moveSelection(-1);
+      event.preventDefault()
+      moveSelection(-1)
     }
   }
 
@@ -902,7 +881,7 @@ export function PerspectiveSwitch<TValue extends OrderView>({
           }}
         />
         {options.map((option) => {
-          const selected = option.value === value;
+          const selected = option.value === value
 
           return (
             <button
@@ -913,19 +892,17 @@ export function PerspectiveSwitch<TValue extends OrderView>({
               tabIndex={selected ? 0 : -1}
               className={cn(
                 "relative z-10 rounded-full px-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                selected
-                  ? "text-primary-foreground"
-                  : "text-background dark:text-foreground",
+                selected ? "text-primary-foreground" : "text-background dark:text-foreground"
               )}
               onClick={() => onValueChange(option.value)}
             >
               {option.label}
             </button>
-          );
+          )
         })}
       </div>
     </div>
-  );
+  )
 }
 ```
 
@@ -947,7 +924,6 @@ git commit -m "feat: add order perspective switch"
 ### Task 5: Load All Order Lists
 
 **Files:**
-
 - Modify: `apps/mobile/app/orders/page.tsx`
 
 - [ ] **Step 1: Update server data loading**
@@ -959,26 +935,22 @@ import {
   listBuyerErrandOrders,
   listErrandTasks,
   listSpotOrders,
-} from "@sast-shop/api";
-import { OrdersView } from "@/components/orders-view";
-import { mobileAppConfig } from "@/lib/app-config";
+} from "@sast-shop/api"
+import { OrdersView } from "@/components/orders-view"
+import { mobileAppConfig } from "@/lib/app-config"
 
 async function getOrders() {
   const options = {
     dataSource: mobileAppConfig.dataSource,
     connectBaseUrl: mobileAppConfig.connectBaseUrl,
-  };
-  const [
-    spotBuyerResult,
-    spotSellerResult,
-    buyerErrandResult,
-    errandTaskResult,
-  ] = await Promise.allSettled([
-    listSpotOrders({ ...options, perspective: "purchaser" }),
-    listSpotOrders({ ...options, perspective: "seller" }),
-    listBuyerErrandOrders(options),
-    listErrandTasks(options),
-  ]);
+  }
+  const [spotBuyerResult, spotSellerResult, buyerErrandResult, errandTaskResult] =
+    await Promise.allSettled([
+      listSpotOrders({ ...options, perspective: "purchaser" }),
+      listSpotOrders({ ...options, perspective: "seller" }),
+      listBuyerErrandOrders(options),
+      listErrandTasks(options),
+    ])
 
   return {
     spotBuyerOrders:
@@ -995,13 +967,13 @@ async function getOrders() {
       errandParticipant: buyerErrandResult.status === "rejected",
       errandCaptain: errandTaskResult.status === "rejected",
     },
-  };
+  }
 }
 
 export default async function OrdersPage() {
-  const result = await getOrders();
+  const result = await getOrders()
 
-  return <OrdersView {...result} />;
+  return <OrdersView {...result} />
 }
 ```
 
@@ -1020,7 +992,6 @@ Do not commit this task until `OrdersView` is updated in Task 6.
 ### Task 6: Rewrite OrdersView
 
 **Files:**
-
 - Modify: `apps/mobile/components/orders-view.tsx`
 
 - [ ] **Step 1: Replace local types and props**
@@ -1029,29 +1000,29 @@ Update `OrdersView` props and renderable order model.
 
 ```tsx
 type RenderableOrder = {
-  id: string;
-  orderNo: string;
-  type: OrderType;
-  view: OrderView;
-  title: string;
-  store: string;
-  status: Exclude<OrderStatus, "all">;
-  amount: number | null;
-  summary: string;
-};
+  id: string
+  orderNo: string
+  type: OrderType
+  view: OrderView
+  title: string
+  store: string
+  status: Exclude<OrderStatus, "all">
+  amount: number | null
+  summary: string
+}
 
 type OrdersViewProps = {
-  spotBuyerOrders: SpotOrder[];
-  spotSellerOrders: SpotOrder[];
-  buyerErrandOrders: BuyerErrandOrder[];
-  errandTasks: ErrandTask[];
+  spotBuyerOrders: SpotOrder[]
+  spotSellerOrders: SpotOrder[]
+  buyerErrandOrders: BuyerErrandOrder[]
+  errandTasks: ErrandTask[]
   errors: {
-    spotBuyer: boolean;
-    spotSeller: boolean;
-    errandParticipant: boolean;
-    errandCaptain: boolean;
-  };
-};
+    spotBuyer: boolean
+    spotSeller: boolean
+    errandParticipant: boolean
+    errandCaptain: boolean
+  }
+}
 ```
 
 - [ ] **Step 2: Replace URL state handling**
@@ -1059,58 +1030,51 @@ type OrdersViewProps = {
 Use `getOrderFiltersFromParams` and `updateOrderFilterParams`.
 
 ```tsx
-const [filters, setFilters] = useState<OrderFilters>(DEFAULT_ORDER_FILTERS);
-const [rememberedViews, setRememberedViews] = useState<RememberedOrderViews>(
-  DEFAULT_REMEMBERED_ORDER_VIEWS,
-);
+const [filters, setFilters] = useState<OrderFilters>(DEFAULT_ORDER_FILTERS)
+const [rememberedViews, setRememberedViews] =
+  useState<RememberedOrderViews>(DEFAULT_REMEMBERED_ORDER_VIEWS)
 
 useEffect(() => {
   const syncFiltersFromLocation = () => {
     const nextFilters = getOrderFiltersFromParams(
-      new URLSearchParams(window.location.search),
-    );
+      new URLSearchParams(window.location.search)
+    )
 
-    setFilters(nextFilters);
+    setFilters(nextFilters)
     setRememberedViews((current) => ({
       ...current,
       [nextFilters.type]: nextFilters.view,
-    }));
-  };
+    }))
+  }
 
-  syncFiltersFromLocation();
-  window.addEventListener("popstate", syncFiltersFromLocation);
+  syncFiltersFromLocation()
+  window.addEventListener("popstate", syncFiltersFromLocation)
 
   return () => {
-    window.removeEventListener("popstate", syncFiltersFromLocation);
-  };
-}, []);
+    window.removeEventListener("popstate", syncFiltersFromLocation)
+  }
+}, [])
 
 function updateQuery(updates: {
-  type?: OrderType;
-  view?: OrderView;
-  status?: OrderStatus;
-  q?: string;
+  type?: OrderType
+  view?: OrderView
+  status?: OrderStatus
+  q?: string
 }) {
-  const params = updateOrderFilterParams(
-    new URLSearchParams(window.location.search),
-    {
-      ...updates,
-      rememberedViews,
-    },
-  );
-  const nextFilters = getOrderFiltersFromParams(params);
+  const params = updateOrderFilterParams(new URLSearchParams(window.location.search), {
+    ...updates,
+    rememberedViews,
+  })
+  const nextFilters = getOrderFiltersFromParams(params)
 
-  setFilters(nextFilters);
+  setFilters(nextFilters)
   setRememberedViews((current) => ({
     ...current,
     [nextFilters.type]: nextFilters.view,
-  }));
-  router.replace(
-    params.toString() ? `${pathname}?${params.toString()}` : pathname,
-    {
-      scroll: false,
-    },
-  );
+  }))
+  router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname, {
+    scroll: false,
+  })
 }
 ```
 
@@ -1124,13 +1088,10 @@ const orders = useMemo<RenderableOrder[]>(
     ...buyerErrandOrders.map(mapBuyerErrandOrder),
     ...errandTasks.map(mapErrandTask),
   ],
-  [buyerErrandOrders, errandTasks, spotBuyerOrders, spotSellerOrders],
-);
+  [buyerErrandOrders, errandTasks, spotBuyerOrders, spotSellerOrders]
+)
 
-function mapSpotOrder(
-  order: SpotOrder,
-  view: "buyer" | "seller",
-): RenderableOrder {
+function mapSpotOrder(order: SpotOrder, view: "buyer" | "seller"): RenderableOrder {
   return {
     id: `${view}-${order.id}`,
     orderNo: order.orderNo || order.id,
@@ -1141,7 +1102,7 @@ function mapSpotOrder(
     status: normalizeSpotStatus(order.status, view),
     amount: order.totalAmountCents,
     summary: `现货 x${order.quantity}`,
-  };
+  }
 }
 
 function mapBuyerErrandOrder(order: BuyerErrandOrder): RenderableOrder {
@@ -1161,9 +1122,9 @@ function mapBuyerErrandOrder(order: BuyerErrandOrder): RenderableOrder {
       order.totalActualAmountCents ??
       order.totalOriginAmountCents + order.totalServiceFeeCents,
     summary: `${order.productTotalCount} 种商品 · 跑腿费 ${formatPrice(
-      order.totalServiceFeeCents,
+      order.totalServiceFeeCents
     )}`,
-  };
+  }
 }
 
 function mapErrandTask(task: ErrandTask): RenderableOrder {
@@ -1177,22 +1138,22 @@ function mapErrandTask(task: ErrandTask): RenderableOrder {
     status: task.status,
     amount: null,
     summary: `${task.itemTotalCount} 种商品`,
-  };
+  }
 }
 
 function normalizeSpotStatus(
   status: SpotOrder["status"],
-  view: "buyer" | "seller",
+  view: "buyer" | "seller"
 ): Exclude<OrderStatus, "all"> {
   if (view === "seller" && status === "pending_payment") {
-    return "pending_confirm";
+    return "pending_confirm"
   }
 
   if (status === "paid") {
-    return view === "seller" ? "paid" : "processing";
+    return view === "seller" ? "paid" : "processing"
   }
 
-  return status;
+  return status
 }
 ```
 
@@ -1201,9 +1162,9 @@ function normalizeSpotStatus(
 Render:
 
 ```tsx
-const currentTypeLabel = filters.type === "spot" ? "现货订单" : "跑腿订单";
-const currentViewOptions = getViewOptions(filters.type);
-const currentStatusOptions = getStatusOptions(filters.type, filters.view);
+const currentTypeLabel = filters.type === "spot" ? "现货订单" : "跑腿订单"
+const currentViewOptions = getViewOptions(filters.type)
+const currentStatusOptions = getStatusOptions(filters.type, filters.view)
 const filteredOrders = orders.filter(
   (order) =>
     order.type === filters.type &&
@@ -1211,8 +1172,8 @@ const filteredOrders = orders.filter(
     (filters.status === "all" || order.status === filters.status) &&
     (!normalizedQuery ||
       order.store.toLowerCase().includes(normalizedQuery) ||
-      order.title.toLowerCase().includes(normalizedQuery)),
-);
+      order.title.toLowerCase().includes(normalizedQuery))
+)
 
 return (
   <div className="flex flex-1 flex-col gap-4 py-6">
@@ -1281,7 +1242,7 @@ return (
       hasError={getCurrentError(errors, filters.type, filters.view)}
     />
   </div>
-);
+)
 ```
 
 - [ ] **Step 5: Add helper render functions in same file**
@@ -1292,9 +1253,9 @@ function OrderList({
   emptyTitle,
   hasError,
 }: {
-  orders: RenderableOrder[];
-  emptyTitle: string;
-  hasError: boolean;
+  orders: RenderableOrder[]
+  emptyTitle: string
+  hasError: boolean
 }) {
   if (hasError) {
     return (
@@ -1303,7 +1264,7 @@ function OrderList({
         title="订单暂不可用"
         description="当前订单列表加载失败，请稍后重试。"
       />
-    );
+    )
   }
 
   if (orders.length === 0) {
@@ -1313,7 +1274,7 @@ function OrderList({
         title={emptyTitle}
         description="换一个状态或清空搜索条件。"
       />
-    );
+    )
   }
 
   return (
@@ -1322,7 +1283,7 @@ function OrderList({
         <OrderCard key={order.id} order={order} />
       ))}
     </section>
-  );
+  )
 }
 
 function OrderCard({ order }: { order: RenderableOrder }) {
@@ -1345,9 +1306,7 @@ function OrderCard({ order }: { order: RenderableOrder }) {
       </CardHeader>
       <CardContent className="flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-sm text-muted-foreground">
-            {order.store}
-          </p>
+          <p className="truncate text-sm text-muted-foreground">{order.store}</p>
           <p className="mt-1 truncate text-sm">{order.summary}</p>
         </div>
         {order.amount !== null ? (
@@ -1357,27 +1316,27 @@ function OrderCard({ order }: { order: RenderableOrder }) {
         ) : null}
       </CardContent>
     </Card>
-  );
+  )
 }
 
 function getEmptyTitle(type: OrderType, view: OrderView) {
-  if (type === "spot" && view === "seller") return "暂无现货卖方订单";
-  if (type === "errand" && view === "participant") return "暂无跑腿拼单订单";
-  if (type === "errand" && view === "captain") return "暂无团长任务";
-  return "暂无现货买方订单";
+  if (type === "spot" && view === "seller") return "暂无现货卖方订单"
+  if (type === "errand" && view === "participant") return "暂无跑腿拼单订单"
+  if (type === "errand" && view === "captain") return "暂无团长任务"
+  return "暂无现货买方订单"
 }
 
 function getCurrentError(
   errors: OrdersViewProps["errors"],
   type: OrderType,
-  view: OrderView,
+  view: OrderView
 ) {
-  if (type === "spot" && view === "seller") return errors.spotSeller;
+  if (type === "spot" && view === "seller") return errors.spotSeller
   if (type === "errand" && view === "participant") {
-    return errors.errandParticipant;
+    return errors.errandParticipant
   }
-  if (type === "errand" && view === "captain") return errors.errandCaptain;
-  return errors.spotBuyer;
+  if (type === "errand" && view === "captain") return errors.errandCaptain
+  return errors.spotBuyer
 }
 ```
 
@@ -1399,7 +1358,6 @@ git commit -m "feat: redesign mobile order switching"
 ### Task 7: Visual And Interaction Verification
 
 **Files:**
-
 - No source files expected.
 
 - [ ] **Step 1: Run lint**

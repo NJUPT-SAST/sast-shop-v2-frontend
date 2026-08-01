@@ -11,13 +11,13 @@ export interface CurrentUser {
 export interface ServiceOptions {
   dataSource?: DataSource;
   connectBaseUrl?: string;
-  fetch?: typeof globalThis.fetch; // 可自定义fetch实现（用于拦截、mock、适配SSR）
+  fetch?: typeof globalThis.fetch;
   currentUser?: CurrentUser;
-  requiresAuthenticatedUser?: boolean; // 是否要求必须携带登录用户
+  requiresAuthenticatedUser?: boolean;
 }
-// 优先传入调用方传入的options.dataSource；
+
 export function resolveDataSource(options: ServiceOptions = {}): DataSource {
-  return options.dataSource ?? "mock"; //不传则默认兜底为 "mock" 模拟模式。
+  return options.dataSource ?? "mock";
 }
 
 export function resolveConnectBaseUrl(options: ServiceOptions = {}): string {

@@ -14,17 +14,12 @@ type GroupPurchasePaymentPageProps = {
   params: Promise<{
     id: string;
   }>;
-  searchParams: Promise<{
-    notice?: string | string[] | undefined;
-  }>;
 };
 
 export default async function GroupPurchasePaymentPage({
   params,
-  searchParams,
 }: GroupPurchasePaymentPageProps) {
   const { id } = await params;
-  const query = await searchParams;
   if (!isValidRouteId(id)) notFound();
 
   const serviceOptions = await getServerServiceOptions();
@@ -43,12 +38,6 @@ export default async function GroupPurchasePaymentPage({
       connectBaseUrl={mobileAppConfig.connectBaseUrl}
       detail={detail}
       taskId={id}
-      taskUpdatedAt={detail.taskUpdatedAt ?? state.task.updatedAt}
-      billingNotice={getNotice(query.notice) === "billing_generation_failed"}
     />
   );
-}
-
-function getNotice(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
 }

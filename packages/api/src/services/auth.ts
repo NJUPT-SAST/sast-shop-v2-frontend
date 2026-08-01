@@ -24,10 +24,6 @@ export interface AuthSession {
   user: CurrentUser;
 }
 
-export interface LoginWithLarkCodeOptions extends ServiceOptions {
-  redirectUri?: string;
-}
-
 export interface JSAPIAuthConfig {
   appId: string;
   timestamp: string;
@@ -86,20 +82,14 @@ export async function validateSessionUser(
 
 export async function loginWithLarkCode(
   code: string,
-  options: LoginWithLarkCodeOptions = {},
+  options: ServiceOptions = {},
 ): Promise<AuthSession> {
   const dataSource = resolveDataSource(options);
 
   if (dataSource === "mock" || dataSource === "local") {
     const client = createClient(AuthService, createLocalTransport(options));
-    const request = {
-      code,
-      ...(options.redirectUri !== undefined
-        ? { redirectUri: normalizeLoginRedirectUri(options.redirectUri) }
-        : {}),
-    };
     const response = await requestLocal("loginWithLarkCode", () =>
-      client.login(request),
+      client.login({ code }),
     );
 
     if (
@@ -124,31 +114,6 @@ export async function loginWithLarkCode(
   }
 
   throw new FeatureUnavailableError("loginWithLarkCode");
-}
-
-function normalizeLoginRedirectUri(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed || trimmed.length > 4096) {
-    throw new ValidationError("登录回调地址不正确");
-  }
-
-  let url: URL;
-  try {
-    url = new URL(trimmed);
-  } catch {
-    throw new ValidationError("登录回调地址不正确");
-  }
-
-  if (
-    (url.protocol !== "https:" && url.protocol !== "http:") ||
-    url.username ||
-    url.password ||
-    url.hash
-  ) {
-    throw new ValidationError("登录回调地址不正确");
-  }
-
-  return url.href;
 }
 
 export async function getJSAPIAuthConfig(

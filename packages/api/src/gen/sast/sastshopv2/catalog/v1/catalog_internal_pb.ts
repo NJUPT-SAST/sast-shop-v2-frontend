@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file sast/sastshopv2/catalog/v1/catalog_internal.proto.
  */
 export const file_sast_sastshopv2_catalog_v1_catalog_internal: GenFile = /*@__PURE__*/
-  fileDesc("CjFzYXN0L3Nhc3RzaG9wdjIvY2F0YWxvZy92MS9jYXRhbG9nX2ludGVybmFsLnByb3RvEhpzYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MSI4ChlHZXRQcm9kdWN0VGVtcGxhdGVSZXF1ZXN0EhsKE3Byb2R1Y3RfdGVtcGxhdGVfaWQYASABKAMiYwoaR2V0UHJvZHVjdFRlbXBsYXRlUmVzcG9uc2USRQoQcHJvZHVjdF90ZW1wbGF0ZRgBIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZSI6ChpHZXRQcm9kdWN0VGVtcGxhdGVzUmVxdWVzdBIcChRwcm9kdWN0X3RlbXBsYXRlX2lkcxgBIAMoAyJlChtHZXRQcm9kdWN0VGVtcGxhdGVzUmVzcG9uc2USRgoRcHJvZHVjdF90ZW1wbGF0ZXMYASADKAsyKy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5Qcm9kdWN0VGVtcGxhdGUiIwoPR2V0U3RvcmVSZXF1ZXN0EhAKCHN0b3JlX2lkGAEgASgDIkQKEEdldFN0b3JlUmVzcG9uc2USMAoFc3RvcmUYASABKAsyIS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5TdG9yZTKOAwoWQ2F0YWxvZ0ludGVybmFsU2VydmljZRKDAQoSR2V0UHJvZHVjdFRlbXBsYXRlEjUuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuR2V0UHJvZHVjdFRlbXBsYXRlUmVxdWVzdBo2LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkdldFByb2R1Y3RUZW1wbGF0ZVJlc3BvbnNlEoYBChNHZXRQcm9kdWN0VGVtcGxhdGVzEjYuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuR2V0UHJvZHVjdFRlbXBsYXRlc1JlcXVlc3QaNy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRQcm9kdWN0VGVtcGxhdGVzUmVzcG9uc2USZQoIR2V0U3RvcmUSKy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRTdG9yZVJlcXVlc3QaLC5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRTdG9yZVJlc3BvbnNlYgZwcm90bzM", [file_sast_sastshopv2_catalog_v1_product_template, file_sast_sastshopv2_catalog_v1_store]);
+  fileDesc("CjFzYXN0L3Nhc3RzaG9wdjIvY2F0YWxvZy92MS9jYXRhbG9nX2ludGVybmFsLnByb3RvEhpzYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MSI4ChlHZXRQcm9kdWN0VGVtcGxhdGVSZXF1ZXN0EhsKE3Byb2R1Y3RfdGVtcGxhdGVfaWQYASABKAMiYwoaR2V0UHJvZHVjdFRlbXBsYXRlUmVzcG9uc2USRQoQcHJvZHVjdF90ZW1wbGF0ZRgBIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZSIjCg9HZXRTdG9yZVJlcXVlc3QSEAoIc3RvcmVfaWQYASABKAMiRAoQR2V0U3RvcmVSZXNwb25zZRIwCgVzdG9yZRgBIAEoCzIhLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlN0b3JlMoUCChZDYXRhbG9nSW50ZXJuYWxTZXJ2aWNlEoMBChJHZXRQcm9kdWN0VGVtcGxhdGUSNS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRQcm9kdWN0VGVtcGxhdGVSZXF1ZXN0GjYuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuR2V0UHJvZHVjdFRlbXBsYXRlUmVzcG9uc2USZQoIR2V0U3RvcmUSKy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRTdG9yZVJlcXVlc3QaLC5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRTdG9yZVJlc3BvbnNlYgZwcm90bzM", [file_sast_sastshopv2_catalog_v1_product_template, file_sast_sastshopv2_catalog_v1_store]);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.GetProductTemplateRequest
@@ -51,40 +51,6 @@ export const GetProductTemplateResponseSchema: GenMessage<GetProductTemplateResp
   messageDesc(file_sast_sastshopv2_catalog_v1_catalog_internal, 1);
 
 /**
- * @generated from message sast.sastshopv2.catalog.v1.GetProductTemplatesRequest
- */
-export type GetProductTemplatesRequest = Message<"sast.sastshopv2.catalog.v1.GetProductTemplatesRequest"> & {
-  /**
-   * @generated from field: repeated int64 product_template_ids = 1;
-   */
-  productTemplateIds: bigint[];
-};
-
-/**
- * Describes the message sast.sastshopv2.catalog.v1.GetProductTemplatesRequest.
- * Use `create(GetProductTemplatesRequestSchema)` to create a new message.
- */
-export const GetProductTemplatesRequestSchema: GenMessage<GetProductTemplatesRequest> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_catalog_v1_catalog_internal, 2);
-
-/**
- * @generated from message sast.sastshopv2.catalog.v1.GetProductTemplatesResponse
- */
-export type GetProductTemplatesResponse = Message<"sast.sastshopv2.catalog.v1.GetProductTemplatesResponse"> & {
-  /**
-   * @generated from field: repeated sast.sastshopv2.catalog.v1.ProductTemplate product_templates = 1;
-   */
-  productTemplates: ProductTemplate[];
-};
-
-/**
- * Describes the message sast.sastshopv2.catalog.v1.GetProductTemplatesResponse.
- * Use `create(GetProductTemplatesResponseSchema)` to create a new message.
- */
-export const GetProductTemplatesResponseSchema: GenMessage<GetProductTemplatesResponse> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_catalog_v1_catalog_internal, 3);
-
-/**
  * @generated from message sast.sastshopv2.catalog.v1.GetStoreRequest
  */
 export type GetStoreRequest = Message<"sast.sastshopv2.catalog.v1.GetStoreRequest"> & {
@@ -99,7 +65,7 @@ export type GetStoreRequest = Message<"sast.sastshopv2.catalog.v1.GetStoreReques
  * Use `create(GetStoreRequestSchema)` to create a new message.
  */
 export const GetStoreRequestSchema: GenMessage<GetStoreRequest> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_catalog_v1_catalog_internal, 4);
+  messageDesc(file_sast_sastshopv2_catalog_v1_catalog_internal, 2);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.GetStoreResponse
@@ -116,7 +82,7 @@ export type GetStoreResponse = Message<"sast.sastshopv2.catalog.v1.GetStoreRespo
  * Use `create(GetStoreResponseSchema)` to create a new message.
  */
 export const GetStoreResponseSchema: GenMessage<GetStoreResponse> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_catalog_v1_catalog_internal, 5);
+  messageDesc(file_sast_sastshopv2_catalog_v1_catalog_internal, 3);
 
 /**
  * @generated from service sast.sastshopv2.catalog.v1.CatalogInternalService
@@ -131,16 +97,6 @@ export const CatalogInternalService: GenService<{
     methodKind: "unary";
     input: typeof GetProductTemplateRequestSchema;
     output: typeof GetProductTemplateResponseSchema;
-  },
-  /**
-   * Batch get product templates by product template IDs.
-   *
-   * @generated from rpc sast.sastshopv2.catalog.v1.CatalogInternalService.GetProductTemplates
-   */
-  getProductTemplates: {
-    methodKind: "unary";
-    input: typeof GetProductTemplatesRequestSchema;
-    output: typeof GetProductTemplatesResponseSchema;
   },
   /**
    * 读取店铺快照，供 group-trade 展示和校验店铺使用

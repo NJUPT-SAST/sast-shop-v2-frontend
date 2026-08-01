@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -18,10 +18,6 @@ describe.each(apps)("%s authentication recovery wiring", (app) => {
     resolve(root, `apps/${app}/app/api/auth/session/route.ts`),
     "utf8",
   );
-  const authSessionPath = resolve(root, `apps/${app}/lib/auth-session.ts`);
-  const authSession = existsSync(authSessionPath)
-    ? readFileSync(authSessionPath, "utf8")
-    : "";
 
   it("serializes forced OAuth recovery after an unauthenticated event", () => {
     expect(bootstrap).toContain("AuthRequiredError.browserEventName");
@@ -37,10 +33,9 @@ describe.each(apps)("%s authentication recovery wiring", (app) => {
   });
 
   it("guards OAuth exchanges with a retryable overload response", () => {
-    const source = `${sessionRoute}\n${authSession}`;
-    expect(source).toContain("loginExchangeGuard.tryAcquire()");
-    expect(source).toContain("permit.release()");
-    expect(source).toContain('"retry-after"');
-    expect(source).toContain("status: 429");
+    expect(sessionRoute).toContain("loginExchangeGuard.tryAcquire()");
+    expect(sessionRoute).toContain("permit.release()");
+    expect(sessionRoute).toContain('"retry-after"');
+    expect(sessionRoute).toContain("status: 429");
   });
 });

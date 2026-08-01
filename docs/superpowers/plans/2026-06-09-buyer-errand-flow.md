@@ -70,7 +70,6 @@ Use `$impeccable` as the craft standard for the mobile surface:
 ### Task 1: Add Create Errand Demand Facade
 
 **Files:**
-
 - Create: `packages/api/src/services/errand-demands.test.ts`
 - Create: `packages/api/src/services/errand-demands.ts`
 - Modify: `packages/api/src/index.ts`
@@ -80,23 +79,23 @@ Use `$impeccable` as the craft standard for the mobile surface:
 Create `packages/api/src/services/errand-demands.test.ts` with these test cases:
 
 ```ts
-import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest";
+import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest"
 import {
   ApiConfigurationError,
   ApiRequestError,
   FeatureUnavailableError,
   ValidationError,
-} from "../errors";
+} from "../errors"
 import {
   createErrandDemand,
   type CreateErrandDemandInput,
   type CreateErrandDemandResult,
-} from "./errand-demands";
+} from "./errand-demands"
 
 const localOptions = {
   dataSource: "local" as const,
   connectBaseUrl: "http://127.0.0.1:6660",
-};
+}
 
 const validInput: CreateErrandDemandInput = {
   storeId: "3001",
@@ -115,31 +114,31 @@ const validInput: CreateErrandDemandInput = {
       updatedAt: null,
     },
   ],
-};
+}
 
 describe("errand demand service", () => {
   afterEach(() => {
-    vi.unstubAllGlobals();
-  });
+    vi.unstubAllGlobals()
+  })
 
   it("exposes stable create errand demand return types", () => {
     expectTypeOf<ReturnType<typeof createErrandDemand>>().toEqualTypeOf<
       Promise<CreateErrandDemandResult>
-    >();
-  });
+    >()
+  })
 
   it("creates an errand demand through the local Connect backend", async () => {
     const fetchMock = vi.fn(async () =>
       stubJsonResponse({
         errandDemandId: "7001",
-      }),
-    );
-    vi.stubGlobal("fetch", fetchMock);
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
 
-    const result = await createErrandDemand(validInput, localOptions);
+    const result = await createErrandDemand(validInput, localOptions)
 
-    expect(result).toEqual({ errandDemandId: "7001" });
-    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(result).toEqual({ errandDemandId: "7001" })
+    expect(fetchMock).toHaveBeenCalledOnce()
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.errand.v1.ErrandDemandService/CreateErrandDemand",
       body: {
@@ -159,52 +158,49 @@ describe("errand demand service", () => {
           },
         ],
       },
-    });
-  });
+    })
+  })
 
   it("validates create errand demand input before submitting requests", async () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
 
     await expect(
-      createErrandDemand({ ...validInput, storeId: "0" }, localOptions),
-    ).rejects.toBeInstanceOf(ValidationError);
+      createErrandDemand({ ...validInput, storeId: "0" }, localOptions)
+    ).rejects.toBeInstanceOf(ValidationError)
     await expect(
-      createErrandDemand(
-        { ...validInput, deadline: "not-a-date" },
-        localOptions,
-      ),
-    ).rejects.toBeInstanceOf(ValidationError);
+      createErrandDemand({ ...validInput, deadline: "not-a-date" }, localOptions)
+    ).rejects.toBeInstanceOf(ValidationError)
     await expect(
-      createErrandDemand({ ...validInput, items: [] }, localOptions),
-    ).rejects.toBeInstanceOf(ValidationError);
+      createErrandDemand({ ...validInput, items: [] }, localOptions)
+    ).rejects.toBeInstanceOf(ValidationError)
     await expect(
       createErrandDemand(
         {
           ...validInput,
           items: [{ ...validInput.items[0]!, quantity: 0 }],
         },
-        localOptions,
-      ),
-    ).rejects.toBeInstanceOf(ValidationError);
+        localOptions
+      )
+    ).rejects.toBeInstanceOf(ValidationError)
     await expect(
       createErrandDemand(
         {
           ...validInput,
           items: [{ ...validInput.items[0]!, serviceFeePerUnitCents: -1 }],
         },
-        localOptions,
-      ),
-    ).rejects.toBeInstanceOf(ValidationError);
+        localOptions
+      )
+    ).rejects.toBeInstanceOf(ValidationError)
 
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
 
   it("requires a configured Connect base URL for local create mode", async () => {
     await expect(
-      createErrandDemand(validInput, { dataSource: "local" }),
-    ).rejects.toBeInstanceOf(ApiConfigurationError);
-  });
+      createErrandDemand(validInput, { dataSource: "local" })
+    ).rejects.toBeInstanceOf(ApiConfigurationError)
+  })
 
   it("wraps local create failures in an API request error", async () => {
     vi.stubGlobal(
@@ -215,22 +211,22 @@ describe("errand demand service", () => {
             code: "unavailable",
             message: "backend unavailable",
           },
-          { status: 503 },
-        ),
-      ),
-    );
+          { status: 503 }
+        )
+      )
+    )
 
-    await expect(
-      createErrandDemand(validInput, localOptions),
-    ).rejects.toBeInstanceOf(ApiRequestError);
-  });
+    await expect(createErrandDemand(validInput, localOptions)).rejects.toBeInstanceOf(
+      ApiRequestError
+    )
+  })
 
   it("throws for remote create mode before backend client is wired", async () => {
     await expect(
-      createErrandDemand(validInput, { dataSource: "remote" }),
-    ).rejects.toBeInstanceOf(FeatureUnavailableError);
-  });
-});
+      createErrandDemand(validInput, { dataSource: "remote" })
+    ).rejects.toBeInstanceOf(FeatureUnavailableError)
+  })
+})
 
 function stubJsonResponse(body: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(body), {
@@ -239,37 +235,35 @@ function stubJsonResponse(body: unknown, init: ResponseInit = {}) {
       "content-type": "application/json",
       ...init.headers,
     },
-  });
+  })
 }
 
 async function expectConnectRequest(
   fetchMock: ReturnType<typeof vi.fn>,
   expected: {
-    path: string;
-    body: Record<string, unknown>;
-  },
+    path: string
+    body: Record<string, unknown>
+  }
 ) {
-  const [input, init] = fetchMock.mock.calls[0] ?? [];
-  const url = typeof input === "string" ? input : (input as Request).url;
+  const [input, init] = fetchMock.mock.calls[0] ?? []
+  const url = typeof input === "string" ? input : (input as Request).url
   const body =
-    typeof input === "string"
-      ? init?.body
-      : await (input as Request).clone().text();
+    typeof input === "string" ? init?.body : await (input as Request).clone().text()
 
-  expect(new URL(url).pathname).toBe(expected.path);
-  expect(JSON.parse(bodyToText(body))).toEqual(expected.body);
+  expect(new URL(url).pathname).toBe(expected.path)
+  expect(JSON.parse(bodyToText(body))).toEqual(expected.body)
 }
 
 function bodyToText(body: unknown): string {
   if (body instanceof Uint8Array) {
-    return new TextDecoder().decode(body);
+    return new TextDecoder().decode(body)
   }
 
   if (body instanceof ArrayBuffer) {
-    return new TextDecoder().decode(body);
+    return new TextDecoder().decode(body)
   }
 
-  return String(body);
+  return String(body)
 }
 ```
 
@@ -288,120 +282,114 @@ Expected: fail because `./errand-demands` does not exist.
 Create `packages/api/src/services/errand-demands.ts`:
 
 ```ts
-import { createClient } from "@connectrpc/connect";
-import { timestampFromDate, type Timestamp } from "@bufbuild/protobuf/wkt";
-import { ErrandDemandService } from "../gen/sast/sastshopv2/errand/v1/errand_demand_service_pb";
-import { resolveDataSource, type ServiceOptions } from "../data-source";
-import { FeatureUnavailableError, ValidationError } from "../errors";
-import { createLocalTransport, requestLocal } from "../local-connect";
+import { createClient } from "@connectrpc/connect"
+import { timestampFromDate, type Timestamp } from "@bufbuild/protobuf/wkt"
+import { ErrandDemandService } from "../gen/sast/sastshopv2/errand/v1/errand_demand_service_pb"
+import { resolveDataSource, type ServiceOptions } from "../data-source"
+import { FeatureUnavailableError, ValidationError } from "../errors"
+import { createLocalTransport, requestLocal } from "../local-connect"
 
 export interface CreateErrandDemandInput {
-  storeId: string;
-  deadline: string;
+  storeId: string
+  deadline: string
   items: Array<{
-    productTemplateId: string;
-    quantity: number;
-    serviceFeePerUnitCents: number;
-    updatedAt?: string | null;
-  }>;
+    productTemplateId: string
+    quantity: number
+    serviceFeePerUnitCents: number
+    updatedAt?: string | null
+  }>
 }
 
 export interface CreateErrandDemandResult {
-  errandDemandId: string;
+  errandDemandId: string
 }
 
 export async function createErrandDemand(
   input: CreateErrandDemandInput,
-  options: ServiceOptions = {},
+  options: ServiceOptions = {}
 ): Promise<CreateErrandDemandResult> {
-  validateCreateErrandDemandInput(input);
-  const dataSource = resolveDataSource(options);
+  validateCreateErrandDemandInput(input)
+  const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock" || dataSource === "local") {
-    const client = createClient(
-      ErrandDemandService,
-      createLocalTransport(options),
-    );
+    const client = createClient(ErrandDemandService, createLocalTransport(options))
     const response = await requestLocal("createErrandDemand", () =>
       client.createErrandDemand({
         storeId: parseInt64(input.storeId, "店铺 ID 不正确"),
         deadline: parseRequiredTimestamp(input.deadline, "期望送达时间不正确"),
         demandItems: input.items.map((item) => ({
-          productTemplateId: parseInt64(
-            item.productTemplateId,
-            "商品模板 ID 不正确",
-          ),
+          productTemplateId: parseInt64(item.productTemplateId, "商品模板 ID 不正确"),
           quantity: item.quantity,
           serviceFeePerUnitCents: item.serviceFeePerUnitCents,
           updatedAt: parseOptionalTimestamp(item.updatedAt),
         })),
-      }),
-    );
+      })
+    )
 
     return {
       errandDemandId: response.errandDemandId.toString(),
-    };
+    }
   }
 
-  throw new FeatureUnavailableError("createErrandDemand");
+  throw new FeatureUnavailableError("createErrandDemand")
 }
 
 function validateCreateErrandDemandInput(input: CreateErrandDemandInput) {
-  parseInt64(input.storeId, "店铺 ID 不正确");
-  parseRequiredTimestamp(input.deadline, "期望送达时间不正确");
+  parseInt64(input.storeId, "店铺 ID 不正确")
+  parseRequiredTimestamp(input.deadline, "期望送达时间不正确")
 
   if (input.items.length === 0) {
-    throw new ValidationError("跑腿需求不能为空");
+    throw new ValidationError("跑腿需求不能为空")
   }
 
   for (const item of input.items) {
-    parseInt64(item.productTemplateId, "商品模板 ID 不正确");
+    parseInt64(item.productTemplateId, "商品模板 ID 不正确")
 
     if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
-      throw new ValidationError("跑腿需求数量不正确");
+      throw new ValidationError("跑腿需求数量不正确")
     }
 
     if (
       !Number.isInteger(item.serviceFeePerUnitCents) ||
       item.serviceFeePerUnitCents < 0
     ) {
-      throw new ValidationError("跑腿费不正确");
+      throw new ValidationError("跑腿费不正确")
     }
 
-    parseOptionalTimestamp(item.updatedAt);
+    parseOptionalTimestamp(item.updatedAt)
   }
 }
 
 function parseInt64(value: string, message: string): bigint {
   if (!/^[1-9]\d*$/.test(value)) {
-    throw new ValidationError(message);
+    throw new ValidationError(message)
   }
 
-  return BigInt(value);
+  return BigInt(value)
 }
 
 function parseRequiredTimestamp(value: string, message: string): Timestamp {
-  const timestamp = parseOptionalTimestamp(value);
+  const timestamp = parseOptionalTimestamp(value)
 
   if (!timestamp) {
-    throw new ValidationError(message);
+    throw new ValidationError(message)
   }
 
-  return timestamp;
+  return timestamp
 }
 
 function parseOptionalTimestamp(value?: string | null): Timestamp | undefined {
   if (!value) {
-    return undefined;
+    return undefined
   }
 
-  const date = new Date(value);
+  const date = new Date(value)
 
   if (Number.isNaN(date.getTime())) {
-    throw new ValidationError("时间格式不正确");
+    throw new ValidationError("时间格式不正确")
   }
 
-  return timestampFromDate(date);
+  return timestampFromDate(date)
 }
 ```
 
@@ -414,7 +402,7 @@ export {
   createErrandDemand,
   type CreateErrandDemandInput,
   type CreateErrandDemandResult,
-} from "./services/errand-demands";
+} from "./services/errand-demands"
 ```
 
 Place the export near the existing order service exports.
@@ -441,7 +429,6 @@ git commit -m "feat(api): add errand demand facade"
 ### Task 2: Add Buyer Errand Order List Facade
 
 **Files:**
-
 - Create: `packages/api/src/services/buyer-errand-orders.test.ts`
 - Create: `packages/api/src/services/buyer-errand-orders.ts`
 - Modify: `packages/api/src/index.ts`
@@ -451,28 +438,28 @@ git commit -m "feat(api): add errand demand facade"
 Create `packages/api/src/services/buyer-errand-orders.test.ts` with:
 
 ```ts
-import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest";
-import { FeatureUnavailableError, ValidationError } from "../errors";
+import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest"
+import { FeatureUnavailableError, ValidationError } from "../errors"
 import {
   listBuyerErrandOrders,
   type BuyerErrandOrder,
-} from "./buyer-errand-orders";
+} from "./buyer-errand-orders"
 
 const localOptions = {
   dataSource: "local" as const,
   connectBaseUrl: "http://127.0.0.1:6660",
-};
+}
 
 describe("buyer errand order service", () => {
   afterEach(() => {
-    vi.unstubAllGlobals();
-  });
+    vi.unstubAllGlobals()
+  })
 
   it("exposes stable buyer errand order return types", () => {
     expectTypeOf<ReturnType<typeof listBuyerErrandOrders>>().toEqualTypeOf<
       Promise<BuyerErrandOrder[]>
-    >();
-  });
+    >()
+  })
 
   it("lists buyer errand orders through the local Connect backend", async () => {
     const fetchMock = vi.fn(async () =>
@@ -507,16 +494,18 @@ describe("buyer errand order service", () => {
             productTotalCount: 1,
           },
         ],
-      }),
-    );
-    vi.stubGlobal("fetch", fetchMock);
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
 
-    const orders = await listBuyerErrandOrders({
-      ...localOptions,
-      status: "open",
-      page: 1,
-      pageSize: 20,
-    });
+    const orders = await listBuyerErrandOrders(
+      {
+        ...localOptions,
+        status: "open",
+        page: 1,
+        pageSize: 20,
+      }
+    )
 
     expect(orders).toEqual([
       expect.objectContaining({
@@ -539,7 +528,7 @@ describe("buyer errand order service", () => {
           }),
         ],
       }),
-    ]);
+    ])
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.errand.v1.BuyerErrandOrderService/GetBuyerErrandOrderBrief",
       body: {
@@ -547,32 +536,32 @@ describe("buyer errand order service", () => {
         pageSize: 20,
         statusFilter: "ERRAND_DEMAND_STATUS_OPEN",
       },
-    });
-  });
+    })
+  })
 
   it("validates buyer errand order filters before submitting requests", async () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
 
     await expect(
-      listBuyerErrandOrders({ ...localOptions, storeId: "0" }),
-    ).rejects.toBeInstanceOf(ValidationError);
+      listBuyerErrandOrders({ ...localOptions, storeId: "0" })
+    ).rejects.toBeInstanceOf(ValidationError)
     await expect(
-      listBuyerErrandOrders({ ...localOptions, page: 0 }),
-    ).rejects.toBeInstanceOf(ValidationError);
+      listBuyerErrandOrders({ ...localOptions, page: 0 })
+    ).rejects.toBeInstanceOf(ValidationError)
     await expect(
-      listBuyerErrandOrders({ ...localOptions, pageSize: 0 }),
-    ).rejects.toBeInstanceOf(ValidationError);
+      listBuyerErrandOrders({ ...localOptions, pageSize: 0 })
+    ).rejects.toBeInstanceOf(ValidationError)
 
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
 
   it("throws for remote list mode before backend client is wired", async () => {
     await expect(
-      listBuyerErrandOrders({ dataSource: "remote" }),
-    ).rejects.toBeInstanceOf(FeatureUnavailableError);
-  });
-});
+      listBuyerErrandOrders({ dataSource: "remote" })
+    ).rejects.toBeInstanceOf(FeatureUnavailableError)
+  })
+})
 
 function stubJsonResponse(body: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(body), {
@@ -581,37 +570,35 @@ function stubJsonResponse(body: unknown, init: ResponseInit = {}) {
       "content-type": "application/json",
       ...init.headers,
     },
-  });
+  })
 }
 
 async function expectConnectRequest(
   fetchMock: ReturnType<typeof vi.fn>,
   expected: {
-    path: string;
-    body: Record<string, unknown>;
-  },
+    path: string
+    body: Record<string, unknown>
+  }
 ) {
-  const [input, init] = fetchMock.mock.calls[0] ?? [];
-  const url = typeof input === "string" ? input : (input as Request).url;
+  const [input, init] = fetchMock.mock.calls[0] ?? []
+  const url = typeof input === "string" ? input : (input as Request).url
   const body =
-    typeof input === "string"
-      ? init?.body
-      : await (input as Request).clone().text();
+    typeof input === "string" ? init?.body : await (input as Request).clone().text()
 
-  expect(new URL(url).pathname).toBe(expected.path);
-  expect(JSON.parse(bodyToText(body))).toEqual(expected.body);
+  expect(new URL(url).pathname).toBe(expected.path)
+  expect(JSON.parse(bodyToText(body))).toEqual(expected.body)
 }
 
 function bodyToText(body: unknown): string {
   if (body instanceof Uint8Array) {
-    return new TextDecoder().decode(body);
+    return new TextDecoder().decode(body)
   }
 
   if (body instanceof ArrayBuffer) {
-    return new TextDecoder().decode(body);
+    return new TextDecoder().decode(body)
   }
 
-  return String(body);
+  return String(body)
 }
 ```
 
@@ -630,17 +617,17 @@ Expected: fail because `./buyer-errand-orders` does not exist.
 Create `packages/api/src/services/buyer-errand-orders.ts` with these exported names and mappings:
 
 ```ts
-import { createClient } from "@connectrpc/connect";
-import type { ProductTemplate as ProtoProductTemplate } from "../gen/sast/sastshopv2/catalog/v1/product_template_pb";
-import type { Store as ProtoStore } from "../gen/sast/sastshopv2/catalog/v1/store_pb";
-import type { BuyerErrandOrderBrief as ProtoBuyerErrandOrderBrief } from "../gen/sast/sastshopv2/errand/v1/buyer_errand_order_pb";
-import { BuyerErrandOrderService } from "../gen/sast/sastshopv2/errand/v1/buyer_errand_order_service_pb";
-import { ErrandDemandStatus } from "../gen/sast/sastshopv2/errand/v1/errand_demand_status_pb";
-import { resolveDataSource, type ServiceOptions } from "../data-source";
-import { FeatureUnavailableError, ValidationError } from "../errors";
-import { createLocalTransport, requestLocal } from "../local-connect";
-import type { ProductTemplate } from "./product-templates";
-import type { Store } from "./catalog";
+import { createClient } from "@connectrpc/connect"
+import type { ProductTemplate as ProtoProductTemplate } from "../gen/sast/sastshopv2/catalog/v1/product_template_pb"
+import type { Store as ProtoStore } from "../gen/sast/sastshopv2/catalog/v1/store_pb"
+import type { BuyerErrandOrderBrief as ProtoBuyerErrandOrderBrief } from "../gen/sast/sastshopv2/errand/v1/buyer_errand_order_pb"
+import { BuyerErrandOrderService } from "../gen/sast/sastshopv2/errand/v1/buyer_errand_order_service_pb"
+import { ErrandDemandStatus } from "../gen/sast/sastshopv2/errand/v1/errand_demand_status_pb"
+import { resolveDataSource, type ServiceOptions } from "../data-source"
+import { FeatureUnavailableError, ValidationError } from "../errors"
+import { createLocalTransport, requestLocal } from "../local-connect"
+import type { ProductTemplate } from "./product-templates"
+import type { Store } from "./catalog"
 
 export type BuyerErrandOrderStatus =
   | "open"
@@ -650,37 +637,34 @@ export type BuyerErrandOrderStatus =
   | "pending_payment"
   | "completed"
   | "cancelled"
-  | "unknown";
+  | "unknown"
 
 export interface BuyerErrandOrder {
-  id: string;
-  storeId: string;
-  createdAt: string | null;
-  store: Store | null;
-  status: BuyerErrandOrderStatus;
-  productTemplates: ProductTemplate[];
-  totalOriginAmountCents: number;
-  totalActualAmountCents: number | null;
-  totalServiceFeeCents: number;
-  productTotalCount: number;
+  id: string
+  storeId: string
+  createdAt: string | null
+  store: Store | null
+  status: BuyerErrandOrderStatus
+  productTemplates: ProductTemplate[]
+  totalOriginAmountCents: number
+  totalActualAmountCents: number | null
+  totalServiceFeeCents: number
+  productTotalCount: number
 }
 
 export async function listBuyerErrandOrders(
   options: ServiceOptions & {
-    storeId?: string;
-    status?: BuyerErrandOrderStatus;
-    page?: number;
-    pageSize?: number;
-  } = {},
+    storeId?: string
+    status?: BuyerErrandOrderStatus
+    page?: number
+    pageSize?: number
+  } = {}
 ): Promise<BuyerErrandOrder[]> {
-  validateListOptions(options);
-  const dataSource = resolveDataSource(options);
+  validateListOptions(options)
+  const dataSource = resolveDataSource(options)
 
   if (dataSource === "mock" || dataSource === "local") {
-    const client = createClient(
-      BuyerErrandOrderService,
-      createLocalTransport(options),
-    );
+    const client = createClient(BuyerErrandOrderService, createLocalTransport(options))
     const response = await requestLocal("listBuyerErrandOrders", () =>
       client.getBuyerErrandOrderBrief({
         page: options.page ?? 1,
@@ -688,45 +672,41 @@ export async function listBuyerErrandOrders(
         storeIdFilter: options.storeId
           ? parseInt64(options.storeId, "店铺 ID 不正确")
           : undefined,
-        statusFilter: options.status
-          ? mapStatusToProto(options.status)
-          : undefined,
-      }),
-    );
+        statusFilter: options.status ? mapStatusToProto(options.status) : undefined,
+      })
+    )
 
-    return response.orders.map(mapBuyerErrandOrder);
+    return response.orders.map(mapBuyerErrandOrder)
   }
 
-  throw new FeatureUnavailableError("listBuyerErrandOrders");
+  throw new FeatureUnavailableError("listBuyerErrandOrders")
 }
 
 function validateListOptions(options: {
-  storeId?: string;
-  page?: number;
-  pageSize?: number;
+  storeId?: string
+  page?: number
+  pageSize?: number
 }) {
   if (options.storeId) {
-    parseInt64(options.storeId, "店铺 ID 不正确");
+    parseInt64(options.storeId, "店铺 ID 不正确")
   }
 
   if (
     options.page !== undefined &&
     (!Number.isInteger(options.page) || options.page <= 0)
   ) {
-    throw new ValidationError("页码不正确");
+    throw new ValidationError("页码不正确")
   }
 
   if (
     options.pageSize !== undefined &&
     (!Number.isInteger(options.pageSize) || options.pageSize <= 0)
   ) {
-    throw new ValidationError("分页大小不正确");
+    throw new ValidationError("分页大小不正确")
   }
 }
 
-function mapBuyerErrandOrder(
-  order: ProtoBuyerErrandOrderBrief,
-): BuyerErrandOrder {
+function mapBuyerErrandOrder(order: ProtoBuyerErrandOrderBrief): BuyerErrandOrder {
   return {
     id: order.errandDemandId.toString(),
     storeId: order.storeId.toString(),
@@ -740,11 +720,11 @@ function mapBuyerErrandOrder(
     totalActualAmountCents: order.totalActualAmountCents ?? null,
     totalServiceFeeCents: order.totalServiceFeeCents,
     productTotalCount: order.productTotalCount,
-  };
+  }
 }
 
 function mapStore(store?: ProtoStore): Store | null {
-  if (!store) return null;
+  if (!store) return null
 
   return {
     id: store.id.toString(),
@@ -752,7 +732,7 @@ function mapStore(store?: ProtoStore): Store | null {
     address: store.address,
     logoUrl: store.logoUrl,
     themeColor: store.themeColor,
-  };
+  }
 }
 
 function mapTemplate(template?: ProtoProductTemplate): ProductTemplate {
@@ -767,43 +747,37 @@ function mapTemplate(template?: ProtoProductTemplate): ProductTemplate {
     updatedAt: template?.updatedAt
       ? new Date(Number(template.updatedAt.seconds) * 1000).toISOString()
       : null,
-  };
+  }
 }
 
-function mapStatusFromProto(
-  status: ErrandDemandStatus,
-): BuyerErrandOrderStatus {
-  if (status === ErrandDemandStatus.OPEN) return "open";
-  if (status === ErrandDemandStatus.SHOPPING) return "shopping";
-  if (status === ErrandDemandStatus.PENDING_DISTRIBUTING)
-    return "pending_distributing";
-  if (status === ErrandDemandStatus.DISTRIBUTING) return "distributing";
-  if (status === ErrandDemandStatus.PENDING_PAYMENT) return "pending_payment";
-  if (status === ErrandDemandStatus.COMPLETED) return "completed";
-  if (status === ErrandDemandStatus.CANCELLED) return "cancelled";
-  return "unknown";
+function mapStatusFromProto(status: ErrandDemandStatus): BuyerErrandOrderStatus {
+  if (status === ErrandDemandStatus.OPEN) return "open"
+  if (status === ErrandDemandStatus.SHOPPING) return "shopping"
+  if (status === ErrandDemandStatus.PENDING_DISTRIBUTING) return "pending_distributing"
+  if (status === ErrandDemandStatus.DISTRIBUTING) return "distributing"
+  if (status === ErrandDemandStatus.PENDING_PAYMENT) return "pending_payment"
+  if (status === ErrandDemandStatus.COMPLETED) return "completed"
+  if (status === ErrandDemandStatus.CANCELLED) return "cancelled"
+  return "unknown"
 }
 
-function mapStatusToProto(
-  status: BuyerErrandOrderStatus,
-): ErrandDemandStatus | undefined {
-  if (status === "open") return ErrandDemandStatus.OPEN;
-  if (status === "shopping") return ErrandDemandStatus.SHOPPING;
-  if (status === "pending_distributing")
-    return ErrandDemandStatus.PENDING_DISTRIBUTING;
-  if (status === "distributing") return ErrandDemandStatus.DISTRIBUTING;
-  if (status === "pending_payment") return ErrandDemandStatus.PENDING_PAYMENT;
-  if (status === "completed") return ErrandDemandStatus.COMPLETED;
-  if (status === "cancelled") return ErrandDemandStatus.CANCELLED;
-  return undefined;
+function mapStatusToProto(status: BuyerErrandOrderStatus): ErrandDemandStatus | undefined {
+  if (status === "open") return ErrandDemandStatus.OPEN
+  if (status === "shopping") return ErrandDemandStatus.SHOPPING
+  if (status === "pending_distributing") return ErrandDemandStatus.PENDING_DISTRIBUTING
+  if (status === "distributing") return ErrandDemandStatus.DISTRIBUTING
+  if (status === "pending_payment") return ErrandDemandStatus.PENDING_PAYMENT
+  if (status === "completed") return ErrandDemandStatus.COMPLETED
+  if (status === "cancelled") return ErrandDemandStatus.CANCELLED
+  return undefined
 }
 
 function parseInt64(value: string, message: string): bigint {
   if (!/^[1-9]\d*$/.test(value)) {
-    throw new ValidationError(message);
+    throw new ValidationError(message)
   }
 
-  return BigInt(value);
+  return BigInt(value)
 }
 ```
 
@@ -816,7 +790,7 @@ export {
   listBuyerErrandOrders,
   type BuyerErrandOrder,
   type BuyerErrandOrderStatus,
-} from "./services/buyer-errand-orders";
+} from "./services/buyer-errand-orders"
 ```
 
 - [ ] **Step 5: Run focused API tests**
@@ -841,7 +815,6 @@ git commit -m "feat(api): add buyer errand order facade"
 ### Task 3: Add Errand Delivery Time Utility
 
 **Files:**
-
 - Create: `apps/mobile/lib/errand-delivery-time.test.ts`
 - Create: `apps/mobile/lib/errand-delivery-time.ts`
 
@@ -850,55 +823,55 @@ git commit -m "feat(api): add buyer errand order facade"
 Create `apps/mobile/lib/errand-delivery-time.test.ts`:
 
 ```ts
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest"
 import {
   getDefaultErrandDeadline,
   isValidErrandDeadline,
   toDateTimeLocalValue,
-} from "./errand-delivery-time";
+} from "./errand-delivery-time"
 
 describe("errand delivery time", () => {
   it("defaults to today 22:00 before 20:00 when that is at least two hours away", () => {
-    const now = new Date("2026-06-09T10:30:00+08:00");
+    const now = new Date("2026-06-09T10:30:00+08:00")
 
     expect(getDefaultErrandDeadline(now).toISOString()).toBe(
-      "2026-06-09T14:00:00.000Z",
-    );
-  });
+      "2026-06-09T14:00:00.000Z"
+    )
+  })
 
   it("defaults to tomorrow 22:00 at or after 20:00", () => {
-    const now = new Date("2026-06-09T20:01:00+08:00");
+    const now = new Date("2026-06-09T20:01:00+08:00")
 
     expect(getDefaultErrandDeadline(now).toISOString()).toBe(
-      "2026-06-10T14:00:00.000Z",
-    );
-  });
+      "2026-06-10T14:00:00.000Z"
+    )
+  })
 
   it("uses the next valid half-hour slot when today 22:00 is too soon", () => {
-    const now = new Date("2026-06-09T21:30:00+08:00");
+    const now = new Date("2026-06-09T21:30:00+08:00")
 
     expect(getDefaultErrandDeadline(now).toISOString()).toBe(
-      "2026-06-10T14:00:00.000Z",
-    );
-  });
+      "2026-06-10T14:00:00.000Z"
+    )
+  })
 
   it("validates deadlines at least two hours in the future", () => {
-    const now = new Date("2026-06-09T10:00:00+08:00");
+    const now = new Date("2026-06-09T10:00:00+08:00")
 
-    expect(
-      isValidErrandDeadline(new Date("2026-06-09T11:59:00+08:00"), now),
-    ).toBe(false);
-    expect(
-      isValidErrandDeadline(new Date("2026-06-09T12:00:00+08:00"), now),
-    ).toBe(true);
-  });
+    expect(isValidErrandDeadline(new Date("2026-06-09T11:59:00+08:00"), now)).toBe(
+      false
+    )
+    expect(isValidErrandDeadline(new Date("2026-06-09T12:00:00+08:00"), now)).toBe(
+      true
+    )
+  })
 
   it("formats datetime-local values in local date and minute precision", () => {
-    const date = new Date("2026-06-09T22:05:30+08:00");
+    const date = new Date("2026-06-09T22:05:30+08:00")
 
-    expect(toDateTimeLocalValue(date)).toBe("2026-06-09T22:05");
-  });
-});
+    expect(toDateTimeLocalValue(date)).toBe("2026-06-09T22:05")
+  })
+})
 ```
 
 - [ ] **Step 2: Run the new test and verify it fails**
@@ -916,39 +889,39 @@ Expected: fail because `./errand-delivery-time` does not exist.
 Create `apps/mobile/lib/errand-delivery-time.ts`:
 
 ```ts
-const DELIVERY_CUTOFF_HOUR = 20;
-const DEFAULT_DELIVERY_HOUR = 22;
-const MIN_LEAD_TIME_MS = 2 * 60 * 60 * 1000;
+const DELIVERY_CUTOFF_HOUR = 20
+const DEFAULT_DELIVERY_HOUR = 22
+const MIN_LEAD_TIME_MS = 2 * 60 * 60 * 1000
 
 export function getDefaultErrandDeadline(now = new Date()): Date {
-  const candidate = new Date(now);
+  const candidate = new Date(now)
 
   if (now.getHours() >= DELIVERY_CUTOFF_HOUR) {
-    candidate.setDate(candidate.getDate() + 1);
+    candidate.setDate(candidate.getDate() + 1)
   }
 
-  candidate.setHours(DEFAULT_DELIVERY_HOUR, 0, 0, 0);
+  candidate.setHours(DEFAULT_DELIVERY_HOUR, 0, 0, 0)
 
   if (candidate.getTime() - now.getTime() < MIN_LEAD_TIME_MS) {
-    candidate.setDate(candidate.getDate() + 1);
-    candidate.setHours(DEFAULT_DELIVERY_HOUR, 0, 0, 0);
+    candidate.setDate(candidate.getDate() + 1)
+    candidate.setHours(DEFAULT_DELIVERY_HOUR, 0, 0, 0)
   }
 
-  return candidate;
+  return candidate
 }
 
 export function isValidErrandDeadline(deadline: Date, now = new Date()) {
-  return deadline.getTime() - now.getTime() >= MIN_LEAD_TIME_MS;
+  return deadline.getTime() - now.getTime() >= MIN_LEAD_TIME_MS
 }
 
 export function toDateTimeLocalValue(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const hour = String(date.getHours()).padStart(2, "0");
-  const minute = String(date.getMinutes()).padStart(2, "0");
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  const hour = String(date.getHours()).padStart(2, "0")
+  const minute = String(date.getMinutes()).padStart(2, "0")
 
-  return `${year}-${month}-${day}T${hour}:${minute}`;
+  return `${year}-${month}-${day}T${hour}:${minute}`
 }
 ```
 
@@ -974,7 +947,6 @@ git commit -m "feat(mobile): add errand delivery deadline helpers"
 ### Task 4: Add Mobile Store Detail Route
 
 **Files:**
-
 - Modify: `apps/mobile/app/group/page.tsx`
 - Create: `apps/mobile/app/group/shop/[id]/page.tsx`
 
@@ -983,7 +955,7 @@ git commit -m "feat(mobile): add errand delivery deadline helpers"
 In `apps/mobile/app/group/page.tsx`, import `Link`:
 
 ```ts
-import Link from "next/link";
+import Link from "next/link"
 ```
 
 Wrap each `StoreCard` in:
@@ -1010,16 +982,16 @@ import {
   listStores,
   type ProductTemplate,
   type Store,
-} from "@sast-shop/api";
-import { Empty } from "@workspace/ui/components/empty";
-import { RiStore2Line } from "@remixicon/react";
-import { ErrandShop } from "@/components/errand-shop";
-import { mobileAppConfig } from "@/lib/app-config";
+} from "@sast-shop/api"
+import { Empty } from "@workspace/ui/components/empty"
+import { RiStore2Line } from "@remixicon/react"
+import { ErrandShop } from "@/components/errand-shop"
+import { mobileAppConfig } from "@/lib/app-config"
 
 async function loadStoreDetail(storeId: string): Promise<{
-  store: Store | null;
-  templates: ProductTemplate[];
-  error: string | null;
+  store: Store | null
+  templates: ProductTemplate[]
+  error: string | null
 }> {
   try {
     const [stores, templates] = await Promise.all([
@@ -1032,29 +1004,29 @@ async function loadStoreDetail(storeId: string): Promise<{
         dataSource: mobileAppConfig.dataSource,
         connectBaseUrl: mobileAppConfig.connectBaseUrl,
       }),
-    ]);
+    ])
 
     return {
       store: stores.find((store) => store.id === storeId) ?? null,
       templates,
       error: null,
-    };
+    }
   } catch {
     return {
       store: null,
       templates: [],
       error: "店铺商品暂不可用，请确认 mock 服务或稍后再试",
-    };
+    }
   }
 }
 
 export default async function GroupShopPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string }>
 }) {
-  const { id } = await params;
-  const result = await loadStoreDetail(id);
+  const { id } = await params
+  const result = await loadStoreDetail(id)
 
   if (result.error || !result.store) {
     return (
@@ -1065,7 +1037,7 @@ export default async function GroupShopPage({
           description={result.error ?? "没有找到对应店铺。"}
         />
       </div>
-    );
+    )
   }
 
   return (
@@ -1075,7 +1047,7 @@ export default async function GroupShopPage({
       store={result.store}
       templates={result.templates}
     />
-  );
+  )
 }
 ```
 
@@ -1084,18 +1056,18 @@ export default async function GroupShopPage({
 Create `apps/mobile/components/errand-shop.tsx` with:
 
 ```tsx
-"use client";
+"use client"
 
-import type { DataSource, ProductTemplate, Store } from "@sast-shop/api";
+import type { DataSource, ProductTemplate, Store } from "@sast-shop/api"
 
 export function ErrandShop({
   store,
   templates,
 }: {
-  dataSource: DataSource;
-  connectBaseUrl: string;
-  store: Store;
-  templates: ProductTemplate[];
+  dataSource: DataSource
+  connectBaseUrl: string
+  store: Store
+  templates: ProductTemplate[]
 }) {
   return (
     <div className="flex flex-1 flex-col gap-4 py-6">
@@ -1104,7 +1076,7 @@ export function ErrandShop({
         {templates.length} 个可选商品模板
       </p>
     </div>
-  );
+  )
 }
 ```
 
@@ -1130,7 +1102,6 @@ git commit -m "feat(mobile): add errand store route"
 ### Task 5: Build Errand Shop Cart UI
 
 **Files:**
-
 - Modify: `apps/mobile/components/errand-shop.tsx`
 
 - [ ] **Step 1: Replace the stub with client cart state**
@@ -1139,24 +1110,24 @@ In `apps/mobile/components/errand-shop.tsx`, keep the existing exported `ErrandS
 
 ```ts
 type ErrandCartItem = {
-  template: ProductTemplate;
-  quantity: number;
-  serviceFeePerUnitCents: number;
-};
+  template: ProductTemplate
+  quantity: number
+  serviceFeePerUnitCents: number
+}
 ```
 
 Use `useMemo` for totals:
 
 ```ts
-const totalCount = items.reduce((sum, item) => sum + item.quantity, 0);
+const totalCount = items.reduce((sum, item) => sum + item.quantity, 0)
 const totalOriginAmountCents = items.reduce(
   (sum, item) => sum + item.template.priceCents * item.quantity,
-  0,
-);
+  0
+)
 const totalServiceFeeCents = items.reduce(
   (sum, item) => sum + item.serviceFeePerUnitCents * item.quantity,
-  0,
-);
+  0
+)
 ```
 
 Before writing JSX, write this comment as a temporary checklist in your working notes, not in the source file:
@@ -1186,9 +1157,7 @@ Use this structure as a starting point, then adjust spacing after browser inspec
       />
       <div className="min-w-0">
         <h1 className="truncate text-xl font-semibold">{store.name}</h1>
-        <p className="truncate text-sm text-muted-foreground">
-          {store.address}
-        </p>
+        <p className="truncate text-sm text-muted-foreground">{store.address}</p>
       </div>
     </div>
   </section>
@@ -1287,11 +1256,11 @@ Drawer design constraints:
 Before submit:
 
 ```ts
-const deadline = new Date(deadlineValue);
+const deadline = new Date(deadlineValue)
 
 if (!isValidErrandDeadline(deadline)) {
-  toast.error("期望送达时间至少需要在 2 小时后");
-  return;
+  toast.error("期望送达时间至少需要在 2 小时后")
+  return
 }
 ```
 
@@ -1309,23 +1278,23 @@ await createErrandDemand(
       updatedAt: item.template.updatedAt,
     })),
   },
-  serviceOptions,
-);
+  serviceOptions
+)
 ```
 
 Success:
 
 ```ts
-toast.success("跑腿需求已发起");
-setItems([]);
-setCartOpen(false);
-router.push("/orders?source=errand&perspective=purchaser");
+toast.success("跑腿需求已发起")
+setItems([])
+setCartOpen(false)
+router.push("/orders?source=errand&perspective=purchaser")
 ```
 
 Failure:
 
 ```ts
-toast.error("跑腿需求提交失败，请稍后再试");
+toast.error("跑腿需求提交失败，请稍后再试")
 ```
 
 Keep the drawer open on failure.
@@ -1352,7 +1321,6 @@ git commit -m "feat(mobile): build errand cart flow"
 ### Task 6: Wire Buyer Errand Orders Into Orders Page
 
 **Files:**
-
 - Modify: `apps/mobile/app/orders/page.tsx`
 - Modify: `apps/mobile/components/orders-view.tsx`
 
@@ -1361,7 +1329,7 @@ git commit -m "feat(mobile): build errand cart flow"
 Modify `apps/mobile/app/orders/page.tsx`:
 
 ```tsx
-import { listBuyerErrandOrders, listSpotOrders } from "@sast-shop/api";
+import { listBuyerErrandOrders, listSpotOrders } from "@sast-shop/api"
 ```
 
 Return both arrays:
@@ -1378,19 +1346,19 @@ async function getOrders() {
         dataSource: mobileAppConfig.dataSource,
         connectBaseUrl: mobileAppConfig.connectBaseUrl,
       }),
-    ]);
+    ])
 
     return {
       spotOrders,
       buyerErrandOrders,
       error: null,
-    };
+    }
   } catch {
     return {
       spotOrders: [],
       buyerErrandOrders: [],
       error: "订单暂不可用，请确认 mock 服务或稍后再试",
-    };
+    }
   }
 }
 ```
@@ -1404,7 +1372,7 @@ return (
     buyerErrandOrders={result.buyerErrandOrders}
     error={result.error}
   />
-);
+)
 ```
 
 - [ ] **Step 2: Add errand order props and status labels**
@@ -1412,7 +1380,7 @@ return (
 In `apps/mobile/components/orders-view.tsx`, import the type:
 
 ```ts
-import type { BuyerErrandOrder, SpotOrder } from "@sast-shop/api";
+import type { BuyerErrandOrder, SpotOrder } from "@sast-shop/api"
 ```
 
 Add status labels:
@@ -1427,7 +1395,7 @@ const errandStatusLabel: Record<string, string> = {
   completed: "已完成",
   cancelled: "已取消",
   unknown: "未知",
-};
+}
 ```
 
 - [ ] **Step 3: Map buyer errand orders for filtering**
@@ -1452,11 +1420,11 @@ const errandOrders = useMemo(
         order.totalActualAmountCents ??
         order.totalOriginAmountCents + order.totalServiceFeeCents,
       summary: `${order.productTotalCount} 种商品 · 跑腿费 ${formatPrice(
-        order.totalServiceFeeCents,
+        order.totalServiceFeeCents
       )}`,
     })),
-  [buyerErrandOrders],
-);
+  [buyerErrandOrders]
+)
 ```
 
 Keep spot and errand filters separate so spot status values do not hide errand statuses incorrectly.
@@ -1508,7 +1476,6 @@ git commit -m "feat(mobile): show buyer errand orders"
 ### Task 7: Final Verification And Visual Smoke
 
 **Files:**
-
 - No planned code changes unless verification finds a defect.
 
 - [ ] **Step 1: Run API tests**

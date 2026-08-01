@@ -107,7 +107,9 @@ export function ErrandShop({
   const [deadlineValue, setDeadlineValue] = useState(() =>
     toDateTimeLocalValue(getDefaultErrandDeadline()),
   );
-  const minimumDeadlineValue = toDateTimeLocalValue(getMinimumErrandDeadline());
+  const minimumDeadlineValue = toDateTimeLocalValue(
+    getMinimumErrandDeadline(),
+  );
   const [submitting, setSubmitting] = useState(false);
 
   const cartByTemplateId = useMemo(

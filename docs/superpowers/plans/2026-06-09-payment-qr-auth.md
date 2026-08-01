@@ -78,7 +78,6 @@
 ### Task 1: Add QR Dependencies
 
 **Files:**
-
 - Modify: `apps/mobile/package.json`
 - Modify: `pnpm-lock.yaml`
 
@@ -114,7 +113,6 @@ git commit -m "chore: add qr dependencies"
 ### Task 2: Add Shared Empty Component
 
 **Files:**
-
 - Create: `packages/ui/src/components/empty.tsx`
 
 - [ ] **Step 1: Create shared component**
@@ -122,9 +120,9 @@ git commit -m "chore: add qr dependencies"
 Create `packages/ui/src/components/empty.tsx`:
 
 ```tsx
-import * as React from "react";
+import * as React from "react"
 
-import { cn } from "#lib/utils";
+import { cn } from "#lib/utils"
 
 function Empty({
   className,
@@ -134,17 +132,17 @@ function Empty({
   action,
   ...props
 }: React.ComponentProps<"div"> & {
-  icon?: React.ReactNode;
-  title: React.ReactNode;
-  description?: React.ReactNode;
-  action?: React.ReactNode;
+  icon?: React.ReactNode
+  title: React.ReactNode
+  description?: React.ReactNode
+  action?: React.ReactNode
 }) {
   return (
     <div
       data-slot="empty"
       className={cn(
         "flex min-h-36 flex-col items-center justify-center gap-3 rounded-lg border border-dashed bg-muted/30 px-4 py-8 text-center",
-        className,
+        className
       )}
       {...props}
     >
@@ -163,10 +161,10 @@ function Empty({
       </div>
       {action ? <div className="mt-1">{action}</div> : null}
     </div>
-  );
+  )
 }
 
-export { Empty };
+export { Empty }
 ```
 
 - [ ] **Step 2: Typecheck UI package**
@@ -191,7 +189,6 @@ git commit -m "feat: add shared empty state"
 ### Task 3: Add Domain QR Text Validation
 
 **Files:**
-
 - Create: `packages/domain/src/payments/qr-content.ts`
 - Create: `packages/domain/src/payments/qr-content.test.ts`
 - Modify: `packages/domain/src/index.ts`
@@ -215,30 +212,27 @@ describe("payment QR content validation", () => {
     expect(
       isPaymentQrContentAllowed(
         "wechat",
-        "https://wx.tenpay.com/f2f?t=AQAAATEST",
-      ),
+        "https://wx.tenpay.com/f2f?t=AQAAATEST"
+      )
     ).toBe(true);
   });
 
   it("accepts recognized Alipay QR content", () => {
     expect(
-      isPaymentQrContentAllowed("alipay", "https://qr.alipay.com/fkx123"),
+      isPaymentQrContentAllowed("alipay", "https://qr.alipay.com/fkx123")
     ).toBe(true);
     expect(
       isPaymentQrContentAllowed(
         "alipay",
-        "alipays://platformapi/startapp?saId=10000007",
-      ),
+        "alipays://platformapi/startapp?saId=10000007"
+      )
     ).toBe(true);
   });
 
   it("rejects content for the wrong channel", () => {
-    expect(
-      isPaymentQrContentAllowed("wechat", "https://qr.alipay.com/fkx123"),
-    ).toBe(false);
-    expect(isPaymentQrContentAllowed("alipay", "wxp://f2f0example")).toBe(
-      false,
-    );
+    expect(isPaymentQrContentAllowed("wechat", "https://qr.alipay.com/fkx123"))
+      .toBe(false);
+    expect(isPaymentQrContentAllowed("alipay", "wxp://f2f0example")).toBe(false);
   });
 
   it("rejects empty, control-character, and overlong content", () => {
@@ -251,10 +245,7 @@ describe("payment QR content validation", () => {
       reason: "control-character",
     });
     expect(
-      validatePaymentQrContent(
-        "wechat",
-        `wxp://${"a".repeat(MAX_PAYMENT_QR_CONTENT_LENGTH)}`,
-      ),
+      validatePaymentQrContent("wechat", `wxp://${"a".repeat(MAX_PAYMENT_QR_CONTENT_LENGTH)}`)
     ).toEqual({
       ok: false,
       reason: "too-long",
@@ -283,7 +274,10 @@ import type { PaymentPlatform } from "./platforms";
 export const MAX_PAYMENT_QR_CONTENT_LENGTH = 512;
 
 export type PaymentQrContentValidationReason =
-  "empty" | "too-long" | "control-character" | "unsupported-channel-content";
+  | "empty"
+  | "too-long"
+  | "control-character"
+  | "unsupported-channel-content";
 
 export type PaymentQrContentValidationResult =
   | { ok: true; content: string }
@@ -305,7 +299,7 @@ const CHANNEL_ALLOWLIST: Record<PaymentPlatform, RegExp[]> = {
 
 export function validatePaymentQrContent(
   channel: PaymentPlatform,
-  content: string,
+  content: string
 ): PaymentQrContentValidationResult {
   const normalizedContent = content.trim();
 
@@ -330,11 +324,9 @@ export function validatePaymentQrContent(
 
 export function isPaymentQrContentAllowed(
   channel: PaymentPlatform,
-  content: string,
+  content: string
 ) {
-  return CHANNEL_ALLOWLIST[channel].some((pattern) =>
-    pattern.test(content.trim()),
-  );
+  return CHANNEL_ALLOWLIST[channel].some((pattern) => pattern.test(content.trim()));
 }
 ```
 
@@ -374,7 +366,6 @@ git commit -m "feat: validate payment qr text"
 ### Task 4: Enforce QR Text Validation in API Facade
 
 **Files:**
-
 - Modify: `packages/api/src/services/payment-qr-codes.ts`
 - Modify: `packages/api/src/services/payment-qr-codes.test.ts`
 
@@ -387,8 +378,8 @@ it("rejects QR image data before submitting update requests", async () => {
   await expect(
     updatePaymentQrCode(
       { channel: "wechat", content: "data:image/png;base64,abc" },
-      localOptions,
-    ),
+      localOptions
+    )
   ).rejects.toThrow("收款码内容不符合微信支付格式");
 });
 
@@ -396,8 +387,8 @@ it("rejects wrong-channel QR text before submitting update requests", async () =
   await expect(
     updatePaymentQrCode(
       { channel: "wechat", content: "https://qr.alipay.com/fkx123" },
-      localOptions,
-    ),
+      localOptions
+    )
   ).rejects.toThrow("收款码内容不符合微信支付格式");
 });
 ```
@@ -417,25 +408,25 @@ Expected: FAIL because current validation only rejects blank content.
 Modify imports in `packages/api/src/services/payment-qr-codes.ts`:
 
 ```ts
-import { validatePaymentQrContent } from "@sast-shop/domain";
+import { validatePaymentQrContent } from "@sast-shop/domain"
 ```
 
 Replace the non-empty content check inside `validatePaymentQrCodeInput`:
 
 ```ts
-const content = validatePaymentQrContent(input.channel, input.content);
+  const content = validatePaymentQrContent(input.channel, input.content)
 
-if (!content.ok) {
-  throw new ValidationError(
-    `收款码内容不符合${input.channel === "wechat" ? "微信支付" : "支付宝"}格式`,
-  );
-}
+  if (!content.ok) {
+    throw new ValidationError(
+      `收款码内容不符合${input.channel === "wechat" ? "微信支付" : "支付宝"}格式`
+    )
+  }
 ```
 
 Ensure local update sends normalized content:
 
 ```ts
-const validatedContent = validatePaymentQrCodeInput(input);
+const validatedContent = validatePaymentQrCodeInput(input)
 ```
 
 Change `validatePaymentQrCodeInput` to return the normalized content:
@@ -443,18 +434,18 @@ Change `validatePaymentQrCodeInput` to return the normalized content:
 ```ts
 function validatePaymentQrCodeInput(input: PaymentQrCodeInput): string {
   if (!isPaymentQrChannel(input.channel)) {
-    throw new ValidationError("收款码渠道不正确");
+    throw new ValidationError("收款码渠道不正确")
   }
 
-  const content = validatePaymentQrContent(input.channel, input.content);
+  const content = validatePaymentQrContent(input.channel, input.content)
 
   if (!content.ok) {
     throw new ValidationError(
-      `收款码内容不符合${input.channel === "wechat" ? "微信支付" : "支付宝"}格式`,
-    );
+      `收款码内容不符合${input.channel === "wechat" ? "微信支付" : "支付宝"}格式`
+    )
   }
 
-  return content.content;
+  return content.content
 }
 ```
 
@@ -482,7 +473,6 @@ git commit -m "feat: enforce payment qr text validation"
 ### Task 5: Add Bill Facade
 
 **Files:**
-
 - Create: `packages/api/src/services/payment-bills.ts`
 - Create: `packages/api/src/services/payment-bills.test.ts`
 - Modify: `packages/api/src/index.ts`
@@ -525,7 +515,7 @@ describe("payment bill service", () => {
           amountCents: 1234,
           verifyCode: "4821",
         },
-      }),
+      })
     );
 
     const bill = await getBill("12", localOptions);
@@ -552,27 +542,22 @@ describe("payment bill service", () => {
           amountCents: 1234,
           verifyCode: "4821",
         },
-      }),
+      })
     );
 
-    const bill = await payBill(
-      { billId: "12", channel: "wechat" },
-      localOptions,
-    );
+    const bill = await payBill({ billId: "12", channel: "wechat" }, localOptions);
 
     expect(bill.status).toBe("submitted");
     restoreFetch();
   });
 
   it("validates bill ids", async () => {
-    await expect(getBill("0", localOptions)).rejects.toBeInstanceOf(
-      ValidationError,
-    );
+    await expect(getBill("0", localOptions)).rejects.toBeInstanceOf(ValidationError);
   });
 
   it("rejects remote until proxy integration is wired", async () => {
     await expect(getBill("1", { dataSource: "remote" })).rejects.toBeInstanceOf(
-      FeatureUnavailableError,
+      FeatureUnavailableError
     );
   });
 });
@@ -583,19 +568,18 @@ Add this helper at the bottom of `payment-bills.test.ts`:
 ```ts
 function mockConnectResponse<T>(
   schema: Parameters<typeof toBinary<T>>[0],
-  message: T,
+  message: T
 ) {
   const originalFetch = globalThis.fetch;
   const body = toBinary(schema, message);
 
-  globalThis.fetch = vi.fn(
-    async () =>
-      new Response(body, {
-        status: 200,
-        headers: {
-          "content-type": "application/proto",
-        },
-      }),
+  globalThis.fetch = vi.fn(async () =>
+    new Response(body, {
+      status: 200,
+      headers: {
+        "content-type": "application/proto",
+      },
+    })
   ) as typeof fetch;
 
   return () => {
@@ -619,89 +603,78 @@ Expected: FAIL because `payment-bills.ts` does not exist.
 Create `packages/api/src/services/payment-bills.ts`:
 
 ```ts
-import { createClient } from "@connectrpc/connect";
-import {
-  timestampDate,
-  timestampFromDate,
-  type Timestamp,
-} from "@bufbuild/protobuf/wkt";
-import {
-  BillStatus,
-  type Bill as ProtoBill,
-} from "../gen/sast/sastshopv2/payment/v1/bill_pb";
-import { Channel } from "../gen/sast/sastshopv2/payment/v1/channel_pb";
-import { BillService } from "../gen/sast/sastshopv2/payment/v1/bill_service_pb";
-import { resolveDataSource, type ServiceOptions } from "../data-source";
-import { FeatureUnavailableError, ValidationError } from "../errors";
-import { createLocalTransport, requestLocal } from "../local-connect";
-import type { PaymentQrChannel } from "./payment-qr-codes";
+import { createClient } from "@connectrpc/connect"
+import { timestampDate, timestampFromDate, type Timestamp } from "@bufbuild/protobuf/wkt"
+import { BillStatus, type Bill as ProtoBill } from "../gen/sast/sastshopv2/payment/v1/bill_pb"
+import { Channel } from "../gen/sast/sastshopv2/payment/v1/channel_pb"
+import { BillService } from "../gen/sast/sastshopv2/payment/v1/bill_service_pb"
+import { resolveDataSource, type ServiceOptions } from "../data-source"
+import { FeatureUnavailableError, ValidationError } from "../errors"
+import { createLocalTransport, requestLocal } from "../local-connect"
+import type { PaymentQrChannel } from "./payment-qr-codes"
 
-export type PaymentBillStatus =
-  "unpaid" | "submitted" | "completed" | "closed" | "unknown";
+export type PaymentBillStatus = "unpaid" | "submitted" | "completed" | "closed" | "unknown"
 
 export interface PaymentBill {
-  id: string;
-  billNo: string;
-  status: PaymentBillStatus;
-  amountCents: number;
-  verifyCode: string;
-  channel: PaymentQrChannel | null;
-  serialNumber: string | null;
-  updatedAt: string | null;
+  id: string
+  billNo: string
+  status: PaymentBillStatus
+  amountCents: number
+  verifyCode: string
+  channel: PaymentQrChannel | null
+  serialNumber: string | null
+  updatedAt: string | null
 }
 
 export interface PayBillInput {
-  billId: string;
-  channel: PaymentQrChannel;
-  updatedAt?: string | Timestamp | null;
+  billId: string
+  channel: PaymentQrChannel
+  updatedAt?: string | Timestamp | null
 }
 
-export async function getBill(
-  id: string,
-  options: ServiceOptions = {},
-): Promise<PaymentBill> {
-  const dataSource = resolveDataSource(options);
+export async function getBill(id: string, options: ServiceOptions = {}): Promise<PaymentBill> {
+  const dataSource = resolveDataSource(options)
 
   if (dataSource === "local") {
-    const client = createClient(BillService, createLocalTransport(options));
+    const client = createClient(BillService, createLocalTransport(options))
     const response = await requestLocal("getBill", () =>
-      client.getBill({ billId: parseInt64(id, "账单 ID 不正确") }),
-    );
+      client.getBill({ billId: parseInt64(id, "账单 ID 不正确") })
+    )
 
     if (!response.bill) {
-      throw new FeatureUnavailableError("getBill");
+      throw new FeatureUnavailableError("getBill")
     }
 
-    return mapBill(response.bill);
+    return mapBill(response.bill)
   }
 
-  throw new FeatureUnavailableError("getBill");
+  throw new FeatureUnavailableError("getBill")
 }
 
 export async function payBill(
   input: PayBillInput,
-  options: ServiceOptions = {},
+  options: ServiceOptions = {}
 ): Promise<PaymentBill> {
-  const dataSource = resolveDataSource(options);
+  const dataSource = resolveDataSource(options)
 
   if (dataSource === "local") {
-    const client = createClient(BillService, createLocalTransport(options));
+    const client = createClient(BillService, createLocalTransport(options))
     const response = await requestLocal("payBill", () =>
       client.payBill({
         billId: parseInt64(input.billId, "账单 ID 不正确"),
         channel: mapChannelToProto(input.channel),
         updatedAt: parseTimestampInput(input.updatedAt),
-      }),
-    );
+      })
+    )
 
     if (!response.bill) {
-      throw new FeatureUnavailableError("payBill");
+      throw new FeatureUnavailableError("payBill")
     }
 
-    return mapBill(response.bill);
+    return mapBill(response.bill)
   }
 
-  throw new FeatureUnavailableError("payBill");
+  throw new FeatureUnavailableError("payBill")
 }
 ```
 
@@ -710,61 +683,61 @@ Add the remaining facade methods and helpers in the same file:
 ```ts
 export async function confirmBill(
   input: { billId: string; updatedAt?: string | Timestamp | null },
-  options: ServiceOptions = {},
+  options: ServiceOptions = {}
 ): Promise<PaymentBill> {
-  const dataSource = resolveDataSource(options);
+  const dataSource = resolveDataSource(options)
 
   if (dataSource === "local") {
-    const client = createClient(BillService, createLocalTransport(options));
+    const client = createClient(BillService, createLocalTransport(options))
     const response = await requestLocal("confirmBill", () =>
       client.confirmBill({
         billId: parseInt64(input.billId, "账单 ID 不正确"),
         updatedAt: parseTimestampInput(input.updatedAt),
-      }),
-    );
+      })
+    )
 
     if (!response.bill) {
-      throw new FeatureUnavailableError("confirmBill");
+      throw new FeatureUnavailableError("confirmBill")
     }
 
-    return mapPaymentBill(response.bill);
+    return mapPaymentBill(response.bill)
   }
 
-  throw new FeatureUnavailableError("confirmBill");
+  throw new FeatureUnavailableError("confirmBill")
 }
 
 export async function supplementBillSerialNumber(
   input: {
-    billId: string;
-    serialNumber: string;
-    updatedAt?: string | Timestamp | null;
+    billId: string
+    serialNumber: string
+    updatedAt?: string | Timestamp | null
   },
-  options: ServiceOptions = {},
+  options: ServiceOptions = {}
 ): Promise<PaymentBill> {
-  const dataSource = resolveDataSource(options);
+  const dataSource = resolveDataSource(options)
 
   if (!input.serialNumber.trim()) {
-    throw new ValidationError("支付流水号不能为空");
+    throw new ValidationError("支付流水号不能为空")
   }
 
   if (dataSource === "local") {
-    const client = createClient(BillService, createLocalTransport(options));
+    const client = createClient(BillService, createLocalTransport(options))
     const response = await requestLocal("supplementBillSerialNumber", () =>
       client.supplementSerialNumber({
         billId: parseInt64(input.billId, "账单 ID 不正确"),
         serialNumber: input.serialNumber.trim(),
         updatedAt: parseTimestampInput(input.updatedAt),
-      }),
-    );
+      })
+    )
 
     if (!response.bill) {
-      throw new FeatureUnavailableError("supplementBillSerialNumber");
+      throw new FeatureUnavailableError("supplementBillSerialNumber")
     }
 
-    return mapPaymentBill(response.bill);
+    return mapPaymentBill(response.bill)
   }
 
-  throw new FeatureUnavailableError("supplementBillSerialNumber");
+  throw new FeatureUnavailableError("supplementBillSerialNumber")
 }
 
 export function mapPaymentBill(bill: ProtoBill): PaymentBill {
@@ -777,53 +750,51 @@ export function mapPaymentBill(bill: ProtoBill): PaymentBill {
     channel: mapChannelFromProto(bill.channel),
     serialNumber: bill.serialNumber ?? null,
     updatedAt: formatTimestamp(bill.updatedAt),
-  };
+  }
 }
 
 function mapStatusFromProto(status: BillStatus): PaymentBillStatus {
-  if (status === BillStatus.UNPAID) return "unpaid";
-  if (status === BillStatus.SUBMITTED) return "submitted";
-  if (status === BillStatus.COMPLETED) return "completed";
-  if (status === BillStatus.CLOSED) return "closed";
-  return "unknown";
+  if (status === BillStatus.UNPAID) return "unpaid"
+  if (status === BillStatus.SUBMITTED) return "submitted"
+  if (status === BillStatus.COMPLETED) return "completed"
+  if (status === BillStatus.CLOSED) return "closed"
+  return "unknown"
 }
 
 function mapChannelFromProto(channel: Channel): PaymentQrChannel | null {
-  if (channel === Channel.WECHAT) return "wechat";
-  if (channel === Channel.ALIPAY) return "alipay";
-  return null;
+  if (channel === Channel.WECHAT) return "wechat"
+  if (channel === Channel.ALIPAY) return "alipay"
+  return null
 }
 
 function mapChannelToProto(channel: PaymentQrChannel): Channel {
-  if (channel === "wechat") return Channel.WECHAT;
-  if (channel === "alipay") return Channel.ALIPAY;
-  throw new ValidationError("支付渠道不正确");
+  if (channel === "wechat") return Channel.WECHAT
+  if (channel === "alipay") return Channel.ALIPAY
+  throw new ValidationError("支付渠道不正确")
 }
 
 function parseInt64(value: string, message: string): bigint {
   if (!/^[1-9]\d*$/.test(value)) {
-    throw new ValidationError(message);
+    throw new ValidationError(message)
   }
 
-  return BigInt(value);
+  return BigInt(value)
 }
 
-function parseTimestampInput(
-  input?: string | Timestamp | null,
-): Timestamp | undefined {
+function parseTimestampInput(input?: string | Timestamp | null): Timestamp | undefined {
   if (!input) {
-    return undefined;
+    return undefined
   }
 
   if (typeof input === "string") {
-    return timestampFromDate(new Date(input));
+    return timestampFromDate(new Date(input))
   }
 
-  return input;
+  return input
 }
 
 function formatTimestamp(timestamp?: Timestamp): string | null {
-  return timestamp ? timestampDate(timestamp).toISOString() : null;
+  return timestamp ? timestampDate(timestamp).toISOString() : null
 }
 ```
 
@@ -840,7 +811,7 @@ export {
   type PaymentBill,
   type PaymentBillStatus,
   type PayBillInput,
-} from "./services/payment-bills";
+} from "./services/payment-bills"
 ```
 
 - [ ] **Step 5: Run API tests**
@@ -865,7 +836,6 @@ git commit -m "feat: add payment bill facade"
 ### Task 6: Expose Embedded Bills on Spot Orders
 
 **Files:**
-
 - Modify: `packages/api/src/services/spot-orders.ts`
 - Modify: `packages/api/src/services/spot-orders.test.ts`
 
@@ -908,13 +878,13 @@ Expected: FAIL because `SpotOrder` has no `bill`.
 In `packages/api/src/services/spot-orders.ts`, import and use the bill mapper:
 
 ```ts
-import type { PaymentBill } from "./payment-bills";
+import type { PaymentBill } from "./payment-bills"
 ```
 
 Extend `SpotOrder`:
 
 ```ts
-bill: PaymentBill | null;
+  bill: PaymentBill | null
 ```
 
 Set `bill: null` in `mapSpotOrder` and map the embedded detail bill in `mapSpotOrderDetail`.
@@ -922,7 +892,7 @@ Set `bill: null` in `mapSpotOrder` and map the embedded detail bill in `mapSpotO
 If `mapBill` is private in `payment-bills.ts`, export it as `mapPaymentBill`:
 
 ```ts
-export function mapPaymentBill(bill: ProtoBill): PaymentBill;
+export function mapPaymentBill(bill: ProtoBill): PaymentBill
 ```
 
 - [ ] **Step 4: Run test**
@@ -947,7 +917,6 @@ git commit -m "feat: expose spot order payment bill"
 ### Task 7: Add QR Image Decoder and QR Renderer
 
 **Files:**
-
 - Create: `apps/mobile/lib/qr-image-decoder.ts`
 - Create: `apps/mobile/lib/qr-image-decoder.test.ts`
 - Create: `apps/mobile/components/payment-qr-code.tsx`
@@ -965,9 +934,7 @@ describe("qr image decoder", () => {
   it("rejects non-image files", async () => {
     const file = new File(["hello"], "note.txt", { type: "text/plain" });
 
-    await expect(readQrTextFromFile(file)).rejects.toBeInstanceOf(
-      QrImageDecodeError,
-    );
+    await expect(readQrTextFromFile(file)).rejects.toBeInstanceOf(QrImageDecodeError);
   });
 
   it("rejects oversized files", async () => {
@@ -975,9 +942,9 @@ describe("qr image decoder", () => {
       type: "image/png",
     });
 
-    await expect(
-      readQrTextFromFile(file, { maxBytes: 1024 }),
-    ).rejects.toBeInstanceOf(QrImageDecodeError);
+    await expect(readQrTextFromFile(file, { maxBytes: 1024 })).rejects.toBeInstanceOf(
+      QrImageDecodeError
+    );
   });
 });
 ```
@@ -1008,7 +975,7 @@ export class QrImageDecodeError extends Error {
 
 export async function readQrTextFromFile(
   file: File,
-  options: { maxBytes?: number } = {},
+  options: { maxBytes?: number } = {}
 ) {
   const maxBytes = options.maxBytes ?? 2 * 1024 * 1024;
 
@@ -1047,42 +1014,37 @@ export async function readQrTextFromFile(
 Create `apps/mobile/components/payment-qr-code.tsx`:
 
 ```tsx
-"use client";
+"use client"
 
-import { RiAlipayLine, RiWechatPayLine } from "@remixicon/react";
-import { QRCodeSVG } from "qrcode.react";
-import { cn } from "@workspace/ui/lib/utils";
-import type { PaymentPlatform } from "@/lib/payment-preferences";
+import { RiAlipayLine, RiWechatPayLine } from "@remixicon/react"
+import { QRCodeSVG } from "qrcode.react"
+import { cn } from "@workspace/ui/lib/utils"
+import type { PaymentPlatform } from "@/lib/payment-preferences"
 
 export function PaymentQrCode({
   content,
   channel,
   className,
 }: {
-  content: string;
-  channel: PaymentPlatform;
-  className?: string;
+  content: string
+  channel: PaymentPlatform
+  className?: string
 }) {
-  const Icon = channel === "wechat" ? RiWechatPayLine : RiAlipayLine;
+  const Icon = channel === "wechat" ? RiWechatPayLine : RiAlipayLine
 
   return (
     <div
       className={cn(
         "relative flex aspect-square items-center justify-center rounded-lg bg-white p-3",
-        className,
+        className
       )}
     >
       <QRCodeSVG value={content} className="size-full" marginSize={1} />
       <span className="absolute flex size-10 items-center justify-center rounded-md border bg-white shadow-sm">
-        <Icon
-          className={cn(
-            "size-6",
-            channel === "wechat" ? "text-green-600" : "text-blue-600",
-          )}
-        />
+        <Icon className={cn("size-6", channel === "wechat" ? "text-green-600" : "text-blue-600")} />
       </span>
     </div>
-  );
+  )
 }
 ```
 
@@ -1109,7 +1071,6 @@ git commit -m "feat: decode and render payment qr codes"
 ### Task 8: Update Profile QR Dialog
 
 **Files:**
-
 - Modify: `apps/mobile/components/profile-dialogs-provider.tsx`
 
 - [ ] **Step 1: Replace file upload behavior**
@@ -1118,19 +1079,19 @@ In `handleFileChange`, replace `readFileAsDataUrl(file)` with:
 
 ```ts
 try {
-  const content = await readQrTextFromFile(file);
-  const validation = validatePaymentQrContent(channel, content);
+  const content = await readQrTextFromFile(file)
+  const validation = validatePaymentQrContent(channel, content)
 
   if (!validation.ok) {
-    toast.error(`请上传${label}收款码`);
-    return;
+    toast.error(`请上传${label}收款码`)
+    return
   }
 
-  await onUpsert(channel, validation.content);
+  await onUpsert(channel, validation.content)
 } catch (error) {
-  toast.error(error instanceof Error ? error.message : "二维码解析失败");
+  toast.error(error instanceof Error ? error.message : "二维码解析失败")
 } finally {
-  event.target.value = "";
+  event.target.value = ""
 }
 ```
 
@@ -1158,16 +1119,16 @@ Add an effect:
 
 ```ts
 useEffect(() => {
-  const dialog = searchParams.get("dialog");
+  const dialog = searchParams.get("dialog")
 
   if (dialog === "qr-code") {
-    setQrOpen(true);
+    setQrOpen(true)
   }
 
   if (dialog === "address") {
-    setAddressOpen(true);
+    setAddressOpen(true)
   }
-}, [searchParams]);
+}, [searchParams])
 ```
 
 When closing a URL-opened dialog, clean the query by replacing the current URL without `dialog`.
@@ -1194,7 +1155,6 @@ git commit -m "feat: decode qr uploads in profile dialog"
 ### Task 9: Update Spot Payment State Flow
 
 **Files:**
-
 - Modify: `apps/mobile/components/payment-dialog.tsx`
 - Modify: `apps/mobile/components/spot-marketplace.tsx`
 
@@ -1206,23 +1166,9 @@ Change `PaymentDialogProps` to state-driven input:
 export type PaymentDialogState =
   | { status: "idle" }
   | { status: "loading" }
-  | {
-      status: "ready";
-      amountCents: number;
-      verifyCode: string;
-      billId: string;
-      billUpdatedAt: string | null;
-      qrCodes: Partial<Record<PaymentPlatform, string>>;
-      defaultPlatform: PaymentPlatform;
-    }
-  | {
-      status: "submitted";
-      amountCents: number;
-      verifyCode: string;
-      channel: PaymentPlatform;
-      serialNumber?: string | null;
-    }
-  | { status: "error"; title: string; description: string };
+  | { status: "ready"; amountCents: number; verifyCode: string; billId: string; billUpdatedAt: string | null; qrCodes: Partial<Record<PaymentPlatform, string>>; defaultPlatform: PaymentPlatform }
+  | { status: "submitted"; amountCents: number; verifyCode: string; channel: PaymentPlatform; serialNumber?: string | null }
+  | { status: "error"; title: string; description: string }
 ```
 
 `PaymentDialog` receives `state`, `onPay`, `onRetry`, and `onCancelPayment`.
@@ -1238,11 +1184,7 @@ Use `Empty` in `error`:
   icon={<RiCloseCircleLine className="size-5" />}
   title={state.title}
   description={state.description}
-  action={
-    <Button type="button" onClick={onRetry}>
-      重试
-    </Button>
-  }
+  action={<Button type="button" onClick={onRetry}>重试</Button>}
 />
 ```
 
@@ -1251,11 +1193,7 @@ Use `Empty` in `error`:
 In ready state, render:
 
 ```tsx
-<PaymentQrCode
-  content={panelQrCodeContent}
-  channel={value}
-  className="w-44 max-w-full"
-/>
+<PaymentQrCode content={panelQrCodeContent} channel={value} className="w-44 max-w-full" />
 ```
 
 - [ ] **Step 4: Update SpotMarketplace checkout**
@@ -1263,9 +1201,7 @@ In ready state, render:
 Replace `checkoutDraft` with:
 
 ```ts
-const [paymentState, setPaymentState] = useState<PaymentDialogState>({
-  status: "idle",
-});
+const [paymentState, setPaymentState] = useState<PaymentDialogState>({ status: "idle" })
 ```
 
 `startCheckout` should:
@@ -1297,21 +1233,18 @@ try {
 `onPay` should call:
 
 ```ts
-const paidBill = await payBill(
-  {
-    billId: state.billId,
-    channel: selectedPlatform,
-    updatedAt: state.billUpdatedAt,
-  },
-  serviceOptions,
-);
+const paidBill = await payBill({
+  billId: state.billId,
+  channel: selectedPlatform,
+  updatedAt: state.billUpdatedAt,
+}, serviceOptions)
 setPaymentState({
   status: "submitted",
   amountCents: paidBill.amountCents,
   verifyCode: paidBill.verifyCode,
   channel: paidBill.channel ?? selectedPlatform,
   serialNumber: paidBill.serialNumber,
-});
+})
 ```
 
 - [ ] **Step 5: Run typecheck**
@@ -1336,7 +1269,6 @@ git commit -m "feat: use bill-backed spot payment flow"
 ### Task 10: Require Seller QR Before Publishing Spot Goods
 
 **Files:**
-
 - Modify: `apps/mobile/components/publish-spot-form.tsx`
 - Modify: `apps/mobile/components/profile-dialogs-provider.tsx`
 
@@ -1345,13 +1277,13 @@ git commit -m "feat: use bill-backed spot payment flow"
 Add to `ProfileDialogsContextValue`:
 
 ```ts
-hasPaymentQrCode: boolean;
+hasPaymentQrCode: boolean
 ```
 
 Provide:
 
 ```ts
-hasPaymentQrCode: qrCodes.length > 0;
+hasPaymentQrCode: qrCodes.length > 0
 ```
 
 - [ ] **Step 2: Guard publish submission**
@@ -1362,9 +1294,9 @@ Before `createSpotGoods`:
 
 ```ts
 if (!hasPaymentQrCode) {
-  toast.message("上架前需要先上传快捷收款码");
-  openQrCodeDialog();
-  return;
+  toast.message("上架前需要先上传快捷收款码")
+  openQrCodeDialog()
+  return
 }
 ```
 
@@ -1390,7 +1322,6 @@ git commit -m "feat: require payment qr before spot publish"
 ### Task 11: Add Auth Mode and Proxy
 
 **Files:**
-
 - Create: `apps/mobile/lib/auth-mode.ts`
 - Modify: `apps/mobile/lib/app-config.ts`
 - Modify: `apps/desktop/lib/app-config.ts`
@@ -1402,10 +1333,10 @@ git commit -m "feat: require payment qr before spot publish"
 Create `apps/mobile/lib/auth-mode.ts`:
 
 ```ts
-export type AuthMode = "off" | "required";
+export type AuthMode = "off" | "required"
 
 export function resolveAuthMode(value: string | undefined): AuthMode {
-  return value === "required" ? "required" : "off";
+  return value === "required" ? "required" : "off"
 }
 ```
 
@@ -1424,32 +1355,32 @@ Use a local parser in desktop or move parser to a shared package if both apps ne
 Create `apps/mobile/app/api/connect/[...path]/route.ts`:
 
 ```ts
-import { cookies } from "next/headers";
-import { NextResponse, type NextRequest } from "next/server";
+import { cookies } from "next/headers"
+import { NextResponse, type NextRequest } from "next/server"
 
-import { mobileAppConfig } from "@/lib/app-config";
+import { mobileAppConfig } from "@/lib/app-config"
 
-const SESSION_COOKIE = "sast_shop_session";
+const SESSION_COOKIE = "sast_shop_session"
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> },
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
   if (mobileAppConfig.authMode === "required") {
-    const session = (await cookies()).get(SESSION_COOKIE)?.value;
+    const session = (await cookies()).get(SESSION_COOKIE)?.value
 
     if (!session) {
-      return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+      return NextResponse.json({ error: "unauthenticated" }, { status: 401 })
     }
   }
 
-  const { path } = await params;
-  const target = new URL(path.join("/"), mobileAppConfig.connectBaseUrl);
-  const headers = new Headers(request.headers);
-  const session = (await cookies()).get(SESSION_COOKIE)?.value;
+  const { path } = await params
+  const target = new URL(path.join("/"), mobileAppConfig.connectBaseUrl)
+  const headers = new Headers(request.headers)
+  const session = (await cookies()).get(SESSION_COOKIE)?.value
 
   if (session) {
-    headers.set("Authorization", `Bearer ${session}`);
+    headers.set("Authorization", `Bearer ${session}`)
   }
 
   const response = await fetch(target, {
@@ -1457,12 +1388,12 @@ export async function POST(
     headers,
     body: request.body,
     duplex: "half",
-  } as RequestInit);
+  } as RequestInit)
 
   return new Response(response.body, {
     status: response.status,
     headers: response.headers,
-  });
+  })
 }
 ```
 
@@ -1471,27 +1402,27 @@ export async function POST(
 Create `apps/mobile/app/api/auth/session/route.ts`:
 
 ```ts
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server"
 
-const SESSION_COOKIE = "sast_shop_session";
+const SESSION_COOKIE = "sast_shop_session"
 
 export async function POST(request: NextRequest) {
-  const { sessionToken, expiresAt } = await request.json();
+  const { sessionToken, expiresAt } = await request.json()
 
   if (typeof sessionToken !== "string" || !sessionToken) {
-    return NextResponse.json({ error: "invalid_session" }, { status: 400 });
+    return NextResponse.json({ error: "invalid_session" }, { status: 400 })
   }
 
-  const response = NextResponse.json({ ok: true });
+  const response = NextResponse.json({ ok: true })
   response.cookies.set(SESSION_COOKIE, sessionToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     expires: expiresAt ? new Date(expiresAt) : undefined,
-  });
+  })
 
-  return response;
+  return response
 }
 ```
 
@@ -1518,7 +1449,6 @@ git commit -m "feat: add auth mode and connect proxy"
 ### Task 12: Migrate ManagedImage to next/image
 
 **Files:**
-
 - Modify: `apps/mobile/components/managed-image.tsx`
 - Modify: `apps/mobile/next.config.ts`
 
@@ -1527,7 +1457,7 @@ git commit -m "feat: add auth mode and connect proxy"
 Replace `<img>` with `Image`:
 
 ```tsx
-import Image from "next/image";
+import Image from "next/image"
 ```
 
 Use:
@@ -1542,7 +1472,7 @@ Use:
   className={cn(
     "object-cover",
     state !== "loaded" && "opacity-0",
-    imageClassName,
+    imageClassName
   )}
   onLoad={() => updateState("loaded")}
   onError={() => updateState("error")}
@@ -1573,7 +1503,6 @@ git commit -m "fix: use next image in managed image"
 ### Task 13: Improve Orders URL State and Empty Usage
 
 **Files:**
-
 - Modify: `apps/mobile/components/orders-view.tsx`
 
 - [ ] **Step 1: Use URL-backed state**
@@ -1581,18 +1510,15 @@ git commit -m "fix: use next image in managed image"
 Import:
 
 ```ts
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation"
 ```
 
 Read initial state from query:
 
 ```ts
-const perspective =
-  searchParams.get("perspective") === "seller" ? "seller" : "purchaser";
-const status = isStatus(searchParams.get("status"))
-  ? searchParams.get("status")
-  : "all";
-const query = searchParams.get("q") ?? "";
+const perspective = searchParams.get("perspective") === "seller" ? "seller" : "purchaser"
+const status = isStatus(searchParams.get("status")) ? searchParams.get("status") : "all"
+const query = searchParams.get("q") ?? ""
 ```
 
 Update query with `router.replace` when filters change.
@@ -1605,7 +1531,7 @@ Use `Tabs` for:
 [
   { value: "purchaser", label: "我买的" },
   { value: "seller", label: "我卖的" },
-];
+]
 ```
 
 - [ ] **Step 3: Use Empty for unsupported tabs**
@@ -1642,7 +1568,6 @@ git commit -m "feat: persist mobile order filters"
 ### Task 14: Final Verification
 
 **Files:**
-
 - All changed files.
 
 - [ ] **Step 1: Run lint**
