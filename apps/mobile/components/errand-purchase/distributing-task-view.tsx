@@ -87,7 +87,7 @@ function isItemFullyDistributed(item: DistributingTaskItem): boolean {
     return true; // 未采购，无需分发
   }
   const totalDistributed = item.requesters.reduce(
-    (s, r) => s + Math.max(0, r.distributedQuantity),
+    (s, r) => s + (r.distributedQuantity ?? 0),
     0,
   );
   return totalDistributed >= item.purchasedQuantity;
@@ -132,7 +132,7 @@ export function DistributingTaskView({
         return true; // 未采购，无需分发
       }
       const totalDistributed = item.requesters.reduce(
-        (s, r) => s + Math.max(0, r.distributedQuantity),
+        (s, r) => s + (r.distributedQuantity ?? 0),
         0,
       );
       return totalDistributed >= item.purchasedQuantity;
@@ -153,7 +153,14 @@ export function DistributingTaskView({
               requesters: item.requesters.map((r) =>
                 r.errandTaskAssignmentId !== assignmentId
                   ? r
-                  : { ...r, distributedQuantity, assignmentUpdatedAt },
+                  : {
+                      ...r,
+                      distributedQuantity:
+                        distributedQuantity === -1
+                          ? null
+                          : distributedQuantity,
+                      assignmentUpdatedAt,
+                    },
               ),
             },
       ),
@@ -246,7 +253,7 @@ export function DistributingTaskView({
         {
           errandTaskItemId: item.errandTaskItemId,
           errandTaskAssignmentId: requester.errandTaskAssignmentId,
-          distributedQuantity: 0,
+          distributedQuantity: -1,
           assignmentUpdatedAt: requester.assignmentUpdatedAt,
         },
         serviceOptions,
@@ -254,7 +261,7 @@ export function DistributingTaskView({
       updateRequester(
         item.errandTaskItemId,
         requester.errandTaskAssignmentId,
-        0,
+        -1,
         saved.assignmentUpdatedAt ?? requester.assignmentUpdatedAt,
       );
       if (dataSource === "local") {
@@ -883,7 +890,7 @@ function RequesterRow({
   onSkip: () => void;
   onRevoke: () => void;
 }) {
-  const isDone = requester.distributedQuantity > 0;
+  const isDone = requester.distributedQuantity != null && requester.distributedQuantity > 0;
   const isSkipped = requester.distributedQuantity === 0;
   const [actionOpen, setActionOpen] = useState(false);
   const pointerStartXRef = useRef<number | null>(null);

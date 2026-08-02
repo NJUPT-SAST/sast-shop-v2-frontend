@@ -97,7 +97,7 @@ export function DistributingTaskView({
       detail.items.flatMap((item) =>
         item.requesters.map((requester) => [
           requester.errandTaskAssignmentId,
-          requester.distributedQuantity > 0
+          requester.distributedQuantity != null
             ? String(requester.distributedQuantity)
             : "",
         ]),
@@ -124,7 +124,7 @@ export function DistributingTaskView({
         return true; // 未采购，无需分发
       }
       const totalDistributed = item.requesters.reduce(
-        (s, r) => s + Math.max(0, r.distributedQuantity),
+        (s, r) => s + (r.distributedQuantity ?? 0),
         0,
       );
       return totalDistributed >= item.purchasedQuantity;
@@ -180,7 +180,10 @@ export function DistributingTaskView({
                   ? requester
                   : {
                       ...requester,
-                      distributedQuantity,
+                      distributedQuantity:
+                        distributedQuantity === -1
+                          ? null
+                          : distributedQuantity,
                       assignmentUpdatedAt,
                     },
               ),
@@ -190,7 +193,9 @@ export function DistributingTaskView({
     setAssignmentDrafts((current) => ({
       ...current,
       [assignmentId]:
-        distributedQuantity > 0 ? String(distributedQuantity) : "",
+        distributedQuantity != null && distributedQuantity > 0
+          ? String(distributedQuantity)
+          : "",
     }));
   }
 
@@ -269,11 +274,12 @@ export function DistributingTaskView({
       (item.purchasedQuantity ?? 0) -
       item.requesters
         .filter((r) => r.errandTaskAssignmentId !== requester.errandTaskAssignmentId)
-        .reduce((sum, r) => sum + Math.max(0, r.distributedQuantity), 0);
+        .reduce((sum, r) => sum + (r.distributedQuantity ?? 0), 0);
     if (
-      !Number.isInteger(quantity) ||
-      quantity < 0 ||
-      quantity > remaining
+      quantity !== -1 &&
+      (!Number.isInteger(quantity) ||
+        quantity < 0 ||
+        quantity > remaining)
     ) {
       toast.error(`分发数量应为 0 到 ${Math.max(0, remaining)}`);
       return;
@@ -295,7 +301,13 @@ export function DistributingTaskView({
         quantity,
         saved.assignmentUpdatedAt ?? requester.assignmentUpdatedAt,
       );
-      toast.success(quantity === 0 ? "已撤销分发结果" : "分发结果已保存");
+      toast.success(
+        quantity === -1
+          ? "已撤销分发结果"
+          : quantity === 0
+            ? "已标记不分发"
+            : "分发结果已保存",
+      );
     } catch {
       toast.error("分发结果保存失败，请刷新后重试");
     } finally {
@@ -582,7 +594,7 @@ export function DistributingTaskView({
                                 requester.errandTaskAssignmentId,
                             )
                             .reduce(
-                              (sum, r) => sum + Math.max(0, r.distributedQuantity),
+                              (sum, r) => sum + (r.distributedQuantity ?? 0),
                               0,
                             ),
                       )}
@@ -692,7 +704,7 @@ function RequesterRow({
           variant="outline"
           size="sm"
           disabled={busy}
-          onClick={() => onSave(0)}
+          onClick={() => onSave(-1)}
         >
           撤销
         </Button>
@@ -773,7 +785,7 @@ function ConfirmationDialog({
 }
 
 function isRequesterProcessed(requester: DistributingRequester): boolean {
-  return requester.distributedQuantity > 0;
+  return requester.distributedQuantity != null;
 }
 
 function formatYuan(cents: number): string {
