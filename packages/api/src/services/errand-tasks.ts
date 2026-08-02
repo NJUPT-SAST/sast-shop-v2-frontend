@@ -452,6 +452,7 @@ export interface ShoppingTaskItem {
   nonPurchaseReason: string | null;
   actualUnitPriceCents: number | null;
   updatedAt: string | null;
+  deadline: string | null;
 }
 
 export interface ShoppingTaskDetail {
@@ -1002,6 +1003,7 @@ function mapErrandTaskItem(item: ErrandTaskItem): ShoppingTaskItem {
     nonPurchaseReason: item.nonPurchaseReason ?? null,
     actualUnitPriceCents: item.actualUnitPriceCents ?? null,
     updatedAt: formatTimestamp(item.updatedAt),
+    deadline: formatTimestamp(item.deadline),
   };
 }
 
@@ -1073,7 +1075,7 @@ function mapDistributingRequester(
     purchaserName: r.purchaserName,
     purchaserAvatarUrl: r.purchaserAvatarUrl,
     quantity: r.quantity,
-    distributedQuantity: r.distributedQuantity,
+    distributedQuantity: r.distributedQuantity ?? 0,
     errandTaskAssignmentId: r.errandTaskAssignmentId.toString(),
     errandDemandItemId: r.errandDemandItemId.toString(),
     assignmentUpdatedAt: formatTimestamp(r.errandTaskAssignmentUpdatedAt),
@@ -1107,7 +1109,7 @@ function mapCollectingPaymentItem(
     title: item.titleSnapshot,
     requiredQuantity: item.requiredQuantity,
     purchasedQuantity: item.purchasedQuantity,
-    distributedQuantity: item.distributedQuantity,
+    distributedQuantity: item.distributedQuantity ?? 0,
     actualUnitPriceCents: item.actualUnitPriceCents,
     productAmountCents: item.productAmountCents,
     serviceFeePerUnitCents: item.serviceFeePerUnitCents,
