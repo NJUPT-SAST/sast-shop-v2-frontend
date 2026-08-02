@@ -49,6 +49,13 @@ type DialogState =
   | { type: "complete" }
   | { type: "cancel" };
 
+function formatDeadline(deadline?: string | null): string {
+  if (!deadline) return "";
+  const d = new Date(deadline);
+  if (isNaN(d.getTime())) return "";
+  return `${d.getMonth() + 1}月${d.getDate()}日 ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
 export function ShoppingTaskView({
   dataSource,
   connectBaseUrl,
@@ -453,6 +460,9 @@ function ShoppingItemCard({
             {item.actualUnitPriceCents != null
               ? formatPrice(item.actualUnitPriceCents)
               : "未定价"}
+            {item.deadline ? (
+              <span className="ml-2">截止时间 {formatDeadline(item.deadline)}</span>
+            ) : null}
           </p>
           {item.nonPurchaseReason ? (
             <p className="mt-2 text-sm text-destructive">

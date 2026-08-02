@@ -452,6 +452,7 @@ export interface ShoppingTaskItem {
   nonPurchaseReason: string | null;
   actualUnitPriceCents: number | null;
   updatedAt: string | null;
+  deadline: string | null;
 }
 
 export interface ShoppingTaskDetail {
@@ -1002,6 +1003,7 @@ function mapErrandTaskItem(item: ErrandTaskItem): ShoppingTaskItem {
     nonPurchaseReason: item.nonPurchaseReason ?? null,
     actualUnitPriceCents: item.actualUnitPriceCents ?? null,
     updatedAt: formatTimestamp(item.updatedAt),
+    deadline: formatTimestamp(item.deadline),
   };
 }
 
