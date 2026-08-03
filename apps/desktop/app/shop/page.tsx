@@ -1,32 +1,22 @@
 import { randomUUID } from "node:crypto";
-import { listSpotGoods, type ListSpotGoodsResult } from "@sast-shop/api";
 
 import { SpotMarketplace } from "@/components/spot-marketplace";
 import { desktopAppConfig } from "@/lib/app-config";
+import { loadShopSpotGoodsPage } from "@/lib/shop-page-data";
 import { getServerServiceOptions } from "@/lib/server-service-options";
 
+export const dynamic = "force-dynamic";
+
 export default async function ShopPage() {
-  const options = await getServerServiceOptions();
-  let page: ListSpotGoodsResult = {
-    goods: [],
-    currentPage: 0,
-    totalCount: 0,
-    pageSize: 24,
-  };
-  let errorMessage: string | null = null;
-  try {
-    page = await listSpotGoods({ ...options, page: 1, pageSize: 24 });
-  } catch {
-    errorMessage = "现货商品暂不可用，请稍后再试";
-  }
+  const result = await loadShopSpotGoodsPage(await getServerServiceOptions());
   const refreshKey = randomUUID();
   return (
     <SpotMarketplace
       key={refreshKey}
       dataSource={desktopAppConfig.dataSource}
       connectBaseUrl={desktopAppConfig.connectBaseUrl}
-      initialPage={page}
-      error={errorMessage}
+      initialPage={result.page}
+      error={result.error}
     />
   );
 }

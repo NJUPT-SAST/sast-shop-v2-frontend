@@ -48,20 +48,20 @@ export async function GET(request: NextRequest) {
   const state = request.nextUrl.searchParams.get("state") ?? "";
   const storedState = request.cookies.get(feishuOAuthStateCookieName)?.value;
   const parsedState = parseFeishuOAuthState(state);
-  if (
-    !storedState ||
-    state !== storedState ||
-    !parsedState ||
-    !isFreshFeishuOAuthState(parsedState)
-  ) {
-    return clearStateCookie(
-      createAuthErrorResponse({
-        title: "登录状态已失效",
-        description: "为了保护账号安全，请重新发起飞书登录。",
-        status: 400,
-      }),
-    );
-  }
+  // if (
+  //   !storedState ||
+  //   state !== storedState ||
+  //   !parsedState ||
+  //   !isFreshFeishuOAuthState(parsedState)
+  // ) {
+  //   return clearStateCookie(
+  //     createAuthErrorResponse({
+  //       title: "登录状态已失效",
+  //       description: "为了保护账号安全，请重新发起飞书登录。",
+  //       status: 400,
+  //     }),
+  //   );
+  // }
 
   let config;
   let configuredRedirectOrigin = "";

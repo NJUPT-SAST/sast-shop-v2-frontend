@@ -49,7 +49,7 @@ describe("spot goods service", () => {
     >();
   });
 
-  it("lists the global page with one store_id=0 request", async () => {
+  it("lists the global page by querying each store", async () => {
     const listRequestBodies: unknown[] = [];
     const fetchMock = vi.fn(
       async (input: string | Request, init?: RequestInit) => {

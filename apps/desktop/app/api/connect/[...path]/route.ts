@@ -8,12 +8,18 @@ import {
 import { getServerAuthMode } from "@/lib/auth-mode";
 import { desktopAppConfig } from "@/lib/app-config";
 import { getServerConnectBaseUrl } from "@/lib/server-service-options";
-
+/*
+用于将前端发往 /api/connect/... 的 HTTP 请求代理到后端的 Connect RPC 服务
+*/
 const maxBodyBytes = 1024 * 1024;
+//这些 RPC 方法路径不会被代理到后端，由服务端内部处理（如登录逻辑），不通过公共代理暴露
 const serverOnlyAuthMethods = new Set([
   "sast.sastshopv2.user.v1.AuthService/Login",
   "sast.sastshopv2.user.v1.AuthService/GetJSAPIAuthConfig",
 ]);
+//需要过滤的请求头
+// 避免将客户端的认证信息直接透传
+// 避免将内部网络信息（如 x-forwarded-*）暴露给上游
 const blockedRequestHeaders = new Set([
   "authorization",
   "connection",
@@ -34,6 +40,7 @@ const blockedRequestHeaders = new Set([
   "x-forwarded-proto",
   "x-real-ip",
 ]);
+// location、set-cookie 等敏感头可能需要由代理层重新处理，避免直接透传
 const blockedResponseHeaders = new Set([
   "access-control-allow-credentials",
   "access-control-allow-headers",

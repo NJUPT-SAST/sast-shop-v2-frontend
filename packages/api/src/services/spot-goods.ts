@@ -6,6 +6,7 @@ import type {
   SpotGoodsDetail as ProtoSpotGoodsDetail,
 } from "../gen/sast/sastshopv2/spot/v1/spot_goods_pb";
 import { SpotGoodsService } from "../gen/sast/sastshopv2/spot/v1/spot_goods_service_pb";
+import { mapWithConcurrency } from "../concurrency";
 import { resolveDataSource, type ServiceOptions } from "../data-source";
 import { FeatureUnavailableError, ValidationError } from "../errors";
 import { createLocalTransport, requestLocal } from "../local-connect";
@@ -72,6 +73,11 @@ export interface CreateSpotGoodsInput {
   productTemplateUpdatedAt: TimestampInput;
 }
 
+type SpotGoodsListClient = Pick<
+  ReturnType<typeof createClient<typeof SpotGoodsService>>,
+  "listSpotGoods"
+>;
+
 export async function listSpotGoods(
   options: ServiceOptions & {
     storeId?: string;
@@ -92,44 +98,91 @@ export async function listSpotGoods(
       SpotGoodsService,
       createLocalTransport(options),
     );
-    const [stores, response] = await Promise.all([
-      listStores(options),
-      requestLocal("listSpotGoods", () =>
-        client.listSpotGoods({ storeId, page, pageSize }),
-      ),
-    ]);
+    const stores = await listStores(options);
     const storesById = new Map(stores.map((store) => [store.id, store]));
 
-    if (storeId > 0n && !storesById.has(storeId.toString())) {
-      throw new FeatureUnavailableError("spotGoods.store");
-    }
-    if (
-      !Number.isInteger(response.currentPage) ||
-      response.currentPage !== page ||
-      !Number.isInteger(response.totalCount) ||
-      response.spotGoodsList.length > pageSize ||
-      response.totalCount <
-        (page - 1) * pageSize + response.spotGoodsList.length
-    ) {
-      throw new FeatureUnavailableError("listSpotGoods.pagination");
+    if (storeId > 0n) {
+      const store = storesById.get(storeId.toString());
+      if (!store) throw new FeatureUnavailableError("spotGoods.store");
+
+      return listSpotGoodsByStorePage({
+        client,
+        store,
+        page,
+        pageSize,
+      });
     }
 
-    return {
-      goods: response.spotGoodsList.map((goods) => {
-        const productStoreId = goods.productTemplate?.storeId.toString();
-        const store = productStoreId
-          ? storesById.get(productStoreId)
-          : undefined;
-        if (!store) throw new FeatureUnavailableError("spotGoods.store");
-        return mapSpotGoodsBrief(goods, store);
+    if (stores.length === 0) {
+      return {
+        goods: [],
+        currentPage: page,
+        totalCount: 0,
+        pageSize,
+      };
+    }
+
+    const pageLimit = page * pageSize;
+    const pages = await mapWithConcurrency(stores, 4, (store) =>
+      listSpotGoodsByStorePage({
+        client,
+        store,
+        page: 1,
+        pageSize: pageLimit,
       }),
-      currentPage: response.currentPage,
-      totalCount: response.totalCount,
+    );
+    const goods = pages.flatMap((result) => result.goods);
+    const offset = (page - 1) * pageSize;
+
+    return {
+      goods: goods.slice(offset, offset + pageSize),
+      currentPage: page,
+      totalCount: pages.reduce((total, result) => total + result.totalCount, 0),
       pageSize,
     };
   }
 
   throw new FeatureUnavailableError("listSpotGoods");
+}
+
+async function listSpotGoodsByStorePage({
+  client,
+  store,
+  page,
+  pageSize,
+}: {
+  client: SpotGoodsListClient;
+  store: Store;
+  page: number;
+  pageSize: number;
+}): Promise<ListSpotGoodsResult> {
+  const response = await requestLocal("listSpotGoods", () =>
+    client.listSpotGoods({
+      storeId: parseInt64(store.id, "店铺 ID 不正确"),
+      page,
+      pageSize,
+    }),
+  );
+
+  if (
+    !Number.isInteger(response.currentPage) ||
+    response.currentPage !== page ||
+    !Number.isInteger(response.totalCount) ||
+    response.spotGoodsList.length > pageSize ||
+    response.totalCount <
+      (page - 1) * pageSize + response.spotGoodsList.length
+  ) {
+    throw new FeatureUnavailableError("listSpotGoods.pagination");
+  }
+
+  return {
+    goods: response.spotGoodsList.map((goods) =>
+      mapSpotGoodsBrief(goods, store),
+    ),
+    currentPage: response.currentPage,
+    totalCount: response.totalCount,
+    pageSize,
+  };
 }
 
 export async function getSpotGoods(

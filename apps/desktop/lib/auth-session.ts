@@ -71,9 +71,18 @@ export async function createDesktopAuthSessionFromLarkCode(
         sessionSecret,
       ),
     };
-  } catch {
-    throw new LoginExchangeError();
-  } finally {
+  }  catch (error) {
+  console.error("[oauth] login exchange failed", {
+    name: error instanceof Error ? error.name : typeof error,
+    message: error instanceof Error ? error.message : String(error),
+    cause: error instanceof Error ? error.cause : undefined,
+    dataSource: desktopAppConfig.dataSource,
+    redirectUri: options.redirectUri,
+    connectBaseUrl,
+  });
+
+  throw new LoginExchangeError();
+} finally {
     permit.release();
   }
 }
