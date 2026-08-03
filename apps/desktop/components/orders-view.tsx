@@ -10,6 +10,8 @@ import {
   RiSearchLine,
 } from "@remixicon/react";
 import {
+  cancelErrandDemand,
+  getBuyerErrandOrderDetail,
   listBuyerErrandOrdersPage,
   listErrandTasksPage,
   listSpotOrdersPage,
@@ -22,6 +24,14 @@ import {
 import { formatPrice } from "@sast-shop/domain";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@workspace/ui/components/dialog";
 import { Empty } from "@workspace/ui/components/empty";
 import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
 import { LoadFailure } from "@workspace/ui/components/load-failure";
@@ -63,12 +73,8 @@ import {
   type RenderableOrderStatus,
 } from "@/lib/order-filters";
 import { parsePositiveInt64RouteId } from "@/lib/route-id";
-import {
-  getErrandDemandSnapshotMap,
-  shouldDisplayErrandDemandExpired,
-  type ErrandDemandSnapshot,
-} from "@/lib/errand-demand-snapshot";
 import { ManagedImage } from "./managed-image";
+import { toast } from "sonner";
 
 type RenderableOrder = {
   id: string;
@@ -87,6 +93,7 @@ type RenderableOrder = {
   createdAt: string | null;
   href: string | null;
   modifyHref: string | null;
+  cancelDemandId: string | null;
   isExpired: boolean;
 };
 
@@ -133,9 +140,8 @@ export function OrdersView({
     () => rememberView(DEFAULT_REMEMBERED_ORDER_VIEWS, initialFilters),
   );
   const [now, setNow] = useState(() => new Date());
-  const [errandDemandSnapshots, setErrandDemandSnapshots] = useState<
-    ReadonlyMap<string, ErrandDemandSnapshot>
-  >(() => new Map());
+  const [cancelDemandId, setCancelDemandId] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
   const searchTimerRef = useRef<number | null>(null);
   const pendingSearchHrefRef = useRef<string | null>(null);
   const loadSpotBuyerPage = useCallback(
@@ -209,17 +215,12 @@ export function OrdersView({
       ...spotBuyerFeed.items.map((order) => mapSpotOrder(order, "buyer")),
       ...spotSellerFeed.items.map((order) => mapSpotOrder(order, "seller")),
       ...buyerErrandFeed.items.map((order) =>
-        mapBuyerErrandOrder(
-          order,
-          errandDemandSnapshots.get(order.id) ?? null,
-          now,
-        ),
+        mapBuyerErrandOrder(order, now),
       ),
       ...errandTaskFeed.items.map(mapErrandTask),
     ],
     [
       buyerErrandFeed.items,
-      errandDemandSnapshots,
       errandTaskFeed.items,
       now,
       spotBuyerFeed.items,
@@ -245,19 +246,6 @@ export function OrdersView({
     loadMoreError: currentFeedLoadMoreError,
     loadMore: loadMoreCurrentFeed,
   } = currentFeed;
-
-  useEffect(() => {
-    const refreshSnapshots = () => {
-      setErrandDemandSnapshots(getErrandDemandSnapshotMap());
-    };
-    const timer = window.setTimeout(refreshSnapshots, 0);
-
-    window.addEventListener("storage", refreshSnapshots);
-    return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener("storage", refreshSnapshots);
-    };
-  }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60_000);
@@ -362,6 +350,29 @@ export function OrdersView({
     }
   }
 
+  async function confirmCancelDemand() {
+    if (!cancelDemandId || cancelling) return;
+    setCancelling(true);
+    try {
+      const detail = await getBuyerErrandOrderDetail(cancelDemandId, {
+        dataSource,
+        connectBaseUrl,
+      });
+      await cancelErrandDemand(cancelDemandId, {
+        dataSource,
+        connectBaseUrl,
+        updatedAt: detail.updatedAt ?? undefined,
+      });
+      toast.success("跑腿需求已撤回");
+      setCancelDemandId(null);
+      router.refresh();
+    } catch {
+      toast.error("撤回失败，请刷新后重试");
+    } finally {
+      setCancelling(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <section className="flex flex-wrap items-end justify-between gap-4">
@@ -447,7 +458,15 @@ export function OrdersView({
       ) : filtered.length > 0 ? (
         <section className="grid min-w-0 gap-3">
           {filtered.map((order) => (
-            <OrderItem key={order.id} order={order} />
+            <OrderItem
+              key={order.id}
+              order={order}
+              onCancelDemand={
+                order.cancelDemandId
+                  ? () => setCancelDemandId(order.cancelDemandId!)
+                  : undefined
+              }
+            />
           ))}
         </section>
       ) : null}
@@ -463,6 +482,38 @@ export function OrdersView({
           endMessage={`已经到底，共 ${currentFeed.items.length} 笔订单`}
         />
       ) : null}
+
+      <Dialog
+        open={cancelDemandId !== null}
+        onOpenChange={(open) => !cancelling && !open && setCancelDemandId(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>撤回跑腿需求？</DialogTitle>
+            <DialogDescription>
+              撤回后该需求将从跑腿大厅移除，团长将无法接单。此操作不可撤销。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={cancelling}
+              onClick={() => setCancelDemandId(null)}
+            >
+              保留需求
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={cancelling}
+              onClick={() => void confirmCancelDemand()}
+            >
+              {cancelling ? "正在撤回…" : "撤回需求"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -487,7 +538,13 @@ function getOrderKey(order: { id: string }) {
   return order.id;
 }
 
-function OrderItem({ order }: { order: RenderableOrder }) {
+function OrderItem({
+  order,
+  onCancelDemand,
+}: {
+  order: RenderableOrder;
+  onCancelDemand?: () => void;
+}) {
   const statusLabel = order.isExpired
     ? "已过期"
     : getStatusLabel(order.status, order.view);
@@ -547,6 +604,15 @@ function OrderItem({ order }: { order: RenderableOrder }) {
                 <RiEditLine data-icon="inline-start" />
                 修改需求
               </Link>
+            </Button>
+          ) : null}
+          {onCancelDemand ? (
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={onCancelDemand}
+            >
+              撤回
             </Button>
           ) : null}
         </div>
@@ -644,17 +710,17 @@ function mapSpotOrder(
       ? `/orders/spot/${id}?view=${view}&returnTo=${encodeURIComponent(returnTo)}`
       : null,
     modifyHref: null,
+    cancelDemandId: null,
     isExpired: false,
   };
 }
 
 function mapBuyerErrandOrder(
   order: BuyerErrandOrder,
-  snapshot: ErrandDemandSnapshot | null,
   now: Date,
 ): RenderableOrder {
   const id = parsePositiveInt64RouteId(order.id);
-  const editStoreId = parsePositiveInt64RouteId(snapshot?.storeId ?? "");
+  const editStoreId = parsePositiveInt64RouteId(order.storeId);
   return {
     id: `participant-${order.id}`,
     orderNo: null,
@@ -682,14 +748,11 @@ function mapBuyerErrandOrder(
     createdAt: order.createdAt,
     href: id ? `/orders/errand/${id}` : null,
     modifyHref:
-      id && editStoreId
+      id && editStoreId && order.status === "open"
         ? `/group/shop/${editStoreId}?editDemandId=${id}`
         : null,
-    isExpired: shouldDisplayErrandDemandExpired(
-      order.status,
-      snapshot?.deadline ?? null,
-      now,
-    ),
+    cancelDemandId: id && order.status === "open" ? id : null,
+    isExpired: false,
   };
 }
 
@@ -712,6 +775,7 @@ function mapErrandTask(task: ErrandTaskBrief): RenderableOrder {
     createdAt: task.createdAt,
     href: id ? `/group/purchase/${id}` : null,
     modifyHref: null,
+    cancelDemandId: null,
     isExpired: false,
   };
 }

@@ -69,6 +69,7 @@ export interface BuyerErrandOrderDetail {
   id: string;
   storeId: string;
   createdAt: string | null;
+  updatedAt: string | null;
   store: Store | null;
   status: BuyerErrandOrderStatus;
   productItems: BuyerErrandOrderProductItem[];
@@ -230,6 +231,7 @@ function mapBuyerErrandOrderDetail(
     id: order.errandDemandId.toString(),
     storeId: order.storeId.toString(),
     createdAt: formatTimestamp(order.createdAt),
+    updatedAt: formatTimestamp(order.updatedAt),
     store: mapStore(order.storeInfo),
     status: mapStatusFromProto(order.status),
     productItems: order.productItems.map(mapBuyerErrandOrderProductItem),

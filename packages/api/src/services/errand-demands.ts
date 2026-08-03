@@ -33,6 +33,19 @@ export interface CreateErrandDemandResult {
   errandDemandId: string;
 }
 
+export interface UpdateErrandDemandInput {
+  errandDemandId: string;
+  storeId: string;
+  deadline: string;
+  items: Array<{
+    productTemplateId: string;
+    quantity: number;
+    serviceFeePerUnitCents: number;
+    updatedAt?: string | null;
+  }>;
+  updatedAt?: string | null;
+}
+
 export interface ErrandDemandStoreSummary {
   storeId: string;
   storeName: string;
@@ -84,6 +97,92 @@ export async function createErrandDemand(
   }
 
   throw new FeatureUnavailableError("createErrandDemand");
+}
+
+export async function updateErrandDemand(
+  input: UpdateErrandDemandInput,
+  options: ServiceOptions = {},
+): Promise<void> {
+  const dataSource = resolveDataSource(options);
+
+  if (dataSource === "mock" || dataSource === "local") {
+    const client = createClient(
+      ErrandDemandService,
+      createLocalTransport(options),
+    );
+    const updatedAt = parseOptionalTimestamp(
+      input.updatedAt,
+      "更新时间不正确",
+    );
+    await requestLocal("updateErrandDemand", () =>
+      client.updateErrandDemand({
+        errandDemandId: parseInt64(
+          input.errandDemandId,
+          "跑腿订单 ID 不正确",
+        ),
+        storeId: parseInt64(input.storeId, "店铺 ID 不正确"),
+        deadline: parseRequiredTimestamp(
+          input.deadline,
+          "期望送达时间不正确",
+        ),
+        demandItems: input.items.map((item) => {
+          const itemUpdatedAt = parseOptionalTimestamp(
+            item.updatedAt,
+            "商品更新时间不正确",
+          );
+          return {
+            productTemplateId: parseInt64(
+              item.productTemplateId,
+              "商品模板 ID 不正确",
+            ),
+            quantity: parsePositiveInteger(
+              item.quantity,
+              "跑腿需求数量不正确",
+            ),
+            serviceFeePerUnitCents: parseNonNegativeInteger(
+              item.serviceFeePerUnitCents,
+              "跑腿费不正确",
+            ),
+            ...(itemUpdatedAt ? { updatedAt: itemUpdatedAt } : {}),
+          };
+        }),
+        ...(updatedAt ? { updatedAt } : {}),
+      }),
+    );
+    return;
+  }
+
+  throw new FeatureUnavailableError("updateErrandDemand");
+}
+
+export async function cancelErrandDemand(
+  errandDemandId: string,
+  options: ServiceOptions & { updatedAt?: string | null } = {},
+): Promise<void> {
+  const dataSource = resolveDataSource(options);
+
+  if (dataSource === "mock" || dataSource === "local") {
+    const client = createClient(
+      ErrandDemandService,
+      createLocalTransport(options),
+    );
+    const updatedAt = parseOptionalTimestamp(
+      options.updatedAt,
+      "更新时间不正确",
+    );
+    await requestLocal("cancelErrandDemand", () =>
+      client.cancelErrandDemand({
+        errandDemandId: parseInt64(
+          errandDemandId,
+          "跑腿订单 ID 不正确",
+        ),
+        ...(updatedAt ? { updatedAt } : {}),
+      }),
+    );
+    return;
+  }
+
+  throw new FeatureUnavailableError("cancelErrandDemand");
 }
 
 export async function listErrandDemandStores(

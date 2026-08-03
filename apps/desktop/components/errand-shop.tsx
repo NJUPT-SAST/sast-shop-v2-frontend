@@ -13,6 +13,7 @@ import {
 import {
   createErrandDemand,
   listProductTemplatesPage, //分页拉取店铺商品模板（左侧商品列表
+  updateErrandDemand,
   type DataSource, // 多环境区分表示，内部接口通用参数
   type PageResult, // 分页接口标准返回结构
   type ProductTemplate,
@@ -61,6 +62,7 @@ import { toast } from "sonner";
 import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
 
 import { ManagedImage } from "@/components/managed-image";
+
 type CartItem = {
   template: ProductTemplate;
   quantity: number;
@@ -76,12 +78,20 @@ export function ErrandShop({
   store,
   initialPage,
   error,
+  editDemandId,
+  editUpdatedAt,
+  editInitialItems,
+  editDeadline,
 }: {
   dataSource: DataSource;
   connectBaseUrl?: string;
   store: Store | null;
   initialPage: PageResult<ProductTemplate>;
   error: string | null;
+  editDemandId?: string | null;
+  editUpdatedAt?: string | null;
+  editInitialItems?: CartItem[] | null;
+  editDeadline?: string | null;
 }) {
   const router = useRouter();
   const loadPage = useCallback(
@@ -111,10 +121,19 @@ export function ErrandShop({
     identity: `${dataSource}:${connectBaseUrl}:${store?.id ?? "none"}`,
   });
   const submittingRef = useRef(false); //ref存储提交锁，防止用户多次点击提交
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [feeDrafts, setFeeDrafts] = useState<Record<string, string>>({});
+  const [items, setItems] = useState<CartItem[]>(editInitialItems ?? []);
+  const [feeDrafts, setFeeDrafts] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      editInitialItems?.map((item) => [
+        item.template.id,
+        formatYuanInput(item.serviceFeePerUnitCents),
+      ]) ?? [],
+    ),
+  );
   const [deadlineValue, setDeadlineValue] = useState(() =>
-    toDateTimeLocalValue(getDefaultErrandDeadline()),
+    toDateTimeLocalValue(
+      editDeadline ? new Date(editDeadline) : getDefaultErrandDeadline(),
+    ),
   );
   const minimumDeadlineValue = toDateTimeLocalValue(getMinimumErrandDeadline());
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -251,20 +270,40 @@ export function ErrandShop({
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      await createErrandDemand(
-        {
-          storeId,
-          deadline: deadline.toISOString(),
-          items: normalizedItems.map((item) => ({
-            productTemplateId: item.template.id,
-            quantity: item.quantity,
-            serviceFeePerUnitCents: item.serviceFeePerUnitCents,
-            updatedAt: item.template.updatedAt,
-          })),
-        },
-        { dataSource, connectBaseUrl },
-      );
-      toast.success("跑腿需求已发起");
+      const demandItems = normalizedItems.map((item) => ({
+        productTemplateId: item.template.id,
+        quantity: item.quantity,
+        serviceFeePerUnitCents: item.serviceFeePerUnitCents,
+        updatedAt: item.template.updatedAt,
+      }));
+      if (editDemandId != null) {
+        if (!editUpdatedAt) {
+          toast.error("该需求数据已过期，请回到订单列表重新进入修改");
+          setConfirmOpen(false);
+          return;
+        }
+        await updateErrandDemand(
+          {
+            errandDemandId: editDemandId,
+            storeId,
+            deadline: deadline.toISOString(),
+            items: demandItems,
+            updatedAt: editUpdatedAt,
+          },
+          { dataSource, connectBaseUrl },
+        );
+        toast.success("跑腿需求已更新");
+      } else {
+        await createErrandDemand(
+          {
+            storeId,
+            deadline: deadline.toISOString(),
+            items: demandItems,
+          },
+          { dataSource, connectBaseUrl },
+        );
+        toast.success("跑腿需求已发起");
+      }
       setConfirmOpen(false);
       router.push("/orders?type=errand&view=participant");
     } catch {
@@ -491,7 +530,7 @@ export function ErrandShop({
                 }
                 onClick={openConfirmation}
               >
-                确认发起需求
+                {editDemandId != null ? "确认更新需求" : "确认发起需求"}
               </Button>
             </CardContent>
           </Card>
@@ -501,9 +540,14 @@ export function ErrandShop({
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>确认发起跑腿需求？</DialogTitle>
+            <DialogTitle>
+              {editDemandId != null ? "确认更新跑腿需求？" : "确认发起跑腿需求？"}
+            </DialogTitle>
             <DialogDescription>
-              {items.length} 种 · {totalQuantity} 件，提交后将进入跑腿大厅。
+              {items.length} 种 · {totalQuantity} 件，
+              {editDemandId != null
+                ? "更新后原需求内容将被替换。"
+                : "提交后将进入跑腿大厅。"}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2 rounded-lg border bg-muted/30 p-4 text-sm">
@@ -525,7 +569,11 @@ export function ErrandShop({
               返回修改
             </Button>
             <Button type="button" disabled={submitting} onClick={submitDemand}>
-              {submitting ? "正在提交…" : "发起需求"}
+              {submitting
+                ? "正在提交…"
+                : editDemandId != null
+                  ? "更新需求"
+                  : "发起需求"}
             </Button>
           </DialogFooter>
         </DialogContent>
