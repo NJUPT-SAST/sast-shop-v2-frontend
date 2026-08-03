@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file sast/sastshopv2/errand/v1/distributing_request_info.proto.
  */
 export const file_sast_sastshopv2_errand_v1_distributing_request_info: GenFile = /*@__PURE__*/
-  fileDesc("CjlzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2Rpc3RyaWJ1dGluZ19yZXF1ZXN0X2luZm8ucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEingIKF0Rpc3RyaWJ1dGluZ1JlcXVlc3RJbmZvEhQKDHB1cmNoYXNlcl9pZBgBIAEoAxIWCg5wdXJjaGFzZXJfbmFtZRgCIAEoCRIcChRwdXJjaGFzZXJfYXZhdGFyX3VybBgDIAEoCRIQCghxdWFudGl0eRgEIAEoBRIcChRkaXN0cmlidXRlZF9xdWFudGl0eRgFIAEoBRIhChllcnJhbmRfdGFza19hc3NpZ25tZW50X2lkGAYgASgDEh0KFWVycmFuZF9kZW1hbmRfaXRlbV9pZBgHIAEoAxJFCiFlcnJhbmRfdGFza19hc3NpZ25tZW50X3VwZGF0ZWRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("CjlzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2Rpc3RyaWJ1dGluZ19yZXF1ZXN0X2luZm8ucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEivAIKF0Rpc3RyaWJ1dGluZ1JlcXVlc3RJbmZvEhQKDHB1cmNoYXNlcl9pZBgBIAEoAxIWCg5wdXJjaGFzZXJfbmFtZRgCIAEoCRIcChRwdXJjaGFzZXJfYXZhdGFyX3VybBgDIAEoCRIQCghxdWFudGl0eRgEIAEoBRIhChRkaXN0cmlidXRlZF9xdWFudGl0eRgFIAEoBUgAiAEBEiEKGWVycmFuZF90YXNrX2Fzc2lnbm1lbnRfaWQYBiABKAMSHQoVZXJyYW5kX2RlbWFuZF9pdGVtX2lkGAcgASgDEkUKIWVycmFuZF90YXNrX2Fzc2lnbm1lbnRfdXBkYXRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCFwoVX2Rpc3RyaWJ1dGVkX3F1YW50aXR5YgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.DistributingRequestInfo
@@ -39,9 +39,11 @@ export type DistributingRequestInfo = Message<"sast.sastshopv2.errand.v1.Distrib
   quantity: number;
 
   /**
-   * @generated from field: int32 distributed_quantity = 5;
+   * 实际分发数量：未设置 = 未处理，0 = 不分发，>0 = 已分配
+   *
+   * @generated from field: optional int32 distributed_quantity = 5;
    */
-  distributedQuantity: number;
+  distributedQuantity?: number | undefined;
 
   /**
    * @generated from field: int64 errand_task_assignment_id = 6;

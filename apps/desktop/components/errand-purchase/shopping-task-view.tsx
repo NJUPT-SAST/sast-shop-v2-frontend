@@ -18,7 +18,6 @@ import {
   type ShoppingTaskDetail,
   type ShoppingTaskItem,
 } from "@sast-shop/api";
-import { formatPrice } from "@sast-shop/domain";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -48,6 +47,13 @@ type DialogState =
   | { type: "skip"; item: ShoppingTaskItem }
   | { type: "complete" }
   | { type: "cancel" };
+
+function formatDeadline(deadline?: string | null): string {
+  if (!deadline) return "";
+  const d = new Date(deadline);
+  if (isNaN(d.getTime())) return "";
+  return `${d.getMonth() + 1}月${d.getDate()}日 ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
 
 export function ShoppingTaskView({
   dataSource,
@@ -83,11 +89,6 @@ export function ShoppingTaskView({
     0,
   );
   const allProcessed = processedCount === items.length && items.length > 0;
-  const productAmount = items.reduce(
-    (total, item) =>
-      total + (item.actualUnitPriceCents ?? 0) * (item.purchasedQuantity ?? 0),
-    0,
-  );
 
   async function saveItem(
     item: ShoppingTaskItem,
@@ -241,12 +242,6 @@ export function ShoppingTaskView({
               {processedCount} 种已记录 · 共 {items.length} 种
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-muted-foreground">当前商品金额</p>
-            <p className="mt-1 text-lg font-semibold text-primary">
-              {formatPrice(productAmount)}
-            </p>
-          </div>
           <Button
             disabled={!allProcessed || pending}
             onClick={() => setDialog({ type: "complete" })}
@@ -365,7 +360,7 @@ export function ShoppingTaskView({
       <ConfirmationDialog
         open={dialog.type === "complete"}
         title="完成采购"
-        description={`已记录 ${processedCount} 种，实际采购 ${purchasedItems.length} 种、${purchasedQuantity} 件，当前商品金额 ${formatPrice(productAmount)}。完成后进入实际价格与分发设置。`}
+        description={`已记录 ${processedCount} 种，实际采购 ${purchasedItems.length} 种、${purchasedQuantity} 件。完成后进入实际价格与分发设置。`}
         confirmLabel="完成采购"
         pending={pending}
         onCancel={() => setDialog({ type: "none" })}
@@ -449,10 +444,10 @@ function ShoppingItemCard({
             </p>
           ) : null}
           <p className="mt-3 text-sm">
-            需求 {item.requiredQuantity} 件 · 参考单价{" "}
-            {item.actualUnitPriceCents != null
-              ? formatPrice(item.actualUnitPriceCents)
-              : "未定价"}
+            需求 {item.requiredQuantity} 件
+            {item.deadline ? (
+              <span className="ml-2">截止时间 {formatDeadline(item.deadline)}</span>
+            ) : null}
           </p>
           {item.nonPurchaseReason ? (
             <p className="mt-2 text-sm text-destructive">

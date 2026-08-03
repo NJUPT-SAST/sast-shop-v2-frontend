@@ -52,6 +52,13 @@ type DialogState =
   | { type: "confirm_complete" }
   | { type: "confirm_cancel" };
 
+function formatDeadline(deadline?: string | null): string {
+  if (!deadline) return "";
+  const d = new Date(deadline);
+  if (isNaN(d.getTime())) return "";
+  return `${d.getMonth() + 1}月${d.getDate()}日 ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
 function isPurchased(item: ShoppingTaskItem): boolean {
   return item.purchasedQuantity !== null;
 }
@@ -601,6 +608,9 @@ function ShoppingItemCard({
           ) : null}
           <p className="mt-1 text-sm text-muted-foreground">
             需 {item.requiredQuantity} 件
+            {item.deadline ? (
+              <span className="ml-2">截止时间 {formatDeadline(item.deadline)}</span>
+            ) : null}
           </p>
         </div>
         <div className="hidden shrink-0 flex-col gap-1.5 sm:flex">
@@ -691,6 +701,11 @@ function ProcessedShoppingCard({
           {item.productTitle}
         </p>
         <p className="mt-0.5 text-xs text-muted-foreground">{statusText}</p>
+        {item.deadline ? (
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            截止时间 {formatDeadline(item.deadline)}
+          </p>
+        ) : null}
       </div>
     </div>
   );
