@@ -19,7 +19,12 @@ import {
   type ShoppingTaskDetail,
   type ShoppingTaskItem,
 } from "@sast-shop/api";
-import { formatPrice } from "@sast-shop/domain";
+import {
+  allocateShoppingProductPurchase,
+  formatPrice,
+  groupShoppingTaskItems,
+  type ShoppingProductTaskGroup,
+} from "@sast-shop/domain";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
@@ -47,8 +52,8 @@ export type ShoppingTaskViewProps = {
 
 type DialogState =
   | { type: "none" }
-  | { type: "partial"; item: ShoppingTaskItem }
-  | { type: "skip"; item: ShoppingTaskItem }
+  | { type: "partial"; group: ShoppingProductTaskGroup<ShoppingTaskItem> }
+  | { type: "skip"; group: ShoppingProductTaskGroup<ShoppingTaskItem> }
   | { type: "confirm_complete" }
   | { type: "confirm_cancel" };
 
@@ -59,15 +64,19 @@ function formatDeadline(deadline?: string | null): string {
   return `${d.getMonth() + 1}月${d.getDate()}日 ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-function isPurchased(item: ShoppingTaskItem): boolean {
-  return item.purchasedQuantity !== null;
+function isPurchased(
+  group: ShoppingProductTaskGroup<ShoppingTaskItem>,
+): boolean {
+  return group.purchasedQuantity !== null;
 }
 
-function getStatusIcon(item: ShoppingTaskItem) {
-  if (item.purchasedQuantity === null) return null;
-  if (item.purchasedQuantity === 0)
+function getStatusIcon(
+  group: ShoppingProductTaskGroup<ShoppingTaskItem>,
+) {
+  if (group.purchasedQuantity === null) return null;
+  if (group.purchasedQuantity === 0)
     return <RiCloseCircleLine className="size-5 text-destructive" />;
-  if (item.purchasedQuantity < item.requiredQuantity)
+  if (group.purchasedQuantity < group.requiredQuantity)
     return <RiIndeterminateCircleLine className="size-5 text-primary" />;
   return <RiCheckboxLine className="size-5 text-primary" />;
 }
@@ -88,91 +97,85 @@ export function ShoppingTaskView({
   const [openActionId, setOpenActionId] = useState<string | null>(null);
 
   const serviceOptions = { dataSource, connectBaseUrl };
+  const productGroups = groupShoppingTaskItems(items);
 
-  const unprocessed = items.filter((i) => !isPurchased(i));
-  const processed = items.filter((i) => isPurchased(i));
+  const unprocessed = productGroups.filter((group) => !isPurchased(group));
+  const processed = productGroups.filter((group) => isPurchased(group));
   const allDone = unprocessed.length === 0;
 
-  const totalProductCents = items.reduce((sum, i) => {
-    if (i.purchasedQuantity === null || i.purchasedQuantity === 0) return sum;
-    return sum + (i.actualUnitPriceCents ?? 0) * i.purchasedQuantity;
+  const totalProductCents = productGroups.reduce((sum, group) => {
+    if (group.purchasedQuantity === null || group.purchasedQuantity === 0) {
+      return sum;
+    }
+    return sum + group.productAmountCents;
   }, 0);
-  const updateItem = (updated: ShoppingTaskItem) => {
-    setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+  const refreshItems = async () => {
+    const refreshed = await getShoppingTaskDetail(detail.taskId, serviceOptions);
+    setItems(refreshed.taskItems);
   };
 
   const handleSave = async (
-    item: ShoppingTaskItem,
+    group: ShoppingProductTaskGroup<ShoppingTaskItem>,
     purchasedQuantity: number,
     nonPurchaseReason?: string,
   ) => {
     if (submittingRef.current) return;
     submittingRef.current = true;
+    setSubmitting(true);
     try {
-      await saveShoppingTaskItem(
-        {
-          errandTaskId: detail.taskId,
-          errandTaskItemId: item.id,
-          purchasedQuantity,
-          nonPurchaseReason: nonPurchaseReason ?? null,
-          itemUpdatedAt: item.updatedAt,
-        },
-        serviceOptions,
-      );
-      updateItem({
-        ...item,
+      const allocations = allocateShoppingProductPurchase(
+        group,
         purchasedQuantity,
-        nonPurchaseReason: nonPurchaseReason ?? null,
-      });
-      if (dataSource === "local") {
-        try {
-          const refreshed = await getShoppingTaskDetail(
-            detail.taskId,
-            serviceOptions,
-          );
-          setItems(refreshed.taskItems);
-        } catch {
-          toast.warning("结果已保存，但状态刷新失败，请重新进入任务");
-        }
+      );
+      for (const allocation of allocations) {
+        await saveShoppingTaskItem(
+          {
+            errandTaskId: detail.taskId,
+            errandTaskItemId: allocation.item.id,
+            purchasedQuantity: allocation.purchasedQuantity,
+            nonPurchaseReason:
+              allocation.purchasedQuantity === 0
+                ? nonPurchaseReason ?? null
+                : null,
+            itemUpdatedAt: allocation.item.updatedAt,
+          },
+          serviceOptions,
+        );
       }
+      await refreshItems();
       setDialog({ type: "none" });
     } catch {
       toast.error("保存失败，请稍后再试");
     } finally {
       submittingRef.current = false;
+      setSubmitting(false);
     }
   };
 
-  const handleRevoke = async (item: ShoppingTaskItem) => {
+  const handleRevoke = async (group: ShoppingProductTaskGroup<ShoppingTaskItem>) => {
     if (submittingRef.current) return;
     submittingRef.current = true;
+    setSubmitting(true);
     try {
-      await saveShoppingTaskItem(
-        {
-          errandTaskId: detail.taskId,
-          errandTaskItemId: item.id,
-          purchasedQuantity: -1,
-          nonPurchaseReason: null,
-          itemUpdatedAt: item.updatedAt,
-        },
-        serviceOptions,
-      );
-      updateItem({ ...item, purchasedQuantity: null, nonPurchaseReason: null });
-      if (dataSource === "local") {
-        try {
-          const refreshed = await getShoppingTaskDetail(
-            detail.taskId,
-            serviceOptions,
-          );
-          setItems(refreshed.taskItems);
-        } catch {
-          toast.warning("结果已撤销，但状态刷新失败，请重新进入任务");
-        }
+      const allocations = allocateShoppingProductPurchase(group, -1);
+      for (const allocation of allocations) {
+        await saveShoppingTaskItem(
+          {
+            errandTaskId: detail.taskId,
+            errandTaskItemId: allocation.item.id,
+            purchasedQuantity: allocation.purchasedQuantity,
+            nonPurchaseReason: null,
+            itemUpdatedAt: allocation.item.updatedAt,
+          },
+          serviceOptions,
+        );
       }
+      await refreshItems();
     } catch {
       toast.error("撤销失败，请稍后再试");
     } finally {
       submittingRef.current = false;
+      setSubmitting(false);
     }
   };
 
@@ -243,25 +246,25 @@ export function ShoppingTaskView({
             </span>
           </div>
           <div className="flex flex-col gap-3">
-            {unprocessed.map((item) => (
+            {unprocessed.map((group) => (
               <ShoppingItemCard
-                key={item.id}
-                item={item}
-                open={openActionId === item.id}
-                onOpenChange={(open) => setOpenActionId(open ? item.id : null)}
+                key={group.id}
+                group={group}
+                open={openActionId === group.id}
+                onOpenChange={(open) => setOpenActionId(open ? group.id : null)}
                 onBuyAll={() => {
                   setOpenActionId(null);
-                  void handleSave(item, item.requiredQuantity);
+                  void handleSave(group, group.requiredQuantity);
                 }}
                 onBuyPartial={() => {
                   setOpenActionId(null);
                   setPartialQty("");
-                  setDialog({ type: "partial", item });
+                  setDialog({ type: "partial", group });
                 }}
                 onSkip={() => {
                   setOpenActionId(null);
                   setSkipReason("");
-                  setDialog({ type: "skip", item });
+                  setDialog({ type: "skip", group });
                 }}
               />
             ))}
@@ -278,11 +281,11 @@ export function ShoppingTaskView({
             </span>
           </div>
           <div className="flex flex-col gap-3">
-            {processed.map((item) => (
+            {processed.map((group) => (
               <ProcessedShoppingCard
-                key={item.id}
-                item={item}
-                onRevoke={() => handleRevoke(item)}
+                key={group.id}
+                group={group}
+                onRevoke={() => handleRevoke(group)}
               />
             ))}
           </div>
@@ -311,7 +314,7 @@ export function ShoppingTaskView({
             <ResponsiveDialogTitle>部分购买</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
               {dialog.type === "partial"
-                ? `输入实际购买数量（1 ~ ${dialog.item.requiredQuantity - 1}）`
+                ? `输入实际购买数量（1 ~ ${dialog.group.requiredQuantity - 1}）`
                 : ""}
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
@@ -328,7 +331,7 @@ export function ShoppingTaskView({
                 type="number"
                 inputMode="numeric"
                 min={1}
-                max={dialog.item.requiredQuantity - 1}
+                max={dialog.group.requiredQuantity - 1}
                 value={partialQty}
                 onChange={(e) => setPartialQty(e.target.value)}
                 placeholder="购买数量"
@@ -350,11 +353,11 @@ export function ShoppingTaskView({
                 !partialQty ||
                 !Number.isInteger(Number(partialQty)) ||
                 Number(partialQty) < 1 ||
-                Number(partialQty) >= dialog.item.requiredQuantity
+                Number(partialQty) >= dialog.group.requiredQuantity
               }
               onClick={() => {
                 if (dialog.type !== "partial") return;
-                void handleSave(dialog.item, Number(partialQty));
+                void handleSave(dialog.group, Number(partialQty));
               }}
             >
               确认
@@ -401,7 +404,7 @@ export function ShoppingTaskView({
               type="button"
               onClick={() => {
                 if (dialog.type !== "skip") return;
-                void handleSave(dialog.item, 0, skipReason || undefined);
+                void handleSave(dialog.group, 0, skipReason || undefined);
               }}
             >
               确认不购买
@@ -494,14 +497,14 @@ export function ShoppingTaskView({
 }
 
 function ShoppingItemCard({
-  item,
+  group,
   open,
   onOpenChange,
   onBuyAll,
   onBuyPartial,
   onSkip,
 }: {
-  item: ShoppingTaskItem;
+  group: ShoppingProductTaskGroup<ShoppingTaskItem>;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onBuyAll: () => void;
@@ -549,7 +552,7 @@ function ShoppingItemCard({
     >
       <div
         className={`absolute inset-y-0 right-0 z-20 grid overflow-hidden transition-transform duration-200 ease-out motion-reduce:transition-none sm:hidden ${
-          item.requiredQuantity > 1
+          group.requiredQuantity > 1
             ? "w-[156px] grid-cols-3"
             : "w-[104px] grid-cols-2"
         } ${open ? "translate-x-0" : "translate-x-full"}`}
@@ -565,7 +568,7 @@ function ShoppingItemCard({
         >
           <RiCheckboxLine className="size-6" />
         </Button>
-        {item.requiredQuantity > 1 ? (
+        {group.requiredQuantity > 1 ? (
           <Button
             type="button"
             variant="secondary"
@@ -593,31 +596,42 @@ function ShoppingItemCard({
 
       <div className="relative z-10 flex touch-pan-y items-center gap-3 rounded-lg bg-card p-3 sm:border">
         <ManagedImage
-          src={item.productImageUrl}
-          alt={item.productTitle}
+          src={group.productImageUrl}
+          alt={group.productTitle}
           className="size-14 shrink-0 rounded-lg"
         />
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 text-sm font-medium leading-5">
-            {item.productTitle}
+            {group.productTitle}
           </p>
-          {item.productDescription ? (
+          {group.productDescription ? (
             <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
-              {item.productDescription}
+              {group.productDescription}
             </p>
           ) : null}
           <p className="mt-1 text-sm text-muted-foreground">
-            需 {item.requiredQuantity} 件
-            {item.deadline ? (
-              <span className="ml-2">截止时间 {formatDeadline(item.deadline)}</span>
+            需 {group.requiredQuantity} 件
+            {group.purchasedQuantity !== null ? (
+              <span className="ml-2">实际 {group.purchasedQuantity} 件</span>
+            ) : null}
+            {group.earliestDeadline ? (
+              <span className="ml-2">
+                截止时间 {formatDeadline(group.earliestDeadline)}
+                {group.deadlineCount > 1 ? " 起" : ""}
+              </span>
             ) : null}
           </p>
+          {group.deadlineCount > 1 ? (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              含 {group.deadlineCount} 个截止时间
+            </p>
+          ) : null}
         </div>
         <div className="hidden shrink-0 flex-col gap-1.5 sm:flex">
           <Button type="button" size="sm" onClick={onBuyAll}>
             全部购买
           </Button>
-          {item.requiredQuantity > 1 && (
+          {group.requiredQuantity > 1 && (
             <Button
               type="button"
               size="sm"
@@ -642,7 +656,7 @@ function ShoppingItemCard({
           size="icon-touch"
           className={`shrink-0 text-muted-foreground transition-opacity sm:hidden ${open ? "pointer-events-none opacity-0" : "opacity-100"}`}
           tabIndex={open ? -1 : 0}
-          aria-label={`${open ? "收起" : "展开"}${item.productTitle}的采购操作`}
+          aria-label={`${open ? "收起" : "展开"}${group.productTitle}的采购操作`}
           aria-expanded={open}
           onClick={() => {
             if (swipedRef.current) {
@@ -664,20 +678,20 @@ function ShoppingItemCard({
 }
 
 function ProcessedShoppingCard({
-  item,
+  group,
   onRevoke,
 }: {
-  item: ShoppingTaskItem;
+  group: ShoppingProductTaskGroup<ShoppingTaskItem>;
   onRevoke: () => void;
 }) {
-  const icon = getStatusIcon(item);
+  const icon = getStatusIcon(group);
   const statusText =
-    item.purchasedQuantity === 0
-      ? `不购买${item.nonPurchaseReason ? `：${item.nonPurchaseReason}` : ""}`
-      : item.purchasedQuantity !== null &&
-          item.purchasedQuantity < item.requiredQuantity
-        ? `部分购买：${item.purchasedQuantity}/${item.requiredQuantity} 件`
-        : `全部购买：${item.purchasedQuantity} 件`;
+    group.purchasedQuantity === 0
+      ? `不购买${group.nonPurchaseReason ? `：${group.nonPurchaseReason}` : ""}`
+      : group.purchasedQuantity !== null &&
+          group.purchasedQuantity < group.requiredQuantity
+        ? `部分购买：${group.purchasedQuantity}/${group.requiredQuantity} 件`
+        : `全部购买：${group.purchasedQuantity} 件`;
 
   return (
     <div className="flex items-center gap-3 rounded-lg border bg-card p-3 opacity-75">
@@ -692,18 +706,24 @@ function ProcessedShoppingCard({
         {icon ?? <RiCheckboxBlankLine className="size-5" />}
       </Button>
       <ManagedImage
-        src={item.productImageUrl}
-        alt={item.productTitle}
+        src={group.productImageUrl}
+        alt={group.productTitle}
         className="size-14 shrink-0 rounded-lg"
       />
       <div className="min-w-0 flex-1">
         <p className="line-clamp-2 text-sm font-medium leading-5">
-          {item.productTitle}
+          {group.productTitle}
         </p>
         <p className="mt-0.5 text-xs text-muted-foreground">{statusText}</p>
-        {item.deadline ? (
+        {group.earliestDeadline ? (
           <p className="mt-0.5 text-xs text-muted-foreground">
-            截止时间 {formatDeadline(item.deadline)}
+            截止时间 {formatDeadline(group.earliestDeadline)}
+            {group.deadlineCount > 1 ? " 起" : ""}
+          </p>
+        ) : null}
+        {group.deadlineCount > 1 ? (
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            含 {group.deadlineCount} 个截止时间
           </p>
         ) : null}
       </div>

@@ -18,6 +18,11 @@ import {
   type ShoppingTaskDetail,
   type ShoppingTaskItem,
 } from "@sast-shop/api";
+import {
+  allocateShoppingProductPurchase,
+  groupShoppingTaskItems,
+  type ShoppingProductTaskGroup,
+} from "@sast-shop/domain";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -43,8 +48,8 @@ import { ManagedImage } from "@/components/managed-image";
 
 type DialogState =
   | { type: "none" }
-  | { type: "partial"; item: ShoppingTaskItem }
-  | { type: "skip"; item: ShoppingTaskItem }
+  | { type: "partial"; group: ShoppingProductTaskGroup<ShoppingTaskItem> }
+  | { type: "skip"; group: ShoppingProductTaskGroup<ShoppingTaskItem> }
   | { type: "complete" }
   | { type: "cancel" };
 
@@ -74,24 +79,28 @@ export function ShoppingTaskView({
   const [skipReason, setSkipReason] = useState("");
   const [pending, setPending] = useState(false);
   const serviceOptions = { dataSource, connectBaseUrl };
-  const processedCount = items.filter(
-    (item) => item.purchasedQuantity !== null,
+  const productGroups = groupShoppingTaskItems(items);
+  const processedCount = productGroups.filter(
+    (group) => group.purchasedQuantity !== null,
   ).length;
-  const pendingItems = items.filter((item) => item.purchasedQuantity === null);
-  const processedItems = items.filter(
-    (item) => item.purchasedQuantity !== null,
+  const pendingGroups = productGroups.filter(
+    (group) => group.purchasedQuantity === null,
   );
-  const purchasedItems = processedItems.filter(
-    (item) => (item.purchasedQuantity ?? 0) > 0,
+  const processedGroups = productGroups.filter(
+    (group) => group.purchasedQuantity !== null,
   );
-  const purchasedQuantity = purchasedItems.reduce(
-    (total, item) => total + (item.purchasedQuantity ?? 0),
+  const purchasedGroups = processedGroups.filter(
+    (group) => (group.purchasedQuantity ?? 0) > 0,
+  );
+  const purchasedQuantity = purchasedGroups.reduce(
+    (total, group) => total + (group.purchasedQuantity ?? 0),
     0,
   );
-  const allProcessed = processedCount === items.length && items.length > 0;
+  const allProcessed =
+    processedCount === productGroups.length && productGroups.length > 0;
 
-  async function saveItem(
-    item: ShoppingTaskItem,
+  async function saveGroup(
+    group: ShoppingProductTaskGroup<ShoppingTaskItem>,
     purchasedQuantity: number,
     nonPurchaseReason: string | null = null,
   ) {
@@ -99,16 +108,22 @@ export function ShoppingTaskView({
     pendingRef.current = true;
     setPending(true);
     try {
-      await saveShoppingTaskItem(
-        {
-          errandTaskId: detail.taskId,
-          errandTaskItemId: item.id,
-          purchasedQuantity,
-          nonPurchaseReason,
-          itemUpdatedAt: item.updatedAt,
-        },
-        serviceOptions,
+      const allocations = allocateShoppingProductPurchase(
+        group,
+        purchasedQuantity,
       );
+      for (const allocation of allocations) {
+        await saveShoppingTaskItem(
+          {
+            errandTaskId: detail.taskId,
+            errandTaskItemId: allocation.item.id,
+            purchasedQuantity: allocation.purchasedQuantity,
+            nonPurchaseReason,
+            itemUpdatedAt: allocation.item.updatedAt,
+          },
+          serviceOptions,
+        );
+      }
       const refreshed = await getShoppingTaskDetail(
         detail.taskId,
         serviceOptions,
@@ -166,7 +181,7 @@ export function ShoppingTaskView({
   function renderItemGroup(
     title: string,
     description: string,
-    groupItems: ShoppingTaskItem[],
+    groups: ShoppingProductTaskGroup<ShoppingTaskItem>[],
   ) {
     return (
       <section className="space-y-3">
@@ -175,25 +190,25 @@ export function ShoppingTaskView({
             <h2 className="text-lg font-semibold">{title}</h2>
             <p className="text-sm text-muted-foreground">{description}</p>
           </div>
-          <Badge variant="neutral">{groupItems.length} 种</Badge>
+          <Badge variant="neutral">{groups.length} 种</Badge>
         </div>
-        {groupItems.length ? (
+        {groups.length ? (
           <div className="grid min-w-0 gap-4 xl:grid-cols-2">
-            {groupItems.map((item) => (
+            {groups.map((group) => (
               <ShoppingItemCard
-                key={item.id}
-                item={item}
+                key={group.id}
+                group={group}
                 disabled={pending}
-                onBuyAll={() => void saveItem(item, item.requiredQuantity)}
+                onBuyAll={() => void saveGroup(group, group.requiredQuantity)}
                 onBuyPartial={() => {
                   setPartialQuantity("");
-                  setDialog({ type: "partial", item });
+                  setDialog({ type: "partial", group });
                 }}
                 onSkip={() => {
                   setSkipReason("");
-                  setDialog({ type: "skip", item });
+                  setDialog({ type: "skip", group });
                 }}
-                onRevoke={() => void saveItem(item, -1)}
+                onRevoke={() => void saveGroup(group, -1)}
               />
             ))}
           </div>
@@ -239,7 +254,7 @@ export function ShoppingTaskView({
           <div>
             <p className="text-sm text-muted-foreground">处理进度</p>
             <p className="mt-1 text-lg font-semibold">
-              {processedCount} 种已记录 · 共 {items.length} 种
+              {processedCount} 种已记录 · 共 {productGroups.length} 种
             </p>
           </div>
           <Button
@@ -255,12 +270,12 @@ export function ShoppingTaskView({
       {renderItemGroup(
         "待处理",
         "请记录全部购买、部分购买或不购买。",
-        pendingItems,
+        pendingGroups,
       )}
       {renderItemGroup(
         "已处理",
         "已保存的采购结果将在下一阶段用于核对价格和分发。",
-        processedItems,
+        processedGroups,
       )}
 
       <Dialog
@@ -274,7 +289,7 @@ export function ShoppingTaskView({
             <DialogTitle>记录部分购买</DialogTitle>
             <DialogDescription>
               {dialog.type === "partial"
-                ? `请输入 1 到 ${Math.max(1, dialog.item.requiredQuantity - 1)} 之间的实际数量。`
+                ? `请输入 1 到 ${Math.max(1, dialog.group.requiredQuantity - 1)} 之间的实际数量。`
                 : ""}
             </DialogDescription>
           </DialogHeader>
@@ -283,7 +298,7 @@ export function ShoppingTaskView({
             type="number"
             min={1}
             max={
-              dialog.type === "partial" ? dialog.item.requiredQuantity - 1 : 1
+              dialog.type === "partial" ? dialog.group.requiredQuantity - 1 : 1
             }
             value={partialQuantity}
             onChange={(event) => setPartialQuantity(event.target.value)}
@@ -302,12 +317,14 @@ export function ShoppingTaskView({
                 dialog.type !== "partial" ||
                 !isValidPartialQuantity(
                   partialQuantity,
-                  dialog.type === "partial" ? dialog.item.requiredQuantity : 0,
+                  dialog.type === "partial"
+                    ? dialog.group.requiredQuantity
+                    : 0,
                 )
               }
               onClick={() =>
                 dialog.type === "partial" &&
-                void saveItem(dialog.item, Number(partialQuantity))
+                void saveGroup(dialog.group, Number(partialQuantity))
               }
             >
               {pending ? <Spinner /> : null}保存
@@ -348,7 +365,7 @@ export function ShoppingTaskView({
               disabled={pending || dialog.type !== "skip"}
               onClick={() =>
                 dialog.type === "skip" &&
-                void saveItem(dialog.item, 0, skipReason.trim() || null)
+                void saveGroup(dialog.group, 0, skipReason.trim() || null)
               }
             >
               {pending ? <Spinner /> : null}保存
@@ -360,7 +377,7 @@ export function ShoppingTaskView({
       <ConfirmationDialog
         open={dialog.type === "complete"}
         title="完成采购"
-        description={`已记录 ${processedCount} 种，实际采购 ${purchasedItems.length} 种、${purchasedQuantity} 件。完成后进入实际价格与分发设置。`}
+        description={`已记录 ${processedCount} 种，实际采购 ${purchasedGroups.length} 种、${purchasedQuantity} 件。完成后进入实际价格与分发设置。`}
         confirmLabel="完成采购"
         pending={pending}
         onCancel={() => setDialog({ type: "none" })}
@@ -381,53 +398,53 @@ export function ShoppingTaskView({
 }
 
 function ShoppingItemCard({
-  item,
+  group,
   disabled,
   onBuyAll,
   onBuyPartial,
   onSkip,
   onRevoke,
 }: {
-  item: ShoppingTaskItem;
+  group: ShoppingProductTaskGroup<ShoppingTaskItem>;
   disabled: boolean;
   onBuyAll: () => void;
   onBuyPartial: () => void;
   onSkip: () => void;
   onRevoke: () => void;
 }) {
-  const processed = item.purchasedQuantity !== null;
+  const processed = group.purchasedQuantity !== null;
   const status =
-    item.purchasedQuantity === null
+    group.purchasedQuantity === null
       ? "待处理"
-      : item.purchasedQuantity === 0
+      : group.purchasedQuantity === 0
         ? "未购买"
-        : item.purchasedQuantity < item.requiredQuantity
+        : group.purchasedQuantity < group.requiredQuantity
           ? "部分购买"
           : "已购买";
   const Icon =
-    item.purchasedQuantity === 0
+    group.purchasedQuantity === 0
       ? RiCloseCircleLine
-      : item.purchasedQuantity !== null &&
-          item.purchasedQuantity < item.requiredQuantity
+      : group.purchasedQuantity !== null &&
+          group.purchasedQuantity < group.requiredQuantity
         ? RiIndeterminateCircleLine
         : RiCheckboxCircleLine;
   return (
     <Card className="min-w-0">
       <CardHeader className="flex-row items-start gap-4">
         <ManagedImage
-          src={item.productImageUrl}
-          alt={item.productTitle}
+          src={group.productImageUrl}
+          alt={group.productTitle}
           className="size-20 shrink-0 rounded-lg border"
         />
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-start justify-between gap-3">
             <CardTitle className="truncate text-base">
-              {item.productTitle}
+              {group.productTitle}
             </CardTitle>
             <Badge
               variant={
                 processed
-                  ? item.purchasedQuantity === 0
+                  ? group.purchasedQuantity === 0
                     ? "danger"
                     : "success"
                   : "neutral"
@@ -438,20 +455,31 @@ function ShoppingItemCard({
               {status}
             </Badge>
           </div>
-          {item.productDescription ? (
+          {group.productDescription ? (
             <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-              {item.productDescription}
+              {group.productDescription}
             </p>
           ) : null}
           <p className="mt-3 text-sm">
-            需求 {item.requiredQuantity} 件
-            {item.deadline ? (
-              <span className="ml-2">截止时间 {formatDeadline(item.deadline)}</span>
+            需求 {group.requiredQuantity} 件
+            {group.purchasedQuantity !== null ? (
+              <span className="ml-2">实际采购 {group.purchasedQuantity} 件</span>
+            ) : null}
+            {group.earliestDeadline ? (
+              <span className="ml-2">
+                截止时间 {formatDeadline(group.earliestDeadline)}
+                {group.deadlineCount > 1 ? " 起" : ""}
+              </span>
             ) : null}
           </p>
-          {item.nonPurchaseReason ? (
+          {group.deadlineCount > 1 ? (
+            <p className="mt-1 text-xs text-muted-foreground">
+              含 {group.deadlineCount} 个截止时间，后续仍按需求明细分发。
+            </p>
+          ) : null}
+          {group.nonPurchaseReason ? (
             <p className="mt-2 text-sm text-destructive">
-              原因：{item.nonPurchaseReason}
+              原因：{group.nonPurchaseReason}
             </p>
           ) : null}
         </div>
@@ -472,7 +500,7 @@ function ShoppingItemCard({
           <Button
             variant="outline"
             size="sm"
-            disabled={disabled || item.requiredQuantity <= 1}
+            disabled={disabled || group.requiredQuantity <= 1}
             onClick={onBuyPartial}
           >
             部分购买

@@ -282,6 +282,7 @@ describe("captain task detail facades", () => {
           {
             id: "7101",
             productSnapshot: {
+              id: "4001",
               title: "矿泉水",
               description: "550ml",
               mainImageUrl: "https://example.test/water.png",
@@ -314,6 +315,7 @@ describe("captain task detail facades", () => {
       taskItems: [
         {
           id: "7101",
+          productTemplateId: "4001",
           productTitle: "矿泉水",
           productDescription: "550ml",
           productImageUrl: "https://example.test/water.png",
@@ -327,6 +329,7 @@ describe("captain task detail facades", () => {
         },
         {
           id: "7102",
+          productTemplateId: "",
           productTitle: "三明治",
           productDescription: "",
           productImageUrl: "",

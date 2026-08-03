@@ -45,6 +45,13 @@ export {
 export { resolveFeedbackFormUrl } from "./navigation/feedback-form-url";
 export { getQuantityMismatchLabel } from "./errand/quantity-mismatch";
 export {
+  allocateShoppingProductPurchase,
+  groupShoppingTaskItems,
+  type ShoppingProductPurchaseAllocation,
+  type ShoppingProductTaskGroup,
+  type ShoppingProductTaskItem,
+} from "./errand/shopping-products";
+export {
   hasMoreSpotGoods,
   mergeSpotGoodsPages,
   resolveNextSpotGoodsPage,

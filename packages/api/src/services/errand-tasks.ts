@@ -443,6 +443,7 @@ function parseTimestampString(value: string, message: string): Timestamp {
 
 export interface ShoppingTaskItem {
   id: string;
+  productTemplateId: string;
   productTitle: string;
   productDescription: string;
   productImageUrl: string;
@@ -991,6 +992,7 @@ export async function cancelTask(
 function mapErrandTaskItem(item: ErrandTaskItem): ShoppingTaskItem {
   return {
     id: item.id.toString(),
+    productTemplateId: item.productSnapshot?.id.toString() ?? "",
     productTitle: item.productSnapshot?.title ?? "",
     productDescription: item.productSnapshot?.description ?? "",
     productImageUrl: item.productSnapshot?.mainImageUrl ?? "",
