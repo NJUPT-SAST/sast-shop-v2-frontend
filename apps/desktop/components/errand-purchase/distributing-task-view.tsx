@@ -785,7 +785,7 @@ function ConfirmationDialog({
 }
 
 function isRequesterProcessed(requester: DistributingRequester): boolean {
-  return requester.distributedQuantity != null;
+  return requester.distributedQuantity != null && requester.distributedQuantity > 0;
 }
 
 function formatYuan(cents: number): string {
