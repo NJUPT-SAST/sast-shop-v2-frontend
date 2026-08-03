@@ -352,7 +352,7 @@ export function DistributingTaskView({
         router.replace(buildErrandTaskPaymentHref(detail.taskId));
       } else {
         await cancelTask(detail.taskId, taskUpdatedAt, serviceOptions);
-        toast.success("采购任务已取消");
+        toast.success("采购任务已取消，需求已回到待接单");
         router.replace("/orders?type=errand&view=captain");
       }
       setConfirmation(null);
@@ -641,7 +641,7 @@ export function DistributingTaskView({
             ? `包装费总额为 ${formatPrice(parseCents(packagingFee) ?? 0)}，确认后进入逐人分发。`
             : confirmation === "finish"
               ? "系统将按实际价格、跑腿费与包装费生成参与者账单。"
-              : "取消后任务不会继续进入收款，请谨慎操作。"
+              : "取消后任务不会继续进入收款，相关需求会回到待接单状态。"
         }
         confirmLabel={
           confirmation === "start"

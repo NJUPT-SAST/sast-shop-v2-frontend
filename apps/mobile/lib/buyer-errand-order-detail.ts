@@ -1,5 +1,6 @@
 import type {
   BuyerErrandOrderDetail,
+  BuyerErrandOrderProductItem,
   BuyerErrandOrderStatus,
   PaymentBill,
 } from "@sast-shop/api";
@@ -34,6 +35,16 @@ type AmountSource = Pick<
   bill: Pick<PaymentBill, "amountCents"> | null;
 };
 
+export type BuyerErrandOrderAmountBreakdown = {
+  productAmountCents: number;
+  serviceFeeCents: number;
+  packagingShareCents: number;
+  totalAmountCents: number;
+};
+
+type AmountBreakdownSource = AmountSource &
+  Pick<BuyerErrandOrderDetail, "productItems">;
+
 type TimelineSource = Pick<
   BuyerErrandOrderDetail,
   | "status"
@@ -55,6 +66,28 @@ export function getBuyerErrandOrderAmountCents(order: AmountSource): number {
     (order.totalActualAmountCents ?? order.totalOriginAmountCents) +
     order.totalServiceFeeCents
   );
+}
+
+export function getBuyerErrandOrderAmountBreakdown(
+  order: AmountBreakdownSource,
+): BuyerErrandOrderAmountBreakdown {
+  const productAmountCents =
+    order.totalActualAmountCents === null
+      ? order.totalOriginAmountCents
+      : getActualProductAmountCents(order.productItems);
+  const serviceFeeCents = order.totalServiceFeeCents;
+  const totalAmountCents = getBuyerErrandOrderAmountCents(order);
+  const packagingShareCents = Math.max(
+    0,
+    totalAmountCents - productAmountCents - serviceFeeCents,
+  );
+
+  return {
+    productAmountCents,
+    serviceFeeCents,
+    packagingShareCents,
+    totalAmountCents,
+  };
 }
 
 export function resolveBuyerErrandPaymentState(
@@ -138,6 +171,23 @@ function parseTimestamp(value: string | null | undefined): number {
 
   const parsed = Date.parse(value);
   return Number.isNaN(parsed) ? -1 : parsed;
+}
+
+function getActualProductAmountCents(
+  items: BuyerErrandOrderProductItem[],
+): number {
+  return items.reduce((total, item) => {
+    const quantity = getPositiveQuantity(
+      item.distributedQuantity ?? item.purchasedQuantity,
+    );
+    if (quantity === 0 || item.actualUnitPriceCents === null) return total;
+
+    return total + item.actualUnitPriceCents * quantity;
+  }, 0);
+}
+
+function getPositiveQuantity(value: number | null | undefined): number {
+  return value != null && value > 0 ? value : 0;
 }
 
 function isValidTimestamp(value: string | null | undefined): value is string {

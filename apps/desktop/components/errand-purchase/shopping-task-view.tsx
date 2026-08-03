@@ -153,7 +153,7 @@ export function ShoppingTaskView({
     setPending(true);
     try {
       await cancelTask(detail.taskId, taskUpdatedAt, serviceOptions);
-      toast.success("采购任务已取消");
+      toast.success("采购任务已取消，需求已回到待接单");
       router.push("/orders?type=errand&view=captain");
     } catch {
       toast.error("取消失败，请刷新任务后重试");
@@ -369,7 +369,7 @@ export function ShoppingTaskView({
       <ConfirmationDialog
         open={dialog.type === "cancel"}
         title="取消采购任务"
-        description="取消后该任务不会继续分发和收款，请谨慎操作。"
+        description="取消后该任务不会继续分发和收款，相关需求会回到待接单状态。"
         confirmLabel="取消采购"
         pending={pending}
         destructive

@@ -88,6 +88,7 @@ export default async function PurchaseTaskPage({
       <TaskStatus
         icon={<RiCloseCircleLine className="size-5" />}
         title="采购任务已取消"
+        description="相关需求已回到待接单状态。"
       />
     );
   }

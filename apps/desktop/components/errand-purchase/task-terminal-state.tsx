@@ -33,9 +33,11 @@ export function TaskTerminalState({
             : "任务状态暂不可用"
       }
       description={
-        completed || cancelled
-          ? undefined
-          : "当前任务状态无法识别，请刷新任务列表。"
+        cancelled
+          ? "相关需求已回到待接单状态。"
+          : completed
+            ? undefined
+            : "当前任务状态无法识别，请刷新任务列表。"
       }
       action={
         <Button asChild>
