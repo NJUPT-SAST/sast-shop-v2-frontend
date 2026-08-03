@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildBuyerErrandOrderTimeline,
+  getBuyerErrandOrderAmountBreakdown,
   getBuyerErrandOrderAmountCents,
   reconcileBuyerErrandOrderUpdate,
   resolveBuyerErrandPaymentState,
@@ -36,6 +37,34 @@ describe("buyer errand order detail", () => {
         bill: { amountCents: 3698 },
       }),
     ).toBe(3698);
+  });
+
+  it("breaks down payable amount into actual products, service fee, and packaging share", () => {
+    expect(
+      getBuyerErrandOrderAmountBreakdown({
+        totalOriginAmountCents: 3600,
+        totalActualAmountCents: 3600,
+        totalServiceFeeCents: 600,
+        bill: { amountCents: 4200 },
+        productItems: [
+          createProductItem({
+            actualUnitPriceCents: 200,
+            distributedQuantity: 6,
+            serviceFeePerUnitCents: 50,
+          }),
+          createProductItem({
+            actualUnitPriceCents: 1100,
+            distributedQuantity: 2,
+            serviceFeePerUnitCents: 150,
+          }),
+        ],
+      }),
+    ).toEqual({
+      productAmountCents: 3400,
+      serviceFeeCents: 600,
+      packagingShareCents: 200,
+      totalAmountCents: 4200,
+    });
   });
 
   it.each([
@@ -124,3 +153,35 @@ describe("buyer errand order detail", () => {
     expect(reconcileBuyerErrandOrderUpdate(current, incoming)).toBe(incoming);
   });
 });
+
+function createProductItem({
+  actualUnitPriceCents,
+  distributedQuantity,
+  serviceFeePerUnitCents,
+}: {
+  actualUnitPriceCents: number;
+  distributedQuantity: number;
+  serviceFeePerUnitCents: number;
+}) {
+  return {
+    productTemplate: {
+      id: "4001",
+      title: "测试商品",
+      description: "",
+      priceCents: actualUnitPriceCents,
+      storeId: "3001",
+      mainImageUrl: "",
+      barcode: "",
+      updatedAt: null,
+    },
+    actualUnitPriceCents,
+    requiredQuantity: distributedQuantity,
+    purchasedQuantity: distributedQuantity,
+    nonPurchaseReason: null,
+    distributedQuantity,
+    serviceFeePerUnitCents,
+    subtotalCents:
+      (actualUnitPriceCents + serviceFeePerUnitCents) * distributedQuantity,
+    demandItemId: "9001",
+  };
+}
