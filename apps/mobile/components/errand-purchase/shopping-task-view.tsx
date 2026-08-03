@@ -459,7 +459,7 @@ export function ShoppingTaskView({
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>取消采购</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
-              确认取消此次采购任务？此操作不可撤销。
+              确认取消此次采购任务？相关需求会回到待接单状态。
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
           <ResponsiveDialogFooter>
