@@ -97,15 +97,18 @@ export {
   type SpotOrderStatusValue,
 } from "./services/spot-orders";
 export {
+  cancelErrandDemand,
   createErrandDemand,
   getErrandDemandDetails,
   listErrandDemandStores,
   listErrandDemandStoresPage,
+  updateErrandDemand,
   type CreateErrandDemandInput,
   type CreateErrandDemandResult,
   type ErrandDemandDetailGroup,
   type ErrandDemandRequester,
   type ErrandDemandStoreSummary,
+  type UpdateErrandDemandInput,
 } from "./services/errand-demands";
 export {
   getBuyerErrandOrderCaptainContact,
