@@ -60,7 +60,6 @@ import { toast } from "sonner";
 
 import {
   buildBuyerErrandOrderTimeline,
-  getBuyerErrandOrderAmountBreakdown,
   reconcileBuyerErrandOrderUpdate,
   resolveBuyerErrandPaymentState,
 } from "@/lib/buyer-errand-order";
@@ -383,10 +382,13 @@ function QuantityMetric({
 }
 
 function AmountSummaryCard({ order }: { order: BuyerErrandOrderDetail }) {
-  const amount = getBuyerErrandOrderAmountBreakdown(order);
-  const hasPurchaseResult = order.totalActualAmountCents !== null;
-  const showPackagingShare =
-    hasPurchaseResult || amount.packagingShareCents > 0 || order.bill != null;
+  const productAmount =
+    order.totalActualAmountCents ?? order.totalOriginAmountCents;
+  const subtotal = productAmount + order.totalServiceFeeCents;
+  const packagingFee = order.bill
+    ? order.bill.amountCents - subtotal
+    : 0;
+  const total = order.bill ? order.bill.amountCents : subtotal;
   return (
     <Card>
       <CardHeader>
@@ -394,21 +396,19 @@ function AmountSummaryCard({ order }: { order: BuyerErrandOrderDetail }) {
       </CardHeader>
       <CardContent>
         <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 text-sm">
-          <dt className="text-muted-foreground">
-            {hasPurchaseResult ? "商品实际金额" : "预估商品金额"}
-          </dt>
-          <dd>{formatPrice(amount.productAmountCents)}</dd>
+          <dt className="text-muted-foreground">商品金额</dt>
+          <dd>{formatPrice(productAmount)}</dd>
           <dt className="text-muted-foreground">跑腿费</dt>
-          <dd>{formatPrice(amount.serviceFeeCents)}</dd>
-          {showPackagingShare ? (
+          <dd>{formatPrice(order.totalServiceFeeCents)}</dd>
+          {packagingFee > 0 ? (
             <>
-              <dt className="text-muted-foreground">均摊包装费</dt>
-              <dd>{formatPrice(amount.packagingShareCents)}</dd>
+              <dt className="text-muted-foreground">分摊包装费</dt>
+              <dd>{formatPrice(packagingFee)}</dd>
             </>
           ) : null}
           <dt className="border-t pt-3 font-medium">合计</dt>
           <dd className="border-t pt-3 text-lg font-semibold text-primary">
-            {formatPrice(amount.totalAmountCents)}
+            {formatPrice(total)}
           </dd>
         </dl>
       </CardContent>
