@@ -6,6 +6,7 @@ import {
 } from "@sast-shop/api/server";
 
 import { getServerAuthMode } from "@/lib/auth-mode";
+import { desktopAppConfig } from "@/lib/app-config";
 import { getServerConnectBaseUrl } from "@/lib/server-service-options";
 
 const maxBodyBytes = 1024 * 1024;
@@ -57,7 +58,7 @@ function isSameOrigin(request: NextRequest) {
     request.headers.get("origin") ?? request.headers.get("referer");
   if (!source) return false;
   try {
-    return new URL(source).origin === request.nextUrl.origin;
+    return new URL(source).origin === desktopAppConfig.appOrigin;
   } catch {
     return false;
   }

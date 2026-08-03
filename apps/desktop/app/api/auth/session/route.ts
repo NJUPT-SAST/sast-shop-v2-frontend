@@ -14,6 +14,7 @@ import {
   LoginRateLimitedError,
   setDesktopAuthSessionCookies,
 } from "@/lib/auth-session";
+import { desktopAppConfig } from "@/lib/app-config";
 import { getServerAuthMode } from "@/lib/auth-mode";
 
 const maxCodeLength = 4096;
@@ -44,7 +45,7 @@ function isSameOrigin(request: NextRequest) {
     request.headers.get("origin") ?? request.headers.get("referer");
   if (!source) return false;
   try {
-    return new URL(source).origin === request.nextUrl.origin;
+    return new URL(source).origin === desktopAppConfig.appOrigin;
   } catch {
     return false;
   }

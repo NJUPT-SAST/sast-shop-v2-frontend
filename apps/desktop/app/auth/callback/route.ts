@@ -7,6 +7,7 @@ import {
   setDesktopAuthSessionCookies,
 } from "@/lib/auth-session";
 import { createAuthErrorResponse } from "@/lib/auth-error-response";
+import { desktopAppConfig } from "@/lib/app-config";
 import { getServerAuthMode } from "@/lib/auth-mode";
 import {
   feishuOAuthStateCookieName,
@@ -17,7 +18,7 @@ import {
 import { getFeishuOAuthConfig } from "@/lib/feishu-oauth-config";
 
 const maxCodeLength = 4096;
-
+// 如果是required直接重定向到/shop
 export async function GET(request: NextRequest) {
   if (getServerAuthMode() !== "required") {
     return NextResponse.redirect(new URL("/shop", request.nextUrl.origin));
@@ -63,12 +64,15 @@ export async function GET(request: NextRequest) {
   }
 
   let config;
+  let configuredRedirectOrigin = "";
   try {
     config = getFeishuOAuthConfig();
     const configuredRedirectUri = new URL(config.redirectUri);
-    const callbackUrl = `${request.nextUrl.origin}${request.nextUrl.pathname}`;
-    const expectedCallbackUrl = `${configuredRedirectUri.origin}${configuredRedirectUri.pathname}`;
-    if (callbackUrl !== expectedCallbackUrl) {
+    configuredRedirectOrigin = configuredRedirectUri.origin;
+    if (
+      configuredRedirectUri.origin !== desktopAppConfig.appOrigin ||
+      configuredRedirectUri.pathname !== request.nextUrl.pathname
+    ) {
       throw new Error("Mismatched OAuth callback URL");
     }
   } catch {
@@ -88,7 +92,7 @@ export async function GET(request: NextRequest) {
         redirectUri: config.redirectUri,
       });
     const response = NextResponse.redirect(
-      new URL(parsedState.returnTo, request.nextUrl.origin),
+      new URL(parsedState.returnTo, configuredRedirectOrigin),
     );
     setDesktopAuthSessionCookies(response, session, sessionUserCookie);
     return clearStateCookie(response);
@@ -123,7 +127,9 @@ function clearStateCookie(response: NextResponse) {
   response.cookies.set(feishuOAuthStateCookieName, "", {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure:
+      process.env.NODE_ENV === "production" ||
+      desktopAppConfig.appOrigin.startsWith("https://"),
     path: feishuOAuthStateCookiePath,
     expires: new Date(0),
   });

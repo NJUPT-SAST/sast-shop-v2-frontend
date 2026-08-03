@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { desktopAppConfig } from "@/lib/app-config";
 import { createAuthErrorResponse } from "@/lib/auth-error-response";
 import { getServerAuthMode } from "@/lib/auth-mode";
 import {
@@ -39,7 +40,9 @@ export async function GET(request: NextRequest) {
   response.cookies.set(feishuOAuthStateCookieName, state, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure:
+      process.env.NODE_ENV === "production" ||
+      desktopAppConfig.appOrigin.startsWith("https://"),
     path: feishuOAuthStateCookiePath,
     maxAge: feishuOAuthStateMaxAgeSeconds,
   });

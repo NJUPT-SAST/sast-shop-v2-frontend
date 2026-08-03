@@ -12,21 +12,21 @@ import type { NextResponse } from "next/server";
 
 import { desktopAppConfig } from "@/lib/app-config";
 import { getServerConnectBaseUrl } from "@/lib/server-service-options";
-
+//认证服务未配置
 export class LoginConfigurationError extends Error {
   constructor() {
     super("Authentication service is not configured");
     this.name = "LoginConfigurationError";
   }
 }
-
+//登录次数过多
 export class LoginRateLimitedError extends Error {
   constructor(readonly retryAfterSeconds: number) {
     super("Too many login attempts");
     this.name = "LoginRateLimitedError";
   }
 }
-
+//授权码交换失败
 export class LoginExchangeError extends Error {
   constructor() {
     super("Authorization code exchange failed");
@@ -49,15 +49,16 @@ export async function createDesktopAuthSessionFromLarkCode(
   } catch {
     throw new LoginConfigurationError();
   }
-
+  // 速率限制检查
   const permit = loginExchangeGuard.tryAcquire();
   if (!permit.allowed) {
     throw new LoginRateLimitedError(permit.retryAfterSeconds);
   }
 
   try {
+    // 授权码交换
     const session = await loginWithLarkCode(code, {
-      dataSource: desktopAppConfig.dataSource,
+      dataSource: desktopAppConfig.dataSource,  // 数据源pc端
       connectBaseUrl,
       redirectUri: options.redirectUri,
     });
@@ -83,9 +84,12 @@ export function setDesktopAuthSessionCookies(
   sessionUserCookie: string,
 ) {
   const cookieOptions = {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    httpOnly: true, //防止xss
+    sameSite: "lax",  // 防止csrf
+    secure:
+      process.env.NODE_ENV === "production" ||
+      desktopAppConfig.appOrigin.startsWith("https://"), // ngrok内网穿透用
+      // 服务器执行 npm run start（生产启动）时，Cookie 自动带上 Secure 标记（仅 HTTPS）
     path: "/",
     expires: new Date(session.expiresAt),
   } as const;
@@ -96,9 +100,11 @@ export function setDesktopAuthSessionCookies(
 
 export function clearDesktopAuthSessionCookies(response: NextResponse) {
   const expiredCookieOptions = {
-    httpOnly: true,
+    httpOnly: true, //防止xss
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure:
+      process.env.NODE_ENV === "production" ||
+      desktopAppConfig.appOrigin.startsWith("https://"),
     path: "/",
     expires: new Date(0),
   } as const;

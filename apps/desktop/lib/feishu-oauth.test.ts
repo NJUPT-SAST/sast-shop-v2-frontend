@@ -94,4 +94,5 @@ describe("desktop Feishu OAuth helpers", () => {
       ),
     ).toBe(true);
   });
+
 });

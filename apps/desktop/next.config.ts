@@ -9,6 +9,16 @@ const workspaceRoot = path.resolve(
   "../..",
 );
 const securityHeaders = createSecurityHeaders({ allowCamera: false });
+const allowedDevOrigins = (() => {
+  const configured = process.env.NEXT_PUBLIC_APP_ORIGIN;
+  if (!configured) return [];
+
+  try {
+    return [new URL(configured).host];
+  } catch {
+    return [];
+  }
+})();
 
 const nextConfig: NextConfig = {
   output: "standalone",
@@ -17,6 +27,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
+  // Allow the configured public Host header while running the dev server.
+  allowedDevOrigins,
 };
 
 export default nextConfig;
