@@ -19,7 +19,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file sast/sastshopv2/errand/v1/errand_demand_service.proto.
  */
 export const file_sast_sastshopv2_errand_v1_errand_demand_service: GenFile = /*@__PURE__*/
-  fileDesc("CjVzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF9kZW1hbmRfc2VydmljZS5wcm90bxIZc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MSK3AQoZQ3JlYXRlRXJyYW5kRGVtYW5kUmVxdWVzdBIQCghzdG9yZV9pZBgBIAEoAxI2CghkZWFkbGluZRgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCCLpIBbIBAkABElAKDGRlbWFuZF9pdGVtcxgDIAMoCzIwLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuRXJyYW5kRGVtYW5kSXRlbURyYWZ0Qgi6SAWSAQIIASI2ChpDcmVhdGVFcnJhbmREZW1hbmRSZXNwb25zZRIYChBlcnJhbmRfZGVtYW5kX2lkGAEgASgDIl8KFEdldERlbWFuZExpc3RSZXF1ZXN0EgwKBHBhZ2UYASABKAUSEQoJcGFnZV9zaXplGAIgASgFEhcKCnN0b3JlX25hbWUYAyABKAlIAIgBAUINCgtfc3RvcmVfbmFtZSKDAQoVR2V0RGVtYW5kTGlzdFJlc3BvbnNlEj8KB2RlbWFuZHMYASADKAsyLi5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZERlbWFuZEJ5U3RvcmUSFAoMY3VycmVudF9wYWdlGAIgASgFEhMKC3RvdGFsX2NvdW50GAMgASgFIioKFkdldERlbWFuZERldGFpbFJlcXVlc3QSEAoIc3RvcmVfaWQYASABKAMiWQoXR2V0RGVtYW5kRGV0YWlsUmVzcG9uc2USPgoHZGV0YWlscxgBIAMoCzItLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuRXJyYW5kRGVtYW5kRGV0YWlsMocDChNFcnJhbmREZW1hbmRTZXJ2aWNlEoEBChJDcmVhdGVFcnJhbmREZW1hbmQSNC5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkNyZWF0ZUVycmFuZERlbWFuZFJlcXVlc3QaNS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkNyZWF0ZUVycmFuZERlbWFuZFJlc3BvbnNlEnIKDUdldERlbWFuZExpc3QSLy5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkdldERlbWFuZExpc3RSZXF1ZXN0GjAuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXREZW1hbmRMaXN0UmVzcG9uc2USeAoPR2V0RGVtYW5kRGV0YWlsEjEuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXREZW1hbmREZXRhaWxSZXF1ZXN0GjIuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXREZW1hbmREZXRhaWxSZXNwb25zZWIGcHJvdG8z", [file_buf_validate_validate, file_google_protobuf_timestamp, file_sast_sastshopv2_errand_v1_errand_demand, file_sast_sastshopv2_errand_v1_errand_demand_by_store, file_sast_sastshopv2_errand_v1_errand_demand_detail]);
+  fileDesc("CjVzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF9kZW1hbmRfc2VydmljZS5wcm90bxIZc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MSK3AQoZQ3JlYXRlRXJyYW5kRGVtYW5kUmVxdWVzdBIQCghzdG9yZV9pZBgBIAEoAxI2CghkZWFkbGluZRgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCCLpIBbIBAkABElAKDGRlbWFuZF9pdGVtcxgDIAMoCzIwLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuRXJyYW5kRGVtYW5kSXRlbURyYWZ0Qgi6SAWSAQIIASI2ChpDcmVhdGVFcnJhbmREZW1hbmRSZXNwb25zZRIYChBlcnJhbmRfZGVtYW5kX2lkGAEgASgDIl8KFEdldERlbWFuZExpc3RSZXF1ZXN0EgwKBHBhZ2UYASABKAUSEQoJcGFnZV9zaXplGAIgASgFEhcKCnN0b3JlX25hbWUYAyABKAlIAIgBAUINCgtfc3RvcmVfbmFtZSKDAQoVR2V0RGVtYW5kTGlzdFJlc3BvbnNlEj8KB2RlbWFuZHMYASADKAsyLi5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZERlbWFuZEJ5U3RvcmUSFAoMY3VycmVudF9wYWdlGAIgASgFEhMKC3RvdGFsX2NvdW50GAMgASgFIioKFkdldERlbWFuZERldGFpbFJlcXVlc3QSEAoIc3RvcmVfaWQYASABKAMiWQoXR2V0RGVtYW5kRGV0YWlsUmVzcG9uc2USPgoHZGV0YWlscxgBIAMoCzItLnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuRXJyYW5kRGVtYW5kRGV0YWlsIm4KGUNhbmNlbEVycmFuZERlbWFuZFJlcXVlc3QSIQoQZXJyYW5kX2RlbWFuZF9pZBgBIAEoA0IHukgEIgIgABIuCgp1cGRhdGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJMChpDYW5jZWxFcnJhbmREZW1hbmRSZXNwb25zZRIuCgp1cGRhdGVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKKAgoZVXBkYXRlRXJyYW5kRGVtYW5kUmVxdWVzdBIhChBlcnJhbmRfZGVtYW5kX2lkGAEgASgDQge6SAQiAiAAEhAKCHN0b3JlX2lkGAIgASgDEjYKCGRlYWRsaW5lGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIIukgFsgECQAESUAoMZGVtYW5kX2l0ZW1zGAQgAygLMjAuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5FcnJhbmREZW1hbmRJdGVtRHJhZnRCCLpIBZIBAggBEi4KCnVwZGF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIkwKGlVwZGF0ZUVycmFuZERlbWFuZFJlc3BvbnNlEi4KCnVwZGF0ZWRfYXQYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wMo8FChNFcnJhbmREZW1hbmRTZXJ2aWNlEoEBChJDcmVhdGVFcnJhbmREZW1hbmQSNC5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkNyZWF0ZUVycmFuZERlbWFuZFJlcXVlc3QaNS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkNyZWF0ZUVycmFuZERlbWFuZFJlc3BvbnNlEnIKDUdldERlbWFuZExpc3QSLy5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkdldERlbWFuZExpc3RSZXF1ZXN0GjAuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXREZW1hbmRMaXN0UmVzcG9uc2USeAoPR2V0RGVtYW5kRGV0YWlsEjEuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXREZW1hbmREZXRhaWxSZXF1ZXN0GjIuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5HZXREZW1hbmREZXRhaWxSZXNwb25zZRKBAQoSQ2FuY2VsRXJyYW5kRGVtYW5kEjQuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5DYW5jZWxFcnJhbmREZW1hbmRSZXF1ZXN0GjUuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5DYW5jZWxFcnJhbmREZW1hbmRSZXNwb25zZRKBAQoSVXBkYXRlRXJyYW5kRGVtYW5kEjQuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5VcGRhdGVFcnJhbmREZW1hbmRSZXF1ZXN0GjUuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5VcGRhdGVFcnJhbmREZW1hbmRSZXNwb25zZWIGcHJvdG8z", [file_buf_validate_validate, file_google_protobuf_timestamp, file_sast_sastshopv2_errand_v1_errand_demand, file_sast_sastshopv2_errand_v1_errand_demand_by_store, file_sast_sastshopv2_errand_v1_errand_demand_detail]);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.CreateErrandDemandRequest
@@ -166,6 +166,117 @@ export const GetDemandDetailResponseSchema: GenMessage<GetDemandDetailResponse> 
   messageDesc(file_sast_sastshopv2_errand_v1_errand_demand_service, 5);
 
 /**
+ * 买家撤回未接单需求（open 状态）
+ *
+ * @generated from message sast.sastshopv2.errand.v1.CancelErrandDemandRequest
+ */
+export type CancelErrandDemandRequest = Message<"sast.sastshopv2.errand.v1.CancelErrandDemandRequest"> & {
+  /**
+   * 买家视角跑腿订单 ID
+   *
+   * @generated from field: int64 errand_demand_id = 1;
+   */
+  errandDemandId: bigint;
+
+  /**
+   * 前端读取需求时拿到的 updated_at，用于并发校验
+   *
+   * @generated from field: google.protobuf.Timestamp updated_at = 2;
+   */
+  updatedAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message sast.sastshopv2.errand.v1.CancelErrandDemandRequest.
+ * Use `create(CancelErrandDemandRequestSchema)` to create a new message.
+ */
+export const CancelErrandDemandRequestSchema: GenMessage<CancelErrandDemandRequest> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_errand_v1_errand_demand_service, 6);
+
+/**
+ * @generated from message sast.sastshopv2.errand.v1.CancelErrandDemandResponse
+ */
+export type CancelErrandDemandResponse = Message<"sast.sastshopv2.errand.v1.CancelErrandDemandResponse"> & {
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 1;
+   */
+  updatedAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message sast.sastshopv2.errand.v1.CancelErrandDemandResponse.
+ * Use `create(CancelErrandDemandResponseSchema)` to create a new message.
+ */
+export const CancelErrandDemandResponseSchema: GenMessage<CancelErrandDemandResponse> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_errand_v1_errand_demand_service, 7);
+
+/**
+ * 买家修改未接单需求（open 状态），全量替换需求行
+ *
+ * @generated from message sast.sastshopv2.errand.v1.UpdateErrandDemandRequest
+ */
+export type UpdateErrandDemandRequest = Message<"sast.sastshopv2.errand.v1.UpdateErrandDemandRequest"> & {
+  /**
+   * 买家视角跑腿订单 ID
+   *
+   * @generated from field: int64 errand_demand_id = 1;
+   */
+  errandDemandId: bigint;
+
+  /**
+   * 目标店铺 ID
+   *
+   * @generated from field: int64 store_id = 2;
+   */
+  storeId: bigint;
+
+  /**
+   * 买家期望送达时间
+   *
+   * @generated from field: google.protobuf.Timestamp deadline = 3;
+   */
+  deadline?: Timestamp | undefined;
+
+  /**
+   * 修改后的商品需求行
+   *
+   * @generated from field: repeated sast.sastshopv2.errand.v1.ErrandDemandItemDraft demand_items = 4;
+   */
+  demandItems: ErrandDemandItemDraft[];
+
+  /**
+   * 前端读取需求时拿到的 updated_at，用于并发校验
+   *
+   * @generated from field: google.protobuf.Timestamp updated_at = 5;
+   */
+  updatedAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message sast.sastshopv2.errand.v1.UpdateErrandDemandRequest.
+ * Use `create(UpdateErrandDemandRequestSchema)` to create a new message.
+ */
+export const UpdateErrandDemandRequestSchema: GenMessage<UpdateErrandDemandRequest> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_errand_v1_errand_demand_service, 8);
+
+/**
+ * @generated from message sast.sastshopv2.errand.v1.UpdateErrandDemandResponse
+ */
+export type UpdateErrandDemandResponse = Message<"sast.sastshopv2.errand.v1.UpdateErrandDemandResponse"> & {
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 1;
+   */
+  updatedAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message sast.sastshopv2.errand.v1.UpdateErrandDemandResponse.
+ * Use `create(UpdateErrandDemandResponseSchema)` to create a new message.
+ */
+export const UpdateErrandDemandResponseSchema: GenMessage<UpdateErrandDemandResponse> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_errand_v1_errand_demand_service, 9);
+
+/**
  * @generated from service sast.sastshopv2.errand.v1.ErrandDemandService
  */
 export const ErrandDemandService: GenService<{
@@ -198,6 +309,26 @@ export const ErrandDemandService: GenService<{
     methodKind: "unary";
     input: typeof GetDemandDetailRequestSchema;
     output: typeof GetDemandDetailResponseSchema;
+  },
+  /**
+   * 买家撤回未接单需求
+   *
+   * @generated from rpc sast.sastshopv2.errand.v1.ErrandDemandService.CancelErrandDemand
+   */
+  cancelErrandDemand: {
+    methodKind: "unary";
+    input: typeof CancelErrandDemandRequestSchema;
+    output: typeof CancelErrandDemandResponseSchema;
+  },
+  /**
+   * 买家修改未接单需求（全量替换需求行）
+   *
+   * @generated from rpc sast.sastshopv2.errand.v1.ErrandDemandService.UpdateErrandDemand
+   */
+  updateErrandDemand: {
+    methodKind: "unary";
+    input: typeof UpdateErrandDemandRequestSchema;
+    output: typeof UpdateErrandDemandResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_sast_sastshopv2_errand_v1_errand_demand_service, 0);
