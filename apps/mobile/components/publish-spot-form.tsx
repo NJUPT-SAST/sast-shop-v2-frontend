@@ -332,8 +332,9 @@ export function PublishSpotForm({
       let qrCodes;
       try {
         qrCodes = await listPaymentQrCodes(serviceOptions);
-      } catch {
-        const message = "收款码状态暂时无法确认，请稍后重试";
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "收款码状态暂时无法确认，请稍后重试";
         setSubmissionError(message);
         toast.error(message);
         return;
@@ -356,8 +357,9 @@ export function PublishSpotForm({
         );
         setSubmitted(true);
         toast.success("已提交上架");
-      } catch {
-        const message = "上架失败，请稍后再试";
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "上架失败，请稍后再试";
         setSubmissionError(message);
         toast.error(message);
       }

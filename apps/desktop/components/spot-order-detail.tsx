@@ -116,8 +116,8 @@ export function SpotOrderDetail({
       }
       setConfirmation(null);
       router.refresh();
-    } catch {
-      toast.error("操作失败，订单状态可能已变化，请刷新后重试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "操作失败，订单状态可能已变化，请刷新后重试");
     } finally {
       pendingRef.current = false;
       setPending(false);
@@ -141,8 +141,8 @@ export function SpotOrderDetail({
       setSupplementOpen(false);
       toast.success("支付流水号已补充");
       router.refresh();
-    } catch {
-      toast.error("提交失败，请刷新账单状态后重试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "提交失败，请刷新账单状态后重试");
     } finally {
       pendingRef.current = false;
       setPending(false);
@@ -531,8 +531,8 @@ function PaymentDialog({
       onPaid(updated);
       onOpenChange(false);
       toast.success("已提交支付，等待卖家确认");
-    } catch {
-      toast.error("支付提交失败，请检查账单状态后重试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "支付提交失败，请检查账单状态后重试");
     } finally {
       payingRef.current = false;
       setPaying(false);

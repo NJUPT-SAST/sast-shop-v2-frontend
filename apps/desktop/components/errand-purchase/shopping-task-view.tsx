@@ -118,8 +118,8 @@ export function ShoppingTaskView({
       toast.success(
         purchasedQuantity === -1 ? "已撤销采购结果" : "采购结果已保存",
       );
-    } catch {
-      toast.error("保存失败，任务状态可能已变化");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "保存失败，请稍后再试");
     } finally {
       pendingRef.current = false;
       setPending(false);
@@ -139,8 +139,8 @@ export function ShoppingTaskView({
       setDialog({ type: "none" });
       toast.success("采购阶段已完成");
       router.refresh();
-    } catch {
-      toast.error("状态更新失败，请刷新任务后重试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "状态更新失败，请刷新任务后重试");
     } finally {
       pendingRef.current = false;
       setPending(false);
@@ -155,8 +155,8 @@ export function ShoppingTaskView({
       await cancelTask(detail.taskId, taskUpdatedAt, serviceOptions);
       toast.success("采购任务已取消，需求已回到待接单");
       router.push("/orders?type=errand&view=captain");
-    } catch {
-      toast.error("取消失败，请刷新任务后重试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "取消失败，请刷新任务后重试");
     } finally {
       pendingRef.current = false;
       setPending(false);

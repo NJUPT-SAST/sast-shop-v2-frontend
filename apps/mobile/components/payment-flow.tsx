@@ -79,8 +79,8 @@ export function SupplementSerialNumberDialog({
       toast.success("流水号已补充");
       onOpenChange(false);
       onSuccess(updatedBill);
-    } catch {
-      toast.error("提交失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "提交失败，请稍后再试");
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -175,9 +175,11 @@ export function PaymentSection({
 
       setQrCodes(qrMap);
       setDialogStatus("ready");
-    } catch {
+    } catch (error) {
       if (generation !== loadCounterRef.current) return;
-      setErrorMessage("获取收款码失败，请稍后重试");
+      setErrorMessage(
+        error instanceof Error ? error.message : "获取收款码失败，请稍后重试",
+      );
       setDialogStatus("error");
     }
   }
@@ -208,8 +210,8 @@ export function PaymentSection({
       );
       setDialogStatus("submitted");
       onSuccess(submittedBill);
-    } catch {
-      toast.error("提交支付失败，账单可能已更新，请刷新后重试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "提交支付失败，账单可能已更新，请刷新后重试");
     } finally {
       submittingRef.current = false;
       setSubmitting(false);

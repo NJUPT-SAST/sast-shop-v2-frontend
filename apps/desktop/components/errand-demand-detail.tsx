@@ -114,8 +114,8 @@ export function ErrandDemandDetail({
       toast.success("接单成功，已创建采购任务");
       setConfirmOpen(false);
       router.push(`/group/purchase/${result.errandTaskId}`);
-    } catch {
-      toast.error("部分需求可能已被接单，请刷新后重试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "部分需求可能已被接单，请刷新后重试");
       router.refresh();
     } finally {
       setSubmitting(false);

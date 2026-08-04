@@ -136,8 +136,8 @@ export function ShoppingTaskView({
         }
       }
       setDialog({ type: "none" });
-    } catch {
-      toast.error("保存失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "保存失败，请稍后再试");
     } finally {
       submittingRef.current = false;
     }
@@ -169,8 +169,8 @@ export function ShoppingTaskView({
           toast.warning("结果已撤销，但状态刷新失败，请重新进入任务");
         }
       }
-    } catch {
-      toast.error("撤销失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "撤销失败，请稍后再试");
     } finally {
       submittingRef.current = false;
     }
@@ -204,8 +204,8 @@ export function ShoppingTaskView({
       await cancelTask(detail.taskId, taskUpdatedAt, serviceOptions);
       setDialog({ type: "none" });
       router.push("/group");
-    } catch {
-      toast.error("取消失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "取消失败，请稍后再试");
       setSubmitting(false);
     } finally {
       submittingRef.current = false;

@@ -306,8 +306,8 @@ export function ErrandShop({
       }
       setConfirmOpen(false);
       router.push("/orders?type=errand&view=participant");
-    } catch {
-      toast.error("跑腿需求提交失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "跑腿需求提交失败，请稍后再试");
     } finally {
       submittingRef.current = false;
       setSubmitting(false);

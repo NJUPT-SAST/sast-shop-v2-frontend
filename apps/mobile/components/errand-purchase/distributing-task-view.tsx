@@ -230,8 +230,8 @@ export function DistributingTaskView({
         }
       }
       setDialog({ type: "none" });
-    } catch {
-      toast.error("保存失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "保存失败，请稍后再试");
     } finally {
       setAssigningIds((prev) => {
         const next = new Set(prev);
@@ -275,8 +275,8 @@ export function DistributingTaskView({
           toast.warning("结果已撤销，但状态刷新失败，请重新进入任务");
         }
       }
-    } catch {
-      toast.error("撤销失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "撤销失败，请稍后再试");
     } finally {
       setAssigningIds((prev) => {
         const next = new Set(prev);
@@ -316,8 +316,8 @@ export function DistributingTaskView({
         toast.warning("价格已保存，但状态刷新失败，请重新进入任务");
       }
       setDialog({ type: "none" });
-    } catch {
-      toast.error("修改价格失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "修改价格失败，请稍后再试");
     } finally {
       submittingRef.current = false;
     }
@@ -341,8 +341,8 @@ export function DistributingTaskView({
       );
       setDialog({ type: "none" });
       router.refresh();
-    } catch {
-      toast.error("操作失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "操作失败，请稍后再试");
       setSubmitting(false);
     } finally {
       submittingRef.current = false;
@@ -361,7 +361,7 @@ export function DistributingTaskView({
       );
       setDialog({ type: "none" });
       router.replace(buildErrandTaskPaymentHref(detail.taskId));
-    } catch {
+    } catch (error) {
       try {
         const task = await getErrandTaskBrief(detail.taskId, serviceOptions);
         if (task?.status === "collecting_payment") {
@@ -375,7 +375,7 @@ export function DistributingTaskView({
         // Keep the original transition error as the user-facing result.
       }
       router.refresh();
-      toast.error("操作失败，请稍后再试");
+      toast.error(error instanceof Error ? error.message : "操作失败，请稍后再试");
       setSubmitting(false);
     } finally {
       submittingRef.current = false;
@@ -390,8 +390,8 @@ export function DistributingTaskView({
       await cancelTask(detail.taskId, taskUpdatedAt, serviceOptions);
       setDialog({ type: "none" });
       router.replace("/orders?type=errand&view=captain");
-    } catch {
-      toast.error("取消失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "取消失败，请稍后再试");
       setSubmitting(false);
     } finally {
       submittingRef.current = false;
