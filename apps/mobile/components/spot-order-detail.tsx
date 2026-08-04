@@ -166,8 +166,8 @@ export function SpotOrderDetail({
       }
 
       router.refresh();
-    } catch {
-      toast.error("操作失败，订单状态可能已更新，请刷新后重试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "操作失败，订单状态可能已更新，请刷新后重试");
     } finally {
       lifecyclePendingRef.current = false;
       setLifecyclePending(null);

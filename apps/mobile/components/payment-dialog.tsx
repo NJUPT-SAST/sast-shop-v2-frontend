@@ -159,11 +159,11 @@ function PaymentDialogBody({
     }
 
     try {
-      void Promise.resolve(onPay(platform)).catch(() => {
-        toast.error("支付提交失败，请稍后再试");
+      void Promise.resolve(onPay(platform)).catch((error: unknown) => {
+        toast.error(error instanceof Error ? error.message : "支付提交失败，请稍后再试");
       });
-    } catch {
-      toast.error("支付提交失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "支付提交失败，请稍后再试");
     }
   }
 

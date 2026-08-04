@@ -539,8 +539,8 @@ function PaymentDialog({
       onPaid(updated);
       onOpenChange(false);
       toast.success("已提交支付，等待团长确认");
-    } catch {
-      toast.error("支付提交失败，请刷新账单后重试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "支付提交失败，请刷新账单后重试");
     } finally {
       payingRef.current = false;
       setPaying(false);
@@ -639,8 +639,8 @@ function SupplementDialog({
       onUpdated(updated);
       onOpenChange(false);
       toast.success("支付流水号已补充");
-    } catch {
-      toast.error("提交失败，请刷新账单状态后重试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "提交失败，请刷新账单状态后重试");
     } finally {
       setPending(false);
     }

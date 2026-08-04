@@ -151,8 +151,8 @@ export function ProfileManagement({
       );
       setDeleteTarget(null);
       toast.success("地址已删除");
-    } catch {
-      toast.error("地址删除失败");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "地址删除失败");
     } finally {
       setPendingAction(null);
     }
@@ -169,8 +169,8 @@ export function ProfileManagement({
       );
       setAddresses((current) => applySavedAddress(current, saved));
       toast.success("默认地址已更新");
-    } catch {
-      toast.error("默认地址设置失败");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "默认地址设置失败");
     } finally {
       setPendingAction(null);
     }

@@ -252,8 +252,8 @@ export function DistributingTaskView({
         return updated;
       });
       toast.success("实际价格已保存");
-    } catch {
-      toast.error("价格保存失败，请刷新任务后重试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "价格保存失败，请刷新任务后重试");
     } finally {
       setPendingKeys((current) => {
         const next = new Set(current);
@@ -308,8 +308,8 @@ export function DistributingTaskView({
             ? "已标记不分发"
             : "分发结果已保存",
       );
-    } catch {
-      toast.error("分发结果保存失败，请刷新后重试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "分发结果保存失败，请刷新后重试");
     } finally {
       setPendingKeys((current) => {
         const next = new Set(current);
@@ -356,7 +356,7 @@ export function DistributingTaskView({
         router.replace("/orders?type=errand&view=captain");
       }
       setConfirmation(null);
-    } catch {
+    } catch (error) {
       if (action === "finish") {
         try {
           const task = await getErrandTaskBrief(detail.taskId, serviceOptions);
@@ -372,7 +372,9 @@ export function DistributingTaskView({
         }
         router.refresh();
       }
-      toast.error("状态更新失败，请刷新任务后重试");
+      toast.error(
+        error instanceof Error ? error.message : "状态更新失败，请刷新任务后重试",
+      );
     } finally {
       pendingRef.current = false;
       setPending(false);

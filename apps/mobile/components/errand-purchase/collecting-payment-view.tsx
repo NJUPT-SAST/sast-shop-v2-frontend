@@ -213,8 +213,8 @@ export function CollectingPaymentView({
       updateBill(bill.requesterId, "confirmed");
       setDialog({ type: "none" });
       toast.success("已确认到账");
-    } catch {
-      toast.error("确认收款失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "确认收款失败，请稍后再试");
     } finally {
       confirmingRef.current = false;
       setConfirmingBillId(null);
@@ -246,8 +246,8 @@ export function CollectingPaymentView({
       setDialog({ type: "none" });
       setSubmitting(false);
       router.refresh();
-    } catch {
-      toast.error("订单完成失败，请刷新账单后重试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "订单完成失败，请刷新账单后重试");
       setSubmitting(false);
     } finally {
       submittingRef.current = false;

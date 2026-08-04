@@ -267,8 +267,10 @@ export function ProfileDialogsProvider({
     try {
       await operation();
       return true;
-    } catch {
-      setMutationError(fallbackMessage);
+    } catch (error) {
+      setMutationError(
+        error instanceof Error ? error.message : fallbackMessage,
+      );
       return false;
     } finally {
       setPendingAction(null);

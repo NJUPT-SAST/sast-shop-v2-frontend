@@ -366,8 +366,8 @@ export function OrdersView({
       toast.success("跑腿需求已撤回");
       setCancelDemandId(null);
       router.refresh();
-    } catch {
-      toast.error("撤回失败，请刷新后重试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "撤回失败，请刷新后重试");
     } finally {
       setCancelling(false);
     }

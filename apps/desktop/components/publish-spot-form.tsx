@@ -224,8 +224,10 @@ export function PublishSpotForm({
       let qrCodes;
       try {
         qrCodes = await listPaymentQrCodes(serviceOptions);
-      } catch {
-        setFormError("收款码状态暂时无法确认，请稍后重试");
+      } catch (error) {
+        setFormError(
+          error instanceof Error ? error.message : "收款码状态暂时无法确认，请稍后重试",
+        );
         return;
       }
 
@@ -246,8 +248,10 @@ export function PublishSpotForm({
         );
         setSubmittedTitle(selectedMatch.productTemplate.title);
         toast.success("现货已上架");
-      } catch {
-        setFormError("上架失败，请稍后重试");
+      } catch (error) {
+        setFormError(
+          error instanceof Error ? error.message : "上架失败，请稍后重试",
+        );
       }
     } finally {
       submittingRef.current = false;
