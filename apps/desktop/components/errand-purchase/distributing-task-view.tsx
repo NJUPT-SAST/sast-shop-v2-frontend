@@ -157,11 +157,11 @@ export function DistributingTaskView({
             ),
           },
         ];
-  const allPricesSaved = items.every((item) => {
-    const draftCents = parseCents(priceDrafts[item.errandTaskItemId] ?? "");
-    if (draftCents == null) return false; // 空输入框直接判为未填
-    return draftCents === item.actualUnitPriceCents;
-  });
+  const allPricesSaved = items.every(
+    (item) =>
+      parseCents(priceDrafts[item.errandTaskItemId] ?? "") ===
+      item.actualUnitPriceCents,
+  );
 
   function updateRequesterAssignment(
     itemId: string,
