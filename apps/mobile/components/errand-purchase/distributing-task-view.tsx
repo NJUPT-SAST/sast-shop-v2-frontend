@@ -121,6 +121,10 @@ export function DistributingTaskView({
     (i) => i.purchasedQuantity != null && i.purchasedQuantity > 0,
   );
 
+  const allPricesSet = purchasedItems.every(
+    (i) => i.actualUnitPriceCents != null,
+  );
+
   const undistributed = purchasedItems.filter(
     (i) => !isItemFullyDistributed(i),
   );
@@ -618,7 +622,9 @@ export function DistributingTaskView({
         {mode === "pending_distributing" ? (
           <Button
             type="button"
-            disabled={parseYuanToCents(packagingFee) === null}
+            disabled={
+              parseYuanToCents(packagingFee) === null || !allPricesSet
+            }
             className="h-12 w-full"
             onClick={() => setDialog({ type: "confirm_start" })}
           >
