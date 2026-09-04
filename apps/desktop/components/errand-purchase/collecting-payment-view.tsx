@@ -182,7 +182,6 @@ export function CollectingPaymentView({
           </Button>
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-semibold tracking-tight">支付核对</h1>
-            <Badge variant="warning">收款中</Badge>
           </div>
         </div>
       </section>
