@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file sast/sastshopv2/errand/v1/errand_task_item.proto.
  */
 export const file_sast_sastshopv2_errand_v1_errand_task_item: GenFile = /*@__PURE__*/
-  fileDesc("CjBzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF90YXNrX2l0ZW0ucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEi4gIKDkVycmFuZFRhc2tJdGVtEgoKAmlkGAEgASgDEkUKEHByb2R1Y3Rfc25hcHNob3QYAiABKAsyKy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5Qcm9kdWN0VGVtcGxhdGUSGQoRcmVxdWlyZWRfcXVhbnRpdHkYAyABKAUSHwoScHVyY2hhc2VkX3F1YW50aXR5GAQgASgFSACIAQESIAoTbm9uX3B1cmNoYXNlX3JlYXNvbhgFIAEoCUgBiAEBEiQKF2FjdHVhbF91bml0X3ByaWNlX2NlbnRzGAYgASgFSAKIAQESLgoKdXBkYXRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCFQoTX3B1cmNoYXNlZF9xdWFudGl0eUIWChRfbm9uX3B1cmNoYXNlX3JlYXNvbkIaChhfYWN0dWFsX3VuaXRfcHJpY2VfY2VudHNiBnByb3RvMw", [file_google_protobuf_timestamp, file_sast_sastshopv2_catalog_v1_product_template]);
+  fileDesc("CjBzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF90YXNrX2l0ZW0ucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEikAMKDkVycmFuZFRhc2tJdGVtEgoKAmlkGAEgASgDEkUKEHByb2R1Y3Rfc25hcHNob3QYAiABKAsyKy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5Qcm9kdWN0VGVtcGxhdGUSGQoRcmVxdWlyZWRfcXVhbnRpdHkYAyABKAUSHwoScHVyY2hhc2VkX3F1YW50aXR5GAQgASgFSACIAQESIAoTbm9uX3B1cmNoYXNlX3JlYXNvbhgFIAEoCUgBiAEBEiQKF2FjdHVhbF91bml0X3ByaWNlX2NlbnRzGAYgASgFSAKIAQESLgoKdXBkYXRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLAoIZGVhZGxpbmUYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQhUKE19wdXJjaGFzZWRfcXVhbnRpdHlCFgoUX25vbl9wdXJjaGFzZV9yZWFzb25CGgoYX2FjdHVhbF91bml0X3ByaWNlX2NlbnRzYgZwcm90bzM", [file_google_protobuf_timestamp, file_sast_sastshopv2_catalog_v1_product_template]);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.ErrandTaskItem
@@ -54,6 +54,13 @@ export type ErrandTaskItem = Message<"sast.sastshopv2.errand.v1.ErrandTaskItem">
    * @generated from field: google.protobuf.Timestamp updated_at = 7;
    */
   updatedAt?: Timestamp | undefined;
+
+  /**
+   * 截止时间，取自 errand_demand.deadline
+   *
+   * @generated from field: google.protobuf.Timestamp deadline = 8;
+   */
+  deadline?: Timestamp | undefined;
 };
 
 /**
