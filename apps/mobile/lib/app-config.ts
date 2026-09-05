@@ -10,7 +10,6 @@ const supportedMobileDataSources = new Set<DataSource>([
   "remote",
 ]);
 const dataSourceEnv = process.env.NEXT_PUBLIC_DATA_SOURCE;
-const connectBaseUrlEnv = process.env.NEXT_PUBLIC_CONNECT_BASE_URL;
 const appOriginEnv = process.env.NEXT_PUBLIC_APP_ORIGIN;
 
 function isMobileDataSource(value: string | undefined): value is DataSource {
@@ -37,10 +36,7 @@ export const mobileAppConfig = {
   appName: "SAST 商城",
   dataSource: resolveMobileDataSource(dataSourceEnv),
   appOrigin,
-  connectBaseUrl:
-    authMode === "required"
-      ? `${appOrigin}/api/connect`
-      : (connectBaseUrlEnv ?? "http://127.0.0.1:6660"),
+  connectBaseUrl: `${appOrigin}/api/connect`,
   feedbackFormUrl: resolveFeedbackFormUrl(
     process.env.NEXT_PUBLIC_FEEDBACK_FORM_URL,
   ),
