@@ -19,17 +19,17 @@
     "mock:generate:user": "pnpm mock:schema && fauxrpc generate --schema=.mock/fauxrpc/sast-shop-v2.binpb --target=sast.sastshopv2.user.v1.UserInfo --stubs=mock/fauxrpc/stubs --seed=1"
   },
   "devDependencies": {
-    "@bufbuild/buf": "^1.71.0",
-    "@bufbuild/protoc-gen-es": "^2.12.0",
+    "@bufbuild/buf": "^1.72.0",
+    "@bufbuild/protoc-gen-es": "^2.14.1",
     "@tailwindcss/postcss": "^4.3.3",
-    "@types/node": "^20.19.43",
+    "@types/node": "^26.4.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "eslint": "^9.39.5",
-    "eslint-config-next": "16.2.7",
-    "prettier": "^3.9.5",
+    "eslint": "^10.9.1",
+    "eslint-config-next": "16.3.4",
+    "prettier": "^3.9.6",
     "tailwindcss": "^4.3.3",
-    "typescript": "^5.9.3",
-    "vitest": "^3.2.7"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0"
   }
 }
