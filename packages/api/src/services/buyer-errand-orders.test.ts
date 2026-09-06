@@ -148,6 +148,7 @@ describe("buyer errand order service", () => {
       id: "9001",
       storeId: "3001",
       createdAt: "2026-06-09T08:30:00.000Z",
+      updatedAt: null,
       store: {
         id: "3001",
         name: "SAST 小卖部",

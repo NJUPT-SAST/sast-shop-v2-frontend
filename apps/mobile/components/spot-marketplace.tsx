@@ -378,11 +378,14 @@ export function SpotMarketplace({
         status: "ready",
         errorMessage: undefined,
       });
-    } catch {
+    } catch (error) {
       setCheckoutDraft({
         ...draft,
         status: "error",
-        errorMessage: "收款码暂不可用，请稍后重试。",
+        errorMessage:
+          error instanceof Error
+            ? error.message
+            : "收款码暂不可用，请稍后重试。",
       });
     } finally {
       setSubmitting(false);
@@ -432,8 +435,8 @@ export function SpotMarketplace({
           : current,
       );
       toast.success("订单已提交，等待收款确认");
-    } catch {
-      toast.error("支付提交失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "支付提交失败，请稍后再试");
     } finally {
       submittingRef.current = false;
       setSubmitting(false);

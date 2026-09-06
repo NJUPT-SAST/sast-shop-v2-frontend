@@ -323,6 +323,7 @@ describe("captain task detail facades", () => {
           nonPurchaseReason: null,
           actualUnitPriceCents: 200,
           updatedAt: "2026-07-18T02:00:00.000Z",
+          deadline: null,
         },
         {
           id: "7102",
@@ -335,6 +336,7 @@ describe("captain task detail facades", () => {
           nonPurchaseReason: "缺货",
           actualUnitPriceCents: 1100,
           updatedAt: null,
+          deadline: null,
         },
       ],
     });

@@ -186,8 +186,8 @@ export function SpotMarketplace({
       router.push(
         `/orders/spot/${order.id}?view=buyer&returnTo=${encodeURIComponent("/shop")}`,
       );
-    } catch {
-      toast.error("创建订单失败，商品信息可能已更新，请刷新后重试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "创建订单失败，商品信息可能已更新，请刷新后重试");
     } finally {
       submittingRef.current = false;
       setSubmitting(false);

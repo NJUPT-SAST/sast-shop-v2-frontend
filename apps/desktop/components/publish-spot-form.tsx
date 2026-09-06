@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   RiAddLine,
+  RiArrowLeftLine,
   RiBarcodeLine,
   RiCheckboxCircleLine,
   RiErrorWarningLine,
@@ -223,8 +224,10 @@ export function PublishSpotForm({
       let qrCodes;
       try {
         qrCodes = await listPaymentQrCodes(serviceOptions);
-      } catch {
-        setFormError("收款码状态暂时无法确认，请稍后重试");
+      } catch (error) {
+        setFormError(
+          error instanceof Error ? error.message : "收款码状态暂时无法确认，请稍后重试",
+        );
         return;
       }
 
@@ -245,8 +248,10 @@ export function PublishSpotForm({
         );
         setSubmittedTitle(selectedMatch.productTemplate.title);
         toast.success("现货已上架");
-      } catch {
-        setFormError("上架失败，请稍后重试");
+      } catch (error) {
+        setFormError(
+          error instanceof Error ? error.message : "上架失败，请稍后重试",
+        );
       }
     } finally {
       submittingRef.current = false;
@@ -274,7 +279,15 @@ export function PublishSpotForm({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-semibold tracking-tight">上架现货</h1>
+      <section className="flex min-w-0 flex-wrap items-start justify-between gap-4">
+        <h1 className="text-3xl font-semibold tracking-tight">上架现货</h1>
+        <Button asChild variant="outline">
+          <Link href="/group">
+            <RiArrowLeftLine data-icon="inline-start" />
+            返回团购工作台
+          </Link>
+        </Button>
+      </section>
 
       <Card className="max-w-3xl">
         <CardContent className="grid gap-6 p-6">

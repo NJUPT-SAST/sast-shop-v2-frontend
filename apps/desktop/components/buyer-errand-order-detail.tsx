@@ -384,16 +384,15 @@ function QuantityMetric({
 function AmountSummaryCard({ order }: { order: BuyerErrandOrderDetail }) {
   const productAmount =
     order.totalActualAmountCents ?? order.totalOriginAmountCents;
-  const total = productAmount + order.totalServiceFeeCents;
-  const billAmountDiffers =
-    order.bill != null && order.bill.amountCents !== total;
+  const subtotal = productAmount + order.totalServiceFeeCents;
+  const packagingFee = order.bill
+    ? order.bill.amountCents - subtotal
+    : 0;
+  const total = order.bill ? order.bill.amountCents : subtotal;
   return (
     <Card>
       <CardHeader>
         <CardTitle>金额汇总</CardTitle>
-        {billAmountDiffers ? (
-          <CardDescription>账单金额与汇总不同，请以账单为准</CardDescription>
-        ) : null}
       </CardHeader>
       <CardContent>
         <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 text-sm">
@@ -401,6 +400,12 @@ function AmountSummaryCard({ order }: { order: BuyerErrandOrderDetail }) {
           <dd>{formatPrice(productAmount)}</dd>
           <dt className="text-muted-foreground">跑腿费</dt>
           <dd>{formatPrice(order.totalServiceFeeCents)}</dd>
+          {packagingFee > 0 ? (
+            <>
+              <dt className="text-muted-foreground">分摊包装费</dt>
+              <dd>{formatPrice(packagingFee)}</dd>
+            </>
+          ) : null}
           <dt className="border-t pt-3 font-medium">合计</dt>
           <dd className="border-t pt-3 text-lg font-semibold text-primary">
             {formatPrice(total)}
@@ -534,8 +539,8 @@ function PaymentDialog({
       onPaid(updated);
       onOpenChange(false);
       toast.success("已提交支付，等待团长确认");
-    } catch {
-      toast.error("支付提交失败，请刷新账单后重试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "支付提交失败，请刷新账单后重试");
     } finally {
       payingRef.current = false;
       setPaying(false);
@@ -634,8 +639,8 @@ function SupplementDialog({
       onUpdated(updated);
       onOpenChange(false);
       toast.success("支付流水号已补充");
-    } catch {
-      toast.error("提交失败，请刷新账单状态后重试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "提交失败，请刷新账单状态后重试");
     } finally {
       setPending(false);
     }

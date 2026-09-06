@@ -1,3 +1,5 @@
+import { ConnectError } from "@connectrpc/connect";
+
 //功能不可用
 export class FeatureUnavailableError extends Error {
   constructor(feature: string) {
@@ -8,7 +10,12 @@ export class FeatureUnavailableError extends Error {
 //接口网络或请求层面失败
 export class ApiRequestError extends Error {
   constructor(feature: string, cause?: unknown) {
-    super(`${feature} request failed`, { cause }); //支持传入原始底层错误（fetch 失败、axios 异常）
+    // 优先透出后端返回的错误文案（ConnectError.rawMessage），后端文案缺失时回退通用提示
+    const backendMessage =
+      cause instanceof ConnectError && cause.rawMessage
+        ? cause.rawMessage
+        : `${feature} request failed`;
+    super(backendMessage, { cause }); //支持传入原始底层错误（fetch 失败、axios 异常）
     this.name = "ApiRequestError";
   }
 }

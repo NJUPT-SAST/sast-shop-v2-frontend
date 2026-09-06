@@ -52,6 +52,13 @@ type DialogState =
   | { type: "confirm_complete" }
   | { type: "confirm_cancel" };
 
+function formatDeadline(deadline?: string | null): string {
+  if (!deadline) return "";
+  const d = new Date(deadline);
+  if (isNaN(d.getTime())) return "";
+  return `${d.getMonth() + 1}月${d.getDate()}日 ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
 function isPurchased(item: ShoppingTaskItem): boolean {
   return item.purchasedQuantity !== null;
 }
@@ -129,8 +136,8 @@ export function ShoppingTaskView({
         }
       }
       setDialog({ type: "none" });
-    } catch {
-      toast.error("保存失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "保存失败，请稍后再试");
     } finally {
       submittingRef.current = false;
     }
@@ -162,8 +169,8 @@ export function ShoppingTaskView({
           toast.warning("结果已撤销，但状态刷新失败，请重新进入任务");
         }
       }
-    } catch {
-      toast.error("撤销失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "撤销失败，请稍后再试");
     } finally {
       submittingRef.current = false;
     }
@@ -197,8 +204,8 @@ export function ShoppingTaskView({
       await cancelTask(detail.taskId, taskUpdatedAt, serviceOptions);
       setDialog({ type: "none" });
       router.push("/group");
-    } catch {
-      toast.error("取消失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "取消失败，请稍后再试");
       setSubmitting(false);
     } finally {
       submittingRef.current = false;
@@ -459,7 +466,7 @@ export function ShoppingTaskView({
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>取消采购</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
-              确认取消此次采购任务？此操作不可撤销。
+              确认取消此次采购任务？相关需求会回到待接单状态。
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
           <ResponsiveDialogFooter>
@@ -601,6 +608,9 @@ function ShoppingItemCard({
           ) : null}
           <p className="mt-1 text-sm text-muted-foreground">
             需 {item.requiredQuantity} 件
+            {item.deadline ? (
+              <span className="ml-2">截止时间 {formatDeadline(item.deadline)}</span>
+            ) : null}
           </p>
         </div>
         <div className="hidden shrink-0 flex-col gap-1.5 sm:flex">
@@ -691,6 +701,11 @@ function ProcessedShoppingCard({
           {item.productTitle}
         </p>
         <p className="mt-0.5 text-xs text-muted-foreground">{statusText}</p>
+        {item.deadline ? (
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            截止时间 {formatDeadline(item.deadline)}
+          </p>
+        ) : null}
       </div>
     </div>
   );

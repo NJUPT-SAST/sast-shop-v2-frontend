@@ -87,7 +87,7 @@ function isItemFullyDistributed(item: DistributingTaskItem): boolean {
     return true; // 未采购，无需分发
   }
   const totalDistributed = item.requesters.reduce(
-    (s, r) => s + Math.max(0, r.distributedQuantity),
+    (s, r) => s + (r.distributedQuantity ?? 0),
     0,
   );
   return totalDistributed >= item.purchasedQuantity;
@@ -121,6 +121,10 @@ export function DistributingTaskView({
     (i) => i.purchasedQuantity != null && i.purchasedQuantity > 0,
   );
 
+  const allPricesSet = purchasedItems.every(
+    (i) => i.actualUnitPriceCents != null,
+  );
+
   const undistributed = purchasedItems.filter(
     (i) => !isItemFullyDistributed(i),
   );
@@ -132,7 +136,7 @@ export function DistributingTaskView({
         return true; // 未采购，无需分发
       }
       const totalDistributed = item.requesters.reduce(
-        (s, r) => s + Math.max(0, r.distributedQuantity),
+        (s, r) => s + (r.distributedQuantity ?? 0),
         0,
       );
       return totalDistributed >= item.purchasedQuantity;
@@ -153,7 +157,14 @@ export function DistributingTaskView({
               requesters: item.requesters.map((r) =>
                 r.errandTaskAssignmentId !== assignmentId
                   ? r
-                  : { ...r, distributedQuantity, assignmentUpdatedAt },
+                  : {
+                      ...r,
+                      distributedQuantity:
+                        distributedQuantity === -1
+                          ? null
+                          : distributedQuantity,
+                      assignmentUpdatedAt,
+                    },
               ),
             },
       ),
@@ -223,8 +234,8 @@ export function DistributingTaskView({
         }
       }
       setDialog({ type: "none" });
-    } catch {
-      toast.error("保存失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "保存失败，请稍后再试");
     } finally {
       setAssigningIds((prev) => {
         const next = new Set(prev);
@@ -246,7 +257,7 @@ export function DistributingTaskView({
         {
           errandTaskItemId: item.errandTaskItemId,
           errandTaskAssignmentId: requester.errandTaskAssignmentId,
-          distributedQuantity: 0,
+          distributedQuantity: -1,
           assignmentUpdatedAt: requester.assignmentUpdatedAt,
         },
         serviceOptions,
@@ -254,7 +265,7 @@ export function DistributingTaskView({
       updateRequester(
         item.errandTaskItemId,
         requester.errandTaskAssignmentId,
-        0,
+        -1,
         saved.assignmentUpdatedAt ?? requester.assignmentUpdatedAt,
       );
       if (dataSource === "local") {
@@ -268,8 +279,8 @@ export function DistributingTaskView({
           toast.warning("结果已撤销，但状态刷新失败，请重新进入任务");
         }
       }
-    } catch {
-      toast.error("撤销失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "撤销失败，请稍后再试");
     } finally {
       setAssigningIds((prev) => {
         const next = new Set(prev);
@@ -309,8 +320,8 @@ export function DistributingTaskView({
         toast.warning("价格已保存，但状态刷新失败，请重新进入任务");
       }
       setDialog({ type: "none" });
-    } catch {
-      toast.error("修改价格失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "修改价格失败，请稍后再试");
     } finally {
       submittingRef.current = false;
     }
@@ -334,8 +345,8 @@ export function DistributingTaskView({
       );
       setDialog({ type: "none" });
       router.refresh();
-    } catch {
-      toast.error("操作失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "操作失败，请稍后再试");
       setSubmitting(false);
     } finally {
       submittingRef.current = false;
@@ -354,7 +365,7 @@ export function DistributingTaskView({
       );
       setDialog({ type: "none" });
       router.replace(buildErrandTaskPaymentHref(detail.taskId));
-    } catch {
+    } catch (error) {
       try {
         const task = await getErrandTaskBrief(detail.taskId, serviceOptions);
         if (task?.status === "collecting_payment") {
@@ -368,7 +379,7 @@ export function DistributingTaskView({
         // Keep the original transition error as the user-facing result.
       }
       router.refresh();
-      toast.error("操作失败，请稍后再试");
+      toast.error(error instanceof Error ? error.message : "操作失败，请稍后再试");
       setSubmitting(false);
     } finally {
       submittingRef.current = false;
@@ -383,8 +394,8 @@ export function DistributingTaskView({
       await cancelTask(detail.taskId, taskUpdatedAt, serviceOptions);
       setDialog({ type: "none" });
       router.replace("/orders?type=errand&view=captain");
-    } catch {
-      toast.error("取消失败，请稍后再试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "取消失败，请稍后再试");
       setSubmitting(false);
     } finally {
       submittingRef.current = false;
@@ -611,7 +622,9 @@ export function DistributingTaskView({
         {mode === "pending_distributing" ? (
           <Button
             type="button"
-            disabled={parseYuanToCents(packagingFee) === null}
+            disabled={
+              parseYuanToCents(packagingFee) === null || !allPricesSet
+            }
             className="h-12 w-full"
             onClick={() => setDialog({ type: "confirm_start" })}
           >
@@ -841,7 +854,7 @@ export function DistributingTaskView({
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>取消采购</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
-              确认取消此次采购任务？此操作不可撤销。
+              确认取消此次采购任务？相关需求会回到待接单状态。
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
           <ResponsiveDialogFooter>
@@ -883,7 +896,7 @@ function RequesterRow({
   onSkip: () => void;
   onRevoke: () => void;
 }) {
-  const isDone = requester.distributedQuantity > 0;
+  const isDone = requester.distributedQuantity != null && requester.distributedQuantity > 0;
   const isSkipped = requester.distributedQuantity === 0;
   const [actionOpen, setActionOpen] = useState(false);
   const pointerStartXRef = useRef<number | null>(null);

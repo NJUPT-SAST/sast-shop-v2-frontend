@@ -128,8 +128,8 @@ export function CollectingPaymentView({
       );
       setBillToConfirm(null);
       toast.success("已确认到账");
-    } catch {
-      toast.error("确认收款失败，请刷新账单后重试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "确认收款失败，请刷新账单后重试");
     } finally {
       confirmingRef.current = false;
       setConfirmingId(null);
@@ -162,8 +162,8 @@ export function CollectingPaymentView({
       toast.error("任务状态已变化，请刷新后重试");
       setCompleteOpen(false);
       router.refresh();
-    } catch {
-      toast.error("订单完成失败，请刷新账单后重试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "订单完成失败，请刷新账单后重试");
     } finally {
       completingRef.current = false;
       setCompleting(false);

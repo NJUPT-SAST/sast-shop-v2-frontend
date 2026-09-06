@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   RiArrowLeftLine,
   RiCheckboxCircleLine,
-  RiCloseCircleLine,
   RiPriceTag3Line,
 } from "@remixicon/react";
 import {
@@ -98,7 +97,7 @@ export function DistributingTaskView({
       detail.items.flatMap((item) =>
         item.requesters.map((requester) => [
           requester.errandTaskAssignmentId,
-          requester.distributedQuantity > 0
+          requester.distributedQuantity != null
             ? String(requester.distributedQuantity)
             : "",
         ]),
@@ -125,7 +124,7 @@ export function DistributingTaskView({
         return true; // 未采购，无需分发
       }
       const totalDistributed = item.requesters.reduce(
-        (s, r) => s + Math.max(0, r.distributedQuantity),
+        (s, r) => s + (r.distributedQuantity ?? 0),
         0,
       );
       return totalDistributed >= item.purchasedQuantity;
@@ -158,11 +157,11 @@ export function DistributingTaskView({
             ),
           },
         ];
-  const allPricesSaved = items.every(
-    (item) =>
-      parseCents(priceDrafts[item.errandTaskItemId] ?? "") ===
-      item.actualUnitPriceCents,
-  );
+  const allPricesSaved = items.every((item) => {
+    const draftCents = parseCents(priceDrafts[item.errandTaskItemId] ?? "");
+    if (draftCents == null) return false; // 空输入框直接判为未填
+    return draftCents === item.actualUnitPriceCents;
+  });
 
   function updateRequesterAssignment(
     itemId: string,
@@ -181,7 +180,10 @@ export function DistributingTaskView({
                   ? requester
                   : {
                       ...requester,
-                      distributedQuantity,
+                      distributedQuantity:
+                        distributedQuantity === -1
+                          ? null
+                          : distributedQuantity,
                       assignmentUpdatedAt,
                     },
               ),
@@ -191,7 +193,9 @@ export function DistributingTaskView({
     setAssignmentDrafts((current) => ({
       ...current,
       [assignmentId]:
-        distributedQuantity > 0 ? String(distributedQuantity) : "",
+        distributedQuantity != null && distributedQuantity > 0
+          ? String(distributedQuantity)
+          : "",
     }));
   }
 
@@ -248,8 +252,8 @@ export function DistributingTaskView({
         return updated;
       });
       toast.success("实际价格已保存");
-    } catch {
-      toast.error("价格保存失败，请刷新任务后重试");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "价格保存失败，请刷新任务后重试");
     } finally {
       setPendingKeys((current) => {
         const next = new Set(current);
@@ -266,12 +270,18 @@ export function DistributingTaskView({
   ) {
     const key = requester.errandTaskAssignmentId;
     if (pendingKeys.has(key)) return;
+    const remaining =
+      (item.purchasedQuantity ?? 0) -
+      item.requesters
+        .filter((r) => r.errandTaskAssignmentId !== requester.errandTaskAssignmentId)
+        .reduce((sum, r) => sum + (r.distributedQuantity ?? 0), 0);
     if (
-      !Number.isInteger(quantity) ||
-      quantity < 0 ||
-      quantity > requester.quantity
+      quantity !== -1 &&
+      (!Number.isInteger(quantity) ||
+        quantity < 0 ||
+        quantity > remaining)
     ) {
-      toast.error(`分发数量应为 0 到 ${requester.quantity}`);
+      toast.error(`分发数量应为 0 到 ${Math.max(0, remaining)}`);
       return;
     }
     setPendingKeys((current) => new Set(current).add(key));
@@ -291,9 +301,15 @@ export function DistributingTaskView({
         quantity,
         saved.assignmentUpdatedAt ?? requester.assignmentUpdatedAt,
       );
-      toast.success(quantity === 0 ? "已撤销分发结果" : "分发结果已保存");
-    } catch {
-      toast.error("分发结果保存失败，请刷新后重试");
+      toast.success(
+        quantity === -1
+          ? "已撤销分发结果"
+          : quantity === 0
+            ? "已标记不分发"
+            : "分发结果已保存",
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "分发结果保存失败，请刷新后重试");
     } finally {
       setPendingKeys((current) => {
         const next = new Set(current);
@@ -336,11 +352,11 @@ export function DistributingTaskView({
         router.replace(buildErrandTaskPaymentHref(detail.taskId));
       } else {
         await cancelTask(detail.taskId, taskUpdatedAt, serviceOptions);
-        toast.success("采购任务已取消");
+        toast.success("采购任务已取消，需求已回到待接单");
         router.replace("/orders?type=errand&view=captain");
       }
       setConfirmation(null);
-    } catch {
+    } catch (error) {
       if (action === "finish") {
         try {
           const task = await getErrandTaskBrief(detail.taskId, serviceOptions);
@@ -356,7 +372,9 @@ export function DistributingTaskView({
         }
         router.refresh();
       }
-      toast.error("状态更新失败，请刷新任务后重试");
+      toast.error(
+        error instanceof Error ? error.message : "状态更新失败，请刷新任务后重试",
+      );
     } finally {
       pendingRef.current = false;
       setPending(false);
@@ -568,6 +586,20 @@ export function DistributingTaskView({
                     <RequesterRow
                       key={requester.errandTaskAssignmentId}
                       requester={requester}
+                      maxQuantity={Math.max(
+                        0,
+                        (item.purchasedQuantity ?? 0) -
+                          item.requesters
+                            .filter(
+                              (r) =>
+                                r.errandTaskAssignmentId !==
+                                requester.errandTaskAssignmentId,
+                            )
+                            .reduce(
+                              (sum, r) => sum + (r.distributedQuantity ?? 0),
+                              0,
+                            ),
+                      )}
                       draft={
                         assignmentDrafts[requester.errandTaskAssignmentId] ?? ""
                       }
@@ -611,7 +643,7 @@ export function DistributingTaskView({
             ? `包装费总额为 ${formatPrice(parseCents(packagingFee) ?? 0)}，确认后进入逐人分发。`
             : confirmation === "finish"
               ? "系统将按实际价格、跑腿费与包装费生成参与者账单。"
-              : "取消后任务不会继续进入收款，请谨慎操作。"
+              : "取消后任务不会继续进入收款，相关需求会回到待接单状态。"
         }
         confirmLabel={
           confirmation === "start"
@@ -631,12 +663,14 @@ export function DistributingTaskView({
 
 function RequesterRow({
   requester,
+  maxQuantity,
   draft,
   busy,
   onDraftChange,
   onSave,
 }: {
   requester: DistributingRequester;
+  maxQuantity: number;
   draft: string;
   busy: boolean;
   onDraftChange: (value: string) => void;
@@ -672,7 +706,7 @@ function RequesterRow({
           variant="outline"
           size="sm"
           disabled={busy}
-          onClick={() => onSave(0)}
+          onClick={() => onSave(-1)}
         >
           撤销
         </Button>
@@ -682,27 +716,18 @@ function RequesterRow({
             className="w-24"
             type="number"
             min={0}
-            max={requester.quantity}
+            max={maxQuantity}
             value={draft}
             onChange={(event) => onDraftChange(event.target.value)}
             aria-label={`${requester.purchaserName}分发数量`}
           />
           <Button
-            variant="outline"
-            size="sm"
-            disabled={busy}
-            onClick={() => onSave(0)}
-          >
-            <RiCloseCircleLine data-icon="inline-start" />
-            不分发
-          </Button>
-          <Button
             size="sm"
             disabled={
               busy ||
               !Number.isInteger(Number(draft)) ||
-              Number(draft) <= 0 ||
-              Number(draft) > requester.quantity
+              Number(draft) < 0 ||
+              Number(draft) > maxQuantity
             }
             onClick={() => onSave(Number(draft))}
           >
@@ -762,7 +787,7 @@ function ConfirmationDialog({
 }
 
 function isRequesterProcessed(requester: DistributingRequester): boolean {
-  return requester.distributedQuantity > 0;
+  return requester.distributedQuantity != null;
 }
 
 function formatYuan(cents: number): string {
