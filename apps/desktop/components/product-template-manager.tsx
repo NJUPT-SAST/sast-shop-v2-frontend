@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import {
   RiAddLine,
   RiBarcodeLine,
+  RiDeleteBinLine,
   RiEditLine,
   RiImageAddLine,
   RiSearchLine,
@@ -20,6 +21,7 @@ import {
 import { toast } from "sonner";
 import {
   createProductTemplate,
+  deleteProductTemplate,
   listProductTemplatesPage,
   updateProductTemplate,
   ValidationError,
@@ -129,6 +131,9 @@ export function ProductTemplateManager({
   });
   const [keyword, setKeyword] = useState("");
   const [editing, setEditing] = useState<ProductTemplate | null>(null);
+  const [deletingTemplate, setDeletingTemplate] =
+    useState<ProductTemplate | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(
     startCreating && Boolean(selectedStoreId),
   );
@@ -235,6 +240,29 @@ export function ProductTemplateManager({
       setFormError(readErrorMessage(caught));
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function removeTemplate() {
+    if (!deletingTemplate || deleting) return;
+    setDeleting(true);
+    try {
+      await deleteProductTemplate(
+        { id: deletingTemplate.id },
+        serviceOptions,
+      );
+      setTemplates((current) =>
+        current.filter((template) => template.id !== deletingTemplate.id),
+      );
+      setDeletingTemplate(null);
+      toast.success("商品模板已删除");
+      router.refresh();
+    } catch (caught) {
+      toast.error(
+        caught instanceof Error ? caught.message : "商品模板删除失败",
+      );
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -350,6 +378,15 @@ export function ProductTemplateManager({
                           onClick={() => openEdit(template)}
                         >
                           <RiEditLine />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="icon-sm"
+                          variant="ghost"
+                          aria-label={`删除${template.title}`}
+                          onClick={() => setDeletingTemplate(template)}
+                        >
+                          <RiDeleteBinLine />
                         </Button>
                       </div>
                       <div className="mt-3 flex items-center justify-between gap-3 text-sm">
@@ -564,6 +601,38 @@ export function ProductTemplateManager({
             >
               {submitting ? <Spinner /> : null}
               保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(deletingTemplate)}
+        onOpenChange={(open) => !open && setDeletingTemplate(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>删除商品模板？</DialogTitle>
+            <DialogDescription>
+              删除后无法恢复，已上架的现货不会受影响。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeletingTemplate(null)}
+            >
+              取消
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={deleting}
+              onClick={() => void removeTemplate()}
+            >
+              {deleting ? <Spinner /> : null}
+              删除
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -8,11 +8,13 @@ import {
 } from "../errors";
 import {
   createProductTemplate,
+  deleteProductTemplate,
   getProductTemplatesByBarcode,
   listProductTemplates,
   listProductTemplatesPage,
   updateProductTemplate,
   type CreateProductTemplateInput,
+  type DeleteProductTemplateInput,
   type ProductTemplate,
   type ProductTemplateMatch,
   type UpdateProductTemplateInput,
@@ -43,6 +45,9 @@ describe("product template service", () => {
     >();
     expectTypeOf<typeof updateProductTemplate>().returns.toEqualTypeOf<
       Promise<ProductTemplate>
+    >();
+    expectTypeOf<typeof deleteProductTemplate>().returns.toEqualTypeOf<
+      Promise<void>
     >();
     expectTypeOf<typeof getProductTemplatesByBarcode>().returns.toEqualTypeOf<
       Promise<ProductTemplateMatch[]>
@@ -492,6 +497,34 @@ describe("product template service", () => {
       },
     });
   });
+
+  it("deletes a product template by id", async () => {
+    const fetchMock = vi.fn(async () => stubJsonResponse({}));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await deleteProductTemplate({ id: "4001" }, localOptions);
+
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.catalog.v1.ProductTemplateService/DeleteProductTemplate",
+      body: { productTemplateId: "4001" },
+    });
+  });
+
+  it.each(["", "0", "01", "9223372036854775808"])(
+    "rejects invalid delete id before requesting: %o",
+    async (id) => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+
+      await expect(
+        deleteProductTemplate(
+          { id } as DeleteProductTemplateInput,
+          localOptions,
+        ),
+      ).rejects.toBeInstanceOf(ValidationError);
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
 
   it("rejects an explicitly empty store filter", async () => {
     const fetchMock = vi.fn();

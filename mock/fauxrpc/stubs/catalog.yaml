@@ -265,3 +265,7 @@ stubs:
           'updated_at': now
         }
       }
+
+  - id: catalog-delete-product-template
+    target: sast.sastshopv2.catalog.v1.ProductTemplateService/DeleteProductTemplate
+    content: {}
