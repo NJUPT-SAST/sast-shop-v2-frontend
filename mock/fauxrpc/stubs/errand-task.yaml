@@ -123,8 +123,42 @@ stubs:
               requiredQuantity: 5
               updatedAt: "2026-07-14T08:00:00Z"
           createdAt: "2026-07-14T08:00:00Z"
+        - taskId: "7007"
+          storeId: "3001"
+          storeName: SAST 小卖部
+          status: ERRAND_TASK_STATUS_DISTRIBUTING
+          items:
+            - id: "7701"
+              productSnapshot:
+                id: "4001"
+                title: 农夫山泉矿泉水
+                description: 550ml 瓶装水，适合活动采购
+                priceCents: 200
+                storeId: "3001"
+                mainImageUrl: https://images.unsplash.com/photo-1564419320461-6870880221ad?auto=format&fit=crop&w=640&q=80
+                barcode: "690000000001"
+                updatedAt: "2026-07-13T00:00:00Z"
+              requiredQuantity: 20
+              purchasedQuantity: 20
+              actualUnitPriceCents: 200
+              updatedAt: "2026-07-13T08:00:00Z"
+            - id: "7702"
+              productSnapshot:
+                id: "4003"
+                title: SAST 活动贴纸包
+                description: 10 枚装，适合社团活动领取
+                priceCents: 800
+                storeId: "3001"
+                mainImageUrl: https://images.unsplash.com/photo-1517581177682-a085bb7ffb38?auto=format&fit=crop&w=640&q=80
+                barcode: "690000000003"
+                updatedAt: "2026-07-13T00:00:00Z"
+              requiredQuantity: 10
+              purchasedQuantity: 10
+              actualUnitPriceCents: 750
+              updatedAt: "2026-07-13T08:00:00Z"
+          createdAt: "2026-07-13T08:00:00Z"
       currentPage: 1
-      totalCount: 5
+      totalCount: 6
   - id: errand-task-create
     target: sast.sastshopv2.errand.v1.ErrandTaskService/CreateTask
     content:
@@ -253,3 +287,62 @@ stubs:
   - id: errand-task-cancel
     target: sast.sastshopv2.errand.v1.ErrandTaskService/CancelTask
     content: {}
+  - id: errand-task-get-distributing-detail-with-packaging
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/GetDistributingTaskDetail
+    active_if: req.errand_task_id == 7007
+    priority: 100
+    content:
+      errandTaskId: "7007"
+      storeId: "3001"
+      storeName: SAST 小卖部
+      packagingFeeCents: 500
+      distributingItems:
+        - errandTaskItemId: "7701"
+          productTemplateId: "4001"
+          titleSnapshot: 农夫山泉矿泉水
+          descriptionSnapshot: 550ml 瓶装水，适合活动采购
+          imageUrlSnapshot: https://images.unsplash.com/photo-1564419320461-6870880221ad?auto=format&fit=crop&w=640&q=80
+          originUnitPriceCents: 200
+          actualUnitPriceCents: 200
+          requesters:
+            - purchaserId: "1003"
+              purchaserName: 张同学
+              purchaserAvatarUrl: https://example.test/avatar/zhang.png
+              quantity: 10
+              distributedQuantity: 10
+              errandTaskAssignmentId: "8301"
+              errandDemandItemId: "6301"
+              errandTaskAssignmentUpdatedAt: "2026-07-13T09:00:00Z"
+            - purchaserId: "1004"
+              purchaserName: 赵同学
+              purchaserAvatarUrl: https://example.test/avatar/zhao.png
+              quantity: 10
+              distributedQuantity: 10
+              errandTaskAssignmentId: "8302"
+              errandDemandItemId: "6302"
+              errandTaskAssignmentUpdatedAt: "2026-07-13T09:00:00Z"
+        - errandTaskItemId: "7702"
+          productTemplateId: "4003"
+          titleSnapshot: SAST 活动贴纸包
+          descriptionSnapshot: 10 枚装，适合社团活动领取
+          imageUrlSnapshot: https://images.unsplash.com/photo-1517581177682-a085bb7ffb38?auto=format&fit=crop&w=640&q=80
+          originUnitPriceCents: 800
+          actualUnitPriceCents: 750
+          requesters:
+            - purchaserId: "1003"
+              purchaserName: 张同学
+              purchaserAvatarUrl: https://example.test/avatar/zhang.png
+              quantity: 5
+              distributedQuantity: 5
+              errandTaskAssignmentId: "8303"
+              errandDemandItemId: "6303"
+              errandTaskAssignmentUpdatedAt: "2026-07-13T09:00:00Z"
+            - purchaserId: "1004"
+              purchaserName: 赵同学
+              purchaserAvatarUrl: https://example.test/avatar/zhao.png
+              quantity: 5
+              distributedQuantity: 5
+              errandTaskAssignmentId: "8304"
+              errandDemandItemId: "6304"
+              errandTaskAssignmentUpdatedAt: "2026-07-13T09:00:00Z"
+      updatedAt: "2026-07-13T09:00:00Z"
