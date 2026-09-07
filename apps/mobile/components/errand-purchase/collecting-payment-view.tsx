@@ -405,7 +405,6 @@ export function CollectingPaymentView({
     <div className="flex flex-1 flex-col gap-5 py-5 pb-24">
       <div className="flex items-center gap-2">
         <h1 className="text-lg font-semibold leading-7">支付核对</h1>
-        <Badge variant="warning">收款中</Badge>
       </div>
 
       {billingNotice ? (

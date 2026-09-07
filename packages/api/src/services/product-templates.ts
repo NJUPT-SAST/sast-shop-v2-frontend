@@ -57,6 +57,10 @@ export interface UpdateProductTemplateInput {
   patch: UpdateProductTemplatePatch;
 }
 
+export interface DeleteProductTemplateInput {
+  id: string;
+}
+
 export async function listProductTemplates(
   options: ServiceOptions & {
     storeId?: string;
@@ -210,6 +214,27 @@ export async function updateProductTemplate(
   }
 
   throw new FeatureUnavailableError("updateProductTemplate");
+}
+
+export async function deleteProductTemplate(
+  input: DeleteProductTemplateInput,
+  options: ServiceOptions = {},
+): Promise<void> {
+  const productTemplateId = parseInt64(input.id, "商品模板 ID 不正确");
+  const dataSource = resolveDataSource(options);
+
+  if (dataSource === "mock" || dataSource === "local") {
+    const client = createClient(
+      ProductTemplateService,
+      createLocalTransport(options),
+    );
+    await requestLocal("deleteProductTemplate", () =>
+      client.deleteProductTemplate({ productTemplateId }),
+    );
+    return;
+  }
+
+  throw new FeatureUnavailableError("deleteProductTemplate");
 }
 
 async function listTemplatesByStorePage(

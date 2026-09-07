@@ -159,11 +159,13 @@ export {
 } from "./services/errand-tasks";
 export {
   createProductTemplate,
+  deleteProductTemplate,
   getProductTemplatesByBarcode,
   listProductTemplates,
   listProductTemplatesPage,
   updateProductTemplate,
   type CreateProductTemplateInput,
+  type DeleteProductTemplateInput,
   type ProductTemplate,
   type ProductTemplateMatch,
   type UpdateProductTemplateInput,

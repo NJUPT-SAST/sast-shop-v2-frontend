@@ -28,6 +28,7 @@ import * as z from "zod";
 import {
   configureLarkJsapi,
   createProductTemplate,
+  deleteProductTemplate,
   isLarkScanCancelledError,
   listProductTemplatesPage,
   scanLarkBarcode,
@@ -175,6 +176,8 @@ export function ProductTemplateManager({
   const [drawerOpen, setDrawerOpen] = useState(
     startCreating && Boolean(selectedStoreId),
   );
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [scanningBarcode, setScanningBarcode] = useState(false);
   const scanningBarcodeRef = useRef(false);
@@ -300,6 +303,31 @@ export function ProductTemplateManager({
       toast.error(readErrorMessage(caught));
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function deleteTemplate() {
+    if (!editingTemplate || deleting) return;
+    setDeleting(true);
+    try {
+      await deleteProductTemplate(
+        { id: editingTemplate.id },
+        serviceOptions,
+      );
+      setTemplates((current) =>
+        current.filter((template) => template.id !== editingTemplate.id),
+      );
+      setDeleteConfirmOpen(false);
+      setDrawerOpen(false);
+      setEditingTemplate(null);
+      toast.success("商品模板已删除");
+      router.refresh();
+    } catch (caught) {
+      toast.error(
+        caught instanceof Error ? caught.message : "商品模板删除失败",
+      );
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -493,20 +521,66 @@ export function ProductTemplateManager({
           </form>
 
           <DrawerFooter className="shrink-0 border-t bg-card">
+            <div className="flex gap-3">
+              {editingTemplate ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="lg"
+                  aria-label="删除商品模板"
+                  disabled={submitting}
+                  onClick={() => setDeleteConfirmOpen(true)}
+                >
+                  <RiDeleteBinLine />
+                </Button>
+              ) : null}
+              <Button
+                type="submit"
+                form="product-template-form"
+                size="lg"
+                className="flex-1"
+                disabled={
+                  submitting ||
+                  (Boolean(editingTemplate) && !editingTemplate?.updatedAt)
+                }
+              >
+                {submitting
+                  ? "保存中"
+                  : editingTemplate
+                    ? "保存修改"
+                    : "创建模板"}
+              </Button>
+            </div>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+
+      <Drawer open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DrawerContent>
+          <DrawerHeader className="text-left">
+            <DrawerTitle>删除商品模板？</DrawerTitle>
+            <DrawerDescription>
+              删除后无法恢复，已上架的现货不会受影响。
+            </DrawerDescription>
+          </DrawerHeader>
+          <DrawerFooter className="border-t bg-card">
             <Button
-              type="submit"
-              form="product-template-form"
+              type="button"
+              variant="outline"
               size="lg"
-              disabled={
-                submitting ||
-                (Boolean(editingTemplate) && !editingTemplate?.updatedAt)
-              }
+              onClick={() => setDeleteConfirmOpen(false)}
             >
-              {submitting
-                ? "保存中"
-                : editingTemplate
-                  ? "保存修改"
-                  : "创建模板"}
+              取消
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="lg"
+              disabled={deleting}
+              onClick={() => void deleteTemplate()}
+            >
+              {deleting ? <Spinner /> : null}
+              删除
             </Button>
           </DrawerFooter>
         </DrawerContent>
