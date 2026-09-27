@@ -92,4 +92,22 @@ describe("payment preferences", () => {
     expect(readDefaultPaymentPlatform()).toBe(DEFAULT_PAYMENT_PLATFORM);
     expect(() => writeDefaultPaymentPlatform("alipay")).not.toThrow();
   });
+
+  it("falls back when the storage read itself is blocked", () => {
+    const storage = new MemoryStorage();
+    vi.spyOn(storage, "getItem").mockImplementation(() => {
+      throw new DOMException("Blocked", "SecurityError");
+    });
+
+    expect(readDefaultPaymentPlatform(storage)).toBe(DEFAULT_PAYMENT_PLATFORM);
+  });
+
+  it("keeps payment usable when saving the preference exceeds quota", () => {
+    const storage = new MemoryStorage();
+    vi.spyOn(storage, "setItem").mockImplementation(() => {
+      throw new DOMException("Full", "QuotaExceededError");
+    });
+
+    expect(() => writeDefaultPaymentPlatform("alipay", storage)).not.toThrow();
+  });
 });

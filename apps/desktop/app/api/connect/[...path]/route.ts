@@ -1,7 +1,9 @@
+import { isSameOriginRequest } from "@/lib/request-origin";
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import {
   createConnectProxyAbort,
+  isPublicConnectPath,
   sessionCookieName,
 } from "@sast-shop/api/server";
 
@@ -9,10 +11,6 @@ import { getServerAuthMode } from "@/lib/auth-mode";
 import { getServerConnectBaseUrl } from "@/lib/server-service-options";
 
 const maxBodyBytes = 1024 * 1024;
-const serverOnlyAuthMethods = new Set([
-  "sast.sastshopv2.user.v1.AuthService/Login",
-  "sast.sastshopv2.user.v1.AuthService/GetJSAPIAuthConfig",
-]);
 const blockedRequestHeaders = new Set([
   "authorization",
   "connection",
@@ -32,6 +30,7 @@ const blockedRequestHeaders = new Set([
   "x-forwarded-port",
   "x-forwarded-proto",
   "x-real-ip",
+  "x-west-pocket-token",
 ]);
 const blockedResponseHeaders = new Set([
   "access-control-allow-credentials",
@@ -51,17 +50,6 @@ const blockedResponseHeaders = new Set([
 ]);
 
 type Context = { params: Promise<{ path?: string[] }> };
-
-function isSameOrigin(request: NextRequest) {
-  const source =
-    request.headers.get("origin") ?? request.headers.get("referer");
-  if (!source) return false;
-  try {
-    return new URL(source).origin === request.nextUrl.origin;
-  } catch {
-    return false;
-  }
-}
 
 async function readBody(request: NextRequest, signal: AbortSignal) {
   const length = Number(request.headers.get("content-length"));
@@ -112,6 +100,11 @@ function copyHeaders(source: Headers, blocked: Set<string>) {
 }
 
 async function proxy(request: NextRequest, context: Context) {
+  const { path = [] } = await context.params;
+  if (!isPublicConnectPath(path)) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const authMode = getServerAuthMode();
   const sessionToken = (await cookies()).get(sessionCookieName)?.value;
   if (authMode === "required" && !sessionToken) {
@@ -123,7 +116,7 @@ async function proxy(request: NextRequest, context: Context) {
   if (
     request.method !== "GET" &&
     request.method !== "HEAD" &&
-    !isSameOrigin(request)
+    !isSameOriginRequest(request)
   ) {
     return NextResponse.json(
       { error: "Invalid request origin" },
@@ -139,10 +132,6 @@ async function proxy(request: NextRequest, context: Context) {
       { error: "CONNECT_BASE_URL is not configured or invalid" },
       { status: 500 },
     );
-  }
-  const { path = [] } = await context.params;
-  if (serverOnlyAuthMethods.has(path.join("/"))) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   let target: URL;
   try {

@@ -12,7 +12,8 @@ export function createSecurityHeaders({
     "object-src 'none'",
     "form-action 'self'",
     "frame-ancestors https://*.feishu.cn https://*.larksuite.com",
-    `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"} https://lf-scm-cn.feishucdn.com`,
+    // 注意：飞书H5 SDK需要使用eval()，因此必须包含'unsafe-eval'
+    `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://lf-scm-cn.feishucdn.com`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",

@@ -1,7 +1,9 @@
+import { isSameOriginRequest } from "@/lib/request-origin";
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import {
   createConnectProxyAbort,
+  isPublicConnectPath,
   sessionCookieName,
 } from "@sast-shop/api/server";
 
@@ -9,11 +11,6 @@ import { getServerAuthMode } from "@/lib/auth-mode";
 import { getServerConnectBaseUrl } from "@/lib/server-service-options";
 
 const maxConnectRequestBodyBytes = 1024 * 1024;
-const serverOnlyAuthMethods = new Set([
-  "sast.sastshopv2.user.v1.AuthService/Login",
-  "sast.sastshopv2.user.v1.AuthService/GetJSAPIAuthConfig",
-]);
-
 const hopByHopHeaders = new Set([
   "connection",
   "keep-alive",
@@ -37,6 +34,7 @@ const blockedRequestHeaders = new Set([
   "x-forwarded-port",
   "x-forwarded-proto",
   "x-real-ip",
+  "x-west-pocket-token",
 ]);
 
 const blockedResponseHeaders = new Set([
@@ -58,22 +56,6 @@ type ConnectRouteContext = {
     path?: string[];
   }>;
 };
-
-function isSameOriginRequest(request: NextRequest): boolean {
-  const requestOrigin = request.nextUrl.origin;
-  const origin = request.headers.get("origin");
-
-  if (origin) return origin === requestOrigin;
-
-  const referer = request.headers.get("referer");
-  if (!referer) return false;
-
-  try {
-    return new URL(referer).origin === requestOrigin;
-  } catch {
-    return false;
-  }
-}
 
 function normalizeBaseUrl(baseUrl: string): URL {
   const url = new URL(baseUrl);
@@ -199,6 +181,11 @@ async function proxyConnectRequest(
   request: NextRequest,
   context: ConnectRouteContext,
 ) {
+  const { path = [] } = await context.params;
+  if (!isPublicConnectPath(path)) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const authMode = getServerAuthMode();
   const sessionToken = (await cookies()).get(sessionCookieName)?.value;
 
@@ -231,10 +218,6 @@ async function proxyConnectRequest(
     );
   }
 
-  const { path = [] } = await context.params;
-  if (serverOnlyAuthMethods.has(path.join("/"))) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
   let targetUrl: URL;
 
   try {

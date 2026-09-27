@@ -21,7 +21,12 @@ import {
   type DistributingTaskDetail,
   type DistributingTaskItem,
 } from "@sast-shop/api";
-import { formatPrice, parseYuanToCents } from "@sast-shop/domain";
+import {
+  formatPrice,
+  isErrandItemFullyDistributed,
+  isErrandItemPriceSaved,
+  parseYuanToCents,
+} from "@sast-shop/domain";
 import {
   Avatar,
   AvatarFallback,
@@ -118,17 +123,7 @@ export function DistributingTaskView({
   );
   const processedCount = requesters.filter(isRequesterProcessed).length;
   const allProcessed =
-    items.length > 0 &&
-    items.every((item) => {
-      if (item.purchasedQuantity == null || item.purchasedQuantity === 0) {
-        return true; // 未采购，无需分发
-      }
-      const totalDistributed = item.requesters.reduce(
-        (s, r) => s + (r.distributedQuantity ?? 0),
-        0,
-      );
-      return totalDistributed >= item.purchasedQuantity;
-    });
+    items.length > 0 && items.every(isErrandItemFullyDistributed);
   const distributionGroups =
     mode === "pending_distributing"
       ? [
@@ -145,23 +140,22 @@ export function DistributingTaskView({
             title: "待分发",
             description: "仍有参与者尚未记录分发结果。",
             items: items.filter(
-              (item) => !item.requesters.every(isRequesterProcessed),
+              (item) => !isErrandItemFullyDistributed(item),
             ),
           },
           {
             key: "completed",
             title: "已分发",
             description: "所有参与者的分发结果均已记录。",
-            items: items.filter((item) =>
-              item.requesters.every(isRequesterProcessed),
-            ),
+            items: items.filter(isErrandItemFullyDistributed),
           },
         ];
-  const allPricesSaved = items.every((item) => {
-    const draftCents = parseCents(priceDrafts[item.errandTaskItemId] ?? "");
-    if (draftCents == null) return false; // 空输入框直接判为未填
-    return draftCents === item.actualUnitPriceCents;
-  });
+  const allPricesSaved = items.every((item) =>
+    isErrandItemPriceSaved(
+      item,
+      parseCents(priceDrafts[item.errandTaskItemId] ?? ""),
+    ),
+  );
 
   function updateRequesterAssignment(
     itemId: string,
@@ -550,7 +544,7 @@ export function DistributingTaskView({
                   ) : (
                     <Badge
                       variant={
-                        item.requesters.every(isRequesterProcessed)
+                        isErrandItemFullyDistributed(item)
                           ? "success"
                           : "neutral"
                       }

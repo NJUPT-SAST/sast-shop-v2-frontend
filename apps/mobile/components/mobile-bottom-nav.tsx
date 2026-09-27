@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useRef, type MouseEvent } from "react";
+import { useRef, useState, type MouseEvent } from "react";
 import {
   RiAddLine,
   RiFileList3Line,
@@ -10,6 +10,8 @@ import {
   RiKeyboardBoxLine,
   RiQrScan2Line,
   RiUser3Line,
+  RiCameraLine,
+  RiStore2Line,
 } from "@remixicon/react";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -40,6 +42,7 @@ export function MobileBottomNav() {
   const router = useRouter();
   const lastCurrentRoutePressAtRef = useRef(0);
   const showFeishuEntry = useFeishuUiEnvironment();
+  const [publishStep, setPublishStep] = useState<"choose" | "spot">("choose");
   const { handleCurrentRoutePress, scrollToTop } = useMobileScroll();
 
   function handleNavClick(
@@ -74,51 +77,83 @@ export function MobileBottomNav() {
           />
         ))}
 
-        {showFeishuEntry ? (
-          <Drawer>
-            <DrawerTrigger asChild>
-              <PublishTriggerButton />
-            </DrawerTrigger>
-            <DrawerContent>
-              <DrawerHeader>
-                <DrawerTitle>上架现货</DrawerTitle>
-                <DrawerDescription className="sr-only">
-                  选择商品条码录入方式
-                </DrawerDescription>
-              </DrawerHeader>
-              <div className="grid grid-cols-2 gap-3 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-                <DrawerClose asChild>
+        <Drawer
+          onOpenChange={(open) => {
+            if (open) setPublishStep("choose");
+          }}
+        >
+          <DrawerTrigger asChild>
+            <PublishTriggerButton />
+          </DrawerTrigger>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>
+                {publishStep === "choose" ? "选择功能" : "上架现货"}
+              </DrawerTitle>
+              <DrawerDescription className="sr-only">
+                {publishStep === "choose"
+                  ? "上架商品，或用合照发起聚餐 AA"
+                  : "选择商品条码录入方式"}
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="grid grid-cols-2 gap-3 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+              {publishStep === "choose" ? (
+                <>
                   <Button
                     type="button"
                     variant="outline"
-                    size="lg"
-                    className="h-24 flex-col gap-2 rounded-xl bg-card shadow-sm"
-                    onClick={() => router.push("/publish/spot?entry=manual")}
+                    className="h-24 flex-col gap-2 rounded-xl"
+                    onClick={() => {
+                      if (showFeishuEntry) setPublishStep("spot");
+                      else router.push("/publish/spot?entry=manual");
+                    }}
                   >
-                    <RiKeyboardBoxLine />
-                    手动输入
+                    <RiStore2Line />
+                    上架现货
                   </Button>
-                </DrawerClose>
-                <DrawerClose asChild>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="lg"
-                    className="h-24 flex-col gap-2 rounded-xl border border-primary/20 bg-primary/10 text-primary shadow-sm hover:bg-primary/15"
-                    onClick={() => router.push("/publish/spot?entry=scan")}
-                  >
-                    <RiQrScan2Line />
-                    扫码录入
-                  </Button>
-                </DrawerClose>
-              </div>
-            </DrawerContent>
-          </Drawer>
-        ) : (
-          <PublishTriggerButton
-            onClick={() => router.push("/publish/spot?entry=manual")}
-          />
-        )}
+                  <DrawerClose asChild>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-24 flex-col gap-2 rounded-xl text-primary"
+                      onClick={() => router.push("/west-pocket/new")}
+                    >
+                      <RiCameraLine />
+                      West Pocket
+                    </Button>
+                  </DrawerClose>
+                </>
+              ) : (
+                <>
+                  <DrawerClose asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="lg"
+                      className="h-24 flex-col gap-2 rounded-xl bg-card shadow-sm"
+                      onClick={() => router.push("/publish/spot?entry=manual")}
+                    >
+                      <RiKeyboardBoxLine />
+                      手动输入
+                    </Button>
+                  </DrawerClose>
+                  <DrawerClose asChild>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="lg"
+                      className="h-24 flex-col gap-2 rounded-xl border border-primary/20 bg-primary/10 text-primary shadow-sm hover:bg-primary/15"
+                      onClick={() => router.push("/publish/spot?entry=scan")}
+                    >
+                      <RiQrScan2Line />
+                      扫码录入
+                    </Button>
+                  </DrawerClose>
+                </>
+              )}
+            </div>
+          </DrawerContent>
+        </Drawer>
 
         {navItems.slice(2).map((item) => (
           <NavLink
@@ -139,7 +174,7 @@ function PublishTriggerButton({ onClick }: { onClick?: () => void }) {
       type="button"
       size="icon-touch"
       className="-mt-8 size-14 rounded-full shadow-xl shadow-foreground/15 ring-1 ring-border/60"
-      aria-label="上架现货"
+      aria-label="选择发布功能"
       onClick={onClick}
     >
       <RiAddLine className="size-6" />

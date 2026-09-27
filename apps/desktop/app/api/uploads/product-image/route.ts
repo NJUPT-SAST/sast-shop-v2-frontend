@@ -1,3 +1,4 @@
+import { desktopAppConfig } from "@/lib/app-config";
 import { cookies } from "next/headers";
 import { type NextRequest } from "next/server";
 
@@ -11,6 +12,7 @@ export async function POST(request: NextRequest) {
   const sessionToken = (await cookies()).get(sessionCookieName)?.value;
 
   return proxyProductImageUpload(request, {
+    appOrigin: desktopAppConfig.appOrigin,
     backendBaseUrl: getServerConnectBaseUrl(),
     isAuthenticationRequired: getServerAuthMode() === "required",
     sessionToken,

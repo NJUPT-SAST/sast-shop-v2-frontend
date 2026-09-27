@@ -1,9 +1,5 @@
 import { createClient } from "@connectrpc/connect";
-import {
-  timestampDate,
-  timestampFromDate,
-  type Timestamp,
-} from "@bufbuild/protobuf/wkt";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import type { ErrandTask as ProtoErrandTask } from "../gen/sast/sastshopv2/errand/v1/errand_task_pb";
 import { ErrandTaskService } from "../gen/sast/sastshopv2/errand/v1/errand_task_service_pb";
 import { ErrandTaskStatus } from "../gen/sast/sastshopv2/errand/v1/errand_task_status_pb";
@@ -18,6 +14,7 @@ import { resolveDataSource, type ServiceOptions } from "../data-source";
 import { FeatureUnavailableError, ValidationError } from "../errors";
 import { createPageResult, type PageResult } from "../pagination";
 import { createLocalTransport, requestLocal } from "../local-connect";
+import { formatProtoTimestamp, parseProtoTimestamp } from "../proto-timestamp";
 
 const MAX_SIGNED_INT64 = 9223372036854775807n;
 const MAX_SIGNED_INT32 = 2_147_483_647;
@@ -393,13 +390,7 @@ function parseOptionalTimestamp(
     return undefined;
   }
 
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    throw new ValidationError(message);
-  }
-
-  return timestampFromDate(date);
+  return parseProtoTimestamp(value, message);
 }
 
 function formatTimestamp(timestamp: Timestamp | undefined): string | null {
@@ -407,7 +398,7 @@ function formatTimestamp(timestamp: Timestamp | undefined): string | null {
     return null;
   }
 
-  return timestampDate(timestamp).toISOString();
+  return formatProtoTimestamp(timestamp);
 }
 
 function parseOptionalTimestampString(
@@ -418,13 +409,7 @@ function parseOptionalTimestampString(
     return undefined;
   }
 
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    throw new ValidationError(message);
-  }
-
-  return timestampFromDate(date);
+  return parseProtoTimestamp(value, message);
 }
 
 function parseTimestampString(value: string, message: string): Timestamp {
@@ -432,13 +417,7 @@ function parseTimestampString(value: string, message: string): Timestamp {
     throw new ValidationError(message);
   }
 
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    throw new ValidationError(message);
-  }
-
-  return timestampFromDate(date);
+  return parseProtoTimestamp(value, message);
 }
 
 export interface ShoppingTaskItem {

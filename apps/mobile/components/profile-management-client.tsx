@@ -1,12 +1,15 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import {
   RiArrowRightSLine,
   RiQuestionLine,
   RiMapPinLine,
   RiQrCodeLine,
   RiWallet3Line,
+  RiEmotionHappyLine,
+  RiGroupLine,
 } from "@remixicon/react";
 import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
@@ -19,6 +22,7 @@ export function ProfileManagementClient({
 }) {
   const { openAddressDialog, openPaymentPreferenceDialog, openQrCodeDialog } =
     useProfileDialogs();
+  const router = useRouter();
 
   return (
     <div className="overflow-hidden rounded-xl border bg-card">
@@ -28,6 +32,18 @@ export function ProfileManagementClient({
         onClick={openAddressDialog}
         border
         first
+      />
+      <ProfileMenuButton
+        title="我的人脸"
+        icon={<RiEmotionHappyLine className="size-4" />}
+        onClick={() => router.push("/profile/face")}
+        border
+      />
+      <ProfileMenuButton
+        title="West Pocket"
+        icon={<RiGroupLine className="size-4" />}
+        onClick={() => router.push("/west-pocket")}
+        border
       />
       <ProfileMenuButton
         title="收款码"

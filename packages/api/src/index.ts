@@ -171,3 +171,4 @@ export {
   type UpdateProductTemplateInput,
   type UpdateProductTemplatePatch,
 } from "./services/product-templates";
+export * from "./services/west-pocket";

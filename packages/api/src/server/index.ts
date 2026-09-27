@@ -18,3 +18,4 @@ export {
   CONNECT_PROXY_TIMEOUT_MS,
   createConnectProxyAbort,
 } from "./connect-proxy-abort";
+export { isPublicConnectPath } from "./public-connect-path";

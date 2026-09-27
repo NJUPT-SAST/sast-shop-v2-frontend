@@ -11,18 +11,26 @@ export function isPaymentPlatform(value: unknown): value is PaymentPlatform {
 export function readDefaultPaymentPlatform(
   storage: Storage | undefined = getBrowserStorage(),
 ): PaymentPlatform {
-  const storedPlatform = storage?.getItem(PAYMENT_PLATFORM_STORAGE_KEY);
+  try {
+    const storedPlatform = storage?.getItem(PAYMENT_PLATFORM_STORAGE_KEY);
 
-  return isPaymentPlatform(storedPlatform)
-    ? storedPlatform
-    : DEFAULT_PAYMENT_PLATFORM;
+    return isPaymentPlatform(storedPlatform)
+      ? storedPlatform
+      : DEFAULT_PAYMENT_PLATFORM;
+  } catch {
+    return DEFAULT_PAYMENT_PLATFORM;
+  }
 }
 
 export function writeDefaultPaymentPlatform(
   platform: PaymentPlatform,
   storage: Storage | undefined = getBrowserStorage(),
 ) {
-  storage?.setItem(PAYMENT_PLATFORM_STORAGE_KEY, platform);
+  try {
+    storage?.setItem(PAYMENT_PLATFORM_STORAGE_KEY, platform);
+  } catch {
+    // A blocked or full preference store must not interrupt payment.
+  }
 }
 
 function getBrowserStorage(): Storage | undefined {

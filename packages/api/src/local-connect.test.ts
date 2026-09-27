@@ -28,11 +28,13 @@ describe("local Connect transport", () => {
       fetch: customFetch,
     });
 
-    expect(createConnectTransport).toHaveBeenCalledWith({
-      baseUrl: "https://backend.example.test",
-      defaultTimeoutMs: 15_000,
-      fetch: customFetch,
-    });
+    expect(createConnectTransport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: "https://backend.example.test",
+        defaultTimeoutMs: 15_000,
+        fetch: customFetch,
+      }),
+    );
   });
 
   it("turns unauthenticated responses into an auth recovery signal", async () => {

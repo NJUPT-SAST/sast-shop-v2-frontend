@@ -75,6 +75,7 @@ export async function listSpotGoods(
       options.pageSize ?? 50,
       "每页数量不正确",
     );
+    if (pageSize > 100) throw new ValidationError("每页数量不能超过 100");
     const client = createClient(
       SpotGoodsService,
       createLocalTransport(options),
@@ -94,9 +95,11 @@ export async function listSpotGoods(
       !Number.isInteger(response.currentPage) ||
       response.currentPage !== page ||
       !Number.isInteger(response.totalCount) ||
+      response.totalCount < 0 ||
       response.spotGoodsList.length > pageSize ||
-      response.totalCount <
-        (page - 1) * pageSize + response.spotGoodsList.length
+      (response.spotGoodsList.length > 0 &&
+        response.totalCount <
+          (page - 1) * pageSize + response.spotGoodsList.length)
     ) {
       throw new FeatureUnavailableError("listSpotGoods.pagination");
     }

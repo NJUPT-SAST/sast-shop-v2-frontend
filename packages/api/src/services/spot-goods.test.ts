@@ -286,6 +286,29 @@ describe("spot goods service", () => {
     },
   );
 
+  it("accepts an empty page when goods disappear before the next request", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | Request) => {
+        const url = typeof input === "string" ? input : input.url;
+        return stubJsonResponse(
+          new URL(url).pathname.includes("GetStoreList")
+            ? { stores: [] }
+            : { spotGoodsList: [], currentPage: 2, totalCount: 0 },
+        );
+      }),
+    );
+
+    await expect(
+      listSpotGoods({ ...localOptions, page: 2, pageSize: 20 }),
+    ).resolves.toEqual({
+      goods: [],
+      currentPage: 2,
+      pageSize: 20,
+      totalCount: 0,
+    });
+  });
+
   it.each([
     ["negative store ID", { storeId: "-1" }],
     ["non-integer store ID", { storeId: "1.5" }],

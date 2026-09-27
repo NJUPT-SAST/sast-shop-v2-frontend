@@ -25,7 +25,11 @@ import {
   type DistributingTaskDetail,
   type DistributingTaskItem,
 } from "@sast-shop/api";
-import { formatPrice, parseYuanToCents } from "@sast-shop/domain";
+import {
+  formatPrice,
+  isErrandItemFullyDistributed,
+  parseYuanToCents,
+} from "@sast-shop/domain";
 import {
   Avatar,
   AvatarFallback,
@@ -82,17 +86,6 @@ function formatYuan(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
-function isItemFullyDistributed(item: DistributingTaskItem): boolean {
-  if (item.purchasedQuantity == null || item.purchasedQuantity === 0) {
-    return true; // 未采购，无需分发
-  }
-  const totalDistributed = item.requesters.reduce(
-    (s, r) => s + (r.distributedQuantity ?? 0),
-    0,
-  );
-  return totalDistributed >= item.purchasedQuantity;
-}
-
 export function DistributingTaskView({
   dataSource,
   connectBaseUrl,
@@ -125,22 +118,12 @@ export function DistributingTaskView({
     (i) => i.actualUnitPriceCents != null,
   );
 
-  const undistributed = purchasedItems.filter(
-    (i) => !isItemFullyDistributed(i),
+  const undistributed = items.filter(
+    (item) => !isErrandItemFullyDistributed(item),
   );
-  const distributed = purchasedItems.filter((i) => isItemFullyDistributed(i));
+  const distributed = items.filter(isErrandItemFullyDistributed);
   const allDistributed =
-    items.length > 0 &&
-    items.every((item) => {
-      if (item.purchasedQuantity == null || item.purchasedQuantity === 0) {
-        return true; // 未采购，无需分发
-      }
-      const totalDistributed = item.requesters.reduce(
-        (s, r) => s + (r.distributedQuantity ?? 0),
-        0,
-      );
-      return totalDistributed >= item.purchasedQuantity;
-    });
+    items.length > 0 && items.every(isErrandItemFullyDistributed);
 
   const updateRequester = (
     itemId: string,

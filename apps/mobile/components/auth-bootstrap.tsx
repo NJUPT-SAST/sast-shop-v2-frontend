@@ -14,7 +14,6 @@ import {
   requestLarkAuthorizationCode,
   type DataSource,
   validateSessionUser,
-  waitForLarkReady,
 } from "@sast-shop/api";
 import { RiShieldUserLine } from "@remixicon/react";
 import { Button } from "@workspace/ui/components/button";
@@ -26,6 +25,7 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card";
 import { Spinner } from "@workspace/ui/components/spinner";
+import { waitForLarkLoginClient } from "@/lib/lark-login-client";
 
 type AuthState = "checking" | "authenticating" | "authenticated" | "error";
 const staleRequestWindowMs = 15_000;
@@ -96,14 +96,9 @@ export function AuthBootstrap({
         }
         if (!appId)
           throw new Error("缺少飞书应用 ID，请联系管理员完成部署配置");
-        if (!window.h5sdk?.ready || !window.tt) {
-          throw new Error("请在飞书客户端内打开该应用");
-        }
 
         setState("authenticating");
-        const sdk = window.h5sdk;
-        const client = window.tt;
-        await waitForLarkReady(sdk);
+        const client = await waitForLarkLoginClient(window);
         const code = await requestLarkAuthorizationCode(client, appId);
         const response = await fetch("/api/auth/session", {
           method: "POST",

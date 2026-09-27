@@ -1,4 +1,6 @@
 import { createClient } from "@connectrpc/connect";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { formatProtoTimestamp } from "../proto-timestamp";
 import type { ProductTemplate as ProtoProductTemplate } from "../gen/sast/sastshopv2/catalog/v1/product_template_pb";
 import type { Store as ProtoStore } from "../gen/sast/sastshopv2/catalog/v1/store_pb";
 import type {
@@ -368,14 +370,10 @@ function parsePositiveInteger(value: number, message: string): number {
   return value;
 }
 
-function formatTimestamp(
-  timestamp: { seconds: bigint; nanos: number } | undefined,
-): string | null {
+function formatTimestamp(timestamp: Timestamp | undefined): string | null {
   if (!timestamp) {
     return null;
   }
 
-  return new Date(
-    Number(timestamp.seconds) * 1000 + Math.floor(timestamp.nanos / 1_000_000),
-  ).toISOString();
+  return formatProtoTimestamp(timestamp);
 }

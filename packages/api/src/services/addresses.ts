@@ -134,7 +134,11 @@ function parseAddressId(id: string): bigint {
     throw new ValidationError("地址 ID 不正确");
   }
 
-  return BigInt(id);
+  const parsed = BigInt(id);
+  if (parsed > 9223372036854775807n) {
+    throw new ValidationError("地址 ID 不正确");
+  }
+  return parsed;
 }
 
 function validateAddressInput(input: ShippingAddressInput) {

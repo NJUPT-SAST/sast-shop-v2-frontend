@@ -1,9 +1,5 @@
 import { createClient } from "@connectrpc/connect";
-import {
-  timestampDate,
-  timestampFromDate,
-  type Timestamp,
-} from "@bufbuild/protobuf/wkt";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import type { ProductTemplate } from "../gen/sast/sastshopv2/catalog/v1/product_template_pb";
 import type { Store as ProtoStore } from "../gen/sast/sastshopv2/catalog/v1/store_pb";
 import { SpotGoodsPerspective } from "../gen/sast/sastshopv2/spot/v1/spot_goods_perspective_pb";
@@ -16,6 +12,7 @@ import { mapWithConcurrency } from "../concurrency";
 import { resolveDataSource, type ServiceOptions } from "../data-source";
 import { FeatureUnavailableError, ValidationError } from "../errors";
 import { createLocalTransport, requestLocal } from "../local-connect";
+import { formatProtoTimestamp, parseProtoTimestamp } from "../proto-timestamp";
 import { createPageResult, type PageResult } from "../pagination";
 import { listStores, type Store } from "./catalog";
 import { mapPaymentBill, type PaymentBill } from "./payment-bills";
@@ -44,6 +41,7 @@ export interface SpotOrder {
   paidAt: string | null;
   completedAt: string | null;
   cancelledAt: string | null;
+  updatedAt?: string | null;
 }
 
 export interface SpotOrderSeller {
@@ -342,6 +340,7 @@ function mapSpotOrderDetail(order: ProtoSpotOrderDetail): SpotOrder {
     paidAt: formatTimestamp(order.paidAt),
     completedAt: formatTimestamp(order.completedAt),
     cancelledAt: formatTimestamp(order.cancelledAt),
+    updatedAt: formatProtoTimestamp(order.updatedAt),
   };
 }
 
@@ -468,18 +467,12 @@ function parseTimestampInput(input?: TimestampInput): Timestamp | undefined {
   }
 
   if (typeof input === "string") {
-    const date = new Date(input);
-
-    if (Number.isNaN(date.getTime())) {
-      throw new ValidationError("现货订单更新时间不正确");
-    }
-
-    return timestampFromDate(date);
+    return parseProtoTimestamp(input, "现货订单更新时间不正确");
   }
 
   return input;
 }
 
 function formatTimestamp(timestamp?: Timestamp): string | null {
-  return timestamp ? timestampDate(timestamp).toISOString() : null;
+  return formatProtoTimestamp(timestamp);
 }

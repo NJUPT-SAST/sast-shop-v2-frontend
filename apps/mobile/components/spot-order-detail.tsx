@@ -141,7 +141,7 @@ export function SpotOrderDetail({
     try {
       if (action === "cancel") {
         const updatedOrder = await cancelSpotOrder(
-          { spotOrderId: resolvedOrder.id },
+          { spotOrderId: resolvedOrder.id, updatedAt: resolvedOrder.updatedAt },
           { dataSource, connectBaseUrl },
         );
         setCurrentOrder(updatedOrder);
@@ -149,7 +149,7 @@ export function SpotOrderDetail({
         toast.success("订单已取消");
       } else if (action === "complete") {
         const updatedOrder = await completeSpotOrder(
-          { spotOrderId: resolvedOrder.id },
+          { spotOrderId: resolvedOrder.id, updatedAt: resolvedOrder.updatedAt },
           { dataSource, connectBaseUrl },
         );
         setCurrentOrder(updatedOrder);
@@ -167,7 +167,11 @@ export function SpotOrderDetail({
 
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "操作失败，订单状态可能已更新，请刷新后重试");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "操作失败，订单状态可能已更新，请刷新后重试",
+      );
     } finally {
       lifecyclePendingRef.current = false;
       setLifecyclePending(null);

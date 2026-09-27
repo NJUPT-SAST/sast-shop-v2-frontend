@@ -11,6 +11,7 @@ import {
   normalizeAuthReturnTo,
 } from "@/lib/feishu-oauth";
 import { getFeishuOAuthConfig } from "@/lib/feishu-oauth-config";
+import { desktopAppConfig } from "@/lib/app-config";
 
 export async function GET(request: NextRequest) {
   const returnTo = normalizeAuthReturnTo(
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
   );
 
   if (getServerAuthMode() !== "required") {
-    return NextResponse.redirect(new URL(returnTo, request.nextUrl.origin));
+    return NextResponse.redirect(new URL(returnTo, desktopAppConfig.appOrigin));
   }
 
   let destination: URL;
