@@ -20,20 +20,24 @@ import { ShoppingTaskView } from "../components/errand-purchase/shopping-task-vi
 const {
   cancelTask,
   confirmBill,
+  getDistributingTaskDetail,
   getErrandTaskBrief,
   transitionToCompleted,
   transitionToCollectingPayment,
   transitionToDistributing,
   transitionToPendingDistributing,
+  updateActualPrice,
   refresh,
 } = vi.hoisted(() => ({
   cancelTask: vi.fn(),
   confirmBill: vi.fn(),
+  getDistributingTaskDetail: vi.fn(),
   getErrandTaskBrief: vi.fn(),
   transitionToCompleted: vi.fn(),
   transitionToCollectingPayment: vi.fn(),
   transitionToDistributing: vi.fn(),
   transitionToPendingDistributing: vi.fn(),
+  updateActualPrice: vi.fn(),
   refresh: vi.fn(),
 }));
 
@@ -43,7 +47,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@sast-shop/api", () => ({
   cancelTask,
   confirmBill,
-  getDistributingTaskDetail: vi.fn(),
+  getDistributingTaskDetail,
   getErrandTaskBrief,
   getShoppingTaskDetail: vi.fn(),
   saveDistributingAssignment: vi.fn(),
@@ -52,7 +56,7 @@ vi.mock("@sast-shop/api", () => ({
   transitionToCompleted,
   transitionToDistributing,
   transitionToPendingDistributing,
-  updateActualPrice: vi.fn(),
+  updateActualPrice,
 }));
 vi.mock("sonner", () => ({
   toast: { error: vi.fn(), info: vi.fn(), success: vi.fn(), warning: vi.fn() },
@@ -169,7 +173,9 @@ beforeEach(() => {
   refresh.mockReset();
   cancelTask.mockReset();
   confirmBill.mockReset();
+  getDistributingTaskDetail.mockReset();
   transitionToPendingDistributing.mockReset();
+  updateActualPrice.mockReset();
   transitionToDistributing.mockReset();
   transitionToCompleted.mockReset();
   transitionToCollectingPayment.mockReset();
@@ -203,6 +209,76 @@ function getButton(label: string, last = false) {
 }
 
 describe("errand purchase refresh recovery", () => {
+  it("keeps price editing separate from requester expansion", async () => {
+    getDistributingTaskDetail.mockResolvedValue(distributingDetail);
+    const view = (mode: "pending_distributing" | "distributing") => (
+      <DistributingTaskView
+        dataSource="local"
+        connectBaseUrl="http://127.0.0.1:1327"
+        detail={distributingDetail}
+        mode={mode}
+      />
+    );
+    await render(view("pending_distributing"));
+
+    const expandButton = container.querySelector<HTMLButtonElement>(
+      '[aria-controls="distributing-item-7201"]',
+    );
+    const priceButton = container.querySelector<HTMLButtonElement>(
+      '[aria-label="修改矿泉水的单价"]',
+    );
+    expect(expandButton).not.toBeNull();
+    expect(priceButton).not.toBeNull();
+    expect(priceButton!.parentElement?.closest("button")).toBeNull();
+    expect(expandButton!.getAttribute("aria-expanded")).toBe("false");
+
+    await act(async () => priceButton!.click());
+    expect(container.textContent).toContain("修改单价");
+    expect(expandButton!.getAttribute("aria-expanded")).toBe("false");
+    await click("取消");
+
+    await act(async () => expandButton!.click());
+    expect(expandButton!.getAttribute("aria-expanded")).toBe("true");
+    expect(
+      container.querySelector("#distributing-item-7201")?.textContent,
+    ).toContain("李同学");
+    expect(
+      container.querySelectorAll('[aria-label="修改矿泉水的单价"]'),
+    ).toHaveLength(1);
+    expect(
+      container
+        .querySelector("#distributing-item-7201")
+        ?.querySelector('[aria-label="修改矿泉水的单价"]'),
+    ).toBeNull();
+
+    await act(async () => priceButton!.click());
+    const priceInput = container.querySelector<HTMLInputElement>(
+      "#distribution-unit-price",
+    )!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )!.set!.call(priceInput, "3.00");
+      priceInput.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await click("保存单价");
+    expect(updateActualPrice).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errandTaskId: "7002",
+        errandTaskItemId: "7201",
+        actualUnitPriceCents: 300,
+        itemUpdatedAt: distributingDetail.items[0]!.itemUpdatedAt,
+      }),
+      expect.any(Object),
+    );
+
+    await render(view("distributing"));
+    expect(
+      container.querySelector('[aria-label="修改矿泉水的单价"]'),
+    ).toBeNull();
+  });
+
   it("keeps header cancellation behind confirmation and blocks retries until a newer task arrives", async () => {
     cancelTask.mockRejectedValue(new Error("网络中断"));
     const view = (detail: ShoppingTaskDetail) => (

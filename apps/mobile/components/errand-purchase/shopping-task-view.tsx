@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { RiCloseCircleLine, RiEditLine } from "@remixicon/react";
+import { RiEditLine } from "@remixicon/react";
 import {
   cancelTask,
   getShoppingTaskDetail,
@@ -297,7 +297,6 @@ export function ShoppingTaskView({
           disabled={actionsDisabled}
           onClick={() => setDialog({ type: "confirm_cancel" })}
         >
-          <RiCloseCircleLine data-icon="inline-start" />
           取消采购
         </Button>
       </MobileHeaderActions>
