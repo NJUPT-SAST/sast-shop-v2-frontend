@@ -87,6 +87,7 @@ import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
 
+import { BrandIllustration } from "@/components/brand-illustration";
 import { ManagedImage } from "@/components/managed-image";
 import { StoreCreateDialog } from "@/components/store-create-dialog";
 import { useFeishuUiEnvironment } from "@/hooks/use-feishu-ui-environment";
@@ -454,11 +455,16 @@ export function ProductTemplateManager({
       ) : !error && !loadingMore && !hasMore ? (
         <Empty
           icon={
-            stores.length === 0 ? (
-              <RiStore2Line className="size-5" />
-            ) : (
+            keyword && stores.length > 0 ? (
               <RiFileList3Line className="size-5" />
-            )
+            ) : undefined
+          }
+          illustration={
+            stores.length === 0 ? (
+              <BrandIllustration name="store" size={96} />
+            ) : !keyword ? (
+              <BrandIllustration name="template" size={96} />
+            ) : undefined
           }
           title={
             stores.length === 0
@@ -493,6 +499,7 @@ export function ProductTemplateManager({
           onLoadMore={() => void loadMore()}
           loadingFallback={<TemplateLoadingSkeletons />}
           endMessage={`已经到底，共 ${templates.length} 个商品模板`}
+          endMessageClassName="pt-6"
         />
       ) : null}
 

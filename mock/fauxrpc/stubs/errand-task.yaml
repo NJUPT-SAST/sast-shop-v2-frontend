@@ -284,7 +284,8 @@ stubs:
           updatedAt: "2026-07-18T02:00:00Z"
   - id: errand-task-save-shopping-item
     target: sast.sastshopv2.errand.v1.ErrandTaskService/SaveShoppingTaskItem
-    content: {}
+    content:
+      errandTaskItemUpdatedAt: "2026-07-18T02:00:01Z"
   - id: errand-task-transition-pending-distributing
     target: sast.sastshopv2.errand.v1.ErrandTaskService/TransitionToPendingDistributing
     content: {}

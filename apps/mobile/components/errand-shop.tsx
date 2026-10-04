@@ -3,12 +3,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  RiAddLine,
-  RiShoppingBag3Line,
-  RiShoppingCartLine,
-  RiStore2Line,
-} from "@remixicon/react";
+import { RiAddLine, RiShoppingCartLine, RiStore2Line } from "@remixicon/react";
 import {
   createErrandDemand,
   listProductTemplatesPage,
@@ -43,6 +38,7 @@ import {
 import { toast } from "sonner";
 import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
 
+import { BrandIllustration } from "@/components/brand-illustration";
 import {
   getDefaultErrandDeadline,
   getMinimumErrandDeadline,
@@ -325,7 +321,7 @@ export function ErrandShop({
 
         {templates.length === 0 && !loadingMore && !hasMore ? (
           <Empty
-            icon={<RiShoppingBag3Line className="size-5" />}
+            illustration={<BrandIllustration name="template" size={96} />}
             title="此店铺暂无可用商品模板"
             description="可以返回团购页选择其他店铺。"
             action={
@@ -417,6 +413,7 @@ export function ErrandShop({
           onLoadMore={() => void loadMore()}
           loadingFallback={<TemplateLoadingSkeletons />}
           endMessage={`已经到底，共 ${templates.length} 个可选商品`}
+          endMessageClassName="pt-6"
         />
       </section>
 

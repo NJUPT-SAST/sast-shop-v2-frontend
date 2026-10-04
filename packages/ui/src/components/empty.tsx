@@ -5,12 +5,14 @@ import { cn } from "#lib/utils";
 function Empty({
   className,
   icon,
+  illustration,
   title,
   description,
   action,
   ...props
 }: React.ComponentProps<"div"> & {
   icon?: React.ReactNode;
+  illustration?: React.ReactNode;
   title: React.ReactNode;
   description?: React.ReactNode;
   action?: React.ReactNode;
@@ -24,7 +26,9 @@ function Empty({
       )}
       {...props}
     >
-      {icon ? (
+      {illustration ? (
+        <div data-slot="empty-illustration">{illustration}</div>
+      ) : icon ? (
         <div className="flex size-11 items-center justify-center rounded-full bg-background text-muted-foreground">
           {icon}
         </div>

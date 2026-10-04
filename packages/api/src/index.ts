@@ -153,6 +153,7 @@ export {
   type SaveDistributingAssignmentInput,
   type SaveDistributingAssignmentResult,
   type SaveShoppingItemInput,
+  type SaveShoppingItemResult,
   type ShoppingTaskDetail,
   type ShoppingTaskItem,
   type UpdateActualPriceInput,

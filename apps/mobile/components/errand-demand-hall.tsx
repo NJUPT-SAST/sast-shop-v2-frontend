@@ -15,6 +15,7 @@ import {
   type PageResult,
 } from "@sast-shop/api";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Avatar,
   AvatarFallback,
@@ -144,7 +145,20 @@ export function ErrandDemandHall({
         </section>
       ) : !loadingMore && !hasMore ? (
         <Empty
-          icon={<RiStore2Line className="size-5" />}
+          icon={hasKeyword ? <RiStore2Line className="size-5" /> : undefined}
+          illustration={
+            !hasKeyword ? (
+              <Image
+                src="/brand/errand-empty.webp"
+                width={128}
+                height={128}
+                alt=""
+                aria-hidden="true"
+                unoptimized
+                className="size-32 object-contain"
+              />
+            ) : undefined
+          }
           title={hasKeyword ? "没有匹配的店铺需求" : "暂无待接单需求"}
           description={hasKeyword ? "请尝试其他店铺名称。" : undefined}
           action={
@@ -175,6 +189,7 @@ export function ErrandDemandHall({
           onLoadMore={() => void loadMore()}
           loadingFallback={<DemandLoadingSkeletons />}
           endMessage={`已经到底，共 ${demands.length} 个店铺需求`}
+          endMessageClassName="pt-6"
         />
       ) : null}
     </div>

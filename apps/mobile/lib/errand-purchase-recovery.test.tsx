@@ -9,11 +9,16 @@ import type {
   DistributingTaskDetail,
   ShoppingTaskDetail,
 } from "@sast-shop/api";
+import {
+  MobileHeaderActionsProvider,
+  MobileHeaderActionSlot,
+} from "../components/mobile-header-actions";
 import { CollectingPaymentView } from "../components/errand-purchase/collecting-payment-view";
 import { DistributingTaskView } from "../components/errand-purchase/distributing-task-view";
 import { ShoppingTaskView } from "../components/errand-purchase/shopping-task-view";
 
 const {
+  cancelTask,
   confirmBill,
   getErrandTaskBrief,
   transitionToCompleted,
@@ -22,6 +27,7 @@ const {
   transitionToPendingDistributing,
   refresh,
 } = vi.hoisted(() => ({
+  cancelTask: vi.fn(),
   confirmBill: vi.fn(),
   getErrandTaskBrief: vi.fn(),
   transitionToCompleted: vi.fn(),
@@ -35,7 +41,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh, replace: vi.fn(), push: vi.fn() }),
 }));
 vi.mock("@sast-shop/api", () => ({
-  cancelTask: vi.fn(),
+  cancelTask,
   confirmBill,
   getDistributingTaskDetail: vi.fn(),
   getErrandTaskBrief,
@@ -161,6 +167,7 @@ beforeEach(() => {
   vi.stubGlobal("React", React);
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   refresh.mockReset();
+  cancelTask.mockReset();
   confirmBill.mockReset();
   transitionToPendingDistributing.mockReset();
   transitionToDistributing.mockReset();
@@ -196,6 +203,51 @@ function getButton(label: string, last = false) {
 }
 
 describe("errand purchase refresh recovery", () => {
+  it("keeps header cancellation behind confirmation and blocks retries until a newer task arrives", async () => {
+    cancelTask.mockRejectedValue(new Error("网络中断"));
+    const view = (detail: ShoppingTaskDetail) => (
+      <MobileHeaderActionsProvider>
+        <header>
+          <MobileHeaderActionSlot />
+        </header>
+        <ShoppingTaskView
+          dataSource="local"
+          connectBaseUrl="http://127.0.0.1:1327"
+          detail={detail}
+          taskUpdatedAt={detail.taskUpdatedAt}
+        />
+      </MobileHeaderActionsProvider>
+    );
+    const headerAction = () =>
+      container.querySelector("header button") as HTMLButtonElement | null;
+
+    await render(view(shoppingDetail));
+    expect(headerAction()?.textContent).toContain("取消采购");
+    await act(async () => headerAction()!.click());
+    expect(cancelTask).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("确认取消此次采购任务");
+    await click("返回");
+    expect(cancelTask).not.toHaveBeenCalled();
+    expect(container.textContent).not.toContain("确认取消此次采购任务");
+
+    await act(async () => headerAction()!.click());
+    await click("确认取消");
+    expect(cancelTask).toHaveBeenCalledTimes(1);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(headerAction()?.disabled).toBe(true);
+    expect(container.textContent).not.toContain("确认取消此次采购任务");
+    await act(async () => headerAction()!.click());
+    expect(cancelTask).toHaveBeenCalledTimes(1);
+
+    await render(
+      view({
+        ...shoppingDetail,
+        taskUpdatedAt: "2026-07-18T02:00:01Z",
+      }),
+    );
+    expect(headerAction()?.disabled).toBe(false);
+  });
+
   it("refreshes shopping state after a failed completion transition", async () => {
     transitionToPendingDistributing.mockRejectedValue(new Error("版本冲突"));
     await render(

@@ -10,6 +10,7 @@ import {
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { RiFileList3Line, RiSearchLine } from "@remixicon/react";
+import { BrandIllustration } from "./brand-illustration";
 import {
   listBuyerErrandOrdersPage,
   listErrandTasksPage,
@@ -549,10 +550,11 @@ export function OrdersView({
             hasMore={currentFeed.hasMore}
             loading={currentFeed.loadingMore}
             error={currentFeed.loadMoreError}
-            hasItems={currentFeed.totalCount > 0}
+            hasItems={filteredOrders.length > 0}
             onLoadMore={() => void currentFeed.loadMore()}
             loadingFallback={<OrderLoadingSkeletons />}
-            endMessage={`已经到底，共 ${currentFeed.items.length} 笔订单`}
+            endMessage={`已经到底，共 ${filteredOrders.length} 笔订单`}
+            endMessageClassName="pt-6"
           />
         ) : null}
       </div>
@@ -586,7 +588,16 @@ function OrderList({
   if (orders.length === 0 && showEmpty) {
     return (
       <Empty
-        icon={<RiFileList3Line className="size-5" />}
+        icon={
+          filters.query.trim() ? (
+            <RiFileList3Line className="size-5" />
+          ) : undefined
+        }
+        illustration={
+          !filters.query.trim() ? (
+            <BrandIllustration name="orders" size={96} />
+          ) : undefined
+        }
         title={getEmptyTitle(filters)}
       />
     );

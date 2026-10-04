@@ -627,6 +627,7 @@ export function SpotMarketplace({
           hasItems={totalCount > 0}
           onLoadMore={() => void loadMore()}
           loadingFallback={<SpotGoodsLoadingSkeletons />}
+          endMessageClassName="pt-6"
           endMessage={
             query.trim()
               ? `搜索完成，共找到 ${filteredProducts.length} 件商品`

@@ -4,6 +4,11 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MobileFixedFooter } from "../components/mobile-fixed-footer";
+import {
+  MobileHeaderActions,
+  MobileHeaderActionsProvider,
+  MobileHeaderActionSlot,
+} from "../components/mobile-header-actions";
 import { MobileScrollArea } from "../components/mobile-scroll-area";
 import { MobileScrollProvider } from "../components/mobile-scroll-context";
 import { useSecondaryScrollTitle } from "../hooks/use-secondary-scroll-title";
@@ -93,6 +98,59 @@ function TitleProbe() {
 }
 
 describe("mobile layout", () => {
+  it("keeps the current header action and removes it when its page leaves", async () => {
+    const firstAction = vi.fn();
+    const latestAction = vi.fn();
+    const contentTouch = vi.fn();
+    const page = (disabled: boolean, onClick: () => void, visible = true) => (
+      <MobileHeaderActionsProvider>
+        <header>
+          <MobileHeaderActionSlot />
+        </header>
+        <main
+          onTouchStart={contentTouch}
+          onTouchMove={contentTouch}
+          onTouchEnd={contentTouch}
+        >
+          {visible ? (
+            <MobileHeaderActions>
+              <button type="button" disabled={disabled} onClick={onClick}>
+                取消采购
+              </button>
+            </MobileHeaderActions>
+          ) : null}
+        </main>
+      </MobileHeaderActionsProvider>
+    );
+
+    await act(async () => root.render(page(false, firstAction)));
+    const header = container.querySelector("header")!;
+    expect(header.querySelector("button")?.textContent).toBe("取消采购");
+    await act(async () => {
+      for (const type of ["touchstart", "touchmove", "touchend"]) {
+        header
+          .querySelector("button")!
+          .dispatchEvent(new Event(type, { bubbles: true }));
+      }
+    });
+    expect(contentTouch).not.toHaveBeenCalled();
+    await act(async () => header.querySelector("button")!.click());
+    expect(firstAction).toHaveBeenCalledTimes(1);
+
+    await act(async () => root.render(page(true, latestAction)));
+    expect(header.querySelector("button")?.disabled).toBe(true);
+    await act(async () => header.querySelector("button")!.click());
+    expect(latestAction).not.toHaveBeenCalled();
+
+    await act(async () => root.render(page(false, latestAction)));
+    await act(async () => header.querySelector("button")!.click());
+    expect(firstAction).toHaveBeenCalledTimes(1);
+    expect(latestAction).toHaveBeenCalledTimes(1);
+
+    await act(async () => root.render(page(false, latestAction, false)));
+    expect(header.querySelector("button")).toBeNull();
+  });
+
   it("reserves the full changing action bar height and releases it when the bar disappears", async () => {
     await act(async () => root.render(<Page footer />));
     const scrollContainer = container.querySelector("main")!.parentElement!;

@@ -18,6 +18,7 @@ import { resolveDataSource, type ServiceOptions } from "../data-source";
 import { FeatureUnavailableError, ValidationError } from "../errors";
 import { createPageResult, type PageResult } from "../pagination";
 import { createLocalTransport, requestLocal } from "../local-connect";
+import { formatProtoTimestamp, parseProtoTimestamp } from "../proto-timestamp";
 
 const MAX_SIGNED_INT64 = 9223372036854775807n;
 const MAX_SIGNED_INT32 = 2_147_483_647;
@@ -418,6 +419,12 @@ function parseOptionalTimestampString(
     return undefined;
   }
 
+  try {
+    return parseProtoTimestamp(value, message);
+  } catch {
+    // Keep accepting timezone offsets while preserving precision for UTC versions.
+  }
+
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
@@ -548,6 +555,10 @@ export interface SaveShoppingItemInput {
   itemUpdatedAt?: string | null;
 }
 
+export interface SaveShoppingItemResult {
+  itemUpdatedAt: string | null;
+}
+
 export interface SaveDistributingAssignmentInput {
   errandTaskItemId: string;
   errandTaskAssignmentId: string;
@@ -603,7 +614,7 @@ export async function getShoppingTaskDetail(
 export async function saveShoppingTaskItem(
   input: SaveShoppingItemInput,
   options: ServiceOptions = {},
-): Promise<void> {
+): Promise<SaveShoppingItemResult> {
   const dataSource = resolveDataSource(options);
   const purchasedQuantity = parseOperationQuantity(
     input.purchasedQuantity,
@@ -615,7 +626,7 @@ export async function saveShoppingTaskItem(
       ErrandTaskService,
       createLocalTransport(options),
     );
-    await requestLocal("saveShoppingTaskItem", () =>
+    const response = await requestLocal("saveShoppingTaskItem", () =>
       client.saveShoppingTaskItem({
         errandTaskId: parseInt64(input.errandTaskId, "跑腿任务 ID 不正确"),
         errandTaskItemId: parseInt64(
@@ -636,7 +647,9 @@ export async function saveShoppingTaskItem(
           : {}),
       }),
     );
-    return;
+    return {
+      itemUpdatedAt: formatProtoTimestamp(response.errandTaskItemUpdatedAt),
+    };
   }
 
   throw new FeatureUnavailableError("saveShoppingTaskItem");
@@ -1002,7 +1015,7 @@ function mapErrandTaskItem(item: ErrandTaskItem): ShoppingTaskItem {
         : item.purchasedQuantity,
     nonPurchaseReason: item.nonPurchaseReason ?? null,
     actualUnitPriceCents: item.actualUnitPriceCents ?? null,
-    updatedAt: formatTimestamp(item.updatedAt),
+    updatedAt: formatProtoTimestamp(item.updatedAt),
     deadline: formatTimestamp(item.deadline),
   };
 }

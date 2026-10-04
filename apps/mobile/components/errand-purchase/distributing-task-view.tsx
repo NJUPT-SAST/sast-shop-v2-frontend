@@ -6,6 +6,7 @@ import {
   RiArrowDownSLine,
   RiArrowUpSLine,
   RiCloseCircleLine,
+  RiEditLine,
 } from "@remixicon/react";
 import {
   cancelTask,
@@ -48,6 +49,8 @@ import { toast } from "sonner";
 
 import { ManagedImage } from "@/components/managed-image";
 import { MobileFixedFooter } from "@/components/mobile-fixed-footer";
+import { MobileHeaderActions } from "@/components/mobile-header-actions";
+import { getStatusBadgeVariant, getStatusLabel } from "@/lib/order-filters";
 import { buildErrandTaskPaymentHref } from "@/lib/errand-task-route";
 import {
   compareUpdatedAt,
@@ -559,16 +562,13 @@ export function DistributingTaskView({
                           <Badge variant="neutral">未采购</Badge>
                         </div>
                       ) : (
-                        <div className="mb-3 mt-3 flex items-center justify-between gap-3">
-                          <span className="text-sm text-muted-foreground tabular-nums">
-                            {item.actualUnitPriceCents != null
-                              ? `单价 ${formatPrice(item.actualUnitPriceCents)}/件`
-                              : "未定价"}
-                          </span>
+                        <div className="mt-1">
                           <Button
                             type="button"
                             size="touch"
-                            variant="outline"
+                            variant="text"
+                            className="-ml-3 tabular-nums"
+                            aria-label={`修改${item.title}的单价`}
                             disabled={
                               submitting ||
                               savingPrice ||
@@ -586,7 +586,10 @@ export function DistributingTaskView({
                               })
                             }
                           >
-                            改价
+                            {item.actualUnitPriceCents != null
+                              ? `单价 ${formatPrice(item.actualUnitPriceCents)}/件`
+                              : "填写单价"}
+                            <RiEditLine data-icon="inline-end" />
                           </Button>
                         </div>
                       ))}
@@ -653,22 +656,11 @@ export function DistributingTaskView({
 
   return (
     <div className="flex flex-1 flex-col gap-5 py-5">
-      <section className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="truncate text-lg font-semibold leading-7">
-            {detail.storeName}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {mode === "pending_distributing" ? "待分发" : "分发中"}
-          </p>
-        </div>
+      <MobileHeaderActions>
         <Button
           type="button"
-          variant="ghost"
-          size="icon-touch"
-          aria-label="取消采购"
-          title="取消采购"
-          className="shrink-0 text-destructive hover:text-destructive"
+          variant="destructive-text"
+          size="touch"
           disabled={
             submitting ||
             savingPrice ||
@@ -677,8 +669,17 @@ export function DistributingTaskView({
           }
           onClick={() => setDialog({ type: "confirm_cancel" })}
         >
-          <RiCloseCircleLine />
+          <RiCloseCircleLine data-icon="inline-start" />
+          取消采购
         </Button>
+      </MobileHeaderActions>
+      <section className="flex items-center justify-between gap-3">
+        <h1 className="min-w-0 truncate text-lg font-semibold leading-7">
+          {detail.storeName}
+        </h1>
+        <Badge variant={getStatusBadgeVariant(mode)} className="shrink-0">
+          {getStatusLabel(mode)}
+        </Badge>
       </section>
 
       {taskNeedsVerification ? (

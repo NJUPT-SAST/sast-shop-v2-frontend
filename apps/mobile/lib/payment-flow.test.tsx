@@ -290,21 +290,39 @@ describe("PaymentSection ambiguous mutation responses", () => {
     let resolveOldQr!: (
       value: Array<{ channel: string; content: string }>,
     ) => void;
-    listPaymentQrCodes.mockReturnValueOnce(
-      new Promise((resolve) => {
-        resolveOldQr = resolve;
-      }),
-    );
+    let resolveCurrentQr!: (
+      value: Array<{ channel: string; content: string }>,
+    ) => void;
+    listPaymentQrCodes
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveOldQr = resolve;
+        }),
+      )
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveCurrentQr = resolve;
+        }),
+      );
 
     await renderPaymentSection({ open: true });
     await act(async () => new Promise((resolve) => setTimeout(resolve, 1)));
+    expect(listPaymentQrCodes).toHaveBeenCalledTimes(1);
     await renderPaymentSection({ open: false });
     await act(async () =>
       resolveOldQr([{ channel: "wechat", content: "旧收款码" }]),
     );
     await renderPaymentSection({ open: true });
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 1)));
 
+    expect(listPaymentQrCodes).toHaveBeenCalledTimes(2);
     expect(container.querySelector("output")?.textContent).toBe("loading:");
+    await act(async () =>
+      resolveCurrentQr([{ channel: "wechat", content: "新收款码" }]),
+    );
+    expect(container.querySelector("output")?.textContent).toBe(
+      "ready:新收款码",
+    );
   });
 });
 

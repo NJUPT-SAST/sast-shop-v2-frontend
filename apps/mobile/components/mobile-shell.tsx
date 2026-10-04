@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { MobileBottomNav } from "./mobile-bottom-nav";
 import { MobileHeader } from "./mobile-header";
+import { MobileHeaderActionsProvider } from "./mobile-header-actions";
 import { MobileScrollProvider } from "./mobile-scroll-context";
 import { MobileScrollArea } from "./mobile-scroll-area";
 
@@ -16,13 +17,15 @@ export function MobileShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
       <MobileScrollProvider>
-        <MobileHeader />
+        <MobileHeaderActionsProvider>
+          <MobileHeader />
 
-        <MobileScrollArea key={pathname} hasBottomNav={isMainRoute}>
-          {children}
-        </MobileScrollArea>
+          <MobileScrollArea key={pathname} hasBottomNav={isMainRoute}>
+            {children}
+          </MobileScrollArea>
 
-        {isMainRoute ? <MobileBottomNav /> : null}
+          {isMainRoute ? <MobileBottomNav /> : null}
+        </MobileHeaderActionsProvider>
       </MobileScrollProvider>
     </div>
   );

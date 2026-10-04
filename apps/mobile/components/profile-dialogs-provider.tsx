@@ -90,6 +90,7 @@ import {
   type PaymentPlatform,
 } from "@/lib/payment-preferences";
 import { decodePaymentQrImage } from "@/lib/qr-image-decoder";
+import { BrandIllustration } from "./brand-illustration";
 
 type Address = ProfileOverview["addresses"][number];
 type AddressInput = Omit<Address, "id">;
@@ -700,7 +701,10 @@ function AddressList({
 
   if (addresses.length === 0) {
     return (
-      <Empty icon={<RiMapPinLine className="size-5" />} title="暂无收货地址" />
+      <Empty
+        illustration={<BrandIllustration name="address" size={96} />}
+        title="暂无收货地址"
+      />
     );
   }
 

@@ -1,14 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  RiArrowDownSLine,
-  RiArrowUpSLine,
-  RiCheckboxLine,
-  RiCloseCircleLine,
-  RiIndeterminateCircleLine,
-} from "@remixicon/react";
+import { RiCloseCircleLine, RiEditLine } from "@remixicon/react";
 import {
   cancelTask,
   getShoppingTaskDetail,
@@ -19,10 +13,17 @@ import {
   type ShoppingTaskItem,
 } from "@sast-shop/api";
 import { formatPrice } from "@sast-shop/domain";
+import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
-import { Field, FieldLabel } from "@workspace/ui/components/field";
-import { Input } from "@workspace/ui/components/input";
+import { Checkbox } from "@workspace/ui/components/checkbox";
+import { FieldLabel } from "@workspace/ui/components/field";
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemTitle,
+} from "@workspace/ui/components/item";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -31,17 +32,19 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "@workspace/ui/components/responsive-dialog";
-import { Textarea } from "@workspace/ui/components/textarea";
 import { toast } from "sonner";
 
 import { ManagedImage } from "@/components/managed-image";
 import { MobileFixedFooter } from "@/components/mobile-fixed-footer";
+import { MobileHeaderActions } from "@/components/mobile-header-actions";
+import { ShoppingTaskItemEditor } from "./shopping-task-item-editor";
 import {
   compareUpdatedAt,
   latestUpdatedAt,
   mergeShoppingTaskItems,
 } from "@/lib/errand-recovery";
 import { getShoppingProductTotalCents } from "@/lib/shopping-task-summary";
+import { getStatusBadgeVariant, getStatusLabel } from "@/lib/order-filters";
 
 export type ShoppingTaskViewProps = {
   dataSource: DataSource;
@@ -52,8 +55,7 @@ export type ShoppingTaskViewProps = {
 
 type DialogState =
   | { type: "none" }
-  | { type: "partial"; item: ShoppingTaskItem }
-  | { type: "skip"; item: ShoppingTaskItem }
+  | { type: "edit"; item: ShoppingTaskItem }
   | { type: "confirm_complete" }
   | { type: "confirm_cancel" };
 
@@ -66,15 +68,6 @@ function formatDeadline(deadline?: string | null): string {
 
 function isPurchased(item: ShoppingTaskItem): boolean {
   return item.purchasedQuantity !== null;
-}
-
-function getStatusIcon(item: ShoppingTaskItem) {
-  if (item.purchasedQuantity === null) return null;
-  if (item.purchasedQuantity === 0)
-    return <RiCloseCircleLine className="size-5 text-destructive" />;
-  if (item.purchasedQuantity < item.requiredQuantity)
-    return <RiIndeterminateCircleLine className="size-5 text-primary" />;
-  return <RiCheckboxLine className="size-5 text-primary" />;
 }
 
 export function ShoppingTaskView({
@@ -92,6 +85,30 @@ export function ShoppingTaskView({
   const [unverifiedTaskVersion, setUnverifiedTaskVersion] = useState<
     string | null | undefined
   >();
+  const [unverifiedItem, setUnverifiedItem] = useState<{
+    id: string;
+    updatedAt: string;
+    taskItems: ShoppingTaskItem[];
+  } | null>(null);
+  const refreshedUnverifiedItem = unverifiedItem
+    ? detail.taskItems.find((item) => item.id === unverifiedItem.id)
+    : undefined;
+  const currentUnverifiedItem = unverifiedItem
+    ? items.find((item) => item.id === unverifiedItem.id)
+    : undefined;
+  const itemNeedsVerification =
+    unverifiedItem !== null &&
+    (unverifiedItem.taskItems === detail.taskItems ||
+      !refreshedUnverifiedItem?.updatedAt ||
+      !currentUnverifiedItem?.updatedAt ||
+      compareUpdatedAt(
+        refreshedUnverifiedItem.updatedAt,
+        unverifiedItem.updatedAt,
+      ) < 0 ||
+      compareUpdatedAt(
+        currentUnverifiedItem.updatedAt,
+        refreshedUnverifiedItem.updatedAt,
+      ) < 0);
   const taskNeedsVerification =
     unverifiedTaskVersion !== undefined &&
     compareUpdatedAt(taskVersion, unverifiedTaskVersion) <= 0;
@@ -113,11 +130,8 @@ export function ShoppingTaskView({
     setTaskVersion((current) => latestUpdatedAt(current, incomingVersion));
   }, [detail.taskItems, detail.taskUpdatedAt, taskUpdatedAt, taskVersion]);
   const [dialog, setDialog] = useState<DialogState>({ type: "none" });
-  const [partialQty, setPartialQty] = useState("");
-  const [skipReason, setSkipReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [pendingItemId, setPendingItemId] = useState<string | null>(null);
-  const [openActionId, setOpenActionId] = useState<string | null>(null);
 
   const serviceOptions = { dataSource, connectBaseUrl };
 
@@ -126,6 +140,11 @@ export function ShoppingTaskView({
   const allDone = unprocessed.length === 0;
 
   const totalProductCents = getShoppingProductTotalCents(items);
+  const actionsDisabled =
+    pendingItemId !== null ||
+    submitting ||
+    taskNeedsVerification ||
+    itemNeedsVerification;
   const updateItem = (updated: ShoppingTaskItem) => {
     setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
   };
@@ -135,14 +154,22 @@ export function ShoppingTaskView({
     purchasedQuantity: number,
     nonPurchaseReason?: string,
   ) => {
-    if (submittingRef.current || taskNeedsVerification) {
+    if (
+      submittingRef.current ||
+      taskNeedsVerification ||
+      itemNeedsVerification
+    ) {
       toast.info("正在处理，请稍候");
+      return;
+    }
+    if (!item.updatedAt) {
+      toast.error("商品状态待核实，请重新进入任务后再操作");
       return;
     }
     submittingRef.current = true;
     setPendingItemId(item.id);
     try {
-      await saveShoppingTaskItem(
+      const result = await saveShoppingTaskItem(
         {
           errandTaskId: detail.taskId,
           errandTaskItemId: item.id,
@@ -154,8 +181,10 @@ export function ShoppingTaskView({
       );
       updateItem({
         ...item,
-        purchasedQuantity,
-        nonPurchaseReason: nonPurchaseReason ?? null,
+        purchasedQuantity: purchasedQuantity === -1 ? null : purchasedQuantity,
+        nonPurchaseReason:
+          purchasedQuantity === 0 ? (nonPurchaseReason ?? null) : null,
+        updatedAt: result.itemUpdatedAt,
       });
       if (dataSource === "local") {
         try {
@@ -179,62 +208,21 @@ export function ShoppingTaskView({
           toast.warning("结果已保存，但状态刷新失败，请重新进入任务");
         }
       }
+      if (!result.itemUpdatedAt && dataSource !== "local") {
+        toast.warning("结果已保存，但商品状态待核实，请重新进入任务");
+      }
       setDialog({ type: "none" });
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "保存失败，请稍后再试",
       );
-    } finally {
-      submittingRef.current = false;
-      setPendingItemId(null);
-    }
-  };
-
-  const handleRevoke = async (item: ShoppingTaskItem) => {
-    if (submittingRef.current || taskNeedsVerification) {
-      toast.info("正在处理，请稍候");
-      return;
-    }
-    submittingRef.current = true;
-    setPendingItemId(item.id);
-    try {
-      await saveShoppingTaskItem(
-        {
-          errandTaskId: detail.taskId,
-          errandTaskItemId: item.id,
-          purchasedQuantity: -1,
-          nonPurchaseReason: null,
-          itemUpdatedAt: item.updatedAt,
-        },
-        serviceOptions,
-      );
-      updateItem({ ...item, purchasedQuantity: null, nonPurchaseReason: null });
-      if (dataSource === "local") {
-        try {
-          const refreshed = await getShoppingTaskDetail(
-            detail.taskId,
-            serviceOptions,
-          );
-          if (compareUpdatedAt(refreshed.taskUpdatedAt, taskVersion) >= 0) {
-            setItems((current) =>
-              mergeShoppingTaskItems(
-                current,
-                refreshed.taskItems,
-                compareUpdatedAt(refreshed.taskUpdatedAt, taskVersion) > 0,
-              ),
-            );
-          }
-          setTaskVersion((current) =>
-            latestUpdatedAt(current, refreshed.taskUpdatedAt),
-          );
-        } catch {
-          toast.warning("结果已撤销，但状态刷新失败，请重新进入任务");
-        }
-      }
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "撤销失败，请稍后再试",
-      );
+      setUnverifiedItem({
+        id: item.id,
+        updatedAt: item.updatedAt,
+        taskItems: detail.taskItems,
+      });
+      setDialog({ type: "none" });
+      router.refresh();
     } finally {
       submittingRef.current = false;
       setPendingItemId(null);
@@ -242,7 +230,11 @@ export function ShoppingTaskView({
   };
 
   const handleComplete = async () => {
-    if (submittingRef.current || taskNeedsVerification) {
+    if (
+      submittingRef.current ||
+      taskNeedsVerification ||
+      itemNeedsVerification
+    ) {
       toast.info("正在处理，请稍候");
       return;
     }
@@ -268,7 +260,11 @@ export function ShoppingTaskView({
   };
 
   const handleCancel = async () => {
-    if (submittingRef.current || taskNeedsVerification) {
+    if (
+      submittingRef.current ||
+      taskNeedsVerification ||
+      itemNeedsVerification
+    ) {
       toast.info("正在处理，请稍候");
       return;
     }
@@ -293,30 +289,28 @@ export function ShoppingTaskView({
 
   return (
     <div className="flex flex-1 flex-col gap-5 py-5">
-      <section className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="truncate text-lg font-semibold leading-7">
-            {detail.storeName}
-          </h1>
-          <p className="text-sm text-muted-foreground">采购中</p>
-        </div>
+      <MobileHeaderActions>
         <Button
           type="button"
-          variant="ghost"
-          size="icon-touch"
-          aria-label="取消采购"
-          title="取消采购"
-          className="shrink-0 text-destructive hover:text-destructive"
-          disabled={
-            pendingItemId !== null || submitting || taskNeedsVerification
-          }
+          variant="destructive-text"
+          size="touch"
+          disabled={actionsDisabled}
           onClick={() => setDialog({ type: "confirm_cancel" })}
         >
-          <RiCloseCircleLine />
+          <RiCloseCircleLine data-icon="inline-start" />
+          取消采购
         </Button>
+      </MobileHeaderActions>
+      <section className="flex items-center justify-between gap-3">
+        <h1 className="min-w-0 truncate text-lg font-semibold leading-7">
+          {detail.storeName}
+        </h1>
+        <Badge variant={getStatusBadgeVariant("shopping")} className="shrink-0">
+          {getStatusLabel("shopping")}
+        </Badge>
       </section>
 
-      {taskNeedsVerification ? (
+      {taskNeedsVerification || itemNeedsVerification ? (
         <p
           role="status"
           className="rounded-lg border px-3 py-2 text-sm text-muted-foreground"
@@ -338,26 +332,12 @@ export function ShoppingTaskView({
               <ShoppingItemCard
                 key={item.id}
                 item={item}
-                disabled={
-                  pendingItemId !== null || submitting || taskNeedsVerification
-                }
+                disabled={actionsDisabled || !item.updatedAt}
                 saving={pendingItemId === item.id}
-                open={openActionId === item.id}
-                onOpenChange={(open) => setOpenActionId(open ? item.id : null)}
-                onBuyAll={() => {
-                  setOpenActionId(null);
-                  void handleSave(item, item.requiredQuantity);
-                }}
-                onBuyPartial={() => {
-                  setOpenActionId(null);
-                  setPartialQty("");
-                  setDialog({ type: "partial", item });
-                }}
-                onSkip={() => {
-                  setOpenActionId(null);
-                  setSkipReason("");
-                  setDialog({ type: "skip", item });
-                }}
+                onRecordedChange={() =>
+                  void handleSave(item, item.requiredQuantity)
+                }
+                onEdit={() => setDialog({ type: "edit", item })}
               />
             ))}
           </div>
@@ -374,14 +354,13 @@ export function ShoppingTaskView({
           </div>
           <div className="flex flex-col gap-3">
             {processed.map((item) => (
-              <ProcessedShoppingCard
+              <ShoppingItemCard
                 key={item.id}
                 item={item}
-                disabled={
-                  pendingItemId !== null || submitting || taskNeedsVerification
-                }
+                disabled={actionsDisabled || !item.updatedAt}
                 saving={pendingItemId === item.id}
-                onRevoke={() => handleRevoke(item)}
+                onRecordedChange={() => void handleSave(item, -1)}
+                onEdit={() => setDialog({ type: "edit", item })}
               />
             ))}
           </div>
@@ -391,12 +370,7 @@ export function ShoppingTaskView({
       <MobileFixedFooter>
         <Button
           type="button"
-          disabled={
-            !allDone ||
-            pendingItemId !== null ||
-            submitting ||
-            taskNeedsVerification
-          }
+          disabled={!allDone || actionsDisabled}
           className="h-12 w-full"
           onClick={() => setDialog({ type: "confirm_complete" })}
         >
@@ -408,125 +382,15 @@ export function ShoppingTaskView({
         </Button>
       </MobileFixedFooter>
 
-      <ResponsiveDialog
-        open={dialog.type === "partial"}
-        onOpenChange={(open) => {
-          if (!open && pendingItemId === null) setDialog({ type: "none" });
-        }}
-      >
-        <ResponsiveDialogContent className="max-h-[88dvh] overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
-          <ResponsiveDialogHeader className="px-0 text-left">
-            <ResponsiveDialogTitle>部分购买</ResponsiveDialogTitle>
-            <ResponsiveDialogDescription>
-              {dialog.type === "partial"
-                ? `输入实际购买数量（1 ~ ${dialog.item.requiredQuantity - 1}）`
-                : ""}
-            </ResponsiveDialogDescription>
-          </ResponsiveDialogHeader>
-          <div className="min-h-0 overflow-y-auto">
-            {dialog.type === "partial" && (
-              <Field>
-                <FieldLabel
-                  htmlFor="partial-purchase-quantity"
-                  className="sr-only"
-                >
-                  实际购买数量
-                </FieldLabel>
-                <Input
-                  id="partial-purchase-quantity"
-                  type="number"
-                  disabled={pendingItemId !== null}
-                  inputMode="numeric"
-                  min={1}
-                  max={dialog.item.requiredQuantity - 1}
-                  value={partialQty}
-                  onChange={(e) => setPartialQty(e.target.value)}
-                  placeholder="购买数量"
-                />
-              </Field>
-            )}
-          </div>
-          <ResponsiveDialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={pendingItemId !== null}
-              onClick={() => setDialog({ type: "none" })}
-            >
-              取消
-            </Button>
-            <Button
-              type="button"
-              disabled={
-                dialog.type !== "partial" ||
-                pendingItemId !== null ||
-                !partialQty ||
-                !Number.isInteger(Number(partialQty)) ||
-                Number(partialQty) < 1 ||
-                Number(partialQty) >= dialog.item.requiredQuantity
-              }
-              onClick={() => {
-                if (dialog.type !== "partial") return;
-                void handleSave(dialog.item, Number(partialQty));
-              }}
-            >
-              {pendingItemId !== null ? "保存中" : "记录采购数量"}
-            </Button>
-          </ResponsiveDialogFooter>
-        </ResponsiveDialogContent>
-      </ResponsiveDialog>
-
-      <ResponsiveDialog
-        open={dialog.type === "skip"}
-        onOpenChange={(open) => {
-          if (!open && pendingItemId === null) setDialog({ type: "none" });
-        }}
-      >
-        <ResponsiveDialogContent className="max-h-[88dvh] overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
-          <ResponsiveDialogHeader className="px-0 text-left">
-            <ResponsiveDialogTitle>不购买</ResponsiveDialogTitle>
-            <ResponsiveDialogDescription>
-              可选填不购买原因（最多 15 字）
-            </ResponsiveDialogDescription>
-          </ResponsiveDialogHeader>
-          <div className="min-h-0 overflow-y-auto">
-            <Field>
-              <FieldLabel htmlFor="skip-purchase-reason" className="sr-only">
-                不购买原因
-              </FieldLabel>
-              <Textarea
-                id="skip-purchase-reason"
-                maxLength={15}
-                disabled={pendingItemId !== null}
-                value={skipReason}
-                onChange={(e) => setSkipReason(e.target.value)}
-                placeholder="不购买原因（可选）"
-                rows={3}
-              />
-            </Field>
-          </div>
-          <ResponsiveDialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={pendingItemId !== null}
-              onClick={() => setDialog({ type: "none" })}
-            >
-              取消
-            </Button>
-            <Button
-              type="button"
-              disabled={pendingItemId !== null}
-              onClick={() => {
-                if (dialog.type !== "skip") return;
-                void handleSave(dialog.item, 0, skipReason || undefined);
-              }}
-            >
-              {pendingItemId !== null ? "保存中" : "确认不购买"}
-            </Button>
-          </ResponsiveDialogFooter>
-        </ResponsiveDialogContent>
-      </ResponsiveDialog>
+      <ShoppingTaskItemEditor
+        item={dialog.type === "edit" ? dialog.item : null}
+        saving={pendingItemId !== null}
+        disabled={actionsDisabled}
+        onClose={() => setDialog({ type: "none" })}
+        onSave={(item, quantity, reason) =>
+          void handleSave(item, quantity, reason)
+        }
+      />
 
       <ResponsiveDialog
         open={dialog.type === "confirm_complete"}
@@ -562,14 +426,14 @@ export function ShoppingTaskView({
             <Button
               type="button"
               variant="outline"
-              disabled={submitting || taskNeedsVerification}
+              disabled={actionsDisabled}
               onClick={() => setDialog({ type: "none" })}
             >
               返回
             </Button>
             <Button
               type="button"
-              disabled={submitting || taskNeedsVerification}
+              disabled={actionsDisabled}
               onClick={() => void handleComplete()}
             >
               {submitting ? "提交中" : "完成采购"}
@@ -617,165 +481,78 @@ export function ShoppingTaskView({
 
 function ShoppingItemCard({
   item,
-  open,
   disabled,
   saving,
-  onOpenChange,
-  onBuyAll,
-  onBuyPartial,
-  onSkip,
-}: {
-  item: ShoppingTaskItem;
-  open: boolean;
-  disabled: boolean;
-  saving: boolean;
-  onOpenChange: (open: boolean) => void;
-  onBuyAll: () => void;
-  onBuyPartial: () => void;
-  onSkip: () => void;
-}) {
-  return (
-    <div className="rounded-lg border bg-card p-3">
-      <div className="flex items-center gap-3">
-        <ManagedImage
-          src={item.productImageUrl}
-          alt={item.productTitle}
-          className="size-14 shrink-0 rounded-lg"
-        />
-        <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 text-sm font-medium leading-5">
-            {item.productTitle}
-          </p>
-          {item.productDescription ? (
-            <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
-              {item.productDescription}
-            </p>
-          ) : null}
-          <p className="mt-1 text-sm text-muted-foreground">
-            需 {item.requiredQuantity} 件
-            {item.deadline ? (
-              <span className="ml-2">
-                截止时间 {formatDeadline(item.deadline)}
-              </span>
-            ) : null}
-          </p>
-          {saving ? (
-            <p className="mt-1 text-xs text-primary" role="status">
-              保存中，请稍候
-            </p>
-          ) : null}
-        </div>
-      </div>
-      <Button
-        type="button"
-        variant="ghost"
-        size="touch"
-        className="mt-2 w-full justify-between px-1 text-primary"
-        aria-expanded={open}
-        aria-controls={`shopping-actions-${item.id}`}
-        disabled={disabled}
-        onClick={() => onOpenChange(!open)}
-      >
-        {open ? "收起采购操作" : "展开采购操作"}
-        {open ? (
-          <RiArrowUpSLine className="size-5" aria-hidden="true" />
-        ) : (
-          <RiArrowDownSLine className="size-5" aria-hidden="true" />
-        )}
-      </Button>
-      <div
-        id={`shopping-actions-${item.id}`}
-        className={open ? "grid grid-cols-2 gap-2 pt-2" : "hidden"}
-      >
-        <Button
-          type="button"
-          size="touch"
-          disabled={disabled}
-          onClick={onBuyAll}
-        >
-          全部购买
-        </Button>
-        {item.requiredQuantity > 1 ? (
-          <Button
-            type="button"
-            size="touch"
-            variant="secondary"
-            disabled={disabled}
-            onClick={onBuyPartial}
-          >
-            部分购买
-          </Button>
-        ) : null}
-        <Button
-          type="button"
-          size="touch"
-          variant="destructive"
-          className={item.requiredQuantity > 1 ? "col-span-2" : ""}
-          disabled={disabled}
-          onClick={onSkip}
-        >
-          不购买
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function ProcessedShoppingCard({
-  item,
-  disabled,
-  saving,
-  onRevoke,
+  onRecordedChange,
+  onEdit,
 }: {
   item: ShoppingTaskItem;
   disabled: boolean;
   saving: boolean;
-  onRevoke: () => void;
+  onRecordedChange: () => void;
+  onEdit: () => void;
 }) {
-  const icon = getStatusIcon(item);
-  const statusText =
+  const checkboxId = useId();
+  const recorded = isPurchased(item);
+  const resultText =
     item.purchasedQuantity === 0
       ? `不购买${item.nonPurchaseReason ? `：${item.nonPurchaseReason}` : ""}`
-      : item.purchasedQuantity !== null &&
-          item.purchasedQuantity < item.requiredQuantity
-        ? `部分购买：${item.purchasedQuantity}/${item.requiredQuantity} 件`
-        : `全部购买：${item.purchasedQuantity} 件`;
+      : recorded
+        ? `${item.purchasedQuantity === item.requiredQuantity ? "全部购买" : "部分购买"}：${item.purchasedQuantity}/${item.requiredQuantity} 件`
+        : `需 ${item.requiredQuantity} 件`;
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border bg-card p-3">
-      <div className="flex items-center gap-3">
-        {icon ? (
-          <div className="shrink-0" aria-hidden="true">
-            {icon}
-          </div>
-        ) : null}
+    <Item variant="outline" className="gap-1 p-2">
+      <FieldLabel
+        htmlFor={checkboxId}
+        className="size-11 shrink-0 cursor-pointer justify-center"
+      >
+        <Checkbox
+          id={checkboxId}
+          checked={recorded}
+          disabled={disabled}
+          aria-label={
+            recorded
+              ? `将${item.productTitle}恢复为待采购`
+              : `将${item.productTitle}记为全部购买`
+          }
+          onCheckedChange={onRecordedChange}
+        />
+      </FieldLabel>
+      <button
+        type="button"
+        className="flex min-w-0 flex-1 items-center gap-3 rounded-md px-1 py-2 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+        disabled={disabled}
+        aria-label={`${recorded ? "修改" : "记录"}${item.productTitle}的采购结果`}
+        onClick={onEdit}
+      >
         <ManagedImage
           src={item.productImageUrl}
-          alt={item.productTitle}
-          className="size-14 shrink-0 rounded-lg"
+          alt=""
+          className="size-12 shrink-0 rounded-lg"
         />
-        <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 text-sm font-medium leading-5">
+        <ItemContent>
+          <ItemTitle className="line-clamp-2 leading-5">
             {item.productTitle}
-          </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">{statusText}</p>
-          {item.deadline ? (
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              截止时间 {formatDeadline(item.deadline)}
-            </p>
+          </ItemTitle>
+          {!recorded && item.productDescription ? (
+            <ItemDescription className="line-clamp-1 text-xs">
+              {item.productDescription}
+            </ItemDescription>
           ) : null}
-        </div>
-      </div>
-      <Button
-        type="button"
-        variant="ghost"
-        size="touch"
-        className="self-end text-primary"
-        disabled={disabled}
-        onClick={onRevoke}
-      >
-        {saving ? "撤销中" : "撤销结果"}
-      </Button>
-    </div>
+          <ItemDescription className="text-xs">{resultText}</ItemDescription>
+          {item.deadline ? (
+            <ItemDescription className="text-xs">
+              截止时间 {formatDeadline(item.deadline)}
+            </ItemDescription>
+          ) : null}
+          {saving ? <span role="status">保存中，请稍候</span> : null}
+        </ItemContent>
+        <RiEditLine
+          className="size-4 shrink-0 text-muted-foreground"
+          aria-hidden="true"
+        />
+      </button>
+    </Item>
   );
 }

@@ -7,8 +7,7 @@ import {
 } from "@sast-shop/api";
 import {
   RiArrowRightSLine,
-  RiFileAddLine,
-  RiRunLine,
+  RiFileList3Line,
   RiStore2Line,
 } from "@remixicon/react";
 import Link from "next/link";
@@ -22,6 +21,7 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card";
 import { LoadFailure } from "@workspace/ui/components/load-failure";
+import { BrandIllustration } from "@/components/brand-illustration";
 import { ManagedImage } from "@/components/managed-image";
 import { StoreCreateDialog } from "@/components/store-create-dialog";
 import { mobileAppConfig } from "@/lib/app-config";
@@ -76,18 +76,19 @@ export default async function GroupPage() {
 
       {taskError || tasks.length > 0 ? (
         <section className="flex flex-col gap-3">
-          <div className="flex items-end justify-between gap-3">
+          <div className="flex items-center justify-between gap-3">
             <h2 className="min-w-0 text-xl font-semibold leading-7 md:text-2xl">
               进行中的任务
             </h2>
             {tasks.length > 0 ? (
-              <Button
-                asChild
-                variant="ghost"
-                size="touch"
-                className="text-primary"
-              >
-                <Link href="/orders?type=errand&view=captain">全部任务</Link>
+              <Button asChild variant="text" size="touch" className="-mr-3">
+                <Link href="/orders?type=errand&view=captain">
+                  <RiFileList3Line
+                    data-icon="inline-start"
+                    aria-hidden="true"
+                  />
+                  全部任务
+                </Link>
               </Button>
             ) : null}
           </div>
@@ -110,21 +111,17 @@ export default async function GroupPage() {
       ) : null}
 
       <section className="flex flex-col gap-3">
-        <div className="flex items-end justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           <h2 className="min-w-0 text-xl font-semibold leading-7 md:text-2xl">
-            我要拼单
+            店铺拼单
           </h2>
           <StoreCreateDialog
             dataSource={mobileAppConfig.dataSource}
             connectBaseUrl={mobileAppConfig.connectBaseUrl}
             returnTo="/group"
           >
-            <Button
-              variant="ghost"
-              size="touch"
-              className="gap-1.5 text-primary"
-            >
-              <RiStore2Line aria-hidden="true" />
+            <Button variant="text" size="touch" className="-mr-3">
+              <RiStore2Line data-icon="inline-start" aria-hidden="true" />
               创建店铺
             </Button>
           </StoreCreateDialog>
@@ -158,7 +155,7 @@ export default async function GroupPage() {
           </div>
         ) : (
           <Empty
-            icon={<RiStore2Line className="size-5" />}
+            illustration={<BrandIllustration name="store" size={96} />}
             title="暂无店铺"
             description="可以先创建店铺。"
             action={
@@ -190,7 +187,7 @@ export default async function GroupPage() {
           >
             <Card className="h-full rounded-lg border-primary/10 bg-section-highlight p-1 text-section-highlight-foreground">
               <CardHeader className="gap-3">
-                <RiRunLine className="size-8 text-primary" />
+                <BrandIllustration name="errand" size={64} />
                 <div className="min-w-0">
                   <CardTitle className="truncate text-base leading-5">
                     跑腿大厅
@@ -203,9 +200,9 @@ export default async function GroupPage() {
             href="/group/templates"
             className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            <Card className="rounded-lg p-1">
+            <Card className="h-full rounded-lg p-1">
               <CardHeader className="gap-3">
-                <RiFileAddLine className="size-8 text-primary" />
+                <BrandIllustration name="template" size={64} />
                 <div className="min-w-0">
                   <CardTitle className="truncate text-base leading-5">
                     商品模板
@@ -274,9 +271,7 @@ function StoreCard({ store }: { store: Store }) {
             imageClassName="p-2"
           />
         ) : (
-          <span className="flex size-11 items-center justify-center rounded-md bg-accent text-primary">
-            <RiStore2Line className="size-6" />
-          </span>
+          <BrandIllustration name="store" size={44} />
         )}
         <div className="min-w-0">
           <CardTitle className="truncate text-lg leading-6">

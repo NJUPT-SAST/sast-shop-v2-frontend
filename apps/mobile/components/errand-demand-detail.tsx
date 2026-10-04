@@ -1,12 +1,10 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  RiCheckboxBlankLine,
   RiCheckboxCircleLine,
-  RiCheckboxLine,
   RiStore2Line,
   RiUser3Line,
 } from "@remixicon/react";
@@ -29,6 +27,7 @@ import {
 import { Card } from "@workspace/ui/components/card";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Empty } from "@workspace/ui/components/empty";
+import { Field, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -171,13 +170,10 @@ export function ErrandDemandDetail({
   return (
     <>
       <div className="flex flex-1 flex-col gap-4 py-6">
-        <section className="space-y-1">
+        <section>
           <h1 className="text-xl font-semibold leading-7 md:text-2xl">
             {storeName}
           </h1>
-          <p className="text-sm leading-6 text-muted-foreground">
-            勾选完整需求行，创建采购任务。
-          </p>
         </section>
 
         {!hasSelectableDemand ? (
@@ -323,6 +319,8 @@ function DemandProductGroup({
   const hasSelectableRows = selectableIds.length > 0;
   const allSelected =
     hasSelectableRows && selectableIds.every((id) => selectedIds.has(id));
+  const partiallySelected =
+    !allSelected && selectableIds.some((id) => selectedIds.has(id));
   const product = group.productTemplate;
   const title = product.title;
   const productImageUrl = product.mainImageUrl;
@@ -344,7 +342,7 @@ function DemandProductGroup({
           )}
         />
 
-        <div className="min-w-0 flex-1 space-y-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex min-h-7 items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
               <h2 className="line-clamp-1 text-base font-semibold leading-5">
@@ -361,7 +359,8 @@ function DemandProductGroup({
             >
               <Checkbox
                 id={productCheckboxId}
-                checked={allSelected}
+                aria-label={`全选${title}的需求`}
+                checked={partiallySelected ? "indeterminate" : allSelected}
                 disabled={!hasSelectableRows || disabled}
                 onCheckedChange={handleProductToggle}
               />
@@ -369,20 +368,20 @@ function DemandProductGroup({
             </label>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <div className="min-w-[5.5rem] rounded-md bg-muted/40 px-2.5 py-1.5">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="min-w-0 rounded-md bg-muted/40 px-2.5 py-1.5">
               <p className="text-xs leading-4 text-muted-foreground">
                 需求总数
               </p>
-              <p className="text-sm font-medium leading-5">
+              <p className="break-words text-sm font-medium leading-5">
                 {formatErrandDisplayCount(group.quantity)} 件
               </p>
             </div>
-            <div className="min-w-[5.5rem] rounded-md bg-muted/40 px-2.5 py-1.5">
+            <div className="min-w-0 rounded-md bg-muted/40 px-2.5 py-1.5">
               <p className="text-xs leading-4 text-muted-foreground">
                 估算单价
               </p>
-              <p className="text-sm font-medium leading-5 text-primary">
+              <p className="break-words text-sm font-medium leading-5 text-primary">
                 {formatErrandDisplayPrice(group.estimatedUnitPriceCents)}
               </p>
             </div>
@@ -390,7 +389,7 @@ function DemandProductGroup({
         </div>
       </div>
 
-      <div className="divide-y border-t px-3">
+      <FieldGroup className="gap-0 divide-y border-t px-3">
         {group.requesters.map((requester) => (
           <RequesterRow
             key={requester.errandDemandItemId || requester.requesterId}
@@ -400,7 +399,7 @@ function DemandProductGroup({
             onSelect={onSelectRequester}
           />
         ))}
-      </div>
+      </FieldGroup>
     </Card>
   );
 }
@@ -416,6 +415,7 @@ function RequesterRow({
   disabled: boolean;
   onSelect: (requesterId: string) => void;
 }) {
+  const checkboxId = useId();
   const disabled =
     taskSubmitting || !requester.errandDemandItemId || !requester.updatedAt;
   const rowServiceFeeCents =
@@ -427,65 +427,68 @@ function RequesterRow({
   };
 
   return (
-    <button
-      type="button"
-      disabled={disabled}
-      aria-pressed={selected}
-      onClick={handleSelect}
-      className={cn(
-        "flex min-h-16 w-full items-center gap-3 px-2 py-3 text-left transition-colors motion-reduce:transition-none",
-        selected && "bg-primary/5",
-        disabled
-          ? "cursor-not-allowed text-muted-foreground"
-          : "cursor-pointer",
-      )}
-    >
-      <span aria-hidden="true" className="shrink-0 text-primary">
-        {selected ? <RiCheckboxLine /> : <RiCheckboxBlankLine />}
-      </span>
-
-      <Avatar className="size-9">
-        <AvatarImage
-          src={sanitizeImageSrc(requester.requesterAvatarUrl) ?? undefined}
-          alt={requester.requesterName}
+    <Field orientation="horizontal" data-disabled={disabled}>
+      <FieldLabel
+        htmlFor={checkboxId}
+        className={cn(
+          "min-h-16 w-full items-center gap-3 px-2 py-3 text-left transition-colors motion-reduce:transition-none",
+          selected && "bg-primary/5",
+          disabled
+            ? "cursor-not-allowed text-muted-foreground"
+            : "cursor-pointer",
+        )}
+      >
+        <Checkbox
+          id={checkboxId}
+          aria-label={`${requester.requesterName || "成员"}的需求，${formatErrandDisplayCount(requester.quantity)}件`}
+          checked={selected}
+          disabled={disabled}
+          onCheckedChange={handleSelect}
         />
-        <AvatarFallback className="text-xs">
-          {requester.requesterName.trim() ? (
-            nameInitial(requester.requesterName)
-          ) : (
-            <RiUser3Line className="size-4" />
-          )}
-        </AvatarFallback>
-      </Avatar>
 
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          {requester.requesterName ? (
-            <span className="max-w-32 truncate text-sm font-medium text-foreground">
-              {requester.requesterName}
-            </span>
-          ) : null}
-          <span
-            className={cn(
-              requester.requesterName
-                ? "text-xs text-muted-foreground"
-                : "text-sm font-medium text-foreground",
+        <Avatar className="size-9">
+          <AvatarImage
+            src={sanitizeImageSrc(requester.requesterAvatarUrl) ?? undefined}
+            alt={requester.requesterName}
+          />
+          <AvatarFallback className="text-xs">
+            {requester.requesterName.trim() ? (
+              nameInitial(requester.requesterName)
+            ) : (
+              <RiUser3Line className="size-4" />
             )}
-          >
-            {formatErrandDisplayCount(requester.quantity)} 件
-          </span>
-        </div>
-        <p className="mt-1 text-xs text-muted-foreground">
-          截止 {formatDeadline(requester.deadline)}
-        </p>
-      </div>
+          </AvatarFallback>
+        </Avatar>
 
-      <div className="shrink-0 text-right">
-        <p className="text-sm font-medium text-service-fee">
-          跑腿 {formatErrandDisplayPrice(rowServiceFeeCents)}
-        </p>
-      </div>
-    </button>
+        <span className="min-w-0 flex-1 font-normal">
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            {requester.requesterName ? (
+              <span className="max-w-32 truncate text-sm font-medium text-foreground">
+                {requester.requesterName}
+              </span>
+            ) : null}
+            <span
+              className={cn(
+                requester.requesterName
+                  ? "text-xs text-muted-foreground"
+                  : "text-sm font-medium text-foreground",
+              )}
+            >
+              {formatErrandDisplayCount(requester.quantity)} 件
+            </span>
+          </span>
+          <span className="mt-1 block text-xs text-muted-foreground">
+            截止 {formatDeadline(requester.deadline)}
+          </span>
+        </span>
+
+        <span className="shrink-0 text-right">
+          <span className="block text-sm font-medium text-service-fee">
+            跑腿 {formatErrandDisplayPrice(rowServiceFeeCents)}
+          </span>
+        </span>
+      </FieldLabel>
+    </Field>
   );
 }
 
