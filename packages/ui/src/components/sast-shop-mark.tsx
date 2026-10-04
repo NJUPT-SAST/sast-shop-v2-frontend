@@ -13,24 +13,16 @@ export function SastShopMark({ className, ...props }: ComponentProps<"svg">) {
       {...props}
     >
       <path
-        d="M7 10.5h18l-1.4 15H8.4l-1.4-15Z"
-        stroke="currentColor"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        fill="currentColor"
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M7.5 11h17c1.2 0 2.2.9 2.3 2.1l1.1 13.4c.1 1.4-1 2.5-2.4 2.5h-19c-1.4 0-2.5-1.1-2.4-2.5l1.1-13.4c.1-1.2 1.1-2.1 2.3-2.1ZM12.75 18.5a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 1 1 2.5 0Zm9 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 1 1 2.5 0Zm-10.25 3.5a1 1 0 0 1 1.4 0 4.4 4.4 0 0 0 6.2 0 1 1 0 0 1 1.4 1.4 6.4 6.4 0 0 1-9 0 1 1 0 0 1 0-1.4Z"
       />
       <path
-        d="M11 11V8.5a5 5 0 0 1 10 0V11"
+        d="M10 12V9a6 6 0 0 1 12 0v3"
         stroke="currentColor"
-        strokeWidth="2.4"
+        strokeWidth="3"
         strokeLinecap="round"
-      />
-      <path
-        d="m11.5 18 3 3 6-7"
-        stroke="currentColor"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
       />
     </svg>
   );

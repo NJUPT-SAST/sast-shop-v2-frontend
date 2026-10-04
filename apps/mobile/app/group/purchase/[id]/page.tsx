@@ -118,7 +118,7 @@ function TaskStatus({
         title={title}
         description={description}
         action={
-          <Button asChild>
+          <Button asChild size="touch">
             <Link href="/orders?type=errand&view=captain">返回任务列表</Link>
           </Button>
         }

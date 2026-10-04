@@ -7,10 +7,10 @@ import {
   useRef,
   useState,
   type MouseEvent,
-  type PointerEvent,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { RiFileList3Line, RiSearchLine } from "@remixicon/react";
+import { BrandIllustration } from "./brand-illustration";
 import {
   listBuyerErrandOrdersPage,
   listErrandTasksPage,
@@ -41,6 +41,13 @@ import {
   InputGroupInput,
   InputGroupText,
 } from "@workspace/ui/components/input-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select";
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
 import {
   ToggleGroup,
@@ -56,8 +63,6 @@ import { buildBuyerErrandOrderDetailHref } from "@/lib/buyer-errand-order-route"
 import {
   DEFAULT_REMEMBERED_ORDER_VIEWS,
   getOrderFiltersFromParams,
-  getCompactStatusLabel,
-  getCompactViewLabel,
   getStatusBadgeVariant,
   getStatusLabel,
   getStatusOptions,
@@ -73,8 +78,6 @@ import {
   type RenderableOrderStatus,
 } from "@/lib/order-filters";
 import { buildSpotOrderDetailHref } from "@/lib/spot-order-route";
-import { resolveTabSwipe } from "@/lib/tab-swipe";
-import { MobileFloatingAction } from "./mobile-floating-action";
 import { ManagedImage } from "./managed-image";
 
 type RenderableOrder = {
@@ -141,15 +144,9 @@ export function OrdersView({
         initialFilters.view,
       ),
   );
-  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const statusScrollRef = useRef<HTMLDivElement | null>(null);
-  const lastSwipeAtRef = useRef(0);
   const searchRouteTimerRef = useRef<number | null>(null);
   const pendingSearchHrefRef = useRef<string | null>(null);
-  const [listTransition, setListTransition] = useState({
-    key: 0,
-    direction: "next" as "previous" | "next",
-  });
   const [statusScrollState, setStatusScrollState] = useState({
     canScrollLeft: false,
     canScrollRight: false,
@@ -255,12 +252,6 @@ export function OrdersView({
     loadMoreError: currentFeedLoadMoreError,
     loadMore: loadMoreCurrentFeed,
   } = currentFeed;
-  const currentViewIndex = viewOptions.findIndex(
-    (option) => option.value === filters.view,
-  );
-  const nextViewOption =
-    viewOptions[(currentViewIndex + 1) % viewOptions.length] ?? viewOptions[0];
-
   const updateStatusScrollState = useCallback(() => {
     const element = statusScrollRef.current;
     if (!element) return;
@@ -336,15 +327,12 @@ export function OrdersView({
     loadMoreCurrentFeed,
   ]);
 
-  function updateFilters(
-    updates: {
-      type?: OrderType;
-      view?: OrderView;
-      status?: OrderStatus;
-      q?: string;
-    },
-    transitionDirection?: "previous" | "next",
-  ) {
+  function updateFilters(updates: {
+    type?: OrderType;
+    view?: OrderView;
+    status?: OrderStatus;
+    q?: string;
+  }) {
     const nextRememberedViews = updates.view
       ? rememberOrderView(rememberedViews, filters.type, updates.view)
       : rememberedViews;
@@ -363,16 +351,6 @@ export function OrdersView({
       rememberedViews: nextRememberedViews,
     });
     const nextFilters = getOrderFiltersFromParams(nextParams);
-
-    if (
-      transitionDirection &&
-      (nextFilters.type !== filters.type || nextFilters.view !== filters.view)
-    ) {
-      setListTransition((current) => ({
-        key: current.key + 1,
-        direction: transitionDirection,
-      }));
-    }
 
     setFilters(nextFilters);
     if (nextRememberedViews !== rememberedViews) {
@@ -425,70 +403,62 @@ export function OrdersView({
     pendingSearchHrefRef.current = null;
   }
 
-  function handleSwipeStart(event: PointerEvent<HTMLDivElement>) {
-    if (!event.isPrimary || event.button !== 0) {
-      swipeStartRef.current = null;
-      return;
-    }
-
-    swipeStartRef.current = { x: event.clientX, y: event.clientY };
-  }
-
-  function handleSwipeEnd(event: PointerEvent<HTMLDivElement>) {
-    if (!event.isPrimary || event.button !== 0) return;
-
-    const start = swipeStartRef.current;
-    swipeStartRef.current = null;
-    if (!start) return;
-
-    const direction = resolveTabSwipe(start, {
-      x: event.clientX,
-      y: event.clientY,
-    });
-    if (!direction) return;
-
-    lastSwipeAtRef.current = window.performance.now();
-
-    const currentIndex = orderTypeOptions.findIndex(
-      (option) => option.value === filters.type,
-    );
-    const nextIndex = currentIndex + (direction === "next" ? 1 : -1);
-    const nextType = orderTypeOptions[nextIndex]?.value;
-    if (nextType) updateFilters({ type: nextType }, direction);
-  }
-
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-4 py-6">
+    <div className="flex min-w-0 flex-1 flex-col gap-4 py-4">
       <section>
         <h1 className="text-xl font-semibold md:text-2xl">订单</h1>
       </section>
 
       <section aria-label="订单筛选" className="flex min-w-0 flex-col gap-3">
-        <Tabs
-          value={filters.type}
-          onValueChange={(value) => {
-            const nextType = value as OrderType;
-            const currentIndex = orderTypeOptions.findIndex(
-              (option) => option.value === filters.type,
-            );
-            const nextIndex = orderTypeOptions.findIndex(
-              (option) => option.value === nextType,
-            );
-            updateFilters(
-              { type: nextType },
-              nextIndex > currentIndex ? "next" : "previous",
-            );
-          }}
-          className="flex-col"
-        >
-          <TabsList className="grid h-11 w-full grid-cols-2 md:w-fit">
-            {orderTypeOptions.map((item) => (
-              <TabsTrigger key={item.value} value={item.value}>
-                {item.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <Tabs
+            value={filters.type}
+            onValueChange={(value) =>
+              updateFilters({ type: value as OrderType })
+            }
+          >
+            <TabsList
+              aria-label="订单类型"
+              variant="line"
+              className="h-11 gap-1 p-0"
+            >
+              {orderTypeOptions.map((item) => (
+                <TabsTrigger
+                  key={item.value}
+                  value={item.value}
+                  className="h-11 min-w-16 px-3"
+                >
+                  {item.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+
+          <Select
+            value={filters.view}
+            onValueChange={(value) =>
+              updateFilters({ view: value as OrderView })
+            }
+          >
+            <SelectTrigger
+              aria-label="订单视角"
+              className="h-11 w-fit shrink-0 gap-2 border-transparent bg-transparent shadow-none"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end">
+              {viewOptions.map((option) => (
+                <SelectItem
+                  key={option.value}
+                  value={option.value}
+                  className="min-h-11"
+                >
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <InputGroup className="h-11 bg-card">
           <InputGroupAddon>
@@ -545,7 +515,7 @@ export function OrdersView({
                     aria-label={`筛选${option.label}订单`}
                     className="h-11 min-w-11 px-3 text-xs"
                   >
-                    {getCompactStatusLabel(option.value)}
+                    {option.label}
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
@@ -558,28 +528,13 @@ export function OrdersView({
       </section>
 
       <div
-        key={listTransition.key}
-        className={`min-w-0 touch-pan-y pb-14 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200 ${
-          listTransition.direction === "next"
-            ? "motion-safe:slide-in-from-right-3"
-            : "motion-safe:slide-in-from-left-3"
-        }`}
-        onPointerDown={handleSwipeStart}
-        onPointerUp={handleSwipeEnd}
-        onPointerCancel={() => {
-          swipeStartRef.current = null;
-        }}
+        className="min-w-0"
         onClickCapture={(event) => {
           if (
             event.target instanceof Element &&
             event.target.closest("a[href]")
           ) {
             cancelPendingSearchRoute();
-          }
-
-          if (window.performance.now() - lastSwipeAtRef.current <= 250) {
-            event.preventDefault();
-            event.stopPropagation();
           }
         }}
       >
@@ -595,55 +550,14 @@ export function OrdersView({
             hasMore={currentFeed.hasMore}
             loading={currentFeed.loadingMore}
             error={currentFeed.loadMoreError}
-            hasItems={currentFeed.totalCount > 0}
+            hasItems={filteredOrders.length > 0}
             onLoadMore={() => void currentFeed.loadMore()}
             loadingFallback={<OrderLoadingSkeletons />}
-            endMessage={`已经到底，共 ${currentFeed.items.length} 笔订单`}
+            endMessage={`已经到底，共 ${filteredOrders.length} 笔订单`}
+            endMessageClassName="pt-6"
           />
         ) : null}
       </div>
-
-      {nextViewOption ? (
-        <MobileFloatingAction
-          type="button"
-          variant="outline"
-          className="bottom-[calc(5.25rem+env(safe-area-inset-bottom))] right-4 flex-col gap-0 overflow-hidden border-border bg-card p-0 text-sm font-semibold text-foreground"
-          aria-label={`切换到${nextViewOption.label}`}
-          title={`当前：${viewOptions[currentViewIndex]?.label ?? "订单视角"}`}
-          onClick={() => {
-            updateFilters({ view: nextViewOption.value }, "next");
-          }}
-        >
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-primary transition-[clip-path] duration-200 ease-out motion-reduce:transition-none"
-            style={{
-              clipPath:
-                currentViewIndex === 1
-                  ? "polygon(100% 0, 100% 100%, 0 100%)"
-                  : "polygon(0 0, 100% 0, 0 100%)",
-            }}
-          />
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-1/2 z-10 h-px w-[140%] -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-border/70"
-          />
-          {viewOptions.map((option, index) => (
-            <span
-              key={option.value}
-              className={`absolute z-20 transition-colors duration-200 motion-reduce:transition-none ${
-                index === 0 ? "top-2.5 left-3" : "right-3 bottom-2.5"
-              } ${
-                index === currentViewIndex
-                  ? "text-primary-foreground"
-                  : "text-muted-foreground"
-              }`}
-            >
-              {getCompactViewLabel(option.value)}
-            </span>
-          ))}
-        </MobileFloatingAction>
-      ) : null}
     </div>
   );
 }
@@ -674,7 +588,16 @@ function OrderList({
   if (orders.length === 0 && showEmpty) {
     return (
       <Empty
-        icon={<RiFileList3Line className="size-5" />}
+        icon={
+          filters.query.trim() ? (
+            <RiFileList3Line className="size-5" />
+          ) : undefined
+        }
+        illustration={
+          !filters.query.trim() ? (
+            <BrandIllustration name="orders" size={96} />
+          ) : undefined
+        }
         title={getEmptyTitle(filters)}
       />
     );

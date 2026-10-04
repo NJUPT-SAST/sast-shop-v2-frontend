@@ -21,6 +21,8 @@ interface RefreshOptions {
 }
 
 interface MobileScrollContextValue {
+  footerHeight: number;
+  setFooterHeight: (height: number) => void;
   isRefreshing: boolean;
   pullDistance: number;
   registerViewport: (viewport: HTMLElement | null) => void;
@@ -43,6 +45,7 @@ export function MobileScrollProvider({ children }: { children: ReactNode }) {
   const refreshStartedAtRef = useRef(0);
   const refreshEndTimerRef = useRef<number | null>(null);
   const [isAtTop, setIsAtTop] = useState(true);
+  const [footerHeight, setFooterHeight] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
   const [refreshPending, startRefreshTransition] = useTransition();
@@ -123,6 +126,8 @@ export function MobileScrollProvider({ children }: { children: ReactNode }) {
   return (
     <MobileScrollContext.Provider
       value={{
+        footerHeight,
+        setFooterHeight,
         isRefreshing,
         pullDistance,
         registerViewport,
@@ -146,4 +151,9 @@ export function useMobileScroll() {
   }
 
   return context;
+}
+
+export function useMobileFooter() {
+  const context = useContext(MobileScrollContext);
+  return context?.setFooterHeight;
 }

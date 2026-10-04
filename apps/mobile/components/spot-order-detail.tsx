@@ -44,7 +44,6 @@ import {
 } from "@workspace/ui/components/responsive-dialog";
 import { Separator } from "@workspace/ui/components/separator";
 import { Spinner } from "@workspace/ui/components/spinner";
-import { cn } from "@workspace/ui/lib/utils";
 import { toast } from "sonner";
 
 import type { SpotOrderView } from "@/lib/order-filters";
@@ -87,6 +86,10 @@ export function SpotOrderDetail({
   const [confirmPaymentDialogOpen, setConfirmPaymentDialogOpen] =
     useState(false);
   const [supplementOpen, setSupplementOpen] = useState(false);
+  const [unverifiedPaymentBillVersion, setUnverifiedPaymentBillVersion] =
+    useState<string | null>(null);
+  const [unverifiedSupplementBillVersion, setUnverifiedSupplementBillVersion] =
+    useState<string | null>(null);
   const [lifecyclePending, setLifecyclePending] = useState<
     "cancel" | "complete" | "confirm-payment" | null
   >(null);
@@ -103,11 +106,26 @@ export function SpotOrderDetail({
   const versionedBill: VersionedPaymentBill | null = bill?.updatedAt
     ? { ...bill, updatedAt: bill.updatedAt }
     : null;
+  const paymentBillVersion = versionedBill
+    ? `${versionedBill.id}:${versionedBill.updatedAt}`
+    : null;
+  const paymentVersionUnverified =
+    paymentBillVersion !== null &&
+    paymentBillVersion === unverifiedPaymentBillVersion;
+  const supplementBillVersion = versionedBill
+    ? `${versionedBill.id}:${versionedBill.updatedAt}`
+    : null;
+  const supplementVersionUnverified =
+    supplementBillVersion !== null &&
+    supplementBillVersion === unverifiedSupplementBillVersion;
   const payableBill: PayablePaymentBill | null =
     versionedBill && hasPaymentRecipient(versionedBill) ? versionedBill : null;
-  const canSubmitPayment = actions.canPay && Boolean(payableBill);
+  const canSubmitPayment =
+    actions.canPay && Boolean(payableBill) && !paymentVersionUnverified;
   const canSupplementSerialNumber =
-    actions.canSupplementSerialNumber && Boolean(versionedBill);
+    actions.canSupplementSerialNumber &&
+    Boolean(versionedBill) &&
+    !supplementVersionUnverified;
   const canConfirmPayment = actions.canConfirmPayment && Boolean(versionedBill);
   const feishuUiEnvironment = useFeishuUiEnvironment();
   const contactAction = resolveOrderContactAction({
@@ -167,7 +185,15 @@ export function SpotOrderDetail({
 
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "操作失败，订单状态可能已更新，请刷新后重试");
+      setCancelDialogOpen(false);
+      setCompleteDialogOpen(false);
+      setConfirmPaymentDialogOpen(false);
+      router.refresh();
+      toast.error(
+        error instanceof Error
+          ? `${error.message}，正在刷新订单状态`
+          : "操作结果未确认，正在刷新订单状态",
+      );
     } finally {
       lifecyclePendingRef.current = false;
       setLifecyclePending(null);
@@ -176,12 +202,7 @@ export function SpotOrderDetail({
 
   return (
     <div className="flex flex-1 flex-col">
-      <div
-        className={cn(
-          "flex flex-1 flex-col gap-4 py-4",
-          showActionBar && "pb-24",
-        )}
-      >
+      <div className="flex flex-1 flex-col gap-2 py-3">
         <h1 className="text-lg font-semibold">订单详情</h1>
 
         <OrderTimelinePanel
@@ -193,6 +214,22 @@ export function SpotOrderDetail({
 
         <OrderInfoCard order={resolvedOrder} view={view} />
         {bill ? <BillCard bill={bill} /> : null}
+        {paymentVersionUnverified ? (
+          <Alert>
+            <AlertTitle>支付结果待确认</AlertTitle>
+            <AlertDescription>
+              请重新进入订单查看最新账单后再操作。
+            </AlertDescription>
+          </Alert>
+        ) : null}
+        {supplementVersionUnverified ? (
+          <Alert>
+            <AlertTitle>流水号状态待确认</AlertTitle>
+            <AlertDescription>
+              请重新进入订单查看最新账单后再操作。
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
         {view === "buyer" && actions.canPay && !payableBill ? (
           <UnavailablePaymentBill />
@@ -288,8 +325,18 @@ export function SpotOrderDetail({
           dataSource={dataSource}
           connectBaseUrl={connectBaseUrl}
           onSuccess={(submittedBill) => {
+            setUnverifiedPaymentBillVersion(null);
             setCurrentOrder({ ...resolvedOrder, bill: submittedBill });
             setPaymentDrawerOpen(false);
+            router.refresh();
+          }}
+          onBillRefresh={(latestBill) => {
+            if (latestBill) {
+              setUnverifiedPaymentBillVersion(null);
+              setCurrentOrder({ ...resolvedOrder, bill: latestBill });
+            } else {
+              setUnverifiedPaymentBillVersion(paymentBillVersion);
+            }
             router.refresh();
           }}
         />
@@ -304,8 +351,18 @@ export function SpotOrderDetail({
           dataSource={dataSource}
           connectBaseUrl={connectBaseUrl}
           onSuccess={(updatedBill) => {
+            setUnverifiedSupplementBillVersion(null);
             setCurrentOrder({ ...resolvedOrder, bill: updatedBill });
             setSupplementOpen(false);
+            router.refresh();
+          }}
+          onBillRefresh={(latestBill) => {
+            if (latestBill) {
+              setUnverifiedSupplementBillVersion(null);
+              setCurrentOrder({ ...resolvedOrder, bill: latestBill });
+            } else {
+              setUnverifiedSupplementBillVersion(supplementBillVersion);
+            }
             router.refresh();
           }}
         />
@@ -391,7 +448,7 @@ function OrderTimelinePanel({
         }`}
       >
         <div className="min-h-0 overflow-hidden">
-          <div className="border-t px-3 pt-3">
+          <div className="border-t px-3 pt-2">
             {timeline.length === 0 ? (
               <Alert className="mb-3">
                 <RiFileList3Line />
@@ -415,7 +472,7 @@ function OrderTimelinePanel({
                       <span className="min-h-8 w-px flex-1 bg-border" />
                     ) : null}
                   </div>
-                  <div className="min-w-0 pb-4">
+                  <div className="min-w-0 pb-3">
                     <p className="font-medium">{item.label}</p>
                     <p className="mt-1 text-sm text-muted-foreground tabular-nums">
                       {formatDateTime(item.timestamp)}
@@ -512,7 +569,7 @@ function OrderInfoCard({
 
   return (
     <Card className="rounded-lg">
-      <CardHeader>
+      <CardHeader className="p-3">
         <CardTitle className="text-base">订单信息</CardTitle>
         <div className="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
           <span className="min-w-0 truncate font-mono tabular-nums">
@@ -521,10 +578,11 @@ function OrderInfoCard({
           <CopyButton
             value={order.orderNo || String(order.id)}
             label="订单号"
+            compact
           />
         </div>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-2 p-3 pt-0">
         {order.store ? (
           <div className="flex items-center justify-between gap-3 text-sm">
             <span className="text-muted-foreground">店铺</span>
@@ -576,22 +634,26 @@ function OrderInfoCard({
 function BillCard({ bill }: { bill: PaymentBill }) {
   return (
     <Card className="rounded-lg">
-      <CardHeader className="flex-row items-start justify-between gap-3">
+      <CardHeader className="flex-row items-start justify-between gap-3 p-3">
         <div className="min-w-0 space-y-1.5">
           <CardTitle className="text-base">支付账单</CardTitle>
           <div className="flex min-w-0 items-center gap-1">
             <CardDescription className="min-w-0 truncate font-mono tabular-nums">
               {bill.billNo || bill.id}
             </CardDescription>
-            <CopyButton value={bill.billNo || String(bill.id)} label="账单号" />
+            <CopyButton
+              value={bill.billNo || String(bill.id)}
+              label="账单号"
+              compact
+            />
           </div>
         </div>
         <Badge variant={getBillBadgeVariant(bill.status)}>
           {getBillStatusLabel(bill.status)}
         </Badge>
       </CardHeader>
-      <CardContent>
-        <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
+      <CardContent className="p-3 pt-0">
+        <dl className="grid auto-rows-[minmax(2rem,auto)] grid-cols-[5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 text-sm">
           {bill.payee?.name ? (
             <>
               <dt className="text-muted-foreground">收款人</dt>
@@ -603,7 +665,11 @@ function BillCard({ bill }: { bill: PaymentBill }) {
               <dt className="text-muted-foreground">付款标识码</dt>
               <dd className="flex min-w-0 items-center justify-end gap-1 font-mono font-semibold">
                 <span className="break-all text-right">{bill.verifyCode}</span>
-                <CopyButton value={bill.verifyCode} label="付款标识码" />
+                <CopyButton
+                  value={bill.verifyCode}
+                  label="付款标识码"
+                  compact
+                />
               </dd>
             </>
           ) : null}
@@ -636,10 +702,10 @@ function BillCard({ bill }: { bill: PaymentBill }) {
 function UnavailablePaymentBill() {
   return (
     <Card className="rounded-lg">
-      <CardHeader>
+      <CardHeader className="p-3">
         <CardTitle className="text-base">账单暂不可支付</CardTitle>
       </CardHeader>
-      <CardContent className="text-sm text-muted-foreground">
+      <CardContent className="p-3 pt-0 text-sm text-muted-foreground">
         账单缺少最新状态或收款方信息，已停止支付。请返回订单列表后重试。
       </CardContent>
     </Card>

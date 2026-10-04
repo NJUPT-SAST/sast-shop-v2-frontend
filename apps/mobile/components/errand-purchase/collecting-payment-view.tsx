@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RiArrowDownSLine, RiArrowUpSLine, RiBillLine } from "@remixicon/react";
 import {
@@ -36,6 +36,11 @@ import {
 import { toast } from "sonner";
 
 import { MobileFixedFooter } from "@/components/mobile-fixed-footer";
+import {
+  compareUpdatedAt,
+  latestUpdatedAt,
+  mergeCollectingPaymentBills,
+} from "@/lib/errand-recovery";
 
 export type CollectingPaymentViewProps = {
   dataSource: DataSource;
@@ -90,7 +95,7 @@ function PaymentItemBreakdown({
   const mismatchLabel = getQuantityMismatchLabel(item);
 
   return (
-    <div className="rounded-lg border bg-muted/30 p-3">
+    <div className="border-b pb-3 last:border-b-0">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <p className="min-w-0 flex-1 text-sm font-medium">{item.title}</p>
         {mismatchLabel ? (
@@ -99,20 +104,10 @@ function PaymentItemBreakdown({
           </Badge>
         ) : null}
       </div>
-      <dl className="mt-3 grid grid-cols-3 gap-2 text-center text-xs tabular-nums">
-        <div className="rounded-md bg-background px-2 py-2">
-          <dt className="text-muted-foreground">需求</dt>
-          <dd className="mt-1 font-medium">{item.requiredQuantity}</dd>
-        </div>
-        <div className="rounded-md bg-background px-2 py-2">
-          <dt className="text-muted-foreground">采购</dt>
-          <dd className="mt-1 font-medium">{item.purchasedQuantity}</dd>
-        </div>
-        <div className="rounded-md bg-background px-2 py-2">
-          <dt className="text-muted-foreground">分发</dt>
-          <dd className="mt-1 font-medium">{item.distributedQuantity}</dd>
-        </div>
-      </dl>
+      <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+        需求 {item.requiredQuantity} 件 · 采购 {item.purchasedQuantity} 件 ·
+        分发 {item.distributedQuantity} 件
+      </p>
       <dl className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1.5 text-sm tabular-nums">
         <dt className="text-muted-foreground">实际单价</dt>
         <dd className="text-right">{formatPrice(item.actualUnitPriceCents)}</dd>
@@ -160,11 +155,45 @@ export function CollectingPaymentView({
   const submittingRef = useRef(false);
   const confirmingRef = useRef(false);
   const [bills, setBills] = useState<CollectingPaymentBill[]>(detail.bills);
+  const [taskVersion, setTaskVersion] = useState(
+    latestUpdatedAt(taskUpdatedAt, detail.taskUpdatedAt),
+  );
+  const [unverifiedTaskVersion, setUnverifiedTaskVersion] = useState<
+    string | null | undefined
+  >();
+  const [unverifiedBillVersions, setUnverifiedBillVersions] = useState<
+    Record<string, string | null>
+  >({});
+  const taskNeedsVerification =
+    unverifiedTaskVersion !== undefined &&
+    compareUpdatedAt(taskVersion, unverifiedTaskVersion) <= 0;
+  const billNeedsVerification = (bill: CollectingPaymentBill) => {
+    const baseline = unverifiedBillVersions[bill.requesterId];
+    return (
+      Object.hasOwn(unverifiedBillVersions, bill.requesterId) &&
+      compareUpdatedAt(bill.billUpdatedAt, baseline) <= 0
+    );
+  };
+  useEffect(() => {
+    const incomingVersion = latestUpdatedAt(
+      taskUpdatedAt,
+      detail.taskUpdatedAt,
+    );
+    if (compareUpdatedAt(incomingVersion, taskVersion) >= 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setBills((current) => mergeCollectingPaymentBills(current, detail.bills));
+    }
+    setTaskVersion((current) => latestUpdatedAt(current, incomingVersion));
+  }, [detail.bills, detail.taskUpdatedAt, taskUpdatedAt, taskVersion]);
   const [expandedBillKey, setExpandedBillKey] = useState<string | null>(null);
   const [dialog, setDialog] = useState<DialogState>({ type: "none" });
   const [submitting, setSubmitting] = useState(false);
   const [confirmingBillId, setConfirmingBillId] = useState<string | null>(null);
-  const billToConfirm = dialog.type === "confirm_bill" ? dialog.bill : null;
+  const billToConfirm =
+    dialog.type === "confirm_bill"
+      ? (bills.find((bill) => bill.requesterId === dialog.bill.requesterId) ??
+        null)
+      : null;
 
   const serviceOptions = { dataSource, connectBaseUrl };
 
@@ -185,15 +214,29 @@ export function CollectingPaymentView({
   const updateBill = (
     requesterId: string,
     status: CollectingPaymentBill["paymentStatus"],
+    updatedAt: string | null,
   ) => {
     setBills((prev) =>
       prev.map((b) =>
-        b.requesterId === requesterId ? { ...b, paymentStatus: status } : b,
+        b.requesterId === requesterId
+          ? {
+              ...b,
+              paymentStatus: status,
+              billUpdatedAt: latestUpdatedAt(b.billUpdatedAt, updatedAt),
+            }
+          : b,
       ),
     );
   };
 
   const handleConfirmBill = async (bill: CollectingPaymentBill) => {
+    if (
+      bill.paymentStatus !== "pending_confirmation" ||
+      billNeedsVerification(bill) ||
+      taskNeedsVerification
+    ) {
+      return;
+    }
     if (!bill.billId) {
       toast.error("账单 ID 不存在");
       return;
@@ -202,19 +245,30 @@ export function CollectingPaymentView({
       toast.error("账单状态已过期，请刷新后重试");
       return;
     }
-    if (confirmingRef.current) return;
+    if (confirmingRef.current || submittingRef.current) {
+      toast.info("正在处理，请稍候");
+      return;
+    }
     confirmingRef.current = true;
     setConfirmingBillId(bill.requesterId);
     try {
-      await confirmBill(
+      const updatedBill = await confirmBill(
         { billId: bill.billId, updatedAt: bill.billUpdatedAt },
         serviceOptions,
       );
-      updateBill(bill.requesterId, "confirmed");
+      updateBill(bill.requesterId, "confirmed", updatedBill.updatedAt);
       setDialog({ type: "none" });
       toast.success("已确认到账");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "确认收款失败，请稍后再试");
+      toast.error(
+        error instanceof Error ? error.message : "确认收款失败，请稍后再试",
+      );
+      setUnverifiedBillVersions((current) => ({
+        ...current,
+        [bill.requesterId]: bill.billUpdatedAt,
+      }));
+      setDialog({ type: "none" });
+      router.refresh();
     } finally {
       confirmingRef.current = false;
       setConfirmingBillId(null);
@@ -222,22 +276,32 @@ export function CollectingPaymentView({
   };
 
   const handleComplete = async () => {
-    if (!allConfirmed || submittingRef.current) return;
+    if (
+      !allConfirmed ||
+      taskNeedsVerification ||
+      submittingRef.current ||
+      confirmingRef.current
+    ) {
+      return;
+    }
     submittingRef.current = true;
     setSubmitting(true);
+    let attemptedTransition = false;
+    let attemptedVersion = taskVersion;
     try {
       const latestTask = await getErrandTaskBrief(taskId, serviceOptions);
+      setTaskVersion((current) =>
+        latestUpdatedAt(current, latestTask?.updatedAt ?? null),
+      );
       if (latestTask?.status === "completed") {
         setDialog({ type: "none" });
         router.replace("/orders?type=errand&view=captain");
         return;
       }
       if (latestTask?.status === "collecting_payment") {
-        await transitionToCompleted(
-          taskId,
-          latestTask.updatedAt ?? taskUpdatedAt,
-          serviceOptions,
-        );
+        attemptedVersion = latestTask.updatedAt ?? taskVersion;
+        attemptedTransition = true;
+        await transitionToCompleted(taskId, attemptedVersion, serviceOptions);
         setDialog({ type: "none" });
         router.replace("/orders?type=errand&view=captain");
         return;
@@ -247,14 +311,22 @@ export function CollectingPaymentView({
       setSubmitting(false);
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "订单完成失败，请刷新账单后重试");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "订单完成失败，请刷新账单后重试",
+      );
+      if (attemptedTransition) setUnverifiedTaskVersion(attemptedVersion);
+      setDialog({ type: "none" });
       setSubmitting(false);
+      router.refresh();
     } finally {
       submittingRef.current = false;
     }
   };
 
   const renderBillSection = (list: CollectingPaymentBill[], title: string) => {
+    if (list.length === 0) return null;
     return (
       <section className="flex flex-col gap-3">
         <div className="flex items-baseline gap-2">
@@ -263,154 +335,184 @@ export function CollectingPaymentView({
             {list.length} 位买家
           </span>
         </div>
-        {list.length ? (
-          <div className="flex flex-col gap-3">
-            {list.map((bill) => {
-              const expandKey = bill.billId ?? bill.requesterId;
-              const isExpanded = expandedBillKey === expandKey;
-              return (
-                <div
-                  key={expandKey}
-                  className="rounded-lg border bg-card overflow-hidden"
+        <div className="flex flex-col gap-3">
+          {list.map((bill) => {
+            const expandKey = bill.billId ?? bill.requesterId;
+            const isExpanded = expandedBillKey === expandKey;
+            return (
+              <div
+                key={expandKey}
+                className="rounded-lg border bg-card overflow-hidden"
+              >
+                <button
+                  type="button"
+                  aria-controls={`payment-bill-${expandKey}`}
+                  aria-expanded={isExpanded}
+                  className="flex w-full items-center gap-3 p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={() =>
+                    setExpandedBillKey(isExpanded ? null : expandKey)
+                  }
                 >
-                  <button
-                    type="button"
-                    aria-controls={`payment-bill-${expandKey}`}
-                    aria-expanded={isExpanded}
-                    className="flex w-full items-center gap-3 p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    onClick={() =>
-                      setExpandedBillKey(isExpanded ? null : expandKey)
-                    }
-                  >
-                    <Avatar className="size-10 shrink-0">
-                      <AvatarImage
-                        src={bill.requesterAvatarUrl}
-                        alt={bill.requesterName}
-                      />
-                      <AvatarFallback className="text-sm">
-                        {bill.requesterName[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-medium">
-                          {bill.requesterName}
-                        </p>
-                      </div>
-                      <p className="text-sm font-semibold tabular-nums text-primary">
-                        {formatPrice(bill.totalAmountCents)}
+                  <Avatar className="size-10 shrink-0">
+                    <AvatarImage
+                      src={bill.requesterAvatarUrl}
+                      alt={bill.requesterName}
+                    />
+                    <AvatarFallback className="text-sm">
+                      {bill.requesterName[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-medium">
+                        {bill.requesterName}
                       </p>
-                      {bill.paymentStatus === "pending_confirmation" &&
-                      bill.verifyCode ? (
-                        <p className="mt-0.5 font-mono text-xs font-semibold tracking-widest">
-                          标识码 {bill.verifyCode}
-                        </p>
-                      ) : null}
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {getStatusBadge(bill.paymentStatus)}
-                      {isExpanded ? (
-                        <RiArrowUpSLine className="size-4 text-muted-foreground" />
-                      ) : (
-                        <RiArrowDownSLine className="size-4 text-muted-foreground" />
-                      )}
-                    </div>
-                  </button>
+                    <p className="text-sm font-semibold tabular-nums text-primary">
+                      {formatPrice(bill.totalAmountCents)}
+                    </p>
+                    {bill.paymentStatus === "pending_confirmation" &&
+                    bill.verifyCode ? (
+                      <p className="mt-0.5 font-mono text-xs font-semibold tracking-widest">
+                        标识码 {bill.verifyCode}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {getStatusBadge(bill.paymentStatus)}
+                    {isExpanded ? (
+                      <RiArrowUpSLine className="size-4 text-muted-foreground" />
+                    ) : (
+                      <RiArrowDownSLine className="size-4 text-muted-foreground" />
+                    )}
+                  </div>
+                </button>
 
-                  {isExpanded && (
-                    <div
-                      id={`payment-bill-${expandKey}`}
-                      className="border-t px-3 pb-3"
-                    >
-                      <div className="mt-3 flex flex-col gap-3 tabular-nums">
-                        {bill.items.map((item) => (
-                          <PaymentItemBreakdown
-                            key={item.errandDemandItemId}
-                            item={item}
-                          />
-                        ))}
-                        <div className="mt-1 border-t pt-2 flex flex-col gap-1 text-sm">
+                {isExpanded && (
+                  <div
+                    id={`payment-bill-${expandKey}`}
+                    className="border-t px-3 pb-3"
+                  >
+                    <div className="mt-3 flex flex-col gap-3 tabular-nums">
+                      {bill.items.map((item) => (
+                        <PaymentItemBreakdown
+                          key={item.errandDemandItemId}
+                          item={item}
+                        />
+                      ))}
+                      <div className="mt-1 border-t pt-2 flex flex-col gap-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">商品费</span>
+                          <span>{formatPrice(bill.productAmountCents)}</span>
+                        </div>
+                        {bill.serviceFeeAmountCents > 0 && (
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">
-                              商品费
+                              跑腿费
                             </span>
-                            <span>{formatPrice(bill.productAmountCents)}</span>
-                          </div>
-                          {bill.serviceFeeAmountCents > 0 && (
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">
-                                跑腿费
-                              </span>
-                              <span>
-                                {formatPrice(bill.serviceFeeAmountCents)}
-                              </span>
-                            </div>
-                          )}
-                          {bill.packagingFeeShareCents > 0 && (
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">
-                                包装费
-                              </span>
-                              <span>
-                                {formatPrice(bill.packagingFeeShareCents)}
-                              </span>
-                            </div>
-                          )}
-                          <div className="flex justify-between font-semibold">
-                            <span>合计</span>
-                            <span className="text-primary">
-                              {formatPrice(bill.totalAmountCents)}
+                            <span>
+                              {formatPrice(bill.serviceFeeAmountCents)}
                             </span>
                           </div>
+                        )}
+                        {bill.packagingFeeShareCents > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              包装费
+                            </span>
+                            <span>
+                              {formatPrice(bill.packagingFeeShareCents)}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex justify-between font-semibold">
+                          <span>合计</span>
+                          <span className="text-primary">
+                            {formatPrice(bill.totalAmountCents)}
+                          </span>
                         </div>
                       </div>
+                    </div>
 
-                      {bill.paymentStatus === "pending_confirmation" && (
-                        <div className="mt-3">
+                    {bill.paymentStatus === "pending_confirmation" && (
+                      <div className="mt-3">
+                        <Button
+                          type="button"
+                          size="touch"
+                          className="w-full"
+                          onClick={() =>
+                            setDialog({ type: "confirm_bill", bill })
+                          }
+                          disabled={
+                            confirmingBillId !== null ||
+                            submitting ||
+                            taskNeedsVerification ||
+                            billNeedsVerification(bill) ||
+                            !bill.billId ||
+                            !bill.billUpdatedAt
+                          }
+                        >
+                          {confirmingBillId === bill.requesterId
+                            ? "处理中"
+                            : "确认收款"}
+                        </Button>
+                        {!bill.billId || !bill.billUpdatedAt ? (
                           <Button
                             type="button"
                             size="touch"
-                            className="w-full"
-                            onClick={() =>
-                              setDialog({ type: "confirm_bill", bill })
-                            }
-                            disabled={
-                              confirmingBillId === bill.requesterId ||
-                              !bill.billId ||
-                              !bill.billUpdatedAt
-                            }
+                            variant="outline"
+                            className="mt-2 w-full"
+                            onClick={() => router.refresh()}
                           >
-                            {confirmingBillId === bill.requesterId
-                              ? "处理中"
-                              : "确认收款"}
+                            刷新账单
                           </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="rounded-lg border bg-card p-3 text-sm text-muted-foreground">
-            当前没有{title}账单。
-          </div>
-        )}
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </section>
     );
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-5 py-5 pb-24">
+    <div className="flex flex-1 flex-col gap-5 py-5">
       <div className="flex items-center gap-2">
         <h1 className="text-lg font-semibold leading-7">支付核对</h1>
       </div>
 
+      {taskNeedsVerification ||
+      bills.some(
+        (bill) =>
+          bill.paymentStatus === "pending_confirmation" &&
+          billNeedsVerification(bill),
+      ) ? (
+        <Alert>
+          <AlertTitle>任务状态待核实</AlertTitle>
+          <AlertDescription>
+            请重新进入任务查看最新账单后再操作。
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       {billingNotice ? (
         <Alert>
           <AlertTitle>账单生成异常</AlertTitle>
-          <AlertDescription>请刷新或联系处理。</AlertDescription>
+          <AlertDescription>
+            请刷新账单并核对；若仍未生成，请联系处理。
+          </AlertDescription>
+          <Button
+            type="button"
+            size="touch"
+            variant="outline"
+            onClick={() => router.refresh()}
+          >
+            刷新账单
+          </Button>
         </Alert>
       ) : null}
 
@@ -429,6 +531,14 @@ export function CollectingPaymentView({
               .join("、")}
             的账单状态不计入订单完成进度，请刷新后核对。
           </AlertDescription>
+          <Button
+            type="button"
+            size="touch"
+            variant="outline"
+            onClick={() => router.refresh()}
+          >
+            刷新账单
+          </Button>
         </Alert>
       ) : null}
 
@@ -437,6 +547,17 @@ export function CollectingPaymentView({
           className="my-auto"
           icon={<RiBillLine className="size-5" />}
           title="暂无账单"
+          description="账单尚未生成，可以刷新后重试。"
+          action={
+            <Button
+              type="button"
+              size="touch"
+              variant="outline"
+              onClick={() => router.refresh()}
+            >
+              刷新账单
+            </Button>
+          }
         />
       )}
 
@@ -450,7 +571,12 @@ export function CollectingPaymentView({
           </div>
           <Button
             type="button"
-            disabled={!allConfirmed}
+            disabled={
+              !allConfirmed ||
+              confirmingBillId !== null ||
+              submitting ||
+              taskNeedsVerification
+            }
             className="h-12 flex-1"
             onClick={() => setDialog({ type: "confirm_complete" })}
           >
@@ -466,7 +592,7 @@ export function CollectingPaymentView({
         }}
       >
         <ResponsiveDialogContent
-          className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm"
+          className="max-h-[88dvh] overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm"
           showCloseButton={confirmingBillId === null}
         >
           <ResponsiveDialogHeader className="px-0 text-left">
@@ -475,50 +601,52 @@ export function CollectingPaymentView({
               这是不可逆的财务确认，请与实际收款记录逐项核对。
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
-          {billToConfirm ? (
-            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 rounded-lg border bg-muted/30 p-4 text-sm">
-              <dt className="text-muted-foreground">付款人</dt>
-              <dd className="truncate text-right font-medium">
-                {billToConfirm.requesterName}
-              </dd>
-              <dt className="text-muted-foreground">金额</dt>
-              <dd className="text-right font-semibold text-primary">
-                {formatPrice(billToConfirm.totalAmountCents)}
-              </dd>
-              {billToConfirm.billNo ? (
-                <>
-                  <dt className="text-muted-foreground">账单号</dt>
-                  <dd className="truncate text-right font-mono text-xs">
-                    {billToConfirm.billNo}
-                  </dd>
-                </>
-              ) : null}
-              {billToConfirm.paymentChannel ? (
-                <>
-                  <dt className="text-muted-foreground">支付渠道</dt>
-                  <dd className="text-right">
-                    {formatPaymentChannel(billToConfirm.paymentChannel)}
-                  </dd>
-                </>
-              ) : null}
-              {billToConfirm.serialNumber ? (
-                <>
-                  <dt className="text-muted-foreground">支付流水号</dt>
-                  <dd className="break-all text-right">
-                    {billToConfirm.serialNumber}
-                  </dd>
-                </>
-              ) : null}
-              {billToConfirm.verifyCode ? (
-                <>
-                  <dt className="text-muted-foreground">付款标识码</dt>
-                  <dd className="text-right font-mono font-semibold tracking-widest">
-                    {billToConfirm.verifyCode}
-                  </dd>
-                </>
-              ) : null}
-            </dl>
-          ) : null}
+          <div className="min-h-0 overflow-y-auto">
+            {billToConfirm ? (
+              <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 rounded-lg border bg-muted/30 p-4 text-sm">
+                <dt className="text-muted-foreground">付款人</dt>
+                <dd className="truncate text-right font-medium">
+                  {billToConfirm.requesterName}
+                </dd>
+                <dt className="text-muted-foreground">金额</dt>
+                <dd className="text-right font-semibold text-primary">
+                  {formatPrice(billToConfirm.totalAmountCents)}
+                </dd>
+                {billToConfirm.billNo ? (
+                  <>
+                    <dt className="text-muted-foreground">账单号</dt>
+                    <dd className="truncate text-right font-mono text-xs">
+                      {billToConfirm.billNo}
+                    </dd>
+                  </>
+                ) : null}
+                {billToConfirm.paymentChannel ? (
+                  <>
+                    <dt className="text-muted-foreground">支付渠道</dt>
+                    <dd className="text-right">
+                      {formatPaymentChannel(billToConfirm.paymentChannel)}
+                    </dd>
+                  </>
+                ) : null}
+                {billToConfirm.serialNumber ? (
+                  <>
+                    <dt className="text-muted-foreground">支付流水号</dt>
+                    <dd className="break-all text-right">
+                      {billToConfirm.serialNumber}
+                    </dd>
+                  </>
+                ) : null}
+                {billToConfirm.verifyCode ? (
+                  <>
+                    <dt className="text-muted-foreground">付款标识码</dt>
+                    <dd className="text-right font-mono font-semibold tracking-widest">
+                      {billToConfirm.verifyCode}
+                    </dd>
+                  </>
+                ) : null}
+              </dl>
+            ) : null}
+          </div>
           <ResponsiveDialogFooter>
             <Button
               type="button"
@@ -530,7 +658,12 @@ export function CollectingPaymentView({
             </Button>
             <Button
               type="button"
-              disabled={!billToConfirm || confirmingBillId !== null}
+              disabled={
+                !billToConfirm ||
+                confirmingBillId !== null ||
+                taskNeedsVerification ||
+                (billToConfirm !== null && billNeedsVerification(billToConfirm))
+              }
               onClick={() =>
                 billToConfirm && void handleConfirmBill(billToConfirm)
               }
@@ -565,7 +698,7 @@ export function CollectingPaymentView({
             </Button>
             <Button
               type="button"
-              disabled={submitting || !allConfirmed}
+              disabled={submitting || !allConfirmed || taskNeedsVerification}
               onClick={() => void handleComplete()}
             >
               {submitting ? "处理中" : "订单完成"}

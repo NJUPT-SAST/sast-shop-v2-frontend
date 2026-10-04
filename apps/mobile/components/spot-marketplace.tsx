@@ -10,6 +10,7 @@ import {
 } from "@remixicon/react";
 import {
   createSpotOrders,
+  getBill,
   getSpotGoods,
   listSpotGoods,
   listPaymentQrCodes,
@@ -188,6 +189,7 @@ export function SpotMarketplace({
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
   const checkoutRef = useRef(false);
+  const checkoutGenerationRef = useRef(0);
   const detailRequestRef = useRef(0);
   const filteredProducts = useMemo(() => {
     const keyword = query.trim().toLocaleLowerCase();
@@ -238,6 +240,11 @@ export function SpotMarketplace({
     setQuantity(1);
   }
 
+  function closeCheckout() {
+    checkoutGenerationRef.current += 1;
+    setCheckoutDraft(null);
+  }
+
   async function openDetail(product: SpotProductBrief) {
     const requestId = detailRequestRef.current + 1;
     detailRequestRef.current = requestId;
@@ -270,8 +277,9 @@ export function SpotMarketplace({
   }
 
   async function beginCheckout(product: SpotProduct, checkoutQuantity: number) {
-    if (checkoutRef.current) return;
+    if (checkoutRef.current || submittingRef.current) return;
     checkoutRef.current = true;
+    const generation = ++checkoutGenerationRef.current;
     const currentDefaultPlatform = readDefaultPaymentPlatform();
 
     setDefaultPlatform(currentDefaultPlatform);
@@ -315,6 +323,8 @@ export function SpotMarketplace({
       createdBill = createdOrder.bill;
       const mappedQrCodes = await loadSellerPaymentQrCodes(payeeId);
 
+      if (generation !== checkoutGenerationRef.current) return;
+
       setPaymentQrCodes(mappedQrCodes);
       setDefaultPlatform(
         resolveAvailablePaymentPlatform(mappedQrCodes, currentDefaultPlatform),
@@ -326,6 +336,7 @@ export function SpotMarketplace({
         bill: createdBill,
       });
     } catch {
+      if (generation !== checkoutGenerationRef.current) return;
       setCheckoutDraft({
         product,
         quantity: checkoutQuantity,
@@ -350,10 +361,14 @@ export function SpotMarketplace({
       draft.product.sellerId !== payeeId
     ) {
       toast.error("下单结果暂不确定，请先到订单列表核对，避免重复下单");
-      setCheckoutDraft(null);
+      closeCheckout();
       router.push("/orders?type=spot&view=buyer");
       return;
     }
+
+    if (checkoutRef.current || submittingRef.current) return;
+    checkoutRef.current = true;
+    const generation = checkoutGenerationRef.current;
 
     const currentDefaultPlatform = readDefaultPaymentPlatform();
 
@@ -369,6 +384,8 @@ export function SpotMarketplace({
     try {
       const mappedQrCodes = await loadSellerPaymentQrCodes(payeeId);
 
+      if (generation !== checkoutGenerationRef.current) return;
+
       setPaymentQrCodes(mappedQrCodes);
       setDefaultPlatform(
         resolveAvailablePaymentPlatform(mappedQrCodes, currentDefaultPlatform),
@@ -379,6 +396,7 @@ export function SpotMarketplace({
         errorMessage: undefined,
       });
     } catch (error) {
+      if (generation !== checkoutGenerationRef.current) return;
       setCheckoutDraft({
         ...draft,
         status: "error",
@@ -388,6 +406,7 @@ export function SpotMarketplace({
             : "收款码暂不可用，请稍后重试。",
       });
     } finally {
+      checkoutRef.current = false;
       setSubmitting(false);
     }
   }
@@ -408,25 +427,37 @@ export function SpotMarketplace({
   }
 
   async function submitPayment(platform: PaymentPlatform) {
-    if (!checkoutDraft?.bill?.updatedAt || submittingRef.current || submitted) {
+    const draft = checkoutDraft;
+    const bill = draft?.bill;
+    if (
+      draft?.status !== "ready" ||
+      !bill?.updatedAt ||
+      submittingRef.current ||
+      submitted
+    ) {
       return;
     }
 
+    const generation = checkoutGenerationRef.current;
     submittingRef.current = true;
     setSubmitting(true);
 
     try {
       const paidBill = await payBill(
         {
-          billId: checkoutDraft.bill.id,
+          billId: bill.id,
           channel: platform,
-          updatedAt: checkoutDraft.bill.updatedAt,
+          updatedAt: bill.updatedAt,
         },
         serviceOptions,
       );
+      if (generation !== checkoutGenerationRef.current) {
+        router.refresh();
+        return;
+      }
       setSubmitted(true);
       setCheckoutDraft((current) =>
-        current
+        current?.bill?.id === bill.id
           ? {
               ...current,
               status: "submitted",
@@ -436,7 +467,49 @@ export function SpotMarketplace({
       );
       toast.success("订单已提交，等待收款确认");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "支付提交失败，请稍后再试");
+      let latestBill: PaymentBill;
+
+      try {
+        latestBill = await getBill(bill.id, serviceOptions);
+      } catch {
+        if (generation !== checkoutGenerationRef.current) {
+          router.refresh();
+          return;
+        }
+        closeCheckout();
+        router.refresh();
+        toast.error("无法确认支付结果，正在刷新订单，请核对后再操作");
+        return;
+      }
+
+      if (generation !== checkoutGenerationRef.current) {
+        router.refresh();
+        return;
+      }
+
+      if (latestBill.status === "completed") {
+        closeCheckout();
+        router.refresh();
+        toast.info("订单已完成，正在刷新订单状态");
+      } else if (latestBill.status === "submitted") {
+        setSubmitted(true);
+        setCheckoutDraft((current) =>
+          current?.bill?.id === bill.id
+            ? { ...current, status: "submitted", bill: latestBill }
+            : current,
+        );
+        toast.info("已读取最新支付状态");
+      } else {
+        closeCheckout();
+        router.refresh();
+        toast.error(
+          latestBill.status === "unpaid"
+            ? "支付确认未完成，账单已刷新，请核对后重试"
+            : error instanceof Error
+              ? error.message
+              : "账单状态已更新，请核对后重试",
+        );
+      }
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -554,6 +627,7 @@ export function SpotMarketplace({
           hasItems={totalCount > 0}
           onLoadMore={() => void loadMore()}
           loadingFallback={<SpotGoodsLoadingSkeletons />}
+          endMessageClassName="pt-6"
           endMessage={
             query.trim()
               ? `搜索完成，共找到 ${filteredProducts.length} 件商品`
@@ -651,6 +725,7 @@ export function SpotMarketplace({
                 <ResponsiveDialogFooter>
                   <Button
                     type="button"
+                    className="min-h-11"
                     disabled={isOutOfStock || submitting}
                     onClick={() => {
                       void startCheckout();
@@ -677,9 +752,10 @@ export function SpotMarketplace({
       <PaymentDialog
         open={checkoutDraft !== null}
         onOpenChange={(open) => {
-          if (!open) setCheckoutDraft(null);
+          if (!open) closeCheckout();
         }}
         amountCents={amount}
+        payeeName={checkoutDraft?.bill?.payee?.name ?? null}
         verifyCode={verifyCode}
         qrCodes={paymentQrCodes}
         defaultPlatform={defaultPlatform}
@@ -687,7 +763,7 @@ export function SpotMarketplace({
         errorMessage={checkoutDraft?.errorMessage}
         submitting={submitting}
         onCancelPayment={() => {
-          setCheckoutDraft(null);
+          closeCheckout();
         }}
         onPay={(platform) => {
           void submitPayment(platform);

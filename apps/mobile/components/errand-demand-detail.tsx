@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
-  RiCheckboxBlankLine,
   RiCheckboxCircleLine,
-  RiCheckboxLine,
   RiStore2Line,
   RiUser3Line,
 } from "@remixicon/react";
@@ -20,9 +19,15 @@ import {
   AvatarImage,
 } from "@workspace/ui/components/avatar";
 import { Button } from "@workspace/ui/components/button";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@workspace/ui/components/alert";
 import { Card } from "@workspace/ui/components/card";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Empty } from "@workspace/ui/components/empty";
+import { Field, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -64,6 +69,7 @@ export function ErrandDemandDetail({
   details,
 }: ErrandDemandDetailProps) {
   const router = useRouter();
+  const submittingRef = useRef(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -106,12 +112,18 @@ export function ErrandDemandDetail({
     [details, selectedIds],
   );
   const canSubmit = demandItems.length > 0;
+  const hasSelectableDemand = selectionGroups.some((group) =>
+    group.requesters.some(
+      (requester) => requester.errandDemandItemId && requester.updatedAt,
+    ),
+  );
 
   const handleSubmit = async () => {
-    if (!canSubmit || submitting) {
+    if (!canSubmit || submittingRef.current) {
       return;
     }
 
+    submittingRef.current = true;
     setSubmitting(true);
 
     try {
@@ -127,9 +139,13 @@ export function ErrandDemandDetail({
       setConfirmOpen(false);
       router.push(`/group/purchase/${result.errandTaskId}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "部分需求已被接单，请刷新后重试");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "部分需求已被接单，请刷新后重试",
+      );
       router.refresh();
-    } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };
@@ -141,6 +157,11 @@ export function ErrandDemandDetail({
           icon={<RiStore2Line className="size-5" />}
           title="这个店铺暂无可接单需求"
           description="可以返回跑腿采购大厅查看其他店铺。"
+          action={
+            <Button asChild size="touch">
+              <Link href="/group/errand">查看其他店铺</Link>
+            </Button>
+          }
         />
       </div>
     );
@@ -148,18 +169,29 @@ export function ErrandDemandDetail({
 
   return (
     <>
-      <div className="flex flex-1 flex-col gap-4 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-6 md:pb-[calc(4.5rem+env(safe-area-inset-bottom))]">
-        <section className="space-y-1">
-          <h1
-            className="text-xl font-semibold leading-7 md:text-2xl"
-            style={{ opacity: 1 }}
-          >
+      <div className="flex flex-1 flex-col gap-4 py-6">
+        <section>
+          <h1 className="text-xl font-semibold leading-7 md:text-2xl">
             {storeName}
           </h1>
-          <p className="text-sm leading-6 text-muted-foreground">
-            勾选完整需求行，创建采购任务。
-          </p>
         </section>
+
+        {!hasSelectableDemand ? (
+          <Alert>
+            <AlertTitle>暂不可接单</AlertTitle>
+            <AlertDescription>
+              当前需求缺少最新状态，请刷新后重试。
+            </AlertDescription>
+            <Button
+              type="button"
+              size="touch"
+              variant="outline"
+              onClick={() => router.refresh()}
+            >
+              刷新需求
+            </Button>
+          </Alert>
+        ) : null}
 
         <section className="flex flex-col gap-3">
           {details.map((group, groupIndex) => (
@@ -169,6 +201,7 @@ export function ErrandDemandDetail({
               groupIndex={groupIndex}
               selectedIds={selectedIds}
               selectionGroups={selectionGroups}
+              disabled={submitting}
               onSelectProduct={(nextSelectedIds) =>
                 setSelectedIds(nextSelectedIds)
               }
@@ -203,7 +236,12 @@ export function ErrandDemandDetail({
         </Button>
       </MobileFixedFooter>
 
-      <ResponsiveDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+      <ResponsiveDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          if (!submitting) setConfirmOpen(open);
+        }}
+      >
         <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-md">
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>确认接单</ResponsiveDialogTitle>
@@ -262,6 +300,7 @@ function DemandProductGroup({
   groupIndex,
   selectedIds,
   selectionGroups,
+  disabled,
   onSelectProduct,
   onSelectRequester,
 }: {
@@ -269,6 +308,7 @@ function DemandProductGroup({
   groupIndex: number;
   selectedIds: Set<string>;
   selectionGroups: ErrandSelectionGroup[];
+  disabled: boolean;
   onSelectProduct: (selectedIds: Set<string>) => void;
   onSelectRequester: (requesterId: string) => void;
 }) {
@@ -279,6 +319,8 @@ function DemandProductGroup({
   const hasSelectableRows = selectableIds.length > 0;
   const allSelected =
     hasSelectableRows && selectableIds.every((id) => selectedIds.has(id));
+  const partiallySelected =
+    !allSelected && selectableIds.some((id) => selectedIds.has(id));
   const product = group.productTemplate;
   const title = product.title;
   const productImageUrl = product.mainImageUrl;
@@ -300,7 +342,7 @@ function DemandProductGroup({
           )}
         />
 
-        <div className="min-w-0 flex-1 space-y-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex min-h-7 items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
               <h2 className="line-clamp-1 text-base font-semibold leading-5">
@@ -311,33 +353,35 @@ function DemandProductGroup({
               htmlFor={productCheckboxId}
               className={cn(
                 "flex min-h-11 shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-md px-2 text-sm text-muted-foreground",
-                !hasSelectableRows && "cursor-not-allowed opacity-50",
+                (!hasSelectableRows || disabled) &&
+                  "cursor-not-allowed opacity-50",
               )}
             >
               <Checkbox
                 id={productCheckboxId}
-                checked={allSelected}
-                disabled={!hasSelectableRows}
+                aria-label={`全选${title}的需求`}
+                checked={partiallySelected ? "indeterminate" : allSelected}
+                disabled={!hasSelectableRows || disabled}
                 onCheckedChange={handleProductToggle}
               />
               <span>全选</span>
             </label>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <div className="min-w-[5.5rem] rounded-md bg-muted/40 px-2.5 py-1.5">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="min-w-0 rounded-md bg-muted/40 px-2.5 py-1.5">
               <p className="text-xs leading-4 text-muted-foreground">
                 需求总数
               </p>
-              <p className="text-sm font-medium leading-5">
+              <p className="break-words text-sm font-medium leading-5">
                 {formatErrandDisplayCount(group.quantity)} 件
               </p>
             </div>
-            <div className="min-w-[5.5rem] rounded-md bg-muted/40 px-2.5 py-1.5">
+            <div className="min-w-0 rounded-md bg-muted/40 px-2.5 py-1.5">
               <p className="text-xs leading-4 text-muted-foreground">
                 估算单价
               </p>
-              <p className="text-sm font-medium leading-5 text-primary">
+              <p className="break-words text-sm font-medium leading-5 text-primary">
                 {formatErrandDisplayPrice(group.estimatedUnitPriceCents)}
               </p>
             </div>
@@ -345,16 +389,17 @@ function DemandProductGroup({
         </div>
       </div>
 
-      <div className="space-y-2 border-t p-3">
+      <FieldGroup className="gap-0 divide-y border-t px-3">
         {group.requesters.map((requester) => (
           <RequesterRow
             key={requester.errandDemandItemId || requester.requesterId}
             requester={requester}
             selected={selectedIds.has(requester.errandDemandItemId)}
+            disabled={disabled}
             onSelect={onSelectRequester}
           />
         ))}
-      </div>
+      </FieldGroup>
     </Card>
   );
 }
@@ -362,13 +407,17 @@ function DemandProductGroup({
 function RequesterRow({
   requester,
   selected,
+  disabled: taskSubmitting,
   onSelect,
 }: {
   requester: ErrandDemandDetailGroup["requesters"][number];
   selected: boolean;
+  disabled: boolean;
   onSelect: (requesterId: string) => void;
 }) {
-  const disabled = !requester.errandDemandItemId || !requester.updatedAt;
+  const checkboxId = useId();
+  const disabled =
+    taskSubmitting || !requester.errandDemandItemId || !requester.updatedAt;
   const rowServiceFeeCents =
     requester.serviceFeePerUnitCents * requester.quantity;
   const handleSelect = () => {
@@ -378,65 +427,68 @@ function RequesterRow({
   };
 
   return (
-    <button
-      type="button"
-      disabled={disabled}
-      aria-pressed={selected}
-      onClick={handleSelect}
-      className={cn(
-        "flex min-h-16 w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors motion-reduce:transition-none",
-        selected && "border-primary bg-primary/5",
-        disabled
-          ? "cursor-not-allowed border-border bg-muted/40 text-muted-foreground"
-          : "cursor-pointer border-border bg-background",
-      )}
-    >
-      <span aria-hidden="true" className="shrink-0 text-primary">
-        {selected ? <RiCheckboxLine /> : <RiCheckboxBlankLine />}
-      </span>
-
-      <Avatar className="size-9">
-        <AvatarImage
-          src={sanitizeImageSrc(requester.requesterAvatarUrl) ?? undefined}
-          alt={requester.requesterName}
+    <Field orientation="horizontal" data-disabled={disabled}>
+      <FieldLabel
+        htmlFor={checkboxId}
+        className={cn(
+          "min-h-16 w-full items-center gap-3 px-2 py-3 text-left transition-colors motion-reduce:transition-none",
+          selected && "bg-primary/5",
+          disabled
+            ? "cursor-not-allowed text-muted-foreground"
+            : "cursor-pointer",
+        )}
+      >
+        <Checkbox
+          id={checkboxId}
+          aria-label={`${requester.requesterName || "成员"}的需求，${formatErrandDisplayCount(requester.quantity)}件`}
+          checked={selected}
+          disabled={disabled}
+          onCheckedChange={handleSelect}
         />
-        <AvatarFallback className="text-xs">
-          {requester.requesterName.trim() ? (
-            nameInitial(requester.requesterName)
-          ) : (
-            <RiUser3Line className="size-4" />
-          )}
-        </AvatarFallback>
-      </Avatar>
 
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          {requester.requesterName ? (
-            <span className="max-w-32 truncate text-sm font-medium text-foreground">
-              {requester.requesterName}
-            </span>
-          ) : null}
-          <span
-            className={cn(
-              requester.requesterName
-                ? "text-xs text-muted-foreground"
-                : "text-sm font-medium text-foreground",
+        <Avatar className="size-9">
+          <AvatarImage
+            src={sanitizeImageSrc(requester.requesterAvatarUrl) ?? undefined}
+            alt={requester.requesterName}
+          />
+          <AvatarFallback className="text-xs">
+            {requester.requesterName.trim() ? (
+              nameInitial(requester.requesterName)
+            ) : (
+              <RiUser3Line className="size-4" />
             )}
-          >
-            {formatErrandDisplayCount(requester.quantity)} 件
-          </span>
-        </div>
-        <p className="mt-1 text-xs text-muted-foreground">
-          截止 {formatDeadline(requester.deadline)}
-        </p>
-      </div>
+          </AvatarFallback>
+        </Avatar>
 
-      <div className="shrink-0 text-right">
-        <p className="text-sm font-medium text-service-fee">
-          跑腿 {formatErrandDisplayPrice(rowServiceFeeCents)}
-        </p>
-      </div>
-    </button>
+        <span className="min-w-0 flex-1 font-normal">
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            {requester.requesterName ? (
+              <span className="max-w-32 truncate text-sm font-medium text-foreground">
+                {requester.requesterName}
+              </span>
+            ) : null}
+            <span
+              className={cn(
+                requester.requesterName
+                  ? "text-xs text-muted-foreground"
+                  : "text-sm font-medium text-foreground",
+              )}
+            >
+              {formatErrandDisplayCount(requester.quantity)} 件
+            </span>
+          </span>
+          <span className="mt-1 block text-xs text-muted-foreground">
+            截止 {formatDeadline(requester.deadline)}
+          </span>
+        </span>
+
+        <span className="shrink-0 text-right">
+          <span className="block text-sm font-medium text-service-fee">
+            跑腿 {formatErrandDisplayPrice(rowServiceFeeCents)}
+          </span>
+        </span>
+      </FieldLabel>
+    </Field>
   );
 }
 

@@ -25,7 +25,8 @@ import {
 import {
   createAddress,
   deleteAddress as deleteSavedAddress,
-  getProfileOverview,
+  listAddresses,
+  listPaymentQrCodes,
   updateAddress,
   updatePaymentQrCode,
   type DataSource,
@@ -45,6 +46,7 @@ import {
   Field as UiField,
   FieldContent,
   FieldDescription,
+  FieldError,
   FieldLabel,
   FieldLegend,
   FieldSet,
@@ -88,6 +90,7 @@ import {
   type PaymentPlatform,
 } from "@/lib/payment-preferences";
 import { decodePaymentQrImage } from "@/lib/qr-image-decoder";
+import { BrandIllustration } from "./brand-illustration";
 
 type Address = ProfileOverview["addresses"][number];
 type AddressInput = Omit<Address, "id">;
@@ -134,10 +137,14 @@ export function ProfileDialogsProvider({
   const [qrCodes, setQrCodes] = useState<PaymentQrCode[]>(
     () => overview?.paymentQrCodes ?? [],
   );
-  const [profileLoadState, setProfileLoadState] = useState<
+  const [addressLoadState, setAddressLoadState] = useState<
     "idle" | "ready" | "error"
   >(() => (overview ? "ready" : error ? "error" : "idle"));
-  const [profileError, setProfileError] = useState(error);
+  const [qrLoadState, setQrLoadState] = useState<"idle" | "ready" | "error">(
+    () => (overview ? "ready" : error ? "error" : "idle"),
+  );
+  const [addressError, setAddressError] = useState(error);
+  const [qrError, setQrError] = useState(error);
   const [addressOpen, setAddressOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const [paymentPreferenceOpen, setPaymentPreferenceOpen] = useState(false);
@@ -157,9 +164,13 @@ export function ProfileDialogsProvider({
   const router = useRouter();
   const pathname = usePathname();
   const serviceOptions: ServiceOptions = { dataSource, connectBaseUrl };
-  const retryProfileLoad = () => {
-    setProfileError(null);
-    setProfileLoadState("idle");
+  const retryAddressLoad = () => {
+    setAddressError(null);
+    setAddressLoadState("idle");
+  };
+  const retryQrLoad = () => {
+    setQrError(null);
+    setQrLoadState("idle");
   };
 
   useEffect(() => {
@@ -171,29 +182,53 @@ export function ProfileDialogsProvider({
   }, []);
 
   useEffect(() => {
-    if (profileLoadState !== "idle" || (!addressOpen && !qrOpen)) {
+    if (addressLoadState !== "idle" || !addressOpen) {
       return;
     }
 
     let cancelled = false;
-    void getProfileOverview({ dataSource, connectBaseUrl })
-      .then((nextOverview) => {
+    void listAddresses({ dataSource, connectBaseUrl })
+      .then((nextAddresses) => {
         if (cancelled) return;
-        setAddresses(nextOverview.addresses);
-        setQrCodes(nextOverview.paymentQrCodes);
-        setProfileError(null);
-        setProfileLoadState("ready");
+        setAddresses(nextAddresses);
+        setAddressError(null);
+        setAddressLoadState("ready");
       })
       .catch(() => {
         if (cancelled) return;
-        setProfileError("资料管理暂不可用，请稍后再试");
-        setProfileLoadState("error");
+        setAddressError("地址簿暂不可用，请稍后再试");
+        setAddressLoadState("error");
       });
 
     return () => {
       cancelled = true;
     };
-  }, [addressOpen, connectBaseUrl, dataSource, profileLoadState, qrOpen]);
+  }, [addressOpen, connectBaseUrl, dataSource, addressLoadState]);
+
+  useEffect(() => {
+    if (qrLoadState !== "idle" || !qrOpen) {
+      return;
+    }
+
+    let cancelled = false;
+    // The backend resolves the owner from the session; no profile lookup is needed.
+    void listPaymentQrCodes({ dataSource, connectBaseUrl })
+      .then((nextQrCodes) => {
+        if (cancelled) return;
+        setQrCodes(nextQrCodes);
+        setQrError(null);
+        setQrLoadState("ready");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setQrError("收款码暂不可用，请稍后再试");
+        setQrLoadState("error");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [connectBaseUrl, dataSource, qrLoadState, qrOpen]);
 
   useEffect(() => {
     let timeoutId: number | null = null;
@@ -238,6 +273,7 @@ export function ProfileDialogsProvider({
     dialog: "address" | "payment-preference" | "qr-code",
     setOpen: (open: boolean) => void,
   ) {
+    setMutationError(null);
     setOpen(open);
 
     if (open) {
@@ -297,24 +333,27 @@ export function ProfileDialogsProvider({
   }
 
   function openAddressForm(mode: "add" | "edit", address?: Address) {
+    setMutationError(null);
     setAddressOpen(false);
     setAddressForm({ open: true, mode, address });
   }
 
   function returnToAddressBook() {
+    setMutationError(null);
     setAddressForm((current) => ({ ...current, open: false }));
     setDeleteConfirm({ open: false });
     setAddressOpen(true);
   }
 
   function openDeleteConfirm(id: string) {
+    setMutationError(null);
     setAddressOpen(false);
     setAddressForm((current) => ({ ...current, open: false }));
     setDeleteConfirm({ open: true, id });
   }
 
   async function upsertAddress(input: AddressInput, id?: string) {
-    await runMutation(
+    return runMutation(
       id ? `address-edit-${id}` : "address-add",
       async () => {
         const savedAddress = id
@@ -415,7 +454,7 @@ export function ProfileDialogsProvider({
           updateDialogOpen(open, "address", setAddressOpen)
         }
       >
-        <ResponsiveDialogContent className="max-h-[86dvh] overflow-hidden px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-lg">
+        <ResponsiveDialogContent className="max-h-[86dvh] overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-lg">
           <div className="mx-auto flex max-h-[calc(86dvh-2rem)] min-h-0 w-full max-w-md flex-col gap-4">
             <ResponsiveDialogHeader className="px-0 text-left">
               <ResponsiveDialogTitle className="text-lg">
@@ -433,12 +472,13 @@ export function ProfileDialogsProvider({
             ) : null}
 
             <div className="app-scrollbar -mx-4 min-h-0 flex-1 overflow-y-auto px-4">
-              {profileLoadState === "idle" ? (
+              {addressLoadState === "idle" ? (
                 <ProfileDrawerLoading />
-              ) : profileLoadState === "error" ? (
+              ) : addressLoadState === "error" ? (
                 <ProfileLoadError
-                  message={profileError}
-                  onRetry={retryProfileLoad}
+                  title="地址簿加载失败"
+                  message={addressError}
+                  onRetry={retryAddressLoad}
                 />
               ) : (
                 <AddressList
@@ -455,7 +495,7 @@ export function ProfileDialogsProvider({
                 type="button"
                 className="min-h-11 flex-1"
                 disabled={
-                  profileLoadState !== "ready" ||
+                  addressLoadState !== "ready" ||
                   pendingAction === "address-add"
                 }
                 onClick={() => openAddressForm("add")}
@@ -472,6 +512,7 @@ export function ProfileDialogsProvider({
         open={addressForm.open}
         mode={addressForm.mode}
         address={addressForm.address}
+        error={mutationError}
         onOpenChange={(open) => {
           if (open) {
             setAddressForm((current) => ({ ...current, open: true }));
@@ -505,19 +546,24 @@ export function ProfileDialogsProvider({
           }
         }}
       >
-        <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+        <ResponsiveDialogContent className="overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>删除地址</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
               删除后，这个收货地址不会再出现在地址簿中。
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
+          {mutationError ? (
+            <p role="alert" className="text-sm text-destructive">
+              {mutationError}
+            </p>
+          ) : null}
           <ResponsiveDialogFooter>
             <Button
               type="button"
               variant="outline"
               className="min-h-11 flex-1"
-              onClick={() => setDeleteConfirm({ open: false })}
+              onClick={returnToAddressBook}
             >
               取消
             </Button>
@@ -547,7 +593,7 @@ export function ProfileDialogsProvider({
         open={qrOpen}
         onOpenChange={(open) => updateDialogOpen(open, "qr-code", setQrOpen)}
       >
-        <ResponsiveDialogContent className="max-h-[86dvh] overflow-hidden px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-md">
+        <ResponsiveDialogContent className="max-h-[86dvh] overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-md">
           <div className="mx-auto flex max-h-[calc(86dvh-2rem)] w-full max-w-md flex-col gap-4 overflow-y-auto">
             <ResponsiveDialogHeader className="px-0 text-left">
               <ResponsiveDialogTitle className="text-lg">
@@ -564,12 +610,13 @@ export function ProfileDialogsProvider({
               </p>
             ) : null}
 
-            {profileLoadState === "idle" ? (
+            {qrLoadState === "idle" ? (
               <ProfileDrawerLoading />
-            ) : profileLoadState === "error" ? (
+            ) : qrLoadState === "error" ? (
               <ProfileLoadError
-                message={profileError}
-                onRetry={retryProfileLoad}
+                title="收款码加载失败"
+                message={qrError}
+                onRetry={retryQrLoad}
               />
             ) : (
               <QrCodeList
@@ -589,7 +636,7 @@ export function ProfileDialogsProvider({
           updateDialogOpen(open, "payment-preference", setPaymentPreferenceOpen)
         }
       >
-        <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-md">
+        <ResponsiveDialogContent className="overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-md">
           <div className="mx-auto flex w-full max-w-md flex-col gap-4">
             <ResponsiveDialogHeader className="px-0 text-left">
               <ResponsiveDialogTitle className="text-lg">
@@ -612,17 +659,19 @@ export function ProfileDialogsProvider({
 }
 
 function ProfileLoadError({
+  title,
   message,
   onRetry,
 }: {
+  title: string;
   message: string | null;
   onRetry: () => void;
 }) {
   return (
     <LoadFailure
       variant="compact"
-      title="资料加载失败"
-      description={message ?? "资料管理暂不可用，请稍后再试"}
+      title={title}
+      description={message ?? "暂时无法加载，请稍后再试"}
       onRetry={onRetry}
     />
   );
@@ -652,7 +701,10 @@ function AddressList({
 
   if (addresses.length === 0) {
     return (
-      <Empty icon={<RiMapPinLine className="size-5" />} title="暂无收货地址" />
+      <Empty
+        illustration={<BrandIllustration name="address" size={96} />}
+        title="暂无收货地址"
+      />
     );
   }
 
@@ -790,7 +842,7 @@ function SwipeableAddressItem({
         <Button
           type="button"
           variant="destructive"
-          size="icon-lg"
+          size="icon-touch"
           className="rounded-full"
           tabIndex={open ? 0 : -1}
           onClick={onDelete}
@@ -860,6 +912,7 @@ function AddressFormDialog({
   open,
   mode,
   address,
+  error,
   onOpenChange,
   onSave,
   onDelete,
@@ -867,15 +920,16 @@ function AddressFormDialog({
   open: boolean;
   mode: "add" | "edit";
   address?: Address;
+  error: string | null;
   onOpenChange: (open: boolean) => void;
-  onSave: (input: AddressInput) => Promise<void>;
+  onSave: (input: AddressInput) => Promise<boolean>;
   onDelete?: () => void;
 }) {
   return (
     <ResponsiveDialog forceDrawer open={open} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent className="max-h-[86dvh] overflow-hidden px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-lg">
-        <div className="mx-auto max-h-[calc(86dvh-2rem)] w-full max-w-md overflow-y-auto">
-          <ResponsiveDialogHeader className="px-0 text-left">
+      <ResponsiveDialogContent className="max-h-[86dvh] overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-lg">
+        <div className="mx-auto flex max-h-[calc(86dvh-2rem)] min-h-0 w-full max-w-md flex-col">
+          <ResponsiveDialogHeader className="shrink-0 px-0 text-left">
             <ResponsiveDialogTitle className="text-xl">
               {mode === "add" ? "添加地址" : "编辑地址"}
             </ResponsiveDialogTitle>
@@ -886,6 +940,7 @@ function AddressFormDialog({
           <AddressForm
             key={open ? `${mode}-${address?.id ?? "new"}` : "closed"}
             address={address}
+            error={error}
             onCancel={() => onOpenChange(false)}
             onSave={onSave}
             onDelete={onDelete}
@@ -898,13 +953,15 @@ function AddressFormDialog({
 
 function AddressForm({
   address,
+  error,
   onCancel,
   onSave,
   onDelete,
 }: {
   address?: Address;
+  error: string | null;
   onCancel: () => void;
-  onSave: (input: AddressInput) => Promise<void>;
+  onSave: (input: AddressInput) => Promise<boolean>;
   onDelete?: () => void;
 }) {
   const [form, setForm] = useState<AddressInput>(() => ({
@@ -917,15 +974,18 @@ function AddressForm({
     isDefault: address?.isDefault ?? false,
   }));
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<AddressFieldErrors>({});
   const provinceOptions = getProvinceOptions();
   const cityOptions = getCityOptions(form.province);
   const districtOptions = getDistrictOptions(form.province, form.city);
 
   function updateField(field: keyof AddressInput, value: string | boolean) {
     setForm((current) => ({ ...current, [field]: value }));
+    setFieldErrors((current) => ({ ...current, [field]: undefined }));
   }
 
   function updateProvince(province: string) {
+    setFieldErrors((current) => ({ ...current, province: undefined }));
     setForm((current) => {
       const nextCityOptions = getCityOptions(province);
       const city = nextCityOptions.some(
@@ -947,6 +1007,7 @@ function AddressForm({
   }
 
   function updateCity(city: string) {
+    setFieldErrors((current) => ({ ...current, city: undefined }));
     setForm((current) => {
       const nextDistrictOptions = getDistrictOptions(current.province, city);
       const district = nextDistrictOptions.some(
@@ -959,116 +1020,186 @@ function AddressForm({
     });
   }
 
+  async function saveAddress() {
+    const errors = validateAddressFields(form);
+    setFieldErrors(errors);
+    const firstInvalidField = addressFields.find((field) => errors[field]);
+    if (firstInvalidField) {
+      document.getElementById(firstInvalidField)?.focus();
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await onSave(form);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
-    <>
-      <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="收货人" htmlFor="recipientName">
-            <Input
-              id="recipientName"
-              value={form.recipientName}
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="app-scrollbar -mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2">
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Field
+              label="收货人"
+              htmlFor="recipientName"
+              error={fieldErrors.recipientName}
+            >
+              <Input
+                id="recipientName"
+                aria-invalid={Boolean(fieldErrors.recipientName)}
+                aria-describedby={
+                  fieldErrors.recipientName ? "recipientName-error" : undefined
+                }
+                value={form.recipientName}
+                onChange={(event) =>
+                  updateField("recipientName", event.target.value)
+                }
+              />
+            </Field>
+            <Field
+              label="联系电话"
+              htmlFor="recipientPhone"
+              error={fieldErrors.recipientPhone}
+            >
+              <Input
+                id="recipientPhone"
+                aria-invalid={Boolean(fieldErrors.recipientPhone)}
+                aria-describedby={
+                  fieldErrors.recipientPhone
+                    ? "recipientPhone-error"
+                    : undefined
+                }
+                inputMode="tel"
+                value={form.recipientPhone}
+                onChange={(event) =>
+                  updateField("recipientPhone", event.target.value)
+                }
+              />
+            </Field>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="省" htmlFor="province" error={fieldErrors.province}>
+              <Select value={form.province} onValueChange={updateProvince}>
+                <SelectTrigger
+                  id="province"
+                  aria-invalid={Boolean(fieldErrors.province)}
+                  aria-describedby={
+                    fieldErrors.province ? "province-error" : undefined
+                  }
+                >
+                  <SelectValue placeholder="选择省" />
+                </SelectTrigger>
+                <SelectContent>
+                  {provinceOptions.map((option) => (
+                    <SelectItem key={option.code} value={option.label}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="城市" htmlFor="city" error={fieldErrors.city}>
+              <Select
+                value={form.city}
+                onValueChange={updateCity}
+                disabled={!form.province}
+              >
+                <SelectTrigger
+                  id="city"
+                  aria-invalid={Boolean(fieldErrors.city)}
+                  aria-describedby={fieldErrors.city ? "city-error" : undefined}
+                >
+                  <SelectValue placeholder="选择市" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cityOptions.map((option) => (
+                    <SelectItem key={option.code} value={option.label}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field
+              label="区/县"
+              htmlFor="district"
+              error={fieldErrors.district}
+            >
+              <Select
+                value={form.district}
+                onValueChange={(district) => updateField("district", district)}
+                disabled={!form.city}
+              >
+                <SelectTrigger
+                  id="district"
+                  aria-invalid={Boolean(fieldErrors.district)}
+                  aria-describedby={
+                    fieldErrors.district ? "district-error" : undefined
+                  }
+                >
+                  <SelectValue placeholder="选择区" />
+                </SelectTrigger>
+                <SelectContent>
+                  {districtOptions.map((option) => (
+                    <SelectItem key={option.code} value={option.label}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+          <Field
+            label="详细地址"
+            htmlFor="detailAddress"
+            error={fieldErrors.detailAddress}
+          >
+            <Textarea
+              id="detailAddress"
+              aria-invalid={Boolean(fieldErrors.detailAddress)}
+              aria-describedby={
+                fieldErrors.detailAddress ? "detailAddress-error" : undefined
+              }
+              value={form.detailAddress}
               onChange={(event) =>
-                updateField("recipientName", event.target.value)
+                updateField("detailAddress", event.target.value)
               }
             />
           </Field>
-          <Field label="联系电话" htmlFor="recipientPhone">
-            <Input
-              id="recipientPhone"
-              inputMode="tel"
-              value={form.recipientPhone}
-              onChange={(event) =>
-                updateField("recipientPhone", event.target.value)
-              }
-            />
-          </Field>
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-          <Field label="省" htmlFor="province">
-            <Select value={form.province} onValueChange={updateProvince}>
-              <SelectTrigger id="province">
-                <SelectValue placeholder="选择省" />
-              </SelectTrigger>
-              <SelectContent>
-                {provinceOptions.map((option) => (
-                  <SelectItem key={option.code} value={option.label}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field label="城市" htmlFor="city">
-            <Select
-              value={form.city}
-              onValueChange={updateCity}
-              disabled={!form.province}
-            >
-              <SelectTrigger id="city">
-                <SelectValue placeholder="选择市" />
-              </SelectTrigger>
-              <SelectContent>
-                {cityOptions.map((option) => (
-                  <SelectItem key={option.code} value={option.label}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field label="区/县" htmlFor="district">
-            <Select
-              value={form.district}
-              onValueChange={(district) => updateField("district", district)}
-              disabled={!form.city}
-            >
-              <SelectTrigger id="district">
-                <SelectValue placeholder="选择区" />
-              </SelectTrigger>
-              <SelectContent>
-                {districtOptions.map((option) => (
-                  <SelectItem key={option.code} value={option.label}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-        </div>
-        <Field label="详细地址" htmlFor="detailAddress">
-          <Textarea
-            id="detailAddress"
-            value={form.detailAddress}
-            onChange={(event) =>
-              updateField("detailAddress", event.target.value)
-            }
-          />
-        </Field>
-        <div className="flex min-h-9 items-center justify-between gap-3">
-          {onDelete ? (
-            <Button
-              type="button"
-              variant="ghost"
-              className="h-auto px-0 py-1 text-destructive hover:bg-transparent hover:text-destructive/80"
-              onClick={onDelete}
-            >
-              <RiDeleteBinLine data-icon="inline-start" />
-              删除地址
-            </Button>
-          ) : (
-            <span />
-          )}
-          <div className="flex items-center gap-2">
-            <Switch
-              id="isDefault"
-              checked={form.isDefault}
-              onCheckedChange={(checked) => updateField("isDefault", checked)}
-            />
-            <Label htmlFor="isDefault">设为默认地址</Label>
+          <div className="flex min-h-9 items-center justify-between gap-3">
+            {onDelete ? (
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-11 px-0 text-destructive hover:bg-transparent hover:text-destructive/80"
+                onClick={onDelete}
+              >
+                <RiDeleteBinLine data-icon="inline-start" />
+                删除地址
+              </Button>
+            ) : (
+              <span />
+            )}
+            <div className="flex items-center gap-2">
+              <Switch
+                id="isDefault"
+                checked={form.isDefault}
+                onCheckedChange={(checked) => updateField("isDefault", checked)}
+              />
+              <Label htmlFor="isDefault">设为默认地址</Label>
+            </div>
           </div>
         </div>
       </div>
-      <ResponsiveDialogFooter>
+      {error ? (
+        <p role="alert" className="shrink-0 text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
+      <ResponsiveDialogFooter className="shrink-0 border-t bg-card pt-3">
         <Button
           type="button"
           variant="outline"
@@ -1081,16 +1212,12 @@ function AddressForm({
           type="button"
           className="min-h-11 flex-1"
           disabled={saving}
-          onClick={async () => {
-            setSaving(true);
-            await onSave(form);
-            setSaving(false);
-          }}
+          onClick={() => void saveAddress()}
         >
           {saving ? "保存中" : "保存"}
         </Button>
       </ResponsiveDialogFooter>
-    </>
+    </div>
   );
 }
 
@@ -1335,18 +1462,46 @@ function PaymentPreferenceChoices({
 function Field({
   label,
   htmlFor,
+  error,
   children,
 }: {
   label: string;
   htmlFor: string;
+  error?: string;
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor={htmlFor}>{label}</Label>
+    <UiField data-invalid={Boolean(error)} className="gap-2">
+      <FieldLabel htmlFor={htmlFor}>{label}</FieldLabel>
       {children}
-    </div>
+      <FieldError id={`${htmlFor}-error`}>{error}</FieldError>
+    </UiField>
   );
+}
+
+type AddressField = Exclude<keyof AddressInput, "isDefault">;
+type AddressFieldErrors = Partial<Record<AddressField, string>>;
+
+const addressFields: AddressField[] = [
+  "recipientName",
+  "recipientPhone",
+  "province",
+  "city",
+  "district",
+  "detailAddress",
+];
+
+function validateAddressFields(address: AddressInput): AddressFieldErrors {
+  return {
+    recipientName: address.recipientName.trim() ? undefined : "请输入收货人",
+    recipientPhone: /^1[3-9]\d{9}$/.test(address.recipientPhone)
+      ? undefined
+      : "请输入正确的手机号",
+    province: address.province ? undefined : "请选择省份",
+    city: address.city ? undefined : "请选择城市",
+    district: address.district ? undefined : "请选择区县",
+    detailAddress: address.detailAddress.trim() ? undefined : "请输入详细地址",
+  };
 }
 
 function getDialogFromLocation() {

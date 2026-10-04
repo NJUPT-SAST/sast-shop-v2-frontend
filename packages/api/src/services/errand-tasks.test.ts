@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import { FeatureUnavailableError, ValidationError } from "../errors";
+import type { SaveShoppingItemResult } from "../index";
 import {
   cancelTask,
   getCollectingPaymentDetail,
@@ -290,7 +291,7 @@ describe("captain task detail facades", () => {
             requiredQuantity: 12,
             purchasedQuantity: -1,
             actualUnitPriceCents: 200,
-            updatedAt: "2026-07-18T02:00:00Z",
+            updatedAt: "2026-07-18T02:00:00.123456789Z",
           },
           {
             id: "7102",
@@ -322,7 +323,7 @@ describe("captain task detail facades", () => {
           purchasedQuantity: null,
           nonPurchaseReason: null,
           actualUnitPriceCents: 200,
-          updatedAt: "2026-07-18T02:00:00.000Z",
+          updatedAt: "2026-07-18T02:00:00.123456789Z",
           deadline: null,
         },
         {
@@ -631,7 +632,7 @@ describe("captain task detail facades", () => {
     const fetchMock = vi.fn(async () => stubJsonResponse({}));
     vi.stubGlobal("fetch", fetchMock);
 
-    await saveShoppingTaskItem(
+    const result = await saveShoppingTaskItem(
       {
         errandTaskId: "7001",
         errandTaskItemId: "7101",
@@ -641,6 +642,8 @@ describe("captain task detail facades", () => {
       localOptions,
     );
 
+    expect(result).toEqual({ itemUpdatedAt: null });
+
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/SaveShoppingTaskItem",
       body: {
@@ -648,6 +651,56 @@ describe("captain task detail facades", () => {
         errandTaskItemId: "7101",
         purchasedQuantity: 8,
         errandTaskItemUpdatedAt: "2026-07-18T02:00:00Z",
+      },
+    });
+  });
+
+  it("returns a nanosecond purchase version for the next quantity update", async () => {
+    expectTypeOf<
+      Awaited<ReturnType<typeof saveShoppingTaskItem>>
+    >().toEqualTypeOf<SaveShoppingItemResult>();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        stubJsonResponse({
+          errandTaskItemUpdatedAt: "2026-07-18T02:00:00.123456789Z",
+        }),
+      )
+      .mockResolvedValueOnce(stubJsonResponse({}));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const saved = await saveShoppingTaskItem(
+      {
+        errandTaskId: "7001",
+        errandTaskItemId: "7101",
+        purchasedQuantity: 8,
+        itemUpdatedAt: "2026-07-18T02:00:00Z",
+      },
+      localOptions,
+    );
+
+    expect(saved).toEqual({
+      itemUpdatedAt: "2026-07-18T02:00:00.123456789Z",
+    });
+
+    await saveShoppingTaskItem(
+      {
+        errandTaskId: "7001",
+        errandTaskItemId: "7101",
+        purchasedQuantity: 0,
+        nonPurchaseReason: "缺货",
+        itemUpdatedAt: saved.itemUpdatedAt,
+      },
+      localOptions,
+    );
+
+    await expectConnectRequestAt(fetchMock, 1, {
+      path: "/sast.sastshopv2.errand.v1.ErrandTaskService/SaveShoppingTaskItem",
+      body: {
+        errandTaskId: "7001",
+        errandTaskItemId: "7101",
+        nonPurchaseReason: "缺货",
+        errandTaskItemUpdatedAt: "2026-07-18T02:00:00.123456789Z",
       },
     });
   });

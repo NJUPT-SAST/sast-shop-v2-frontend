@@ -1,45 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useRef, type MouseEvent } from "react";
-import {
-  RiAddLine,
-  RiFileList3Line,
-  RiGroupLine,
-  RiKeyboardBoxLine,
-  RiQrScan2Line,
-  RiUser3Line,
-} from "@remixicon/react";
-import { Button } from "@workspace/ui/components/button";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@workspace/ui/components/drawer";
 import { SastShopMark } from "@workspace/ui/components/sast-shop-mark";
+import {
+  SastGroupMark,
+  SastOrdersMark,
+  SastProfileMark,
+} from "@workspace/ui/components/sast-module-marks";
 import { cn } from "@workspace/ui/lib/utils";
-import { useFeishuUiEnvironment } from "@/hooks/use-feishu-ui-environment";
 import { useMobileScroll } from "./mobile-scroll-context";
+import { MobilePublishEntry } from "./mobile-publish-entry";
 
 const navItems = [
   { label: "商城", href: "/shop", icon: SastShopMark },
-  { label: "团购", href: "/group", icon: RiGroupLine },
-  { label: "订单", href: "/orders", icon: RiFileList3Line },
-  { label: "我的", href: "/profile", icon: RiUser3Line },
+  { label: "团购", href: "/group", icon: SastGroupMark },
+  { label: "订单", href: "/orders", icon: SastOrdersMark },
+  { label: "我的", href: "/profile", icon: SastProfileMark },
 ] as const;
 
 const NAV_CLICK_DEBOUNCE_MS = 350;
 
 export function MobileBottomNav() {
   const pathname = usePathname();
-  const router = useRouter();
   const lastCurrentRoutePressAtRef = useRef(0);
-  const showFeishuEntry = useFeishuUiEnvironment();
   const { handleCurrentRoutePress, scrollToTop } = useMobileScroll();
 
   function handleNavClick(
@@ -74,51 +59,7 @@ export function MobileBottomNav() {
           />
         ))}
 
-        {showFeishuEntry ? (
-          <Drawer>
-            <DrawerTrigger asChild>
-              <PublishTriggerButton />
-            </DrawerTrigger>
-            <DrawerContent>
-              <DrawerHeader>
-                <DrawerTitle>上架现货</DrawerTitle>
-                <DrawerDescription className="sr-only">
-                  选择商品条码录入方式
-                </DrawerDescription>
-              </DrawerHeader>
-              <div className="grid grid-cols-2 gap-3 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-                <DrawerClose asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="lg"
-                    className="h-24 flex-col gap-2 rounded-xl bg-card shadow-sm"
-                    onClick={() => router.push("/publish/spot?entry=manual")}
-                  >
-                    <RiKeyboardBoxLine />
-                    手动输入
-                  </Button>
-                </DrawerClose>
-                <DrawerClose asChild>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="lg"
-                    className="h-24 flex-col gap-2 rounded-xl border border-primary/20 bg-primary/10 text-primary shadow-sm hover:bg-primary/15"
-                    onClick={() => router.push("/publish/spot?entry=scan")}
-                  >
-                    <RiQrScan2Line />
-                    扫码录入
-                  </Button>
-                </DrawerClose>
-              </div>
-            </DrawerContent>
-          </Drawer>
-        ) : (
-          <PublishTriggerButton
-            onClick={() => router.push("/publish/spot?entry=manual")}
-          />
-        )}
+        <MobilePublishEntry />
 
         {navItems.slice(2).map((item) => (
           <NavLink
@@ -130,20 +71,6 @@ export function MobileBottomNav() {
         ))}
       </div>
     </nav>
-  );
-}
-
-function PublishTriggerButton({ onClick }: { onClick?: () => void }) {
-  return (
-    <Button
-      type="button"
-      size="icon-touch"
-      className="-mt-8 size-14 rounded-full shadow-xl shadow-foreground/15 ring-1 ring-border/60"
-      aria-label="上架现货"
-      onClick={onClick}
-    >
-      <RiAddLine className="size-6" />
-    </Button>
   );
 }
 

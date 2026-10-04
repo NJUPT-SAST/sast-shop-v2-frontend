@@ -11,8 +11,8 @@ export default function GroupShopNotFound() {
         title="没有找到这个店铺"
         description="店铺可能已被移除，或链接中的编号无效。"
         action={
-          <Button asChild>
-            <Link href="/shop">返回商城</Link>
+          <Button asChild size="touch">
+            <Link href="/group">返回团购</Link>
           </Button>
         }
       />

@@ -5,6 +5,7 @@ import type { ErrandTaskBrief } from "@sast-shop/api";
 import {
   buildErrandTaskPaymentHref,
   getActiveErrandTasks,
+  getGroupTaskPreview,
   resolveErrandTaskPage,
   resolveErrandTaskRoute,
 } from "./errand-task-route";
@@ -104,6 +105,32 @@ describe("getActiveErrandTasks", () => {
         invalidDate,
       ]).map((task) => task.id),
     ).toEqual(["8003", "8001", "8002"]);
+  });
+});
+
+describe("getGroupTaskPreview", () => {
+  it("shows active tasks even when terminal tasks are newer and removes repeated mock results", () => {
+    const active = createTask("7001", "shopping");
+    const payment = createTask("7004", "collecting_payment");
+    const terminal = createTask("7006", "cancelled");
+
+    expect(
+      getGroupTaskPreview([terminal, terminal, payment, active, payment]).map(
+        (task) => task.id,
+      ),
+    ).toEqual(["7004", "7001"]);
+  });
+
+  it("uses descending task id when creation times match", () => {
+    const earlierId = createTask("7001", "shopping");
+    const laterId = {
+      ...createTask("7002", "distributing"),
+      createdAt: earlierId.createdAt,
+    };
+
+    expect(
+      getGroupTaskPreview([earlierId, laterId]).map((task) => task.id),
+    ).toEqual(["7002", "7001"]);
   });
 });
 

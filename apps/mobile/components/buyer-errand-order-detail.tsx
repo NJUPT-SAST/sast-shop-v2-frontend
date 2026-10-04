@@ -43,6 +43,7 @@ import { Separator } from "@workspace/ui/components/separator";
 
 import {
   buildBuyerErrandOrderTimeline,
+  getBuyerErrandOrderAmountBreakdown,
   reconcileBuyerErrandOrderUpdate,
   resolveBuyerErrandPaymentState,
 } from "@/lib/buyer-errand-order-detail";
@@ -72,6 +73,10 @@ export function BuyerErrandOrderDetailView({
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [supplementOpen, setSupplementOpen] = useState(false);
+  const [unverifiedPaymentBillVersion, setUnverifiedPaymentBillVersion] =
+    useState<string | null>(null);
+  const [unverifiedSupplementBillVersion, setUnverifiedSupplementBillVersion] =
+    useState<string | null>(null);
   const resolvedOrder = reconcileBuyerErrandOrderUpdate(currentOrder, order);
   const bill = resolvedOrder.bill;
   const paymentState = resolveBuyerErrandPaymentState(
@@ -79,8 +84,23 @@ export function BuyerErrandOrderDetailView({
     bill,
   );
   const payableBill = isPayablePaymentBill(bill) ? bill : null;
+  const paymentBillVersion = bill?.updatedAt
+    ? `${bill.id}:${bill.updatedAt}`
+    : null;
+  const paymentVersionUnverified =
+    paymentBillVersion !== null &&
+    paymentBillVersion === unverifiedPaymentBillVersion;
+  const supplementBillVersion = bill?.updatedAt
+    ? `${bill.id}:${bill.updatedAt}`
+    : null;
+  const supplementVersionUnverified =
+    supplementBillVersion !== null &&
+    supplementBillVersion === unverifiedSupplementBillVersion;
   const canSupplementSerialNumber = Boolean(
-    paymentState === "submitted" && bill?.updatedAt && !bill.serialNumber,
+    paymentState === "submitted" &&
+    bill?.updatedAt &&
+    !bill.serialNumber &&
+    !supplementVersionUnverified,
   );
   const feishuUiEnvironment = useFeishuUiEnvironment();
   const contactAction = resolveOrderContactAction({
@@ -91,7 +111,7 @@ export function BuyerErrandOrderDetailView({
   const canContactCaptain = Boolean(contactAction);
   const showActionBar =
     canContactCaptain ||
-    (paymentState === "payable" && payableBill) ||
+    (paymentState === "payable" && payableBill && !paymentVersionUnverified) ||
     canSupplementSerialNumber;
 
   function updateBill(updatedBill: PaymentBill) {
@@ -101,9 +121,7 @@ export function BuyerErrandOrderDetailView({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <div
-        className={`flex min-w-0 flex-1 flex-col gap-4 py-4 ${showActionBar ? "pb-24" : ""}`}
-      >
+      <div className="flex min-w-0 flex-1 flex-col gap-2 py-3">
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-lg font-semibold">跑腿订单详情</h1>
@@ -117,7 +135,11 @@ export function BuyerErrandOrderDetailView({
               <span className="shrink-0 font-mono tabular-nums">
                 {resolvedOrder.id}
               </span>
-              <CopyButton value={String(resolvedOrder.id)} label="订单号" />
+              <CopyButton
+                value={String(resolvedOrder.id)}
+                label="订单号"
+                compact
+              />
             </div>
           </div>
           <Badge variant={getStatusBadgeVariant(resolvedOrder.status)}>
@@ -139,6 +161,22 @@ export function BuyerErrandOrderDetailView({
         <ProductItemsCard items={resolvedOrder.productItems} />
         <AmountSummaryCard order={resolvedOrder} />
         {bill ? <BillCard bill={bill} /> : null}
+        {paymentVersionUnverified ? (
+          <Alert>
+            <AlertTitle>支付结果待确认</AlertTitle>
+            <AlertDescription>
+              请重新进入订单查看最新账单后再操作。
+            </AlertDescription>
+          </Alert>
+        ) : null}
+        {supplementVersionUnverified ? (
+          <Alert>
+            <AlertTitle>流水号状态待确认</AlertTitle>
+            <AlertDescription>
+              请重新进入订单查看最新账单后再操作。
+            </AlertDescription>
+          </Alert>
+        ) : null}
       </div>
 
       {showActionBar ? (
@@ -154,7 +192,9 @@ export function BuyerErrandOrderDetailView({
               className="shrink-0"
             />
           ) : null}
-          {paymentState === "payable" && payableBill ? (
+          {paymentState === "payable" &&
+          payableBill &&
+          !paymentVersionUnverified ? (
             <Button
               type="button"
               className="flex-1"
@@ -175,7 +215,9 @@ export function BuyerErrandOrderDetailView({
         </MobileFixedFooter>
       ) : null}
 
-      {paymentState === "payable" && payableBill ? (
+      {paymentState === "payable" &&
+      payableBill &&
+      !paymentVersionUnverified ? (
         <PaymentSection
           open={paymentOpen}
           onOpenChange={setPaymentOpen}
@@ -183,8 +225,18 @@ export function BuyerErrandOrderDetailView({
           dataSource={dataSource}
           connectBaseUrl={connectBaseUrl}
           onSuccess={(updatedBill) => {
+            setUnverifiedPaymentBillVersion(null);
             updateBill(updatedBill);
             setPaymentOpen(false);
+          }}
+          onBillRefresh={(latestBill) => {
+            if (latestBill) {
+              setUnverifiedPaymentBillVersion(null);
+              updateBill(latestBill);
+            } else {
+              setUnverifiedPaymentBillVersion(paymentBillVersion);
+              router.refresh();
+            }
           }}
         />
       ) : null}
@@ -197,7 +249,19 @@ export function BuyerErrandOrderDetailView({
           billUpdatedAt={bill.updatedAt}
           dataSource={dataSource}
           connectBaseUrl={connectBaseUrl}
-          onSuccess={updateBill}
+          onSuccess={(updatedBill) => {
+            setUnverifiedSupplementBillVersion(null);
+            updateBill(updatedBill);
+          }}
+          onBillRefresh={(latestBill) => {
+            if (latestBill) {
+              setUnverifiedSupplementBillVersion(null);
+              updateBill(latestBill);
+            } else {
+              setUnverifiedSupplementBillVersion(supplementBillVersion);
+              router.refresh();
+            }
+          }}
         />
       ) : null}
     </div>
@@ -265,10 +329,10 @@ function CaptainCard({ order }: { order: BuyerErrandOrderDetail }) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="p-3">
         <CardTitle>采购团长</CardTitle>
       </CardHeader>
-      <CardContent className="flex min-w-0 items-center gap-3">
+      <CardContent className="flex min-w-0 items-center gap-3 p-3 pt-0">
         <Avatar className="size-11">
           <AvatarImage src={order.captain.avatarUrl} alt={order.captain.name} />
           <AvatarFallback>
@@ -286,12 +350,12 @@ function CaptainCard({ order }: { order: BuyerErrandOrderDetail }) {
 function ProductItemsCard({ items }: { items: BuyerErrandOrderProductItem[] }) {
   return (
     <Card className="overflow-hidden">
-      <CardHeader>
+      <CardHeader className="p-3">
         <CardTitle>商品明细</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-col gap-3 p-3 pt-0">
         {items.map((item, index) => (
-          <div key={item.demandItemId} className="flex flex-col gap-3">
+          <div key={item.demandItemId} className="flex flex-col gap-2">
             {index > 0 ? <Separator /> : null}
             <ProductItem item={item} />
           </div>
@@ -306,7 +370,7 @@ function ProductItem({ item }: { item: BuyerErrandOrderProductItem }) {
   const hasPurchaseResult = item.purchasedQuantity !== null;
 
   return (
-    <div className="flex min-w-0 flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-2">
       <div className="flex min-w-0 gap-3">
         <ManagedImage
           src={item.productTemplate.mainImageUrl}
@@ -328,7 +392,7 @@ function ProductItem({ item }: { item: BuyerErrandOrderProductItem }) {
         </div>
       </div>
 
-      <dl className="grid grid-cols-3 gap-2 rounded-lg bg-muted p-3 text-center text-xs">
+      <dl className="grid grid-cols-3 gap-2 border-y py-2 text-center text-xs">
         <div>
           <dt className="text-muted-foreground">需求</dt>
           <dd className="mt-1 font-medium">{item.requiredQuantity} 件</dd>
@@ -368,38 +432,32 @@ function ProductItem({ item }: { item: BuyerErrandOrderProductItem }) {
 }
 
 function AmountSummaryCard({ order }: { order: BuyerErrandOrderDetail }) {
-  const productAmount =
-    order.totalActualAmountCents ?? order.totalOriginAmountCents;
-  const subtotal = productAmount + order.totalServiceFeeCents;
-  const packagingFee = order.bill
-    ? order.bill.amountCents - subtotal
-    : 0;
-  const total = order.bill ? order.bill.amountCents : subtotal;
+  const amount = getBuyerErrandOrderAmountBreakdown(order);
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="p-3">
         <CardTitle>金额汇总</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-3 pt-0">
         <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 text-sm">
           <dt className="text-muted-foreground">
             {order.totalActualAmountCents === null
               ? "预估商品金额"
               : "商品金额"}
           </dt>
-          <dd>{formatPrice(productAmount)}</dd>
+          <dd>{formatPrice(amount.productAmountCents)}</dd>
           <dt className="text-muted-foreground">跑腿费</dt>
-          <dd>{formatPrice(order.totalServiceFeeCents)}</dd>
-          {packagingFee > 0 ? (
+          <dd>{formatPrice(amount.serviceFeeCents)}</dd>
+          {amount.packagingShareCents > 0 ? (
             <>
               <dt className="text-muted-foreground">分摊包装费</dt>
-              <dd>{formatPrice(packagingFee)}</dd>
+              <dd>{formatPrice(amount.packagingShareCents)}</dd>
             </>
           ) : null}
           <dt className="pt-2 font-medium">合计</dt>
           <dd className="pt-2 text-base font-semibold text-primary">
-            {formatPrice(total)}
+            {formatPrice(amount.totalAmountCents)}
           </dd>
         </dl>
       </CardContent>
@@ -410,22 +468,26 @@ function AmountSummaryCard({ order }: { order: BuyerErrandOrderDetail }) {
 function BillCard({ bill }: { bill: PaymentBill }) {
   return (
     <Card>
-      <CardHeader className="flex-row items-start justify-between gap-3">
+      <CardHeader className="flex-row items-start justify-between gap-3 p-3">
         <div className="min-w-0 space-y-1.5">
           <CardTitle>支付账单</CardTitle>
           <div className="flex min-w-0 items-center gap-1">
             <CardDescription className="min-w-0 truncate font-mono tabular-nums">
               {bill.billNo || bill.id}
             </CardDescription>
-            <CopyButton value={bill.billNo || String(bill.id)} label="账单号" />
+            <CopyButton
+              value={bill.billNo || String(bill.id)}
+              label="账单号"
+              compact
+            />
           </div>
         </div>
         <Badge variant={getBillBadgeVariant(bill.status)}>
           {getBillStatusLabel(bill.status)}
         </Badge>
       </CardHeader>
-      <CardContent>
-        <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
+      <CardContent className="p-3 pt-0">
+        <dl className="grid auto-rows-[minmax(2rem,auto)] grid-cols-[5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 text-sm">
           {bill.payee?.name ? (
             <>
               <dt className="text-muted-foreground">收款人</dt>
@@ -437,7 +499,11 @@ function BillCard({ bill }: { bill: PaymentBill }) {
               <dt className="text-muted-foreground">付款标识码</dt>
               <dd className="flex min-w-0 items-center justify-end gap-1 font-mono font-semibold">
                 <span className="break-all text-right">{bill.verifyCode}</span>
-                <CopyButton value={bill.verifyCode} label="付款标识码" />
+                <CopyButton
+                  value={bill.verifyCode}
+                  label="付款标识码"
+                  compact
+                />
               </dd>
             </>
           ) : null}
@@ -497,7 +563,7 @@ function OrderTimelinePanel({
         }`}
       >
         <div className="min-h-0 overflow-hidden">
-          <div className="border-t px-3 pt-3">
+          <div className="border-t px-3 pt-2">
             {timeline.length === 0 ? (
               <Alert className="mb-3">
                 <RiFileList3Line />
@@ -522,7 +588,7 @@ function OrderTimelinePanel({
                       <span className="min-h-8 w-px flex-1 bg-border" />
                     ) : null}
                   </div>
-                  <div className="min-w-0 pb-4">
+                  <div className="min-w-0 pb-3">
                     <p className="font-medium">{item.label}</p>
                     <p className="mt-1 text-sm text-muted-foreground tabular-nums">
                       {formatDateTime(item.timestamp)}

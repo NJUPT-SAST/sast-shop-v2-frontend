@@ -1,15 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
-import {
-  RiArrowRightSLine,
-  RiQuestionLine,
-  RiMapPinLine,
-  RiQrCodeLine,
-  RiWallet3Line,
-} from "@remixicon/react";
+import { RiArrowRightSLine } from "@remixicon/react";
 import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
+import { BrandIllustration } from "./brand-illustration";
 import { useProfileDialogs } from "./profile-dialogs-provider";
 
 export function ProfileManagementClient({
@@ -24,20 +19,20 @@ export function ProfileManagementClient({
     <div className="overflow-hidden rounded-xl border bg-card">
       <ProfileMenuButton
         title="地址簿"
-        icon={<RiMapPinLine className="size-4" />}
+        icon={<BrandIllustration name="address" size={40} />}
         onClick={openAddressDialog}
         border
         first
       />
       <ProfileMenuButton
         title="收款码"
-        icon={<RiQrCodeLine className="size-4" />}
+        icon={<BrandIllustration name="collection" size={40} />}
         onClick={openQrCodeDialog}
         border
       />
       <ProfileMenuButton
         title="默认支付方式"
-        icon={<RiWallet3Line className="size-4" />}
+        icon={<BrandIllustration name="wallet" size={40} />}
         onClick={openPaymentPreferenceDialog}
         border={Boolean(feedbackFormUrl)}
         last={!feedbackFormUrl}
@@ -45,7 +40,7 @@ export function ProfileManagementClient({
       {feedbackFormUrl ? (
         <ProfileMenuLink
           title="帮助与反馈"
-          icon={<RiQuestionLine className="size-4" />}
+          icon={<BrandIllustration name="help" size={40} />}
           href={feedbackFormUrl}
         />
       ) : null}
@@ -66,11 +61,11 @@ function ProfileMenuLink({
     <Button
       variant="ghost"
       size="lg"
-      className="h-auto min-h-16 w-full justify-start gap-4 rounded-t-none rounded-b-xl px-4 py-3.5"
+      className="h-auto min-h-16 w-full justify-start gap-4 rounded-t-none rounded-b-xl px-4 py-3"
       asChild
     >
       <a href={href} target="_blank" rel="noopener noreferrer">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <span className="flex size-10 shrink-0 items-center justify-center">
           {icon}
         </span>
         <span className="flex-1 text-left font-medium">{title}</span>
@@ -101,14 +96,14 @@ function ProfileMenuButton({
       variant="ghost"
       size="lg"
       className={cn(
-        "h-auto min-h-16 w-full justify-start gap-4 px-4 py-3.5",
+        "h-auto min-h-16 w-full justify-start gap-4 px-4 py-3",
         first && "rounded-t-xl rounded-b-none",
         last && "rounded-t-none rounded-b-xl",
         border && "border-b",
       )}
       onClick={onClick}
     >
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+      <span className="flex size-10 shrink-0 items-center justify-center">
         {icon}
       </span>
       <span className="flex-1 text-left font-medium">{title}</span>

@@ -11,12 +11,15 @@ export default async function PublishSpotPage({
   const query: Record<string, string | string[] | undefined> =
     await (searchParams ?? Promise.resolve({}));
   const entry = firstValue(query.entry);
+  const barcode = firstValue(query.barcode) ?? "";
 
   return (
     <PublishSpotForm
+      key={`${entry}:${barcode}`}
       dataSource={mobileAppConfig.dataSource}
       connectBaseUrl={mobileAppConfig.connectBaseUrl}
       entry={entry === "scan" ? "scan" : "manual"}
+      initialBarcode={barcode}
     />
   );
 }

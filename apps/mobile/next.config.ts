@@ -11,6 +11,7 @@ const workspaceRoot = path.resolve(
 const securityHeaders = createSecurityHeaders({ allowCamera: true });
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   output: "standalone",
   outputFileTracingRoot: workspaceRoot,
   transpilePackages: ["@workspace/ui", "@sast-shop/api", "@sast-shop/domain"],

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { LoadFailure } from "#components/load-failure";
+import { cn } from "#lib/utils";
 
 export function InfiniteListStatus({
   hasMore,
@@ -11,6 +12,7 @@ export function InfiniteListStatus({
   onLoadMore,
   loadingFallback,
   endMessage = "已经到底了",
+  endMessageClassName,
 }: {
   hasMore: boolean;
   loading: boolean;
@@ -19,6 +21,7 @@ export function InfiniteListStatus({
   onLoadMore: () => void;
   loadingFallback: ReactNode;
   endMessage?: ReactNode;
+  endMessageClassName?: string;
 }) {
   const sentinelRef = useRef<HTMLDivElement>(null); //当哨兵进入视口 → 代表用户滚动接近底部 → 触发加载下一页。
 
@@ -72,7 +75,10 @@ export function InfiniteListStatus({
       ) : null}
       {!hasMore && hasItems && !loading ? (
         <p
-          className="text-center text-sm text-muted-foreground"
+          className={cn(
+            "text-center text-sm text-muted-foreground",
+            endMessageClassName,
+          )}
           aria-live="polite"
         >
           {endMessage}

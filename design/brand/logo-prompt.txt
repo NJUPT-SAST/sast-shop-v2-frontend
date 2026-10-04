@@ -1,0 +1,8 @@
+Use case: logo-brand.
+Asset type: final production app logo / favicon master for SAST Shop, square 1024 x 1024, transparent background.
+
+The two input images are STYLE REFERENCES only: the approved SAST Shop buyer and captain campaign posters. Derive a simple shopping-bag symbol from their friendly bag mascot, keeping the warm tactile character and single coral accent. Do not include any of their typography, posters, grocery props or UI cards.
+
+Create ONE centered, front-facing, memorable shopping-bag mark. A broad softly rounded bag body in Action Coral (#c9431f), with one thick rounded arched carrying handle in the same coral forming a clean transparent opening above the body. A tiny friendly face on the front: two cream dots and one broad cream smile. Simple rounded geometry, smooth matte clay finish, very shallow 3D bevel and soft self shading only. The overall silhouette must be bold and instantly recognizable at 16px and 32px, with a visibly open handle. Strong proportions: bag body about 72% of canvas width, total handle+body about 82% of canvas height. Balanced generous safe margins. The mark is softly dimensional but almost graphic, not a full character scene.
+
+No wordmark, no letters, no slogan, no arms, no legs, no tie, no grocery items, no gradient backdrop, no tile backdrop, no border frame, no cast shadow outside the object, no tiny decorative texture or seams, no paper shopping receipt. Exactly one logo, not a sheet of options or a presentation mockup. True transparent background including outside the mark and inside handle opening. Restrained cream face accents only; no second vivid color. Crisp clean alpha edges, clear shape suitable for tab icons and mobile app icons.

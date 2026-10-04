@@ -18,7 +18,7 @@ export default function PurchaseTaskError({ reset }: PurchaseTaskErrorProps) {
       description="网络或服务暂时不可用，请重试。已保存的采购结果不会受影响。"
       onRetry={reset}
       secondaryAction={
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" size="touch">
           <Link href="/orders?type=errand&view=captain">返回任务列表</Link>
         </Button>
       }

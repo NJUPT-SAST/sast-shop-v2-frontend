@@ -48,6 +48,7 @@ export function MobileScrollArea({
     thumbTop: 0,
   });
   const {
+    footerHeight,
     isRefreshing,
     pullDistance,
     registerViewport,
@@ -214,8 +215,9 @@ export function MobileScrollArea({
     <div
       className={cn(
         "relative mx-auto flex min-h-0 w-full max-w-5xl flex-1",
-        hasBottomNav && "mb-[calc(4rem+env(safe-area-inset-bottom))]",
+        hasBottomNav && "mb-[calc(4rem+1px+env(safe-area-inset-bottom))]",
       )}
+      style={footerHeight > 0 ? { marginBottom: footerHeight } : undefined}
     >
       {showRefreshIndicator ? (
         <div

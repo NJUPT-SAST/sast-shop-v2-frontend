@@ -1,17 +1,8 @@
 "use client";
 
-import { type PointerEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  RiArrowGoBackLine,
-  RiArrowLeftDoubleLine,
-  RiArrowRightDoubleLine,
-  RiArrowDownSLine,
-  RiArrowUpSLine,
-  RiCheckboxLine,
-  RiCloseCircleLine,
-  RiIndeterminateCircleLine,
-} from "@remixicon/react";
+import { RiArrowDownSLine, RiEditLine } from "@remixicon/react";
 import {
   cancelTask,
   getDistributingTaskDetail,
@@ -33,6 +24,11 @@ import {
 } from "@workspace/ui/components/avatar";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@workspace/ui/components/collapsible";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import {
@@ -50,10 +46,23 @@ import {
   ResponsiveDialogTitle,
 } from "@workspace/ui/components/responsive-dialog";
 import { toast } from "sonner";
+import { cn } from "@workspace/ui/lib/utils";
 
 import { ManagedImage } from "@/components/managed-image";
 import { MobileFixedFooter } from "@/components/mobile-fixed-footer";
+import { MobileHeaderActions } from "@/components/mobile-header-actions";
+import { getStatusBadgeVariant, getStatusLabel } from "@/lib/order-filters";
 import { buildErrandTaskPaymentHref } from "@/lib/errand-task-route";
+import {
+  compareUpdatedAt,
+  latestUpdatedAt,
+  mergeDistributingTaskItems,
+} from "@/lib/errand-recovery";
+import {
+  getDistributionQuantityAvailable,
+  isDistributionItemComplete,
+  isDistributionTaskComplete,
+} from "@/lib/distribution-progress";
 
 export type DistributingTaskViewProps = {
   dataSource: DataSource;
@@ -69,6 +78,7 @@ type DialogState =
       type: "partial_dist";
       item: DistributingTaskItem;
       requester: DistributingRequester;
+      maxQuantity: number;
       draft: string;
     }
   | { type: "confirm_start" }
@@ -82,17 +92,6 @@ function formatYuan(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
-function isItemFullyDistributed(item: DistributingTaskItem): boolean {
-  if (item.purchasedQuantity == null || item.purchasedQuantity === 0) {
-    return true; // 未采购，无需分发
-  }
-  const totalDistributed = item.requesters.reduce(
-    (s, r) => s + (r.distributedQuantity ?? 0),
-    0,
-  );
-  return totalDistributed >= item.purchasedQuantity;
-}
-
 export function DistributingTaskView({
   dataSource,
   connectBaseUrl,
@@ -101,11 +100,32 @@ export function DistributingTaskView({
 }: DistributingTaskViewProps) {
   const router = useRouter();
   const submittingRef = useRef(false);
+  const assigningRef = useRef(false);
   const [items, setItems] = useState<DistributingTaskItem[]>(detail.items);
   const [taskUpdatedAt, setTaskUpdatedAt] = useState(detail.taskUpdatedAt);
   useEffect(() => {
+    if (compareUpdatedAt(detail.taskUpdatedAt, taskUpdatedAt) >= 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setItems((current) =>
+        mergeDistributingTaskItems(
+          current,
+          detail.items,
+          compareUpdatedAt(detail.taskUpdatedAt, taskUpdatedAt) > 0,
+        ),
+      );
+    }
+  }, [detail.items, detail.taskUpdatedAt, taskUpdatedAt]);
+  const [unverifiedTaskVersion, setUnverifiedTaskVersion] = useState<
+    string | null | undefined
+  >();
+  const taskNeedsVerification =
+    unverifiedTaskVersion !== undefined &&
+    compareUpdatedAt(taskUpdatedAt, unverifiedTaskVersion) <= 0;
+  useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTaskUpdatedAt((current) => detail.taskUpdatedAt ?? current);
+    setTaskUpdatedAt((current) =>
+      latestUpdatedAt(current, detail.taskUpdatedAt),
+    );
   }, [detail.taskUpdatedAt]);
   const [packagingFee, setPackagingFee] = useState(
     formatYuan(detail.packagingFeeCents),
@@ -113,6 +133,7 @@ export function DistributingTaskView({
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<DialogState>({ type: "none" });
   const [submitting, setSubmitting] = useState(false);
+  const [savingPrice, setSavingPrice] = useState(false);
   const [assigningIds, setAssigningIds] = useState<Set<string>>(new Set());
 
   const serviceOptions = { dataSource, connectBaseUrl };
@@ -125,22 +146,9 @@ export function DistributingTaskView({
     (i) => i.actualUnitPriceCents != null,
   );
 
-  const undistributed = purchasedItems.filter(
-    (i) => !isItemFullyDistributed(i),
-  );
-  const distributed = purchasedItems.filter((i) => isItemFullyDistributed(i));
-  const allDistributed =
-    items.length > 0 &&
-    items.every((item) => {
-      if (item.purchasedQuantity == null || item.purchasedQuantity === 0) {
-        return true; // 未采购，无需分发
-      }
-      const totalDistributed = item.requesters.reduce(
-        (s, r) => s + (r.distributedQuantity ?? 0),
-        0,
-      );
-      return totalDistributed >= item.purchasedQuantity;
-    });
+  const undistributed = items.filter((i) => !isDistributionItemComplete(i));
+  const distributed = items.filter(isDistributionItemComplete);
+  const allDistributed = isDistributionTaskComplete(items);
 
   const updateRequester = (
     itemId: string,
@@ -160,9 +168,7 @@ export function DistributingTaskView({
                   : {
                       ...r,
                       distributedQuantity:
-                        distributedQuantity === -1
-                          ? null
-                          : distributedQuantity,
+                        distributedQuantity === -1 ? null : distributedQuantity,
                       assignmentUpdatedAt,
                     },
               ),
@@ -182,20 +188,18 @@ export function DistributingTaskView({
   };
 
   const applyRefreshedDetail = (refreshed: DistributingTaskDetail) => {
-    setTaskUpdatedAt((current) => refreshed.taskUpdatedAt ?? current);
-    setItems((current) => {
-      const currentItemUpdatedAtById = new Map(
-        current.map((item) => [item.errandTaskItemId, item.itemUpdatedAt]),
+    setTaskUpdatedAt((current) =>
+      latestUpdatedAt(current, refreshed.taskUpdatedAt),
+    );
+    if (compareUpdatedAt(refreshed.taskUpdatedAt, taskUpdatedAt) >= 0) {
+      setItems((current) =>
+        mergeDistributingTaskItems(
+          current,
+          refreshed.items,
+          compareUpdatedAt(refreshed.taskUpdatedAt, taskUpdatedAt) > 0,
+        ),
       );
-
-      return refreshed.items.map((item) => ({
-        ...item,
-        itemUpdatedAt:
-          item.itemUpdatedAt ??
-          currentItemUpdatedAtById.get(item.errandTaskItemId) ??
-          null,
-      }));
-    });
+    }
   };
 
   const handleSaveAssignment = async (
@@ -204,7 +208,15 @@ export function DistributingTaskView({
     distributedQuantity: number,
   ) => {
     const key = requester.errandTaskAssignmentId;
-    if (assigningIds.has(key)) return;
+    if (
+      assigningRef.current ||
+      submittingRef.current ||
+      taskNeedsVerification
+    ) {
+      toast.info("正在处理，请稍候");
+      return;
+    }
+    assigningRef.current = true;
     setAssigningIds((prev) => new Set(prev).add(key));
     try {
       const saved = await saveDistributingAssignment(
@@ -235,8 +247,11 @@ export function DistributingTaskView({
       }
       setDialog({ type: "none" });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "保存失败，请稍后再试");
+      toast.error(
+        error instanceof Error ? error.message : "保存失败，请稍后再试",
+      );
     } finally {
+      assigningRef.current = false;
       setAssigningIds((prev) => {
         const next = new Set(prev);
         next.delete(key);
@@ -250,7 +265,15 @@ export function DistributingTaskView({
     requester: DistributingRequester,
   ) => {
     const key = requester.errandTaskAssignmentId;
-    if (assigningIds.has(key)) return;
+    if (
+      assigningRef.current ||
+      submittingRef.current ||
+      taskNeedsVerification
+    ) {
+      toast.info("正在处理，请稍候");
+      return;
+    }
+    assigningRef.current = true;
     setAssigningIds((prev) => new Set(prev).add(key));
     try {
       const saved = await saveDistributingAssignment(
@@ -280,8 +303,11 @@ export function DistributingTaskView({
         }
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "撤销失败，请稍后再试");
+      toast.error(
+        error instanceof Error ? error.message : "撤销失败，请稍后再试",
+      );
     } finally {
+      assigningRef.current = false;
       setAssigningIds((prev) => {
         const next = new Set(prev);
         next.delete(key);
@@ -292,13 +318,21 @@ export function DistributingTaskView({
 
   const handleUpdatePrice = async () => {
     if (dialog.type !== "edit_price") return;
-    if (submittingRef.current) return;
+    if (
+      submittingRef.current ||
+      assigningRef.current ||
+      taskNeedsVerification
+    ) {
+      toast.info("正在处理，请稍候");
+      return;
+    }
     const cents = parseYuanToCents(dialog.draft);
     if (cents === null) {
       toast.error("请输入不超过两位小数且未超出上限的实际单价");
       return;
     }
     submittingRef.current = true;
+    setSavingPrice(true);
     try {
       await updateActualPrice(
         {
@@ -309,6 +343,7 @@ export function DistributingTaskView({
         },
         serviceOptions,
       );
+      updateItemPrice(dialog.item.errandTaskItemId, cents);
       try {
         const refreshed = await getDistributingTaskDetail(
           detail.taskId,
@@ -316,19 +351,28 @@ export function DistributingTaskView({
         );
         applyRefreshedDetail(refreshed);
       } catch {
-        updateItemPrice(dialog.item.errandTaskItemId, cents);
         toast.warning("价格已保存，但状态刷新失败，请重新进入任务");
       }
       setDialog({ type: "none" });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "修改价格失败，请稍后再试");
+      toast.error(
+        error instanceof Error ? error.message : "修改价格失败，请稍后再试",
+      );
     } finally {
       submittingRef.current = false;
+      setSavingPrice(false);
     }
   };
 
   const handleStartDistributing = async () => {
-    if (submittingRef.current) return;
+    if (
+      submittingRef.current ||
+      assigningRef.current ||
+      taskNeedsVerification
+    ) {
+      toast.info("正在处理，请稍候");
+      return;
+    }
     const feeCents = parseYuanToCents(packagingFee);
     if (feeCents === null) {
       toast.error("请输入不超过两位小数且未超出上限的包装费");
@@ -346,15 +390,27 @@ export function DistributingTaskView({
       setDialog({ type: "none" });
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "操作失败，请稍后再试");
+      toast.error(
+        error instanceof Error ? error.message : "操作失败，请稍后再试",
+      );
+      setUnverifiedTaskVersion(taskUpdatedAt);
+      setDialog({ type: "none" });
       setSubmitting(false);
+      router.refresh();
     } finally {
       submittingRef.current = false;
     }
   };
 
   const handleFinishDistributing = async () => {
-    if (submittingRef.current) return;
+    if (
+      submittingRef.current ||
+      assigningRef.current ||
+      taskNeedsVerification
+    ) {
+      toast.info("正在处理，请稍候");
+      return;
+    }
     submittingRef.current = true;
     setSubmitting(true);
     try {
@@ -378,8 +434,12 @@ export function DistributingTaskView({
       } catch {
         // Keep the original transition error as the user-facing result.
       }
+      setUnverifiedTaskVersion(taskUpdatedAt);
+      setDialog({ type: "none" });
       router.refresh();
-      toast.error(error instanceof Error ? error.message : "操作失败，请稍后再试");
+      toast.error(
+        error instanceof Error ? error.message : "操作失败，请稍后再试",
+      );
       setSubmitting(false);
     } finally {
       submittingRef.current = false;
@@ -387,7 +447,14 @@ export function DistributingTaskView({
   };
 
   const handleCancel = async () => {
-    if (submittingRef.current) return;
+    if (
+      submittingRef.current ||
+      assigningRef.current ||
+      taskNeedsVerification
+    ) {
+      toast.info("正在处理，请稍候");
+      return;
+    }
     submittingRef.current = true;
     setSubmitting(true);
     try {
@@ -395,13 +462,19 @@ export function DistributingTaskView({
       setDialog({ type: "none" });
       router.replace("/orders?type=errand&view=captain");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "取消失败，请稍后再试");
+      toast.error(
+        error instanceof Error ? error.message : "取消失败，请稍后再试",
+      );
+      setUnverifiedTaskVersion(taskUpdatedAt);
+      setDialog({ type: "none" });
       setSubmitting(false);
+      router.refresh();
     } finally {
       submittingRef.current = false;
     }
   };
 
+  /* eslint-disable react-hooks/refs -- These callbacks are invoked by clicks, never during render. */
   const renderItemList = (list: DistributingTaskItem[], groupLabel: string) => {
     if (list.length === 0) return null;
     return (
@@ -416,92 +489,47 @@ export function DistributingTaskView({
           {list.map((item) => {
             const isExpanded = expandedItemId === item.errandTaskItemId;
             return (
-              <div
+              <Collapsible
                 key={item.errandTaskItemId}
+                open={isExpanded}
+                onOpenChange={(open) =>
+                  setExpandedItemId(open ? item.errandTaskItemId : null)
+                }
                 className="rounded-lg border bg-card overflow-hidden"
               >
-                <button
-                  type="button"
-                  aria-controls={`distributing-item-${item.errandTaskItemId}`}
-                  aria-expanded={isExpanded}
-                  className="flex w-full items-center gap-3 p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  onClick={() =>
-                    setExpandedItemId(isExpanded ? null : item.errandTaskItemId)
-                  }
-                >
+                <div className="relative isolate flex items-center gap-3 p-3">
+                  <CollapsibleTrigger
+                    type="button"
+                    className="absolute inset-0 cursor-pointer rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                    aria-label={`${isExpanded ? "收起" : "展开"}${item.title}的需求`}
+                    aria-controls={`distributing-item-${item.errandTaskItemId}`}
+                  />
                   <ManagedImage
                     src={item.imageUrl}
                     alt={item.title}
-                    className="size-14 shrink-0 rounded-lg"
+                    className="pointer-events-none size-14 shrink-0 rounded-lg"
                   />
-                  <div className="min-w-0 flex-1">
+                  <div className="pointer-events-none min-w-0 flex-1">
                     <p className="line-clamp-2 text-sm font-medium leading-5">
                       {item.title}
                     </p>
                     <div className="mt-1 flex flex-wrap items-center gap-1 text-xs text-muted-foreground tabular-nums">
-                      <span>
-                        实购 {item.purchasedQuantity ?? 0} 件
-                      </span>
-                      <span aria-hidden="true">·</span>
-                      {item.actualUnitPriceCents == null ? (
-                        <span className="text-muted-foreground">未定价</span>
-                      ) : item.actualUnitPriceCents !==
-                        item.originUnitPriceCents ? (
-                        <span className="text-destructive">
-                          改价后 {formatPrice(item.actualUnitPriceCents)}/件
-                        </span>
-                      ) : (
-                        <span>{formatPrice(item.actualUnitPriceCents)}/件</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <div className="flex -space-x-2">
-                      {item.requesters.slice(0, 3).map((r) => (
-                        <Avatar
-                          key={r.purchaserId}
-                          className="size-6 border-2 border-card"
-                        >
-                          <AvatarImage
-                            src={r.purchaserAvatarUrl}
-                            alt={r.purchaserName}
-                          />
-                          <AvatarFallback className="text-xs">
-                            {r.purchaserName[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                      ))}
-                    </div>
-                    {isExpanded ? (
-                      <RiArrowUpSLine className="size-4 text-muted-foreground" />
-                    ) : (
-                      <RiArrowDownSLine className="size-4 text-muted-foreground" />
-                    )}
-                  </div>
-                </button>
-
-                {isExpanded && (
-                  <div
-                    id={`distributing-item-${item.errandTaskItemId}`}
-                    className="border-t px-3 pb-3"
-                  >
-                    {mode === "pending_distributing" &&
-                      (item.purchasedQuantity == null ||
-                      item.purchasedQuantity === 0 ? (
-                        <div className="mb-3 mt-3">
-                          <Badge variant="neutral">未采购</Badge>
-                        </div>
-                      ) : (
-                        <div className="mb-3 mt-3 flex items-center justify-between gap-3">
-                          <span className="text-sm text-muted-foreground tabular-nums">
-                            {item.actualUnitPriceCents != null
-                              ? `单价 ${formatPrice(item.actualUnitPriceCents)}/件`
-                              : "未定价"}
-                          </span>
+                      <span>实购 {item.purchasedQuantity ?? 0} 件</span>
+                      {mode === "pending_distributing" &&
+                      (item.purchasedQuantity ?? 0) > 0 ? (
+                        <span className="pointer-events-auto relative inline-flex">
                           <Button
                             type="button"
-                            size="sm"
-                            variant="outline"
+                            size="xs"
+                            variant="plain"
+                            className="min-h-11 px-1 tabular-nums has-data-[icon=inline-end]:pr-1"
+                            aria-label={`修改${item.title}的单价`}
+                            disabled={
+                              submitting ||
+                              savingPrice ||
+                              assigningIds.size > 0 ||
+                              taskNeedsVerification
+                            }
                             onClick={() =>
                               setDialog({
                                 type: "edit_price",
@@ -513,16 +541,77 @@ export function DistributingTaskView({
                               })
                             }
                           >
-                            改价
+                            {item.actualUnitPriceCents == null
+                              ? "填写单价"
+                              : `实际 ${formatPrice(item.actualUnitPriceCents)}/件`}
+                            <RiEditLine data-icon="inline-end" />
                           </Button>
-                        </div>
+                        </span>
+                      ) : item.actualUnitPriceCents == null ? (
+                        <span className="text-muted-foreground">未定价</span>
+                      ) : (
+                        <span>
+                          实际 {formatPrice(item.actualUnitPriceCents)}/件
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="pointer-events-none flex min-w-11 shrink-0 items-center gap-2">
+                    <div className="flex -space-x-2">
+                      {item.requesters.slice(0, 3).map((r) => (
+                        <Avatar
+                          key={r.purchaserId}
+                          className="size-6 border-2 border-card text-foreground"
+                        >
+                          <AvatarImage
+                            src={r.purchaserAvatarUrl}
+                            alt={r.purchaserName}
+                          />
+                          <AvatarFallback className="text-xs">
+                            {r.purchaserName[0]}
+                          </AvatarFallback>
+                        </Avatar>
                       ))}
-                    <div className="mt-3 flex flex-col gap-3">
+                    </div>
+                    <RiArrowDownSLine
+                      className={cn(
+                        "size-4 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none",
+                        isExpanded && "rotate-180",
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <CollapsibleContent
+                  id={`distributing-item-${item.errandTaskItemId}`}
+                >
+                  <div className="border-t px-3">
+                    {mode === "pending_distributing" &&
+                      (item.purchasedQuantity == null ||
+                      item.purchasedQuantity === 0 ? (
+                        <div className="mb-3 mt-3">
+                          <Badge variant="neutral">未采购</Badge>
+                        </div>
+                      ) : null)}
+                    <div className="flex flex-col divide-y">
                       {item.requesters.map((requester) => (
                         <RequesterRow
                           key={requester.errandTaskAssignmentId}
                           requester={requester}
                           mode={mode}
+                          availableQuantity={getDistributionQuantityAvailable(
+                            item,
+                            requester.errandTaskAssignmentId,
+                          )}
+                          disabled={
+                            submitting ||
+                            savingPrice ||
+                            assigningIds.size > 0 ||
+                            taskNeedsVerification
+                          }
+                          saving={assigningIds.has(
+                            requester.errandTaskAssignmentId,
+                          )}
                           onDistributeAll={() =>
                             void handleSaveAssignment(
                               item,
@@ -535,6 +624,13 @@ export function DistributingTaskView({
                               type: "partial_dist",
                               item,
                               requester,
+                              maxQuantity: Math.min(
+                                requester.quantity - 1,
+                                getDistributionQuantityAvailable(
+                                  item,
+                                  requester.errandTaskAssignmentId,
+                                ),
+                              ),
                               draft: "",
                             })
                           }
@@ -548,38 +644,51 @@ export function DistributingTaskView({
                       ))}
                     </div>
                   </div>
-                )}
-              </div>
+                </CollapsibleContent>
+              </Collapsible>
             );
           })}
         </div>
       </section>
     );
   };
+  /* eslint-enable react-hooks/refs */
 
   return (
-    <div className="flex flex-1 flex-col gap-5 py-5 pb-24">
-      <section className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="truncate text-lg font-semibold leading-7">
-            {detail.storeName}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {mode === "pending_distributing" ? "待分发" : "分发中"}
-          </p>
-        </div>
+    <div className="flex flex-1 flex-col gap-5 py-5">
+      <MobileHeaderActions>
         <Button
           type="button"
-          variant="ghost"
-          size="icon-touch"
-          aria-label="取消采购"
-          title="取消采购"
-          className="shrink-0 text-destructive hover:text-destructive"
+          variant="destructive-text"
+          size="touch"
+          disabled={
+            submitting ||
+            savingPrice ||
+            assigningIds.size > 0 ||
+            taskNeedsVerification
+          }
           onClick={() => setDialog({ type: "confirm_cancel" })}
         >
-          <RiCloseCircleLine />
+          取消采购
         </Button>
+      </MobileHeaderActions>
+      <section className="flex items-center justify-between gap-3">
+        <h1 className="min-w-0 truncate text-lg font-semibold leading-7">
+          {detail.storeName}
+        </h1>
+        <Badge variant={getStatusBadgeVariant(mode)} className="shrink-0">
+          {getStatusLabel(mode)}
+        </Badge>
       </section>
+
+      {taskNeedsVerification ? (
+        <p
+          role="status"
+          className="rounded-lg border px-3 py-2 text-sm text-muted-foreground"
+        >
+          任务状态待核实，请重新进入任务查看最新结果后再操作。
+        </p>
+      ) : null}
 
       {mode === "pending_distributing" && (
         <section className="rounded-lg border bg-card p-3">
@@ -590,6 +699,12 @@ export function DistributingTaskView({
                 <InputGroupText>¥</InputGroupText>
               </InputGroupAddon>
               <InputGroupInput
+                disabled={
+                  submitting ||
+                  savingPrice ||
+                  assigningIds.size > 0 ||
+                  taskNeedsVerification
+                }
                 type="text"
                 inputMode="decimal"
                 value={packagingFee}
@@ -602,7 +717,7 @@ export function DistributingTaskView({
               />
             </InputGroup>
             <p className="text-xs text-muted-foreground">
-              将按购买金额比例分摊到每位买家，除不尽时向上取整
+              由实际分到商品的买家均摊（不含团长），按分向上取整
             </p>
             {parseYuanToCents(packagingFee) === null ? (
               <p className="text-xs text-destructive">
@@ -623,7 +738,12 @@ export function DistributingTaskView({
           <Button
             type="button"
             disabled={
-              parseYuanToCents(packagingFee) === null || !allPricesSet
+              parseYuanToCents(packagingFee) === null ||
+              !allPricesSet ||
+              submitting ||
+              savingPrice ||
+              assigningIds.size > 0 ||
+              taskNeedsVerification
             }
             className="h-12 w-full"
             onClick={() => setDialog({ type: "confirm_start" })}
@@ -633,7 +753,12 @@ export function DistributingTaskView({
         ) : (
           <Button
             type="button"
-            disabled={!allDistributed || assigningIds.size > 0}
+            disabled={
+              !allDistributed ||
+              assigningIds.size > 0 ||
+              submitting ||
+              taskNeedsVerification
+            }
             className="h-12 w-full"
             onClick={() => setDialog({ type: "confirm_finish" })}
           >
@@ -647,49 +772,56 @@ export function DistributingTaskView({
       <ResponsiveDialog
         open={dialog.type === "edit_price"}
         onOpenChange={(open) => {
-          if (!open) setDialog({ type: "none" });
+          if (!open && !savingPrice) setDialog({ type: "none" });
         }}
       >
-        <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+        <ResponsiveDialogContent className="max-h-[88dvh] overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>修改单价</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
               {dialog.type === "edit_price" ? dialog.item.title : ""}
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
-          {dialog.type === "edit_price" && (
-            <Field>
-              <FieldLabel htmlFor="distribution-unit-price" className="sr-only">
-                实际单价
-              </FieldLabel>
-              <InputGroup>
-                <InputGroupAddon>
-                  <InputGroupText>¥</InputGroupText>
-                </InputGroupAddon>
-                <InputGroupInput
-                  id="distribution-unit-price"
-                  type="text"
-                  inputMode="decimal"
-                  value={dialog.draft}
-                  onChange={(e) => {
-                    if (MONEY_PATTERN.test(e.target.value)) {
-                      setDialog({ ...dialog, draft: e.target.value });
-                    }
-                  }}
-                  placeholder="0.00"
-                />
-              </InputGroup>
-              {parseYuanToCents(dialog.draft) === null ? (
-                <p className="text-xs text-destructive">
-                  请输入不超过两位小数且未超出金额上限的单价
-                </p>
-              ) : null}
-            </Field>
-          )}
+          <div className="min-h-0 overflow-y-auto">
+            {dialog.type === "edit_price" && (
+              <Field>
+                <FieldLabel
+                  htmlFor="distribution-unit-price"
+                  className="sr-only"
+                >
+                  实际单价
+                </FieldLabel>
+                <InputGroup>
+                  <InputGroupAddon>
+                    <InputGroupText>¥</InputGroupText>
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id="distribution-unit-price"
+                    type="text"
+                    inputMode="decimal"
+                    disabled={savingPrice}
+                    value={dialog.draft}
+                    onChange={(e) => {
+                      if (MONEY_PATTERN.test(e.target.value)) {
+                        setDialog({ ...dialog, draft: e.target.value });
+                      }
+                    }}
+                    placeholder="0.00"
+                  />
+                </InputGroup>
+                {parseYuanToCents(dialog.draft) === null ? (
+                  <p className="text-xs text-destructive">
+                    请输入不超过两位小数且未超出金额上限的单价
+                  </p>
+                ) : null}
+              </Field>
+            )}
+          </div>
           <ResponsiveDialogFooter>
             <Button
               type="button"
               variant="outline"
+              disabled={savingPrice}
               onClick={() => setDialog({ type: "none" })}
             >
               取消
@@ -698,11 +830,12 @@ export function DistributingTaskView({
               type="button"
               disabled={
                 dialog.type !== "edit_price" ||
-                parseYuanToCents(dialog.draft) === null
+                parseYuanToCents(dialog.draft) === null ||
+                savingPrice
               }
               onClick={() => void handleUpdatePrice()}
             >
-              确认
+              {savingPrice ? "保存中" : "保存单价"}
             </Button>
           </ResponsiveDialogFooter>
         </ResponsiveDialogContent>
@@ -711,44 +844,48 @@ export function DistributingTaskView({
       <ResponsiveDialog
         open={dialog.type === "partial_dist"}
         onOpenChange={(open) => {
-          if (!open) setDialog({ type: "none" });
+          if (!open && assigningIds.size === 0) setDialog({ type: "none" });
         }}
       >
-        <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+        <ResponsiveDialogContent className="max-h-[88dvh] overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>部分分发</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
               {dialog.type === "partial_dist"
-                ? `输入分发数量（1 ~ ${dialog.requester.quantity - 1}）`
+                ? `输入分发数量（1 ~ ${dialog.maxQuantity}）`
                 : ""}
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
-          {dialog.type === "partial_dist" && (
-            <Field>
-              <FieldLabel
-                htmlFor="partial-distribution-quantity"
-                className="sr-only"
-              >
-                实际分发数量
-              </FieldLabel>
-              <Input
-                id="partial-distribution-quantity"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={dialog.requester.quantity - 1}
-                value={dialog.draft}
-                onChange={(e) =>
-                  setDialog({ ...dialog, draft: e.target.value })
-                }
-                placeholder="分发数量"
-              />
-            </Field>
-          )}
+          <div className="min-h-0 overflow-y-auto">
+            {dialog.type === "partial_dist" && (
+              <Field>
+                <FieldLabel
+                  htmlFor="partial-distribution-quantity"
+                  className="sr-only"
+                >
+                  实际分发数量
+                </FieldLabel>
+                <Input
+                  id="partial-distribution-quantity"
+                  type="number"
+                  disabled={assigningIds.size > 0}
+                  inputMode="numeric"
+                  min={1}
+                  max={dialog.maxQuantity}
+                  value={dialog.draft}
+                  onChange={(e) =>
+                    setDialog({ ...dialog, draft: e.target.value })
+                  }
+                  placeholder="分发数量"
+                />
+              </Field>
+            )}
+          </div>
           <ResponsiveDialogFooter>
             <Button
               type="button"
               variant="outline"
+              disabled={assigningIds.size > 0}
               onClick={() => setDialog({ type: "none" })}
             >
               取消
@@ -757,10 +894,11 @@ export function DistributingTaskView({
               type="button"
               disabled={
                 dialog.type !== "partial_dist" ||
+                assigningIds.size > 0 ||
                 !dialog.draft ||
                 !Number.isInteger(Number(dialog.draft)) ||
                 Number(dialog.draft) < 1 ||
-                Number(dialog.draft) >= dialog.requester.quantity
+                Number(dialog.draft) > dialog.maxQuantity
               }
               onClick={() => {
                 if (dialog.type !== "partial_dist") return;
@@ -771,7 +909,7 @@ export function DistributingTaskView({
                 );
               }}
             >
-              确认
+              {assigningIds.size > 0 ? "保存中" : "记录分发数量"}
             </Button>
           </ResponsiveDialogFooter>
         </ResponsiveDialogContent>
@@ -884,6 +1022,9 @@ export function DistributingTaskView({
 function RequesterRow({
   requester,
   mode,
+  availableQuantity,
+  disabled,
+  saving,
   onDistributeAll,
   onDistributePartial,
   onSkip,
@@ -891,135 +1032,22 @@ function RequesterRow({
 }: {
   requester: DistributingRequester;
   mode: "pending_distributing" | "distributing";
+  availableQuantity: number;
+  disabled: boolean;
+  saving: boolean;
   onDistributeAll: () => void;
   onDistributePartial: () => void;
   onSkip: () => void;
   onRevoke: () => void;
 }) {
-  const isDone = requester.distributedQuantity != null && requester.distributedQuantity > 0;
+  const isDone =
+    requester.distributedQuantity !== null && requester.distributedQuantity > 0;
   const isSkipped = requester.distributedQuantity === 0;
-  const [actionOpen, setActionOpen] = useState(false);
-  const pointerStartXRef = useRef<number | null>(null);
-  const pointerStartYRef = useRef<number | null>(null);
-  const swipedRef = useRef(false);
-  const canDistributePartially = requester.quantity > 1;
-  const actionWidthClass =
-    isDone || isSkipped
-      ? "w-[52px] grid-cols-1"
-      : canDistributePartially
-        ? "w-[156px] grid-cols-3"
-        : "w-[104px] grid-cols-2";
-
-  const runAction = (action: () => void) => {
-    setActionOpen(false);
-    action();
-  };
-
-  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    swipedRef.current = false;
-    pointerStartXRef.current = event.clientX;
-    pointerStartYRef.current = event.clientY;
-  };
-
-  const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
-    if (
-      pointerStartXRef.current === null ||
-      pointerStartYRef.current === null
-    ) {
-      return;
-    }
-
-    const deltaX = event.clientX - pointerStartXRef.current;
-    const deltaY = event.clientY - pointerStartYRef.current;
-    pointerStartXRef.current = null;
-    pointerStartYRef.current = null;
-
-    if (Math.abs(deltaX) < 32 || Math.abs(deltaX) < Math.abs(deltaY)) return;
-
-    swipedRef.current = true;
-    setActionOpen(deltaX < 0);
-  };
 
   return (
-    <div
-      className={
-        mode === "distributing"
-          ? "relative overflow-hidden rounded-lg border bg-card sm:overflow-visible sm:border-0 sm:bg-transparent"
-          : ""
-      }
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={() => {
-        pointerStartXRef.current = null;
-        pointerStartYRef.current = null;
-      }}
-    >
-      {mode === "distributing" ? (
-        <div
-          className={`absolute inset-y-0 right-0 z-20 grid overflow-hidden transition-transform duration-200 ease-out motion-reduce:transition-none sm:hidden ${actionWidthClass} ${actionOpen ? "translate-x-0" : "translate-x-full"}`}
-          aria-hidden={!actionOpen}
-        >
-          {isDone || isSkipped ? (
-            <Button
-              type="button"
-              variant="secondary"
-              className="h-full min-w-0 rounded-none px-0"
-              tabIndex={actionOpen ? 0 : -1}
-              aria-label="撤销分发结果"
-              title="撤销"
-              onClick={() => runAction(onRevoke)}
-            >
-              <RiArrowGoBackLine className="size-6" />
-            </Button>
-          ) : (
-            <>
-              <Button
-                type="button"
-                className="h-full min-w-0 rounded-none px-0"
-                tabIndex={actionOpen ? 0 : -1}
-                aria-label="全部分发"
-                title="全部分发"
-                onClick={() => runAction(onDistributeAll)}
-              >
-                <RiCheckboxLine className="size-6" />
-              </Button>
-              {canDistributePartially ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="h-full min-w-0 rounded-none px-0"
-                  tabIndex={actionOpen ? 0 : -1}
-                  aria-label="部分分发"
-                  title="部分分发"
-                  onClick={() => runAction(onDistributePartial)}
-                >
-                  <RiIndeterminateCircleLine className="size-6" />
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                variant="destructive"
-                className="h-full min-w-0 rounded-none px-0"
-                tabIndex={actionOpen ? 0 : -1}
-                aria-label="不分发"
-                title="不分发"
-                onClick={() => runAction(onSkip)}
-              >
-                <RiCloseCircleLine className="size-6" />
-              </Button>
-            </>
-          )}
-        </div>
-      ) : null}
-
-      <div
-        className={`flex items-center gap-2 ${
-          mode === "distributing"
-            ? "relative z-10 touch-pan-y rounded-lg bg-card p-2 sm:bg-transparent sm:p-0"
-            : ""
-        }`}
-      >
-        <Avatar className="size-8 shrink-0">
+    <div className="py-3">
+      <div className="flex min-h-11 items-center gap-3">
+        <Avatar className="size-9 shrink-0">
           <AvatarImage
             src={requester.purchaserAvatarUrl}
             alt={requester.purchaserName}
@@ -1037,77 +1065,78 @@ function RequesterRow({
             {isDone ? `，已分发 ${requester.distributedQuantity} 件` : ""}
             {isSkipped ? "，不分发" : ""}
           </p>
+          {!isDone && !isSkipped && availableQuantity < requester.quantity ? (
+            <p className="text-xs text-muted-foreground">
+              {availableQuantity > 0
+                ? `当前最多可分发 ${availableQuantity} 件`
+                : "暂无可分发数量"}
+            </p>
+          ) : null}
         </div>
-        {mode === "distributing" ? (
-          <>
-            <div className="hidden shrink-0 items-center gap-1 sm:flex">
-              {isDone || isSkipped ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="text-xs"
-                  onClick={onRevoke}
-                >
-                  撤销
-                </Button>
-              ) : (
-                <>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="destructive"
-                    className="text-xs"
-                    onClick={onSkip}
-                  >
-                    不分发
-                  </Button>
-                  {requester.quantity > 1 ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={onDistributePartial}
-                    >
-                      部分
-                    </Button>
-                  ) : null}
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="text-xs"
-                    onClick={onDistributeAll}
-                  >
-                    全部
-                  </Button>
-                </>
-              )}
-            </div>
+      </div>
+      {mode === "distributing" ? (
+        <div className="mt-3">
+          {saving ? (
+            <p className="mb-2 text-xs text-primary" role="status">
+              保存中，请稍候
+            </p>
+          ) : null}
+          {isDone || isSkipped ? (
             <Button
               type="button"
-              size="icon-touch"
-              variant="ghost"
-              className={`shrink-0 text-muted-foreground transition-opacity sm:hidden ${actionOpen ? "pointer-events-none opacity-0" : "opacity-100"}`}
-              tabIndex={actionOpen ? -1 : 0}
-              aria-label={`${actionOpen ? "收起" : "展开"}${requester.purchaserName}的分发操作`}
-              aria-expanded={actionOpen}
-              onClick={() => {
-                if (swipedRef.current) {
-                  swipedRef.current = false;
-                  return;
-                }
-                setActionOpen((open) => !open);
-              }}
+              size="touch"
+              variant="outline"
+              className="w-full"
+              disabled={disabled}
+              onClick={onRevoke}
             >
-              {actionOpen ? (
-                <RiArrowRightDoubleLine />
-              ) : (
-                <RiArrowLeftDoubleLine />
-              )}
+              {saving ? "撤销中" : "撤销结果"}
             </Button>
-          </>
-        ) : null}
-      </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {availableQuantity >= requester.quantity ? (
+                <Button
+                  type="button"
+                  size="touch"
+                  disabled={disabled}
+                  onClick={onDistributeAll}
+                >
+                  全部分发
+                </Button>
+              ) : null}
+              {availableQuantity > 0 && requester.quantity > 1 ? (
+                <Button
+                  type="button"
+                  size="touch"
+                  variant="secondary"
+                  className={
+                    availableQuantity < requester.quantity ? "col-span-2" : ""
+                  }
+                  disabled={disabled}
+                  onClick={onDistributePartial}
+                >
+                  部分分发
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                size="touch"
+                variant="outline"
+                className={
+                  availableQuantity < requester.quantity ||
+                  requester.quantity > 1
+                    ? "col-span-2"
+                    : ""
+                }
+                disabled={disabled}
+                onClick={onSkip}
+              >
+                不分发
+              </Button>
+            </div>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

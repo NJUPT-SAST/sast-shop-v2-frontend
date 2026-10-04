@@ -87,8 +87,8 @@ import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
 
+import { BrandIllustration } from "@/components/brand-illustration";
 import { ManagedImage } from "@/components/managed-image";
-import { MobileFloatingAction } from "@/components/mobile-floating-action";
 import { StoreCreateDialog } from "@/components/store-create-dialog";
 import { useFeishuUiEnvironment } from "@/hooks/use-feishu-ui-environment";
 import { isJsapiAuthConfig } from "@/lib/jsapi-config";
@@ -179,6 +179,11 @@ export function ProductTemplateManager({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const [imageUploading, setImageUploading] = useState(false);
+  const imageUploadingRef = useRef(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [scanningBarcode, setScanningBarcode] = useState(false);
   const scanningBarcodeRef = useRef(false);
   const showFeishuEntry = useFeishuUiEnvironment();
@@ -190,6 +195,10 @@ export function ProductTemplateManager({
     resolver: zodResolver(templateSchema),
     defaultValues: createDefaultValues(selectedStoreId, prefillBarcode),
   });
+  const handleImageUploadingChange = useCallback((uploading: boolean) => {
+    imageUploadingRef.current = uploading;
+    setImageUploading(uploading);
+  }, []);
 
   const visibleTemplates = useMemo(() => {
     const value = keyword.trim().toLowerCase();
@@ -209,12 +218,16 @@ export function ProductTemplateManager({
   }, [hasMore, keyword, loadMore, loadMoreError]);
 
   function openCreateDrawer() {
+    setSaveError(null);
+    setDeleteError(null);
     setEditingTemplate(null);
     form.reset(createDefaultValues(selectedStoreId, prefillBarcode));
     setDrawerOpen(true);
   }
 
   function openEditDrawer(template: ProductTemplate) {
+    setSaveError(null);
+    setDeleteError(null);
     setEditingTemplate(template);
     form.reset({
       storeId: template.storeId,
@@ -271,9 +284,11 @@ export function ProductTemplateManager({
   }
 
   async function saveTemplate(values: TemplateFormValues) {
-    if (submitting) return;
+    if (submittingRef.current || imageUploadingRef.current) return;
 
+    submittingRef.current = true;
     setSubmitting(true);
+    setSaveError(null);
 
     try {
       const payload = {
@@ -300,8 +315,9 @@ export function ProductTemplateManager({
       toast.success(editingTemplate ? "商品模板已更新" : "商品模板已创建");
       router.refresh();
     } catch (caught) {
-      toast.error(readErrorMessage(caught));
+      setSaveError(readErrorMessage(caught));
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
@@ -309,11 +325,9 @@ export function ProductTemplateManager({
   async function deleteTemplate() {
     if (!editingTemplate || deleting) return;
     setDeleting(true);
+    setDeleteError(null);
     try {
-      await deleteProductTemplate(
-        { id: editingTemplate.id },
-        serviceOptions,
-      );
+      await deleteProductTemplate({ id: editingTemplate.id }, serviceOptions);
       setTemplates((current) =>
         current.filter((template) => template.id !== editingTemplate.id),
       );
@@ -323,7 +337,7 @@ export function ProductTemplateManager({
       toast.success("商品模板已删除");
       router.refresh();
     } catch (caught) {
-      toast.error(
+      setDeleteError(
         caught instanceof Error ? caught.message : "商品模板删除失败",
       );
     } finally {
@@ -332,27 +346,39 @@ export function ProductTemplateManager({
   }
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-5 pb-24 pt-6">
+    <div className="flex min-w-0 flex-1 flex-col gap-5 pb-4 pt-6">
       <section className="flex items-center justify-between gap-3">
         <h1 className="min-w-0 text-xl font-semibold leading-7 md:text-2xl">
           商品模板
         </h1>
         {stores.length > 0 ? (
-          <StoreCreateDialog
-            dataSource={dataSource}
-            connectBaseUrl={connectBaseUrl}
-            returnTo={createStoreReturnTo}
-          >
-            <Button
-              type="button"
-              size="icon-touch"
-              variant="ghost"
-              aria-label="创建店铺"
-              title="创建店铺"
+          <div className="flex shrink-0 items-center gap-2">
+            <StoreCreateDialog
+              dataSource={dataSource}
+              connectBaseUrl={connectBaseUrl}
+              returnTo={createStoreReturnTo}
             >
-              <RiStore2Line />
-            </Button>
-          </StoreCreateDialog>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="min-h-11"
+              >
+                创建店铺
+              </Button>
+            </StoreCreateDialog>
+            {selectedStoreId ? (
+              <Button
+                type="button"
+                size="sm"
+                className="min-h-11"
+                onClick={openCreateDrawer}
+              >
+                <RiAddLine data-icon="inline-start" />
+                新建模板
+              </Button>
+            ) : null}
+          </div>
         ) : null}
       </section>
 
@@ -429,11 +455,16 @@ export function ProductTemplateManager({
       ) : !error && !loadingMore && !hasMore ? (
         <Empty
           icon={
-            stores.length === 0 ? (
-              <RiStore2Line className="size-5" />
-            ) : (
+            keyword && stores.length > 0 ? (
               <RiFileList3Line className="size-5" />
-            )
+            ) : undefined
+          }
+          illustration={
+            stores.length === 0 ? (
+              <BrandIllustration name="store" size={96} />
+            ) : !keyword ? (
+              <BrandIllustration name="template" size={96} />
+            ) : undefined
           }
           title={
             stores.length === 0
@@ -468,27 +499,18 @@ export function ProductTemplateManager({
           onLoadMore={() => void loadMore()}
           loadingFallback={<TemplateLoadingSkeletons />}
           endMessage={`已经到底，共 ${templates.length} 个商品模板`}
+          endMessageClassName="pt-6"
         />
-      ) : null}
-
-      {selectedStoreId ? (
-        <MobileFloatingAction
-          type="button"
-          aria-label="新建商品模板"
-          title="新建商品模板"
-          onClick={openCreateDrawer}
-        >
-          <RiAddLine className="size-6" />
-        </MobileFloatingAction>
       ) : null}
 
       <Drawer
         open={drawerOpen}
         onOpenChange={(open) => {
-          if (!submitting) setDrawerOpen(open);
+          if (!submittingRef.current && !imageUploadingRef.current)
+            setDrawerOpen(open);
         }}
       >
-        <DrawerContent className="max-h-[88dvh]">
+        <DrawerContent className="max-h-[88dvh] overflow-clip">
           <DrawerHeader className="shrink-0 text-left">
             <DrawerTitle>
               {editingTemplate ? "编辑商品模板" : "新建商品模板"}
@@ -508,7 +530,7 @@ export function ProductTemplateManager({
             id="product-template-form"
             className="app-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-2"
             noValidate
-            onSubmit={form.handleSubmit(saveTemplate)}
+            onSubmit={(event) => void form.handleSubmit(saveTemplate)(event)}
           >
             <TemplateFields
               form={form}
@@ -517,8 +539,15 @@ export function ProductTemplateManager({
               scanEnabled={showFeishuEntry}
               scanningBarcode={scanningBarcode}
               onScanBarcode={() => void scanTemplateBarcode()}
+              onImageUploadingChange={handleImageUploadingChange}
             />
           </form>
+
+          {saveError ? (
+            <p role="alert" className="px-4 text-sm text-destructive">
+              {saveError}
+            </p>
+          ) : null}
 
           <DrawerFooter className="shrink-0 border-t bg-card">
             <div className="flex gap-3">
@@ -527,9 +556,13 @@ export function ProductTemplateManager({
                   type="button"
                   variant="destructive"
                   size="lg"
+                  className="min-h-11"
                   aria-label="删除商品模板"
-                  disabled={submitting}
-                  onClick={() => setDeleteConfirmOpen(true)}
+                  disabled={submitting || imageUploading}
+                  onClick={() => {
+                    setDeleteError(null);
+                    setDeleteConfirmOpen(true);
+                  }}
                 >
                   <RiDeleteBinLine />
                 </Button>
@@ -538,36 +571,51 @@ export function ProductTemplateManager({
                 type="submit"
                 form="product-template-form"
                 size="lg"
-                className="flex-1"
+                className="min-h-11 flex-1"
                 disabled={
                   submitting ||
+                  imageUploading ||
                   (Boolean(editingTemplate) && !editingTemplate?.updatedAt)
                 }
               >
                 {submitting
                   ? "保存中"
-                  : editingTemplate
-                    ? "保存修改"
-                    : "创建模板"}
+                  : imageUploading
+                    ? "图片上传中"
+                    : editingTemplate
+                      ? "保存修改"
+                      : "创建模板"}
               </Button>
             </div>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
 
-      <Drawer open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DrawerContent>
+      <Drawer
+        open={deleteConfirmOpen}
+        onOpenChange={(open) => {
+          setDeleteConfirmOpen(open);
+          if (!open) setDeleteError(null);
+        }}
+      >
+        <DrawerContent className="overflow-clip">
           <DrawerHeader className="text-left">
             <DrawerTitle>删除商品模板？</DrawerTitle>
             <DrawerDescription>
               删除后无法恢复，已上架的现货不会受影响。
             </DrawerDescription>
           </DrawerHeader>
+          {deleteError ? (
+            <p role="alert" className="px-4 text-sm text-destructive">
+              {deleteError}
+            </p>
+          ) : null}
           <DrawerFooter className="border-t bg-card">
             <Button
               type="button"
               variant="outline"
               size="lg"
+              className="min-h-11"
               onClick={() => setDeleteConfirmOpen(false)}
             >
               取消
@@ -576,6 +624,7 @@ export function ProductTemplateManager({
               type="button"
               variant="destructive"
               size="lg"
+              className="min-h-11"
               disabled={deleting}
               onClick={() => void deleteTemplate()}
             >
@@ -662,6 +711,7 @@ function TemplateFields({
   scanEnabled,
   scanningBarcode,
   onScanBarcode,
+  onImageUploadingChange,
 }: {
   form: ReturnType<typeof useForm<TemplateFormValues>>;
   stores: Store[];
@@ -669,6 +719,7 @@ function TemplateFields({
   scanEnabled: boolean;
   scanningBarcode: boolean;
   onScanBarcode: () => void;
+  onImageUploadingChange: (uploading: boolean) => void;
 }) {
   return (
     <FieldGroup className="gap-5">
@@ -813,6 +864,7 @@ function TemplateFields({
             invalid={fieldState.invalid}
             error={fieldState.error}
             onChange={field.onChange}
+            onUploadingChange={onImageUploadingChange}
           />
         )}
       />
@@ -825,26 +877,32 @@ function ProductImageField({
   invalid,
   error,
   onChange,
+  onUploadingChange,
 }: {
   value: string;
   invalid: boolean;
   error: { message?: string } | undefined;
   onChange: (value: string) => void;
+  onUploadingChange: (uploading: boolean) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
+    onUploadingChange(true);
+    setUploadError(null);
     try {
       onChange(await uploadProductImage(file));
     } catch (caught) {
-      toast.error(caught instanceof Error ? caught.message : "图片上传失败");
+      setUploadError(caught instanceof Error ? caught.message : "图片上传失败");
     } finally {
       setUploading(false);
+      onUploadingChange(false);
       event.target.value = "";
     }
   }
@@ -880,7 +938,7 @@ function ProductImageField({
           <div className="absolute top-2 right-2 flex gap-2">
             <Button
               type="button"
-              size="icon-sm"
+              size="icon-touch"
               variant="secondary"
               className="shadow-sm"
               aria-label="更换商品图片"
@@ -891,7 +949,7 @@ function ProductImageField({
             </Button>
             <Button
               type="button"
-              size="icon-sm"
+              size="icon-touch"
               variant="destructive"
               className="shadow-sm"
               aria-label="移除商品图片"
@@ -912,6 +970,11 @@ function ProductImageField({
         onChange={handleFileChange}
       />
       <FieldError errors={[error]} />
+      {uploadError ? (
+        <p role="alert" className="text-sm text-destructive">
+          {uploadError}
+        </p>
+      ) : null}
     </Field>
   );
 }
