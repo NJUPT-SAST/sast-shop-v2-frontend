@@ -26,6 +26,7 @@ import { toast } from "sonner";
 
 import type { PaymentPlatform } from "@/lib/payment-preferences";
 import { PaymentDialog, type PaymentDialogStatus } from "./payment-dialog";
+import { useTransactionAgreement } from "./transaction-agreement-provider";
 
 export type PayablePaymentBill = PaymentBill & {
   updatedAt: string;
@@ -58,6 +59,7 @@ export function SupplementSerialNumberDialog({
   onBillRefresh: (bill: PaymentBill | null) => void;
 }) {
   const [serialNumber, setSerialNumber] = useState("");
+  const { ensureAgreement } = useTransactionAgreement();
   const [submitting, setSubmitting] = useState(false);
   const [unverifiedBillVersion, setUnverifiedBillVersion] = useState<
     string | null
@@ -76,6 +78,11 @@ export function SupplementSerialNumberDialog({
       return;
     }
 
+    if (
+      !(await ensureAgreement(() => onOpenChange(false))) ||
+      submittingRef.current
+    )
+      return;
     submittingRef.current = true;
     setSubmitting(true);
 
@@ -178,6 +185,7 @@ export function PaymentSection({
   onSuccess: (bill: PaymentBill) => void;
   onBillRefresh: (bill: PaymentBill | null) => void;
 }) {
+  const { ensureAgreement } = useTransactionAgreement();
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
   const [dialogStatus, setDialogStatus] =
@@ -258,6 +266,11 @@ export function PaymentSection({
 
   async function handlePay(platform: PaymentPlatform) {
     if (submittingRef.current || paymentVersionUnverified) return;
+    if (
+      !(await ensureAgreement(() => handleOpenChange(false))) ||
+      submittingRef.current
+    )
+      return;
 
     submittingRef.current = true;
     setSubmitting(true);

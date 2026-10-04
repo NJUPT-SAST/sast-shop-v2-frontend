@@ -5,19 +5,28 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PaymentBill } from "@sast-shop/api";
 
-const { payBill, getBill, listPaymentQrCodes, supplementBillSerialNumber } =
-  vi.hoisted(() => ({
-    payBill: vi.fn(),
-    getBill: vi.fn(),
-    listPaymentQrCodes: vi.fn(),
-    supplementBillSerialNumber: vi.fn(),
-  }));
+const {
+  payBill,
+  getBill,
+  listPaymentQrCodes,
+  supplementBillSerialNumber,
+  ensureAgreement,
+} = vi.hoisted(() => ({
+  payBill: vi.fn(),
+  getBill: vi.fn(),
+  listPaymentQrCodes: vi.fn(),
+  supplementBillSerialNumber: vi.fn(),
+  ensureAgreement: vi.fn(),
+}));
 
 vi.mock("@sast-shop/api", () => ({
   getBill,
   listPaymentQrCodes,
   payBill,
   supplementBillSerialNumber,
+}));
+vi.mock("@/components/transaction-agreement-provider", () => ({
+  useTransactionAgreement: () => ({ ensureAgreement }),
 }));
 
 vi.mock("@workspace/ui/components/responsive-dialog", () => {
@@ -81,6 +90,7 @@ beforeEach(() => {
   listPaymentQrCodes.mockReset();
   listPaymentQrCodes.mockResolvedValue([]);
   supplementBillSerialNumber.mockReset();
+  ensureAgreement.mockReset().mockResolvedValue(true);
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -201,6 +211,18 @@ afterEach(async () => {
 });
 
 describe("PaymentSection ambiguous mutation responses", () => {
+  it("does not submit payment when the transaction agreement is declined", async () => {
+    ensureAgreement.mockResolvedValue(false);
+    const onSuccess = vi.fn();
+
+    await renderPaymentSection({ onSuccess });
+    await act(async () => container.querySelector("button")!.click());
+
+    expect(ensureAgreement).toHaveBeenCalledTimes(1);
+    expect(payBill).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
   it("reports the refreshed submitted bill instead of retrying a payment mutation", async () => {
     const submitted = makeBill({ status: "submitted" });
     payBill.mockRejectedValueOnce(new Error("响应中断"));

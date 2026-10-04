@@ -6,10 +6,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ErrandDemandDetailGroup } from "@sast-shop/api";
 import { ErrandDemandDetail } from "../components/errand-demand-detail";
 
+const { createErrandTask, ensureAgreement } = vi.hoisted(() => ({
+  createErrandTask: vi.fn(),
+  ensureAgreement: vi.fn(),
+}));
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
 }));
-vi.mock("@sast-shop/api", () => ({ createErrandTask: vi.fn() }));
+vi.mock("@sast-shop/api", () => ({ createErrandTask }));
+vi.mock("../components/transaction-agreement-provider", () => ({
+  useTransactionAgreement: () => ({ ensureAgreement }),
+}));
 vi.mock("../components/managed-image", () => ({
   ManagedImage: ({ alt }: { alt: string }) => <div aria-label={alt} />,
 }));
@@ -95,6 +103,9 @@ let root: Root;
 let container: HTMLDivElement;
 
 beforeEach(async () => {
+  createErrandTask.mockReset();
+  ensureAgreement.mockReset();
+  ensureAgreement.mockResolvedValue(true);
   vi.stubGlobal("React", React);
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   container = document.createElement("div");
@@ -138,6 +149,20 @@ async function clickLabel(text: string) {
 }
 
 describe("errand demand selection controls", () => {
+  it("does not accept a task when the transaction agreement is declined", async () => {
+    ensureAgreement.mockResolvedValue(false);
+    await clickLabel("李同学");
+    const confirmButtons = () =>
+      Array.from(container.querySelectorAll("button")).filter(
+        (button) => button.textContent?.trim() === "确认接单",
+      );
+    await act(async () => confirmButtons()[0]!.click());
+    await act(async () => confirmButtons().at(-1)!.click());
+
+    expect(ensureAgreement).toHaveBeenCalledTimes(1);
+    expect(createErrandTask).not.toHaveBeenCalled();
+  });
+
   it("selects a row once, shows mixed state, then toggles all selectable rows", async () => {
     const first = getCheckbox(getLabel("李同学"));
     const second = getCheckbox(getLabel("陈同学"));

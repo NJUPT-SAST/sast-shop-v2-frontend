@@ -5,6 +5,7 @@ import { Toaster } from "@workspace/ui/components/sonner";
 import { AuthBootstrap } from "@/components/auth-bootstrap";
 import { MobileShell } from "@/components/mobile-shell";
 import { ProfileDialogsProvider } from "@/components/profile-dialogs-provider";
+import { TransactionAgreementProvider } from "@/components/transaction-agreement-provider";
 import { mobileAppConfig } from "@/lib/app-config";
 import { getServerAuthMode } from "@/lib/auth-mode";
 import "./globals.css";
@@ -45,7 +46,9 @@ export default function RootLayout({
             overview={null}
             error={null}
           >
-            <MobileShell>{children}</MobileShell>
+            <TransactionAgreementProvider requireUserIdentity={authRequired}>
+              <MobileShell>{children}</MobileShell>
+            </TransactionAgreementProvider>
           </ProfileDialogsProvider>
         </AuthBootstrap>
         <Toaster position="top-center" />

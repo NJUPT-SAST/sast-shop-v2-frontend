@@ -11,6 +11,8 @@ import {
 } from "@sast-shop/api";
 import { PublishSpotForm } from "../components/publish-spot-form";
 
+const { ensureAgreement } = vi.hoisted(() => ({ ensureAgreement: vi.fn() }));
+
 vi.mock("@sast-shop/api", () => ({
   configureLarkJsapi: vi.fn(async () => undefined),
   createSpotGoods: vi.fn(),
@@ -19,6 +21,9 @@ vi.mock("@sast-shop/api", () => ({
     reason instanceof Error && reason.message === "cancelled",
   listPaymentQrCodes: vi.fn(),
   scanLarkBarcode: vi.fn(),
+}));
+vi.mock("../components/transaction-agreement-provider", () => ({
+  useTransactionAgreement: () => ({ ensureAgreement }),
 }));
 vi.mock("../hooks/use-feishu-ui-environment", () => ({
   useFeishuUiEnvironment: () => true,
@@ -84,6 +89,7 @@ beforeEach(() => {
   );
   vi.mocked(getProductTemplatesByBarcode).mockResolvedValue([]);
   vi.mocked(listPaymentQrCodes).mockResolvedValue([]);
+  ensureAgreement.mockReset().mockResolvedValue(true);
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);

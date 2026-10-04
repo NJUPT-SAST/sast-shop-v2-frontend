@@ -62,6 +62,7 @@ import { toast } from "sonner";
 import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
 
 import { ManagedImage } from "@/components/managed-image";
+import { useTransactionAgreement } from "./transaction-agreement-provider";
 
 type CartItem = {
   template: ProductTemplate;
@@ -94,6 +95,7 @@ export function ErrandShop({
   editDeadline?: string | null;
 }) {
   const router = useRouter();
+  const { ensureAgreement } = useTransactionAgreement();
   const loadPage = useCallback(
     (page: number) => {
       if (!store) return Promise.resolve(initialPage);
@@ -267,15 +269,17 @@ export function ErrandShop({
       return;
     }
 
+    const demandItems = normalizedItems.map((item) => ({
+      productTemplateId: item.template.id,
+      quantity: item.quantity,
+      serviceFeePerUnitCents: item.serviceFeePerUnitCents,
+      updatedAt: item.template.updatedAt,
+    }));
+    if (!(await ensureAgreement(() => setConfirmOpen(false)))) return;
+    if (submittingRef.current) return;
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      const demandItems = normalizedItems.map((item) => ({
-        productTemplateId: item.template.id,
-        quantity: item.quantity,
-        serviceFeePerUnitCents: item.serviceFeePerUnitCents,
-        updatedAt: item.template.updatedAt,
-      }));
       if (editDemandId != null) {
         if (!editUpdatedAt) {
           toast.error("该需求数据已过期，请回到订单列表重新进入修改");
@@ -307,7 +311,9 @@ export function ErrandShop({
       setConfirmOpen(false);
       router.push("/orders?type=errand&view=participant");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "跑腿需求提交失败，请稍后再试");
+      toast.error(
+        error instanceof Error ? error.message : "跑腿需求提交失败，请稍后再试",
+      );
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -541,7 +547,9 @@ export function ErrandShop({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editDemandId != null ? "确认更新跑腿需求？" : "确认发起跑腿需求？"}
+              {editDemandId != null
+                ? "确认更新跑腿需求？"
+                : "确认发起跑腿需求？"}
             </DialogTitle>
             <DialogDescription>
               {items.length} 种 · {totalQuantity} 件，

@@ -1,5 +1,7 @@
 "use client";
 
+import { useTransactionAgreement } from "./transaction-agreement-provider";
+
 import {
   useCallback,
   useEffect,
@@ -126,6 +128,7 @@ export function PublishSpotForm({
     [connectBaseUrl, dataSource],
   );
   const { openQrCodeDialog } = useProfileDialogs();
+  const { ensureAgreement } = useTransactionAgreement();
   const showFeishuEntry = useFeishuUiEnvironment();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -340,6 +343,7 @@ export function PublishSpotForm({
       return;
     }
 
+    if (!(await ensureAgreement()) || submittingRef.current) return;
     submittingRef.current = true;
     setSubmitting(true);
     setSubmissionError(null);

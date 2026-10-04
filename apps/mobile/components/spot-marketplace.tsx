@@ -65,6 +65,7 @@ import {
 } from "@/lib/payment-preferences";
 import { ManagedImage } from "./managed-image";
 import { PaymentDialog, type PaymentDialogStatus } from "./payment-dialog";
+import { useTransactionAgreement } from "./transaction-agreement-provider";
 
 type SpotProductBrief = {
   id: string;
@@ -107,6 +108,7 @@ export function SpotMarketplace({
   error: string | null;
 }) {
   const router = useRouter();
+  const { ensureAgreement } = useTransactionAgreement();
   const serviceOptions: ServiceOptions = { dataSource, connectBaseUrl };
   const firstPage = useMemo(
     () => ({
@@ -278,6 +280,12 @@ export function SpotMarketplace({
 
   async function beginCheckout(product: SpotProduct, checkoutQuantity: number) {
     if (checkoutRef.current || submittingRef.current) return;
+    if (
+      !(await ensureAgreement(closeDetail)) ||
+      checkoutRef.current ||
+      submittingRef.current
+    )
+      return;
     checkoutRef.current = true;
     const generation = ++checkoutGenerationRef.current;
     const currentDefaultPlatform = readDefaultPaymentPlatform();
@@ -438,6 +446,8 @@ export function SpotMarketplace({
       return;
     }
 
+    if (!(await ensureAgreement(closeCheckout)) || submittingRef.current)
+      return;
     const generation = checkoutGenerationRef.current;
     submittingRef.current = true;
     setSubmitting(true);

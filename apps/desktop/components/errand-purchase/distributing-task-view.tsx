@@ -57,6 +57,7 @@ import { toast } from "sonner";
 import { buildErrandTaskPaymentHref } from "@/lib/errand-task-route";
 
 import { ManagedImage } from "@/components/managed-image";
+import { useTransactionAgreement } from "../transaction-agreement-provider";
 
 type Confirmation = "start" | "finish" | "cancel" | null;
 const moneyPattern = /^\d*(?:\.\d{0,2})?$/;
@@ -73,6 +74,7 @@ export function DistributingTaskView({
   mode: "pending_distributing" | "distributing";
 }) {
   const router = useRouter();
+  const { ensureAgreement } = useTransactionAgreement();
   const pendingRef = useRef(false);
   const [items, setItems] = useState(detail.items);
   const [taskUpdatedAt, setTaskUpdatedAt] = useState(detail.taskUpdatedAt);
@@ -181,9 +183,7 @@ export function DistributingTaskView({
                   : {
                       ...requester,
                       distributedQuantity:
-                        distributedQuantity === -1
-                          ? null
-                          : distributedQuantity,
+                        distributedQuantity === -1 ? null : distributedQuantity,
                       assignmentUpdatedAt,
                     },
               ),
@@ -253,7 +253,11 @@ export function DistributingTaskView({
       });
       toast.success("实际价格已保存");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "价格保存失败，请刷新任务后重试");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "价格保存失败，请刷新任务后重试",
+      );
     } finally {
       setPendingKeys((current) => {
         const next = new Set(current);
@@ -273,13 +277,13 @@ export function DistributingTaskView({
     const remaining =
       (item.purchasedQuantity ?? 0) -
       item.requesters
-        .filter((r) => r.errandTaskAssignmentId !== requester.errandTaskAssignmentId)
+        .filter(
+          (r) => r.errandTaskAssignmentId !== requester.errandTaskAssignmentId,
+        )
         .reduce((sum, r) => sum + (r.distributedQuantity ?? 0), 0);
     if (
       quantity !== -1 &&
-      (!Number.isInteger(quantity) ||
-        quantity < 0 ||
-        quantity > remaining)
+      (!Number.isInteger(quantity) || quantity < 0 || quantity > remaining)
     ) {
       toast.error(`分发数量应为 0 到 ${Math.max(0, remaining)}`);
       return;
@@ -309,7 +313,11 @@ export function DistributingTaskView({
             : "分发结果已保存",
       );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "分发结果保存失败，请刷新后重试");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "分发结果保存失败，请刷新后重试",
+      );
     } finally {
       setPendingKeys((current) => {
         const next = new Set(current);
@@ -321,23 +329,29 @@ export function DistributingTaskView({
 
   async function transition(action: Exclude<Confirmation, null>) {
     if (pendingRef.current) return;
+    const packagingFeeCents =
+      action === "start" ? parseCents(packagingFee) : null;
+    if (action === "start") {
+      if (!allPricesSaved || pendingKeys.size > 0) {
+        toast.error("请先保存全部实际单价");
+        return;
+      }
+      if (packagingFeeCents === null) {
+        toast.error("请输入不超过两位小数的有效包装费");
+        return;
+      }
+    }
+    const attemptedVersion = taskUpdatedAt;
+    if (!(await ensureAgreement(() => setConfirmation(null)))) return;
+    if (pendingRef.current) return;
     pendingRef.current = true;
     setPending(true);
     try {
       if (action === "start") {
-        if (!allPricesSaved || pendingKeys.size > 0) {
-          toast.error("请先保存全部实际单价");
-          return;
-        }
-        const packagingFeeCents = parseCents(packagingFee);
-        if (packagingFeeCents === null) {
-          toast.error("请输入不超过两位小数的有效包装费");
-          return;
-        }
         await transitionToDistributing(
           detail.taskId,
-          packagingFeeCents,
-          taskUpdatedAt,
+          packagingFeeCents!,
+          attemptedVersion,
           serviceOptions,
         );
         toast.success("已进入分发阶段");
@@ -345,13 +359,13 @@ export function DistributingTaskView({
       } else if (action === "finish") {
         await transitionToCollectingPayment(
           detail.taskId,
-          taskUpdatedAt,
+          attemptedVersion,
           serviceOptions,
         );
         toast.success("已生成参与者账单");
         router.replace(buildErrandTaskPaymentHref(detail.taskId));
       } else {
-        await cancelTask(detail.taskId, taskUpdatedAt, serviceOptions);
+        await cancelTask(detail.taskId, attemptedVersion, serviceOptions);
         toast.success("采购任务已取消，需求已回到待接单");
         router.replace("/orders?type=errand&view=captain");
       }
@@ -373,7 +387,9 @@ export function DistributingTaskView({
         router.refresh();
       }
       toast.error(
-        error instanceof Error ? error.message : "状态更新失败，请刷新任务后重试",
+        error instanceof Error
+          ? error.message
+          : "状态更新失败，请刷新任务后重试",
       );
     } finally {
       pendingRef.current = false;

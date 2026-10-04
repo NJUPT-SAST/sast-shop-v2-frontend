@@ -66,6 +66,7 @@ import {
 import { getStatusBadgeVariant, getStatusLabel } from "@/lib/order-filters";
 import { ManagedImage } from "./managed-image";
 import { LarkContactButton } from "./lark-contact-button";
+import { useTransactionAgreement } from "./transaction-agreement-provider";
 
 export function BuyerErrandOrderDetailView({
   order,
@@ -385,9 +386,7 @@ function AmountSummaryCard({ order }: { order: BuyerErrandOrderDetail }) {
   const productAmount =
     order.totalActualAmountCents ?? order.totalOriginAmountCents;
   const subtotal = productAmount + order.totalServiceFeeCents;
-  const packagingFee = order.bill
-    ? order.bill.amountCents - subtotal
-    : 0;
+  const packagingFee = order.bill ? order.bill.amountCents - subtotal : 0;
   const total = order.bill ? order.bill.amountCents : subtotal;
   return (
     <Card>
@@ -492,6 +491,7 @@ function PaymentDialog({
   connectBaseUrl?: string;
   onPaid: (bill: PaymentBill) => void;
 }) {
+  const { ensureAgreement } = useTransactionAgreement();
   const [channel, setChannel] = useState<PaymentQrChannel>("wechat");
   const [codes, setCodes] = useState<Partial<Record<PaymentQrChannel, string>>>(
     {},
@@ -529,18 +529,31 @@ function PaymentDialog({
 
   async function submit() {
     if (!bill.updatedAt || !codes[channel] || payingRef.current) return;
+    const billToPay = bill;
+    const billVersion = bill.updatedAt;
+    const paymentChannel = channel;
+    if (!(await ensureAgreement(() => onOpenChange(false)))) return;
+    if (payingRef.current) return;
     payingRef.current = true;
     setPaying(true);
     try {
       const updated = await payBill(
-        { billId: bill.id, channel, updatedAt: bill.updatedAt },
+        {
+          billId: billToPay.id,
+          channel: paymentChannel,
+          updatedAt: billVersion,
+        },
         { dataSource, connectBaseUrl },
       );
       onPaid(updated);
       onOpenChange(false);
       toast.success("已提交支付，等待团长确认");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "支付提交失败，请刷新账单后重试");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "支付提交失败，请刷新账单后重试",
+      );
     } finally {
       payingRef.current = false;
       setPaying(false);
@@ -622,17 +635,25 @@ function SupplementDialog({
   connectBaseUrl?: string;
   onUpdated: (bill: PaymentBill) => void;
 }) {
+  const { ensureAgreement } = useTransactionAgreement();
   const [value, setValue] = useState("");
   const [pending, setPending] = useState(false);
+  const pendingRef = useRef(false);
   async function submit() {
-    if (!bill.updatedAt || !value.trim() || pending) return;
+    if (!bill.updatedAt || !value.trim() || pendingRef.current) return;
+    const billToSupplement = bill;
+    const billVersion = bill.updatedAt;
+    const submittedSerialNumber = value.trim();
+    if (!(await ensureAgreement(() => onOpenChange(false)))) return;
+    if (pendingRef.current) return;
+    pendingRef.current = true;
     setPending(true);
     try {
       const updated = await supplementBillSerialNumber(
         {
-          billId: bill.id,
-          serialNumber: value.trim(),
-          updatedAt: bill.updatedAt,
+          billId: billToSupplement.id,
+          serialNumber: submittedSerialNumber,
+          updatedAt: billVersion,
         },
         { dataSource, connectBaseUrl },
       );
@@ -640,8 +661,13 @@ function SupplementDialog({
       onOpenChange(false);
       toast.success("支付流水号已补充");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "提交失败，请刷新账单状态后重试");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "提交失败，请刷新账单状态后重试",
+      );
     } finally {
+      pendingRef.current = false;
       setPending(false);
     }
   }

@@ -52,6 +52,7 @@ import {
 import { sanitizeImageSrc } from "@/lib/image-src";
 import { MobileFixedFooter } from "./mobile-fixed-footer";
 import { ManagedImage } from "./managed-image";
+import { useTransactionAgreement } from "./transaction-agreement-provider";
 
 type ErrandDemandDetailProps = {
   dataSource: DataSource;
@@ -69,6 +70,7 @@ export function ErrandDemandDetail({
   details,
 }: ErrandDemandDetailProps) {
   const router = useRouter();
+  const { ensureAgreement } = useTransactionAgreement();
   const submittingRef = useRef(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -123,6 +125,14 @@ export function ErrandDemandDetail({
       return;
     }
 
+    const selectedDemandItems = demandItems;
+    if (!(await ensureAgreement(() => setConfirmOpen(false)))) {
+      return;
+    }
+    if (submittingRef.current) {
+      return;
+    }
+
     submittingRef.current = true;
     setSubmitting(true);
 
@@ -130,7 +140,7 @@ export function ErrandDemandDetail({
       const result = await createErrandTask(
         {
           storeId,
-          demandItems,
+          demandItems: selectedDemandItems,
         },
         { dataSource, connectBaseUrl },
       );

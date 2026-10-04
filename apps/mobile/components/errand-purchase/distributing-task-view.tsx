@@ -51,6 +51,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import { ManagedImage } from "@/components/managed-image";
 import { MobileFixedFooter } from "@/components/mobile-fixed-footer";
 import { MobileHeaderActions } from "@/components/mobile-header-actions";
+import { useTransactionAgreement } from "@/components/transaction-agreement-provider";
 import { getStatusBadgeVariant, getStatusLabel } from "@/lib/order-filters";
 import { buildErrandTaskPaymentHref } from "@/lib/errand-task-route";
 import {
@@ -99,6 +100,7 @@ export function DistributingTaskView({
   mode,
 }: DistributingTaskViewProps) {
   const router = useRouter();
+  const { ensureAgreement } = useTransactionAgreement();
   const submittingRef = useRef(false);
   const assigningRef = useRef(false);
   const [items, setItems] = useState<DistributingTaskItem[]>(detail.items);
@@ -378,6 +380,12 @@ export function DistributingTaskView({
       toast.error("请输入不超过两位小数且未超出上限的包装费");
       return;
     }
+    if (!(await ensureAgreement(() => setDialog({ type: "none" })))) {
+      return;
+    }
+    if (submittingRef.current || assigningRef.current) {
+      return;
+    }
     submittingRef.current = true;
     setSubmitting(true);
     try {
@@ -409,6 +417,12 @@ export function DistributingTaskView({
       taskNeedsVerification
     ) {
       toast.info("正在处理，请稍候");
+      return;
+    }
+    if (!(await ensureAgreement(() => setDialog({ type: "none" })))) {
+      return;
+    }
+    if (submittingRef.current || assigningRef.current) {
       return;
     }
     submittingRef.current = true;
@@ -455,17 +469,26 @@ export function DistributingTaskView({
       toast.info("正在处理，请稍候");
       return;
     }
+    const attemptedVersion = taskUpdatedAt;
+    if (!(await ensureAgreement(() => setDialog({ type: "none" })))) return;
+    if (
+      submittingRef.current ||
+      assigningRef.current ||
+      taskNeedsVerification
+    ) {
+      return;
+    }
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      await cancelTask(detail.taskId, taskUpdatedAt, serviceOptions);
+      await cancelTask(detail.taskId, attemptedVersion, serviceOptions);
       setDialog({ type: "none" });
       router.replace("/orders?type=errand&view=captain");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "取消失败，请稍后再试",
       );
-      setUnverifiedTaskVersion(taskUpdatedAt);
+      setUnverifiedTaskVersion(attemptedVersion);
       setDialog({ type: "none" });
       setSubmitting(false);
       router.refresh();

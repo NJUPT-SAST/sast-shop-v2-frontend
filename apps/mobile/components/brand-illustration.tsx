@@ -4,6 +4,7 @@ import { cn } from "@workspace/ui/lib/utils";
 type BrandElement =
   | "errand"
   | "template"
+  | "transaction-agreement"
   | "manual"
   | "scan"
   | "address"

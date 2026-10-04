@@ -7,6 +7,7 @@ import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
 import { BrandIllustration } from "./brand-illustration";
 import { useProfileDialogs } from "./profile-dialogs-provider";
+import { useTransactionAgreement } from "./transaction-agreement-provider";
 
 export function ProfileManagementClient({
   feedbackFormUrl,
@@ -15,6 +16,7 @@ export function ProfileManagementClient({
 }) {
   const { openAddressDialog, openPaymentPreferenceDialog, openQrCodeDialog } =
     useProfileDialogs();
+  const { openAgreement } = useTransactionAgreement();
 
   return (
     <div className="overflow-hidden rounded-xl border bg-card">
@@ -35,6 +37,12 @@ export function ProfileManagementClient({
         title="默认支付方式"
         icon={<BrandIllustration name="wallet" size={32} />}
         onClick={openPaymentPreferenceDialog}
+        border
+      />
+      <ProfileMenuButton
+        title="交易协议"
+        icon={<BrandIllustration name="transaction-agreement" size={32} />}
+        onClick={openAgreement}
         border={Boolean(feedbackFormUrl)}
         last={!feedbackFormUrl}
       />

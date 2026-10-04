@@ -63,6 +63,7 @@ import {
   shouldApplyBarcodeResult,
 } from "@/lib/product-template-flow";
 import { StoreCreateDialog } from "@/components/store-create-dialog";
+import { useTransactionAgreement } from "./transaction-agreement-provider";
 
 type LookupStatus =
   "idle" | "loading" | "empty" | "choose" | "selected" | "error";
@@ -74,6 +75,7 @@ export function PublishSpotForm({
   dataSource: DataSource;
   connectBaseUrl: string;
 }) {
+  const { ensureAgreement } = useTransactionAgreement();
   const serviceOptions: ServiceOptions = useMemo(
     () => ({ dataSource, connectBaseUrl }),
     [connectBaseUrl, dataSource],
@@ -216,6 +218,9 @@ export function PublishSpotForm({
       return;
     }
 
+    const match = selectedMatch;
+    if (!(await ensureAgreement())) return;
+    if (submittingRef.current) return;
     submittingRef.current = true;
     setSubmitting(true);
     setFormError(null);
@@ -226,7 +231,9 @@ export function PublishSpotForm({
         qrCodes = await listPaymentQrCodes(serviceOptions);
       } catch (error) {
         setFormError(
-          error instanceof Error ? error.message : "收款码状态暂时无法确认，请稍后重试",
+          error instanceof Error
+            ? error.message
+            : "收款码状态暂时无法确认，请稍后重试",
         );
         return;
       }
@@ -239,14 +246,14 @@ export function PublishSpotForm({
       try {
         await createSpotGoods(
           {
-            productTemplateId: selectedMatch.productTemplate.id,
+            productTemplateId: match.productTemplate.id,
             salePriceCents: priceCents,
             stockTotal: stockValue,
-            productTemplateUpdatedAt: selectedMatch.productTemplate.updatedAt,
+            productTemplateUpdatedAt: match.productTemplate.updatedAt,
           },
           serviceOptions,
         );
-        setSubmittedTitle(selectedMatch.productTemplate.title);
+        setSubmittedTitle(match.productTemplate.title);
         toast.success("现货已上架");
       } catch (error) {
         setFormError(

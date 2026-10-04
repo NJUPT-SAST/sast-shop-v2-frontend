@@ -1,5 +1,7 @@
 "use client";
 
+import { useTransactionAgreement } from "./transaction-agreement-provider";
+
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -78,6 +80,7 @@ export function SpotOrderDetail({
   view,
 }: SpotOrderDetailProps) {
   const router = useRouter();
+  const { ensureAgreement } = useTransactionAgreement();
   const [currentOrder, setCurrentOrder] = useState(order);
   const [paymentDrawerOpen, setPaymentDrawerOpen] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
@@ -152,6 +155,15 @@ export function SpotOrderDetail({
   ) {
     if (lifecyclePendingRef.current) return;
     if (action === "confirm-payment" && !versionedBill) return;
+    if (
+      !(await ensureAgreement(() => {
+        setCancelDialogOpen(false);
+        setCompleteDialogOpen(false);
+        setConfirmPaymentDialogOpen(false);
+      })) ||
+      lifecyclePendingRef.current
+    )
+      return;
 
     lifecyclePendingRef.current = true;
     setLifecyclePending(action);
@@ -282,7 +294,11 @@ export function SpotOrderDetail({
             <Button
               type="button"
               className="flex-1"
-              onClick={() => setPaymentDrawerOpen(true)}
+              onClick={() =>
+                void ensureAgreement().then((agreed) => {
+                  if (agreed) setPaymentDrawerOpen(true);
+                })
+              }
             >
               去支付
             </Button>
@@ -291,7 +307,11 @@ export function SpotOrderDetail({
             <Button
               type="button"
               className="flex-1"
-              onClick={() => setSupplementOpen(true)}
+              onClick={() =>
+                void ensureAgreement().then((agreed) => {
+                  if (agreed) setSupplementOpen(true);
+                })
+              }
             >
               补充流水号
             </Button>
@@ -300,7 +320,11 @@ export function SpotOrderDetail({
             <Button
               type="button"
               className="flex-1"
-              onClick={() => setConfirmPaymentDialogOpen(true)}
+              onClick={() =>
+                void ensureAgreement().then((agreed) => {
+                  if (agreed) setConfirmPaymentDialogOpen(true);
+                })
+              }
             >
               确认收款
             </Button>

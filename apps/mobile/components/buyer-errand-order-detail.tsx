@@ -1,5 +1,7 @@
 "use client";
 
+import { useTransactionAgreement } from "./transaction-agreement-provider";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -69,6 +71,7 @@ export function BuyerErrandOrderDetailView({
   connectBaseUrl: string;
 }) {
   const router = useRouter();
+  const { ensureAgreement } = useTransactionAgreement();
   const [currentOrder, setCurrentOrder] = useState(order);
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -198,7 +201,11 @@ export function BuyerErrandOrderDetailView({
             <Button
               type="button"
               className="flex-1"
-              onClick={() => setPaymentOpen(true)}
+              onClick={() =>
+                void ensureAgreement().then((agreed) => {
+                  if (agreed) setPaymentOpen(true);
+                })
+              }
             >
               去支付 {formatPrice(payableBill.amountCents)}
             </Button>
@@ -207,7 +214,11 @@ export function BuyerErrandOrderDetailView({
             <Button
               type="button"
               className="flex-1"
-              onClick={() => setSupplementOpen(true)}
+              onClick={() =>
+                void ensureAgreement().then((agreed) => {
+                  if (agreed) setSupplementOpen(true);
+                })
+              }
             >
               补充流水号
             </Button>

@@ -2,6 +2,7 @@
 
 import { type ChangeEvent, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   RiAddLine,
   RiAlipayLine,
@@ -65,6 +66,7 @@ import {
   getProvinceOptions,
 } from "@/lib/mainland-address-regions";
 import { decodePaymentQrImage } from "@/lib/qr-image-decoder";
+import { useTransactionAgreement } from "./transaction-agreement-provider";
 
 type AddressDraft = Omit<ShippingAddressInput, "isDefault"> & {
   isDefault: boolean;
@@ -84,6 +86,7 @@ export function ProfileManagement({
   feedbackFormUrl: string | null;
 }) {
   const router = useRouter();
+  const { openAgreement } = useTransactionAgreement();
   const serviceOptions: ServiceOptions = useMemo(
     () => ({ dataSource, connectBaseUrl }),
     [connectBaseUrl, dataSource],
@@ -262,6 +265,23 @@ export function ProfileManagement({
           </button>
         </section>
       ) : null}
+
+      <Button
+        type="button"
+        variant="ghost"
+        className="w-full justify-start"
+        onClick={openAgreement}
+      >
+        <Image
+          src="/brand/transaction-agreement-compact.webp"
+          width={32}
+          height={32}
+          alt=""
+          aria-hidden="true"
+          unoptimized
+        />
+        交易协议
+      </Button>
 
       {feedbackFormUrl ? (
         <Button variant="ghost" className="w-full justify-start" asChild>

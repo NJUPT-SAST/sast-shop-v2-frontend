@@ -17,6 +17,7 @@ const illustration = await readFile(
 );
 
 const transparent = { r: 0, g: 0, b: 0, alpha: 0 };
+const selectedModule = process.argv[2];
 
 async function trimTransparentCanvas(source) {
   const metadata = await sharp(source).metadata();
@@ -76,7 +77,7 @@ for (const [index, frame] of frames.entries()) {
 }
 const favicon = Buffer.concat([directory, ...frames]);
 
-for (const app of ["mobile", "desktop"]) {
+for (const app of selectedModule ? [] : ["mobile", "desktop"]) {
   const directory = path.join(root, "apps", app, "app");
   await writeFile(path.join(directory, "favicon.ico"), favicon);
   await writeFile(path.join(directory, "icon.png"), icon);
@@ -86,18 +87,21 @@ for (const app of ["mobile", "desktop"]) {
 
 const publicDirectory = path.join(root, "apps/mobile/public/brand");
 await mkdir(publicDirectory, { recursive: true });
-await sharp(logo)
-  .resize(512, 512)
-  .webp({ lossless: true })
-  .toFile(path.join(publicDirectory, "logo.webp"));
-await sharp(illustration)
-  .resize(384, 384)
-  .webp({ quality: 82, alphaQuality: 100 })
-  .toFile(path.join(publicDirectory, "errand-empty.webp"));
+if (!selectedModule) {
+  await sharp(logo)
+    .resize(512, 512)
+    .webp({ lossless: true })
+    .toFile(path.join(publicDirectory, "logo.webp"));
+  await sharp(illustration)
+    .resize(384, 384)
+    .webp({ quality: 82, alphaQuality: 100 })
+    .toFile(path.join(publicDirectory, "errand-empty.webp"));
+}
 
 const moduleNames = [
   "errand",
   "template",
+  "transaction-agreement",
   "manual",
   "scan",
   "address",
@@ -108,7 +112,11 @@ const moduleNames = [
   "store",
 ];
 
-for (const name of moduleNames) {
+if (selectedModule && !moduleNames.includes(selectedModule)) {
+  throw new Error(`Unknown brand module: ${selectedModule}`);
+}
+
+for (const name of selectedModule ? [selectedModule] : moduleNames) {
   const source = await readFile(
     path.join(brandDirectory, `${name}-master.png`),
   );
@@ -121,6 +129,18 @@ for (const name of moduleNames) {
     .resize(256, 256, { fit: "contain", background: transparent })
     .webp({ lossless: true })
     .toFile(path.join(publicDirectory, `${name}-compact.webp`));
+  if (name === "transaction-agreement") {
+    const desktopDirectory = path.join(root, "apps/desktop/public/brand");
+    await mkdir(desktopDirectory, { recursive: true });
+    await writeFile(
+      path.join(desktopDirectory, `${name}-compact.webp`),
+      await readFile(path.join(publicDirectory, `${name}-compact.webp`)),
+    );
+  }
 }
 
-console.log("Exported app icons and mobile brand assets.");
+console.log(
+  selectedModule
+    ? `Exported brand module: ${selectedModule}.`
+    : "Exported app icons and brand assets.",
+);

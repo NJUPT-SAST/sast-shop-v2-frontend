@@ -52,6 +52,7 @@ import {
 } from "@/lib/spot-orders";
 import { ManagedImage } from "./managed-image";
 import { LarkContactButton } from "./lark-contact-button";
+import { useTransactionAgreement } from "./transaction-agreement-provider";
 
 type ConfirmationAction = "cancel" | "complete" | "confirm" | null;
 
@@ -69,6 +70,7 @@ export function SpotOrderDetail({
   returnTo: string;
 }) {
   const router = useRouter();
+  const { ensureAgreement } = useTransactionAgreement();
   const [currentOrder, setCurrentOrder] = useState(order);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [confirmation, setConfirmation] = useState<ConfirmationAction>(null);
@@ -87,13 +89,17 @@ export function SpotOrderDetail({
 
   async function mutate(action: Exclude<ConfirmationAction, null>) {
     if (pendingRef.current) return;
+    const orderId = resolvedOrder.id;
+    const billToConfirm = bill;
+    if (!(await ensureAgreement(() => setConfirmation(null)))) return;
+    if (pendingRef.current) return;
     pendingRef.current = true;
     setPending(true);
     try {
       if (action === "cancel") {
         setCurrentOrder(
           await cancelSpotOrder(
-            { spotOrderId: resolvedOrder.id },
+            { spotOrderId: orderId },
             { dataSource, connectBaseUrl },
           ),
         );
@@ -101,14 +107,14 @@ export function SpotOrderDetail({
       } else if (action === "complete") {
         setCurrentOrder(
           await completeSpotOrder(
-            { spotOrderId: resolvedOrder.id },
+            { spotOrderId: orderId },
             { dataSource, connectBaseUrl },
           ),
         );
         toast.success("订单已完成");
-      } else if (bill?.updatedAt) {
+      } else if (billToConfirm?.updatedAt) {
         const updatedBill = await confirmBill(
-          { billId: bill.id, updatedAt: bill.updatedAt },
+          { billId: billToConfirm.id, updatedAt: billToConfirm.updatedAt },
           { dataSource, connectBaseUrl },
         );
         setCurrentOrder((value) => ({ ...value, bill: updatedBill }));
@@ -117,7 +123,11 @@ export function SpotOrderDetail({
       setConfirmation(null);
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "操作失败，订单状态可能已变化，请刷新后重试");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "操作失败，订单状态可能已变化，请刷新后重试",
+      );
     } finally {
       pendingRef.current = false;
       setPending(false);
@@ -126,14 +136,19 @@ export function SpotOrderDetail({
 
   async function supplement() {
     if (!bill?.updatedAt || !serialNumber.trim() || pendingRef.current) return;
+    const billToSupplement = bill;
+    const billVersion = bill.updatedAt;
+    const submittedSerialNumber = serialNumber.trim();
+    if (!(await ensureAgreement(() => setSupplementOpen(false)))) return;
+    if (pendingRef.current) return;
     pendingRef.current = true;
     setPending(true);
     try {
       const updatedBill = await supplementBillSerialNumber(
         {
-          billId: bill.id,
-          serialNumber: serialNumber.trim(),
-          updatedAt: bill.updatedAt,
+          billId: billToSupplement.id,
+          serialNumber: submittedSerialNumber,
+          updatedAt: billVersion,
         },
         { dataSource, connectBaseUrl },
       );
@@ -142,7 +157,11 @@ export function SpotOrderDetail({
       toast.success("支付流水号已补充");
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "提交失败，请刷新账单状态后重试");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "提交失败，请刷新账单状态后重试",
+      );
     } finally {
       pendingRef.current = false;
       setPending(false);
@@ -483,6 +502,7 @@ function PaymentDialog({
   connectBaseUrl: string;
   onPaid: (bill: NonNullable<SpotOrder["bill"]>) => void;
 }) {
+  const { ensureAgreement } = useTransactionAgreement();
   const [channel, setChannel] = useState<PaymentQrChannel>("wechat");
   const [codes, setCodes] = useState<Partial<Record<PaymentQrChannel, string>>>(
     {},
@@ -521,18 +541,31 @@ function PaymentDialog({
 
   async function submitPayment() {
     if (!bill?.updatedAt || !codes[channel] || payingRef.current) return;
+    const billToPay = bill;
+    const billVersion = bill.updatedAt;
+    const paymentChannel = channel;
+    if (!(await ensureAgreement(() => onOpenChange(false)))) return;
+    if (payingRef.current) return;
     payingRef.current = true;
     setPaying(true);
     try {
       const updated = await payBill(
-        { billId: bill.id, channel, updatedAt: bill.updatedAt },
+        {
+          billId: billToPay.id,
+          channel: paymentChannel,
+          updatedAt: billVersion,
+        },
         { dataSource, connectBaseUrl },
       );
       onPaid(updated);
       onOpenChange(false);
       toast.success("已提交支付，等待卖家确认");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "支付提交失败，请检查账单状态后重试");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "支付提交失败，请检查账单状态后重试",
+      );
     } finally {
       payingRef.current = false;
       setPaying(false);

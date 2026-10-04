@@ -48,6 +48,7 @@ import {
 import { calculateErrandCartTotal } from "@/lib/errand-cart-total";
 import { ManagedImage } from "./managed-image";
 import { MobileFixedFooter } from "./mobile-fixed-footer";
+import { useTransactionAgreement } from "./transaction-agreement-provider";
 
 type ErrandShopProps = {
   dataSource: DataSource;
@@ -72,6 +73,7 @@ export function ErrandShop({
   initialPage,
 }: ErrandShopProps) {
   const router = useRouter();
+  const { ensureAgreement } = useTransactionAgreement();
   const loadPage = useCallback(
     (page: number) =>
       listProductTemplatesPage({
@@ -266,6 +268,13 @@ export function ErrandShop({
     }
 
     const serviceOptions: ServiceOptions = { dataSource, connectBaseUrl };
+
+    if (!(await ensureAgreement(() => setCartOpen(false)))) {
+      return;
+    }
+    if (submittingRef.current) {
+      return;
+    }
 
     submittingRef.current = true;
     setSubmitting(true);

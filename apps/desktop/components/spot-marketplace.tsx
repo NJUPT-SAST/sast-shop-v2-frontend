@@ -50,6 +50,7 @@ import {
   type SpotProductBrief,
 } from "@/lib/spot-marketplace";
 import { ManagedImage } from "./managed-image";
+import { useTransactionAgreement } from "./transaction-agreement-provider";
 
 export function SpotMarketplace({
   dataSource,
@@ -63,6 +64,7 @@ export function SpotMarketplace({
   error: string | null;
 }) {
   const router = useRouter();
+  const { ensureAgreement } = useTransactionAgreement();
   const firstPage = useMemo(
     () => ({
       items: initialPage.goods,
@@ -173,11 +175,21 @@ export function SpotMarketplace({
 
   async function createOrder() {
     if (!selected || submittingRef.current) return;
+    const product = selected;
+    const orderQuantity = quantity;
+    if (!(await ensureAgreement(() => setDialogOpen(false)))) return;
+    if (submittingRef.current) return;
     submittingRef.current = true;
     setSubmitting(true);
     try {
       const orders = await createSpotOrders(
-        [{ spotGoodsId: selected.id, quantity, updatedAt: selected.updatedAt }],
+        [
+          {
+            spotGoodsId: product.id,
+            quantity: orderQuantity,
+            updatedAt: product.updatedAt,
+          },
+        ],
         { dataSource, connectBaseUrl },
       );
       const order = orders[0];
@@ -187,7 +199,11 @@ export function SpotMarketplace({
         `/orders/spot/${order.id}?view=buyer&returnTo=${encodeURIComponent("/shop")}`,
       );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "创建订单失败，商品信息可能已更新，请刷新后重试");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "创建订单失败，商品信息可能已更新，请刷新后重试",
+      );
     } finally {
       submittingRef.current = false;
       setSubmitting(false);

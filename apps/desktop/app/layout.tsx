@@ -4,6 +4,7 @@ import Script from "next/script";
 import { Toaster } from "@workspace/ui/components/sonner";
 import { AuthBootstrap } from "@/components/auth-bootstrap";
 import { DesktopShell } from "@/components/desktop-shell";
+import { TransactionAgreementProvider } from "@/components/transaction-agreement-provider";
 import { desktopAppConfig } from "@/lib/app-config";
 import { getServerAuthMode } from "@/lib/auth-mode";
 import "./globals.css";
@@ -34,7 +35,9 @@ export default function RootLayout({
           dataSource={desktopAppConfig.dataSource}
           connectBaseUrl={desktopAppConfig.connectBaseUrl}
         >
-          <DesktopShell>{children}</DesktopShell>
+          <TransactionAgreementProvider requireUserIdentity={authRequired}>
+            <DesktopShell>{children}</DesktopShell>
+          </TransactionAgreementProvider>
         </AuthBootstrap>
         <Toaster />
       </body>

@@ -16,6 +16,7 @@ const {
   getSpotGoods,
   listPaymentQrCodes,
   payBill,
+  ensureAgreement,
   refresh,
   toastError,
   toastInfo,
@@ -25,6 +26,7 @@ const {
   getSpotGoods: vi.fn(),
   listPaymentQrCodes: vi.fn(),
   payBill: vi.fn(),
+  ensureAgreement: vi.fn(),
   refresh: vi.fn(),
   toastError: vi.fn(),
   toastInfo: vi.fn(),
@@ -40,6 +42,9 @@ vi.mock("@sast-shop/api", () => ({
   listPaymentQrCodes,
   listSpotGoods: vi.fn(),
   payBill,
+}));
+vi.mock("../components/transaction-agreement-provider", () => ({
+  useTransactionAgreement: () => ({ ensureAgreement }),
 }));
 vi.mock("sonner", () => ({
   toast: { error: toastError, info: toastInfo, success: vi.fn() },
@@ -188,6 +193,7 @@ beforeEach(() => {
       { channel: "wechat", content: "https://example.com/pay" },
     ]);
   payBill.mockReset();
+  ensureAgreement.mockReset().mockResolvedValue(true);
   refresh.mockReset();
   toastError.mockReset();
   toastInfo.mockReset();
@@ -229,6 +235,38 @@ async function openPayment() {
 }
 
 describe("new spot order payment recovery", () => {
+  it("does not create an order when the transaction agreement is declined", async () => {
+    ensureAgreement.mockResolvedValue(false);
+    await act(async () => {
+      root.render(
+        <SpotMarketplace
+          dataSource="local"
+          connectBaseUrl="http://127.0.0.1:1323"
+          initialPage={initialPage}
+          error={null}
+        />,
+      );
+    });
+
+    await click("矿泉水");
+    await click("创建订单");
+
+    expect(ensureAgreement).toHaveBeenCalledTimes(1);
+    expect(createSpotOrders).not.toHaveBeenCalled();
+    expect(payBill).not.toHaveBeenCalled();
+  });
+
+  it("does not submit payment when the transaction agreement is declined", async () => {
+    await openPayment();
+    ensureAgreement.mockResolvedValue(false);
+
+    await click("确认支付");
+
+    expect(ensureAgreement).toHaveBeenCalledTimes(2);
+    expect(createSpotOrders).toHaveBeenCalledTimes(1);
+    expect(payBill).not.toHaveBeenCalled();
+  });
+
   it("uses the refreshed submitted bill after an ambiguous pay response", async () => {
     const submitted = { ...bill, status: "submitted" };
     payBill.mockRejectedValueOnce(new Error("响应中断"));

@@ -28,6 +28,7 @@ const {
   transitionToPendingDistributing,
   updateActualPrice,
   refresh,
+  ensureAgreement,
 } = vi.hoisted(() => ({
   cancelTask: vi.fn(),
   confirmBill: vi.fn(),
@@ -39,6 +40,11 @@ const {
   transitionToPendingDistributing: vi.fn(),
   updateActualPrice: vi.fn(),
   refresh: vi.fn(),
+  ensureAgreement: vi.fn(),
+}));
+
+vi.mock("../components/transaction-agreement-provider", () => ({
+  useTransactionAgreement: () => ({ ensureAgreement }),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -168,6 +174,8 @@ let root: Root;
 let container: HTMLDivElement;
 
 beforeEach(() => {
+  ensureAgreement.mockReset();
+  ensureAgreement.mockResolvedValue(true);
   vi.stubGlobal("React", React);
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   refresh.mockReset();
@@ -209,6 +217,98 @@ function getButton(label: string, last = false) {
 }
 
 describe("errand purchase refresh recovery", () => {
+  it("does not finish or cancel a shopping task after agreement refusal", async () => {
+    ensureAgreement.mockImplementation(async (beforePrompt?: () => void) => {
+      beforePrompt?.();
+      return false;
+    });
+    await render(
+      <MobileHeaderActionsProvider>
+        <header>
+          <MobileHeaderActionSlot />
+        </header>
+        <ShoppingTaskView
+          dataSource="local"
+          connectBaseUrl="http://127.0.0.1:1327"
+          detail={shoppingDetail}
+          taskUpdatedAt={shoppingDetail.taskUpdatedAt}
+        />
+      </MobileHeaderActionsProvider>,
+    );
+
+    await click("确认完成采购");
+    await click("完成采购");
+    expect(transitionToPendingDistributing).not.toHaveBeenCalled();
+    expect(container.textContent).not.toContain("完成采购后将进入分发");
+
+    const cancelAction =
+      container.querySelector<HTMLButtonElement>("header button");
+    expect(cancelAction?.textContent).toContain("取消采购");
+    await act(async () => cancelAction!.click());
+    expect(cancelTask).not.toHaveBeenCalled();
+    await click("确认取消");
+
+    expect(ensureAgreement).toHaveBeenCalledTimes(2);
+    expect(cancelTask).not.toHaveBeenCalled();
+    expect(container.textContent).not.toContain("确认取消此次采购任务");
+  });
+
+  it("does not cancel a distributing task after agreement refusal", async () => {
+    ensureAgreement.mockImplementation(async (beforePrompt?: () => void) => {
+      beforePrompt?.();
+      return false;
+    });
+    await render(
+      <MobileHeaderActionsProvider>
+        <header>
+          <MobileHeaderActionSlot />
+        </header>
+        <DistributingTaskView
+          dataSource="local"
+          connectBaseUrl="http://127.0.0.1:1327"
+          detail={distributingDetail}
+          mode="pending_distributing"
+        />
+      </MobileHeaderActionsProvider>,
+    );
+
+    const cancelAction =
+      container.querySelector<HTMLButtonElement>("header button");
+    expect(cancelAction?.textContent).toContain("取消采购");
+    await act(async () => cancelAction!.click());
+    expect(cancelTask).not.toHaveBeenCalled();
+    await click("确认取消");
+
+    expect(ensureAgreement).toHaveBeenCalledTimes(1);
+    expect(cancelTask).not.toHaveBeenCalled();
+    expect(container.textContent).not.toContain("确认取消此次采购任务");
+  });
+
+  it("does not confirm a bill when the transaction agreement is declined", async () => {
+    ensureAgreement.mockResolvedValue(false);
+    await render(
+      <CollectingPaymentView
+        dataSource="local"
+        connectBaseUrl="http://127.0.0.1:1327"
+        detail={{
+          ...collectingDetail,
+          bills: [{ ...bill, paymentStatus: "pending_confirmation" }],
+        }}
+        taskId="7004"
+        taskUpdatedAt={collectingDetail.taskUpdatedAt}
+      />,
+    );
+    const billToggle = container.querySelector<HTMLButtonElement>(
+      '[aria-controls="payment-bill-9101"]',
+    );
+    await act(async () => billToggle!.click());
+    await click("确认收款");
+    await click("确认收款", true);
+
+    expect(ensureAgreement).toHaveBeenCalledTimes(1);
+    expect(confirmBill).not.toHaveBeenCalled();
+  });
+
   it("keeps price editing separate from requester expansion", async () => {
     getDistributingTaskDetail.mockResolvedValue(distributingDetail);
     const view = (mode: "pending_distributing" | "distributing") => (

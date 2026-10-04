@@ -36,6 +36,7 @@ import {
 import { toast } from "sonner";
 
 import { MobileFixedFooter } from "@/components/mobile-fixed-footer";
+import { useTransactionAgreement } from "@/components/transaction-agreement-provider";
 import {
   compareUpdatedAt,
   latestUpdatedAt,
@@ -152,6 +153,7 @@ export function CollectingPaymentView({
   billingNotice = false,
 }: CollectingPaymentViewProps) {
   const router = useRouter();
+  const { ensureAgreement } = useTransactionAgreement();
   const submittingRef = useRef(false);
   const confirmingRef = useRef(false);
   const [bills, setBills] = useState<CollectingPaymentBill[]>(detail.bills);
@@ -249,6 +251,12 @@ export function CollectingPaymentView({
       toast.info("正在处理，请稍候");
       return;
     }
+    if (!(await ensureAgreement(() => setDialog({ type: "none" })))) {
+      return;
+    }
+    if (confirmingRef.current || submittingRef.current) {
+      return;
+    }
     confirmingRef.current = true;
     setConfirmingBillId(bill.requesterId);
     try {
@@ -282,6 +290,12 @@ export function CollectingPaymentView({
       submittingRef.current ||
       confirmingRef.current
     ) {
+      return;
+    }
+    if (!(await ensureAgreement(() => setDialog({ type: "none" })))) {
+      return;
+    }
+    if (submittingRef.current || confirmingRef.current) {
       return;
     }
     submittingRef.current = true;

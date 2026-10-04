@@ -42,6 +42,7 @@ import {
 import { Separator } from "@workspace/ui/components/separator";
 import { Spinner } from "@workspace/ui/components/spinner";
 import { toast } from "sonner";
+import { useTransactionAgreement } from "../transaction-agreement-provider";
 
 export function CollectingPaymentView({
   dataSource,
@@ -59,6 +60,7 @@ export function CollectingPaymentView({
   billingNotice?: boolean;
 }) {
   const router = useRouter();
+  const { ensureAgreement } = useTransactionAgreement();
   const confirmingRef = useRef(false);
   const completingRef = useRef(false);
   const [bills, setBills] = useState(detail.bills);
@@ -112,6 +114,8 @@ export function CollectingPaymentView({
         toast.error("账单版本信息缺失，请刷新任务");
       return;
     }
+    if (!(await ensureAgreement(() => setBillToConfirm(null)))) return;
+    if (confirmingRef.current || completingRef.current) return;
     confirmingRef.current = true;
     setConfirmingId(bill.requesterId);
     try {
@@ -129,7 +133,11 @@ export function CollectingPaymentView({
       setBillToConfirm(null);
       toast.success("已确认到账");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "确认收款失败，请刷新账单后重试");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "确认收款失败，请刷新账单后重试",
+      );
     } finally {
       confirmingRef.current = false;
       setConfirmingId(null);
@@ -138,6 +146,8 @@ export function CollectingPaymentView({
 
   async function completeTask() {
     if (!allConfirmed || completingRef.current) return;
+    if (!(await ensureAgreement(() => setCompleteOpen(false)))) return;
+    if (completingRef.current || confirmingRef.current) return;
     completingRef.current = true;
     setCompleting(true);
     try {
@@ -163,7 +173,11 @@ export function CollectingPaymentView({
       setCompleteOpen(false);
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "订单完成失败，请刷新账单后重试");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "订单完成失败，请刷新账单后重试",
+      );
     } finally {
       completingRef.current = false;
       setCompleting(false);

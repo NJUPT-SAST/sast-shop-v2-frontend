@@ -40,6 +40,7 @@ import { Textarea } from "@workspace/ui/components/textarea";
 import { toast } from "sonner";
 
 import { ManagedImage } from "@/components/managed-image";
+import { useTransactionAgreement } from "../transaction-agreement-provider";
 
 type DialogState =
   | { type: "none" }
@@ -67,6 +68,7 @@ export function ShoppingTaskView({
   taskUpdatedAt: string | null;
 }) {
   const router = useRouter();
+  const { ensureAgreement } = useTransactionAgreement();
   const pendingRef = useRef(false);
   const [items, setItems] = useState(detail.taskItems);
   const [dialog, setDialog] = useState<DialogState>({ type: "none" });
@@ -119,7 +121,9 @@ export function ShoppingTaskView({
         purchasedQuantity === -1 ? "已撤销采购结果" : "采购结果已保存",
       );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "保存失败，请稍后再试");
+      toast.error(
+        error instanceof Error ? error.message : "保存失败，请稍后再试",
+      );
     } finally {
       pendingRef.current = false;
       setPending(false);
@@ -128,6 +132,8 @@ export function ShoppingTaskView({
 
   async function completeShopping() {
     if (!allProcessed || pendingRef.current) return;
+    if (!(await ensureAgreement(() => setDialog({ type: "none" })))) return;
+    if (pendingRef.current) return;
     pendingRef.current = true;
     setPending(true);
     try {
@@ -140,7 +146,11 @@ export function ShoppingTaskView({
       toast.success("采购阶段已完成");
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "状态更新失败，请刷新任务后重试");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "状态更新失败，请刷新任务后重试",
+      );
     } finally {
       pendingRef.current = false;
       setPending(false);
@@ -149,6 +159,8 @@ export function ShoppingTaskView({
 
   async function cancelShopping() {
     if (pendingRef.current) return;
+    if (!(await ensureAgreement(() => setDialog({ type: "none" })))) return;
+    if (pendingRef.current) return;
     pendingRef.current = true;
     setPending(true);
     try {
@@ -156,7 +168,9 @@ export function ShoppingTaskView({
       toast.success("采购任务已取消，需求已回到待接单");
       router.push("/orders?type=errand&view=captain");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "取消失败，请刷新任务后重试");
+      toast.error(
+        error instanceof Error ? error.message : "取消失败，请刷新任务后重试",
+      );
     } finally {
       pendingRef.current = false;
       setPending(false);
@@ -446,7 +460,9 @@ function ShoppingItemCard({
           <p className="mt-3 text-sm">
             需求 {item.requiredQuantity} 件
             {item.deadline ? (
-              <span className="ml-2">截止时间 {formatDeadline(item.deadline)}</span>
+              <span className="ml-2">
+                截止时间 {formatDeadline(item.deadline)}
+              </span>
             ) : null}
           </p>
           {item.nonPurchaseReason ? (

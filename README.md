@@ -50,6 +50,12 @@ pnpm mock:generate:user
 
 `mock:schema` 会从 `buf.build/sast/sast-shop-v2` 拉取 proto schema 并生成本地 binpb；`mock:fauxrpc` 会在 `127.0.0.1:6660` 启动 fauxrpc mock backend 和 dashboard。
 
+## 交易协议
+
+移动端与桌面端共用 `packages/ui/src/content/transaction-agreement.json`，文案随应用打包，“我的”页面提供全文查看入口。交易提交前未同意时显示协议，等待 5 秒后可确认；查看全文不会记录同意。
+
+同意记录存于当前站点的 localStorage，正式登录模式按用户区分。清除浏览器数据、更换设备或站点后需再次确认。修改重要条款时递增资源文件中的 `version`，已有同意记录将重新确认。这是前端交互记录，后端接口未增加协议字段。
+
 ## 环境变量
 
 ```bash

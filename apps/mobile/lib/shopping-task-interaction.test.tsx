@@ -6,9 +6,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ShoppingTaskDetail, ShoppingTaskItem } from "@sast-shop/api";
 import { ShoppingTaskView } from "../components/errand-purchase/shopping-task-view";
 
-const { refresh, saveShoppingTaskItem } = vi.hoisted(() => ({
+const { refresh, saveShoppingTaskItem, ensureAgreement } = vi.hoisted(() => ({
   refresh: vi.fn(),
   saveShoppingTaskItem: vi.fn(),
+  ensureAgreement: vi.fn(),
+}));
+
+vi.mock("../components/transaction-agreement-provider", () => ({
+  useTransactionAgreement: () => ({ ensureAgreement }),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -80,6 +85,7 @@ beforeEach(() => {
   vi.stubGlobal("React", React);
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   refresh.mockReset();
+  ensureAgreement.mockReset().mockResolvedValue(true);
   saveShoppingTaskItem.mockReset();
   saveShoppingTaskItem.mockResolvedValue({
     itemUpdatedAt: "2026-07-18T02:00:01Z",

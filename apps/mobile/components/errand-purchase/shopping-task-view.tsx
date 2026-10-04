@@ -37,6 +37,7 @@ import { toast } from "sonner";
 import { ManagedImage } from "@/components/managed-image";
 import { MobileFixedFooter } from "@/components/mobile-fixed-footer";
 import { MobileHeaderActions } from "@/components/mobile-header-actions";
+import { useTransactionAgreement } from "@/components/transaction-agreement-provider";
 import { ShoppingTaskItemEditor } from "./shopping-task-item-editor";
 import {
   compareUpdatedAt,
@@ -77,6 +78,7 @@ export function ShoppingTaskView({
   taskUpdatedAt,
 }: ShoppingTaskViewProps) {
   const router = useRouter();
+  const { ensureAgreement } = useTransactionAgreement();
   const submittingRef = useRef(false);
   const [items, setItems] = useState<ShoppingTaskItem[]>(detail.taskItems);
   const [taskVersion, setTaskVersion] = useState(
@@ -238,19 +240,28 @@ export function ShoppingTaskView({
       toast.info("正在处理，请稍候");
       return;
     }
+    const attemptedVersion = taskVersion;
+    if (!(await ensureAgreement(() => setDialog({ type: "none" })))) return;
+    if (
+      submittingRef.current ||
+      taskNeedsVerification ||
+      itemNeedsVerification
+    ) {
+      return;
+    }
     submittingRef.current = true;
     setSubmitting(true);
     try {
       await transitionToPendingDistributing(
         detail.taskId,
-        taskVersion,
+        attemptedVersion,
         serviceOptions,
       );
       setDialog({ type: "none" });
       router.refresh();
     } catch {
       toast.error("操作失败，请稍后再试");
-      setUnverifiedTaskVersion(taskVersion);
+      setUnverifiedTaskVersion(attemptedVersion);
       setDialog({ type: "none" });
       setSubmitting(false);
       router.refresh();
@@ -268,17 +279,26 @@ export function ShoppingTaskView({
       toast.info("正在处理，请稍候");
       return;
     }
+    const attemptedVersion = taskVersion;
+    if (!(await ensureAgreement(() => setDialog({ type: "none" })))) return;
+    if (
+      submittingRef.current ||
+      taskNeedsVerification ||
+      itemNeedsVerification
+    ) {
+      return;
+    }
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      await cancelTask(detail.taskId, taskVersion, serviceOptions);
+      await cancelTask(detail.taskId, attemptedVersion, serviceOptions);
       setDialog({ type: "none" });
       router.push("/group");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "取消失败，请稍后再试",
       );
-      setUnverifiedTaskVersion(taskVersion);
+      setUnverifiedTaskVersion(attemptedVersion);
       setDialog({ type: "none" });
       setSubmitting(false);
       router.refresh();

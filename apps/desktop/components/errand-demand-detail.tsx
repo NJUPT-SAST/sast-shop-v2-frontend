@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -46,6 +46,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import { toast } from "sonner";
 
 import { ManagedImage } from "@/components/managed-image";
+import { useTransactionAgreement } from "./transaction-agreement-provider";
 
 export function ErrandDemandDetail({
   dataSource,
@@ -63,6 +64,8 @@ export function ErrandDemandDetail({
   error: string | null;
 }) {
   const router = useRouter();
+  const { ensureAgreement } = useTransactionAgreement();
+  const submittingRef = useRef(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -104,20 +107,29 @@ export function ErrandDemandDetail({
   );
 
   async function submitTask() {
-    if (submitting || demandItems.length === 0) return;
+    if (submittingRef.current || demandItems.length === 0) return;
+    const selectedDemandItems = demandItems;
+    if (!(await ensureAgreement(() => setConfirmOpen(false)))) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const result = await createErrandTask(
-        { storeId, demandItems },
+        { storeId, demandItems: selectedDemandItems },
         { dataSource, connectBaseUrl },
       );
       toast.success("接单成功，已创建采购任务");
       setConfirmOpen(false);
       router.push(`/group/purchase/${result.errandTaskId}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "部分需求可能已被接单，请刷新后重试");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "部分需求可能已被接单，请刷新后重试",
+      );
       router.refresh();
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }

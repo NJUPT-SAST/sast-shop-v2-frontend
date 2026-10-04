@@ -72,6 +72,7 @@ import {
   type RememberedOrderViews,
   type RenderableOrderStatus,
 } from "@/lib/order-filters";
+import { useTransactionAgreement } from "./transaction-agreement-provider";
 import { parsePositiveInt64RouteId } from "@/lib/route-id";
 import { ManagedImage } from "./managed-image";
 import { toast } from "sonner";
@@ -134,6 +135,7 @@ export function OrdersView({
   errors,
 }: OrdersViewProps) {
   const router = useRouter();
+  const { ensureAgreement } = useTransactionAgreement();
   const pathname = usePathname();
   const [filters, setFilters] = useState(initialFilters);
   const [rememberedViews, setRememberedViews] = useState<RememberedOrderViews>(
@@ -142,6 +144,7 @@ export function OrdersView({
   const [now, setNow] = useState(() => new Date());
   const [cancelDemandId, setCancelDemandId] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const cancellingRef = useRef(false);
   const searchTimerRef = useRef<number | null>(null);
   const pendingSearchHrefRef = useRef<string | null>(null);
   const loadSpotBuyerPage = useCallback(
@@ -214,9 +217,7 @@ export function OrdersView({
     () => [
       ...spotBuyerFeed.items.map((order) => mapSpotOrder(order, "buyer")),
       ...spotSellerFeed.items.map((order) => mapSpotOrder(order, "seller")),
-      ...buyerErrandFeed.items.map((order) =>
-        mapBuyerErrandOrder(order, now),
-      ),
+      ...buyerErrandFeed.items.map((order) => mapBuyerErrandOrder(order, now)),
       ...errandTaskFeed.items.map(mapErrandTask),
     ],
     [
@@ -351,14 +352,18 @@ export function OrdersView({
   }
 
   async function confirmCancelDemand() {
-    if (!cancelDemandId || cancelling) return;
+    if (!cancelDemandId || cancellingRef.current) return;
+    const demandId = cancelDemandId;
+    if (!(await ensureAgreement(() => setCancelDemandId(null)))) return;
+    if (cancellingRef.current) return;
+    cancellingRef.current = true;
     setCancelling(true);
     try {
-      const detail = await getBuyerErrandOrderDetail(cancelDemandId, {
+      const detail = await getBuyerErrandOrderDetail(demandId, {
         dataSource,
         connectBaseUrl,
       });
-      await cancelErrandDemand(cancelDemandId, {
+      await cancelErrandDemand(demandId, {
         dataSource,
         connectBaseUrl,
         updatedAt: detail.updatedAt ?? undefined,
@@ -367,8 +372,11 @@ export function OrdersView({
       setCancelDemandId(null);
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "撤回失败，请刷新后重试");
+      toast.error(
+        error instanceof Error ? error.message : "撤回失败，请刷新后重试",
+      );
     } finally {
+      cancellingRef.current = false;
       setCancelling(false);
     }
   }
@@ -607,11 +615,7 @@ function OrderItem({
             </Button>
           ) : null}
           {onCancelDemand ? (
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={onCancelDemand}
-            >
+            <Button size="sm" variant="destructive" onClick={onCancelDemand}>
               撤回
             </Button>
           ) : null}
