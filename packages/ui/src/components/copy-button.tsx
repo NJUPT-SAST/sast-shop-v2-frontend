@@ -33,10 +33,12 @@ function CopyButton({
   value,
   label,
   className,
+  compact = false,
 }: {
   value: string;
   label: string;
   className?: string;
+  compact?: boolean;
 }) {
   const [copied, setCopied] = React.useState(false);
   const resetTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
@@ -62,12 +64,16 @@ function CopyButton({
     }
   }
 
-  return (
+  const button = (
     <Button
       type="button"
       variant="ghost"
-      size="icon-xs"
-      className={cn("text-muted-foreground", className)}
+      size={compact ? "icon-touch" : "icon-xs"}
+      className={cn(
+        "text-muted-foreground",
+        compact && "absolute -inset-2.5",
+        className,
+      )}
       aria-label={`复制${label}`}
       title={`复制${label}`}
       onClick={handleCopy}
@@ -87,6 +93,12 @@ function CopyButton({
         />
       </span>
     </Button>
+  );
+
+  return compact ? (
+    <span className="relative inline-flex size-6 shrink-0">{button}</span>
+  ) : (
+    button
   );
 }
 

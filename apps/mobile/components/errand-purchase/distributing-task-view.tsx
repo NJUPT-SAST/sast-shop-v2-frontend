@@ -497,13 +497,19 @@ export function DistributingTaskView({
                 }
                 className="rounded-lg border bg-card overflow-hidden"
               >
-                <div className="flex items-center gap-3 p-3">
+                <div className="relative isolate flex items-center gap-3 p-3">
+                  <CollapsibleTrigger
+                    type="button"
+                    className="absolute inset-0 cursor-pointer rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                    aria-label={`${isExpanded ? "收起" : "展开"}${item.title}的需求`}
+                    aria-controls={`distributing-item-${item.errandTaskItemId}`}
+                  />
                   <ManagedImage
                     src={item.imageUrl}
                     alt={item.title}
-                    className="size-14 shrink-0 rounded-lg"
+                    className="pointer-events-none size-14 shrink-0 rounded-lg"
                   />
-                  <div className="min-w-0 flex-1">
+                  <div className="pointer-events-none min-w-0 flex-1">
                     <p className="line-clamp-2 text-sm font-medium leading-5">
                       {item.title}
                     </p>
@@ -511,34 +517,36 @@ export function DistributingTaskView({
                       <span>实购 {item.purchasedQuantity ?? 0} 件</span>
                       {mode === "pending_distributing" &&
                       (item.purchasedQuantity ?? 0) > 0 ? (
-                        <Button
-                          type="button"
-                          size="touch"
-                          variant="text"
-                          className="px-1 tabular-nums has-data-[icon=inline-end]:pr-1"
-                          aria-label={`修改${item.title}的单价`}
-                          disabled={
-                            submitting ||
-                            savingPrice ||
-                            assigningIds.size > 0 ||
-                            taskNeedsVerification
-                          }
-                          onClick={() =>
-                            setDialog({
-                              type: "edit_price",
-                              item,
-                              draft:
-                                item.actualUnitPriceCents != null
-                                  ? formatYuan(item.actualUnitPriceCents)
-                                  : "",
-                            })
-                          }
-                        >
-                          {item.actualUnitPriceCents == null
-                            ? "填写单价"
-                            : `实际 ${formatPrice(item.actualUnitPriceCents)}/件`}
-                          <RiEditLine data-icon="inline-end" />
-                        </Button>
+                        <span className="pointer-events-auto relative inline-flex">
+                          <Button
+                            type="button"
+                            size="xs"
+                            variant="plain"
+                            className="min-h-11 px-1 tabular-nums has-data-[icon=inline-end]:pr-1"
+                            aria-label={`修改${item.title}的单价`}
+                            disabled={
+                              submitting ||
+                              savingPrice ||
+                              assigningIds.size > 0 ||
+                              taskNeedsVerification
+                            }
+                            onClick={() =>
+                              setDialog({
+                                type: "edit_price",
+                                item,
+                                draft:
+                                  item.actualUnitPriceCents != null
+                                    ? formatYuan(item.actualUnitPriceCents)
+                                    : "",
+                              })
+                            }
+                          >
+                            {item.actualUnitPriceCents == null
+                              ? "填写单价"
+                              : `实际 ${formatPrice(item.actualUnitPriceCents)}/件`}
+                            <RiEditLine data-icon="inline-end" />
+                          </Button>
+                        </span>
                       ) : item.actualUnitPriceCents == null ? (
                         <span className="text-muted-foreground">未定价</span>
                       ) : (
@@ -548,40 +556,30 @@ export function DistributingTaskView({
                       )}
                     </div>
                   </div>
-                  <CollapsibleTrigger asChild>
-                    <Button
-                      type="button"
-                      size="touch"
-                      variant="text"
-                      className="min-w-11 gap-2 px-0 has-data-[icon=inline-end]:pr-0"
-                      aria-label={`${isExpanded ? "收起" : "展开"}${item.title}的需求`}
-                      aria-controls={`distributing-item-${item.errandTaskItemId}`}
-                    >
-                      <div className="flex -space-x-2">
-                        {item.requesters.slice(0, 3).map((r) => (
-                          <Avatar
-                            key={r.purchaserId}
-                            className="size-6 border-2 border-card text-foreground"
-                          >
-                            <AvatarImage
-                              src={r.purchaserAvatarUrl}
-                              alt={r.purchaserName}
-                            />
-                            <AvatarFallback className="text-xs">
-                              {r.purchaserName[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                        ))}
-                      </div>
-                      <RiArrowDownSLine
-                        className={cn(
-                          "text-muted-foreground transition-transform duration-200 motion-reduce:transition-none",
-                          isExpanded && "rotate-180",
-                        )}
-                        data-icon="inline-end"
-                      />
-                    </Button>
-                  </CollapsibleTrigger>
+                  <div className="pointer-events-none flex min-w-11 shrink-0 items-center gap-2">
+                    <div className="flex -space-x-2">
+                      {item.requesters.slice(0, 3).map((r) => (
+                        <Avatar
+                          key={r.purchaserId}
+                          className="size-6 border-2 border-card text-foreground"
+                        >
+                          <AvatarImage
+                            src={r.purchaserAvatarUrl}
+                            alt={r.purchaserName}
+                          />
+                          <AvatarFallback className="text-xs">
+                            {r.purchaserName[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                      ))}
+                    </div>
+                    <RiArrowDownSLine
+                      className={cn(
+                        "size-4 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none",
+                        isExpanded && "rotate-180",
+                      )}
+                    />
+                  </div>
                 </div>
 
                 <CollapsibleContent

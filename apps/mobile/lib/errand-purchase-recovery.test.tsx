@@ -251,7 +251,11 @@ describe("errand purchase refresh recovery", () => {
         ?.querySelector('[aria-label="修改矿泉水的单价"]'),
     ).toBeNull();
 
+    await act(async () => expandButton!.click());
+    expect(expandButton!.getAttribute("aria-expanded")).toBe("false");
+
     await act(async () => priceButton!.click());
+    expect(expandButton!.getAttribute("aria-expanded")).toBe("false");
     const priceInput = container.querySelector<HTMLInputElement>(
       "#distribution-unit-price",
     )!;
@@ -263,6 +267,7 @@ describe("errand purchase refresh recovery", () => {
       priceInput.dispatchEvent(new Event("input", { bubbles: true }));
     });
     await click("保存单价");
+    expect(expandButton!.getAttribute("aria-expanded")).toBe("false");
     expect(updateActualPrice).toHaveBeenCalledWith(
       expect.objectContaining({
         errandTaskId: "7002",

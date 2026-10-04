@@ -121,7 +121,7 @@ export function BuyerErrandOrderDetailView({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <div className="flex min-w-0 flex-1 flex-col gap-3 py-4">
+      <div className="flex min-w-0 flex-1 flex-col gap-2 py-3">
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-lg font-semibold">跑腿订单详情</h1>
@@ -135,7 +135,11 @@ export function BuyerErrandOrderDetailView({
               <span className="shrink-0 font-mono tabular-nums">
                 {resolvedOrder.id}
               </span>
-              <CopyButton value={String(resolvedOrder.id)} label="订单号" />
+              <CopyButton
+                value={String(resolvedOrder.id)}
+                label="订单号"
+                compact
+              />
             </div>
           </div>
           <Badge variant={getStatusBadgeVariant(resolvedOrder.status)}>
@@ -325,10 +329,10 @@ function CaptainCard({ order }: { order: BuyerErrandOrderDetail }) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="p-3">
         <CardTitle>采购团长</CardTitle>
       </CardHeader>
-      <CardContent className="flex min-w-0 items-center gap-3">
+      <CardContent className="flex min-w-0 items-center gap-3 p-3 pt-0">
         <Avatar className="size-11">
           <AvatarImage src={order.captain.avatarUrl} alt={order.captain.name} />
           <AvatarFallback>
@@ -346,12 +350,12 @@ function CaptainCard({ order }: { order: BuyerErrandOrderDetail }) {
 function ProductItemsCard({ items }: { items: BuyerErrandOrderProductItem[] }) {
   return (
     <Card className="overflow-hidden">
-      <CardHeader>
+      <CardHeader className="p-3">
         <CardTitle>商品明细</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-col gap-3 p-3 pt-0">
         {items.map((item, index) => (
-          <div key={item.demandItemId} className="flex flex-col gap-3">
+          <div key={item.demandItemId} className="flex flex-col gap-2">
             {index > 0 ? <Separator /> : null}
             <ProductItem item={item} />
           </div>
@@ -366,7 +370,7 @@ function ProductItem({ item }: { item: BuyerErrandOrderProductItem }) {
   const hasPurchaseResult = item.purchasedQuantity !== null;
 
   return (
-    <div className="flex min-w-0 flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-2">
       <div className="flex min-w-0 gap-3">
         <ManagedImage
           src={item.productTemplate.mainImageUrl}
@@ -432,10 +436,10 @@ function AmountSummaryCard({ order }: { order: BuyerErrandOrderDetail }) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="p-3">
         <CardTitle>金额汇总</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-3 pt-0">
         <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 text-sm">
           <dt className="text-muted-foreground">
             {order.totalActualAmountCents === null
@@ -464,22 +468,26 @@ function AmountSummaryCard({ order }: { order: BuyerErrandOrderDetail }) {
 function BillCard({ bill }: { bill: PaymentBill }) {
   return (
     <Card>
-      <CardHeader className="flex-row items-start justify-between gap-3">
+      <CardHeader className="flex-row items-start justify-between gap-3 p-3">
         <div className="min-w-0 space-y-1.5">
           <CardTitle>支付账单</CardTitle>
           <div className="flex min-w-0 items-center gap-1">
             <CardDescription className="min-w-0 truncate font-mono tabular-nums">
               {bill.billNo || bill.id}
             </CardDescription>
-            <CopyButton value={bill.billNo || String(bill.id)} label="账单号" />
+            <CopyButton
+              value={bill.billNo || String(bill.id)}
+              label="账单号"
+              compact
+            />
           </div>
         </div>
         <Badge variant={getBillBadgeVariant(bill.status)}>
           {getBillStatusLabel(bill.status)}
         </Badge>
       </CardHeader>
-      <CardContent>
-        <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
+      <CardContent className="p-3 pt-0">
+        <dl className="grid auto-rows-[minmax(2rem,auto)] grid-cols-[5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 text-sm">
           {bill.payee?.name ? (
             <>
               <dt className="text-muted-foreground">收款人</dt>
@@ -491,7 +499,11 @@ function BillCard({ bill }: { bill: PaymentBill }) {
               <dt className="text-muted-foreground">付款标识码</dt>
               <dd className="flex min-w-0 items-center justify-end gap-1 font-mono font-semibold">
                 <span className="break-all text-right">{bill.verifyCode}</span>
-                <CopyButton value={bill.verifyCode} label="付款标识码" />
+                <CopyButton
+                  value={bill.verifyCode}
+                  label="付款标识码"
+                  compact
+                />
               </dd>
             </>
           ) : null}
@@ -551,7 +563,7 @@ function OrderTimelinePanel({
         }`}
       >
         <div className="min-h-0 overflow-hidden">
-          <div className="border-t px-3 pt-3">
+          <div className="border-t px-3 pt-2">
             {timeline.length === 0 ? (
               <Alert className="mb-3">
                 <RiFileList3Line />
@@ -576,7 +588,7 @@ function OrderTimelinePanel({
                       <span className="min-h-8 w-px flex-1 bg-border" />
                     ) : null}
                   </div>
-                  <div className="min-w-0 pb-4">
+                  <div className="min-w-0 pb-3">
                     <p className="font-medium">{item.label}</p>
                     <p className="mt-1 text-sm text-muted-foreground tabular-nums">
                       {formatDateTime(item.timestamp)}
