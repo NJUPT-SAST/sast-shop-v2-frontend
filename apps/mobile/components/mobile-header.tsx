@@ -3,7 +3,6 @@
 import { usePathname, useRouter } from "next/navigation";
 import { RiArrowLeftLine } from "@remixicon/react";
 import { Button } from "@workspace/ui/components/button";
-import { cn } from "@workspace/ui/lib/utils";
 import { useSecondaryScrollTitle } from "@/hooks/use-secondary-scroll-title";
 
 const mainRoutes = ["/shop", "/group", "/orders", "/profile"] as const;
@@ -11,10 +10,9 @@ const mainRoutes = ["/shop", "/group", "/orders", "/profile"] as const;
 export function MobileHeader() {
   const pathname = usePathname();
   const router = useRouter();
-  const { titleText, titlePhase, headerRef, onTitleAnimationEnd } =
-    useSecondaryScrollTitle();
+  const { titleText, showTitle, headerRef } = useSecondaryScrollTitle();
   const isMainRoute = mainRoutes.some((route) => route === pathname);
-  const showScrollTitle = titlePhase !== "hidden" && titleText.length > 0;
+  const showScrollTitle = showTitle && titleText.length > 0;
 
   if (isMainRoute) {
     return null;
@@ -39,14 +37,7 @@ export function MobileHeader() {
 
         <div className="min-w-0 text-center">
           {showScrollTitle ? (
-            <span
-              className={cn(
-                "block truncate text-[15px] font-semibold leading-5",
-                titlePhase === "enter" && "animate-slide-up",
-                titlePhase === "exit" && "animate-slide-down",
-              )}
-              onAnimationEnd={onTitleAnimationEnd}
-            >
+            <span className="block truncate text-[15px] font-semibold leading-5">
               {titleText}
             </span>
           ) : (

@@ -110,10 +110,7 @@ export function ErrandDemandHall({
   return (
     <div className="flex flex-1 flex-col gap-5 py-6">
       <section>
-        <h1
-          className="text-xl font-semibold leading-7 md:text-2xl"
-          style={{ opacity: 1 }}
-        >
+        <h1 className="text-xl font-semibold leading-7 md:text-2xl">
           跑腿采购大厅
         </h1>
       </section>
@@ -231,7 +228,7 @@ function DemandCard({ demand }: { demand: ErrandDemandStoreSummary }) {
         </div>
 
         <div className="shrink-0 text-right">
-          <p className="text-xs leading-5 text-muted-foreground">合计</p>
+          <p className="text-xs leading-5 text-muted-foreground">预估合计</p>
           <p className="text-lg font-semibold leading-6 text-primary">
             {formatErrandDisplayPrice(total)}
           </p>

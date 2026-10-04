@@ -43,6 +43,7 @@ import { Separator } from "@workspace/ui/components/separator";
 
 import {
   buildBuyerErrandOrderTimeline,
+  getBuyerErrandOrderAmountBreakdown,
   reconcileBuyerErrandOrderUpdate,
   resolveBuyerErrandPaymentState,
 } from "@/lib/buyer-errand-order-detail";
@@ -72,6 +73,10 @@ export function BuyerErrandOrderDetailView({
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [supplementOpen, setSupplementOpen] = useState(false);
+  const [unverifiedPaymentBillVersion, setUnverifiedPaymentBillVersion] =
+    useState<string | null>(null);
+  const [unverifiedSupplementBillVersion, setUnverifiedSupplementBillVersion] =
+    useState<string | null>(null);
   const resolvedOrder = reconcileBuyerErrandOrderUpdate(currentOrder, order);
   const bill = resolvedOrder.bill;
   const paymentState = resolveBuyerErrandPaymentState(
@@ -79,8 +84,23 @@ export function BuyerErrandOrderDetailView({
     bill,
   );
   const payableBill = isPayablePaymentBill(bill) ? bill : null;
+  const paymentBillVersion = bill?.updatedAt
+    ? `${bill.id}:${bill.updatedAt}`
+    : null;
+  const paymentVersionUnverified =
+    paymentBillVersion !== null &&
+    paymentBillVersion === unverifiedPaymentBillVersion;
+  const supplementBillVersion = bill?.updatedAt
+    ? `${bill.id}:${bill.updatedAt}`
+    : null;
+  const supplementVersionUnverified =
+    supplementBillVersion !== null &&
+    supplementBillVersion === unverifiedSupplementBillVersion;
   const canSupplementSerialNumber = Boolean(
-    paymentState === "submitted" && bill?.updatedAt && !bill.serialNumber,
+    paymentState === "submitted" &&
+    bill?.updatedAt &&
+    !bill.serialNumber &&
+    !supplementVersionUnverified,
   );
   const feishuUiEnvironment = useFeishuUiEnvironment();
   const contactAction = resolveOrderContactAction({
@@ -91,7 +111,7 @@ export function BuyerErrandOrderDetailView({
   const canContactCaptain = Boolean(contactAction);
   const showActionBar =
     canContactCaptain ||
-    (paymentState === "payable" && payableBill) ||
+    (paymentState === "payable" && payableBill && !paymentVersionUnverified) ||
     canSupplementSerialNumber;
 
   function updateBill(updatedBill: PaymentBill) {
@@ -101,9 +121,7 @@ export function BuyerErrandOrderDetailView({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <div
-        className={`flex min-w-0 flex-1 flex-col gap-4 py-4 ${showActionBar ? "pb-24" : ""}`}
-      >
+      <div className="flex min-w-0 flex-1 flex-col gap-3 py-4">
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-lg font-semibold">跑腿订单详情</h1>
@@ -139,6 +157,22 @@ export function BuyerErrandOrderDetailView({
         <ProductItemsCard items={resolvedOrder.productItems} />
         <AmountSummaryCard order={resolvedOrder} />
         {bill ? <BillCard bill={bill} /> : null}
+        {paymentVersionUnverified ? (
+          <Alert>
+            <AlertTitle>支付结果待确认</AlertTitle>
+            <AlertDescription>
+              请重新进入订单查看最新账单后再操作。
+            </AlertDescription>
+          </Alert>
+        ) : null}
+        {supplementVersionUnverified ? (
+          <Alert>
+            <AlertTitle>流水号状态待确认</AlertTitle>
+            <AlertDescription>
+              请重新进入订单查看最新账单后再操作。
+            </AlertDescription>
+          </Alert>
+        ) : null}
       </div>
 
       {showActionBar ? (
@@ -154,7 +188,9 @@ export function BuyerErrandOrderDetailView({
               className="shrink-0"
             />
           ) : null}
-          {paymentState === "payable" && payableBill ? (
+          {paymentState === "payable" &&
+          payableBill &&
+          !paymentVersionUnverified ? (
             <Button
               type="button"
               className="flex-1"
@@ -175,7 +211,9 @@ export function BuyerErrandOrderDetailView({
         </MobileFixedFooter>
       ) : null}
 
-      {paymentState === "payable" && payableBill ? (
+      {paymentState === "payable" &&
+      payableBill &&
+      !paymentVersionUnverified ? (
         <PaymentSection
           open={paymentOpen}
           onOpenChange={setPaymentOpen}
@@ -183,8 +221,18 @@ export function BuyerErrandOrderDetailView({
           dataSource={dataSource}
           connectBaseUrl={connectBaseUrl}
           onSuccess={(updatedBill) => {
+            setUnverifiedPaymentBillVersion(null);
             updateBill(updatedBill);
             setPaymentOpen(false);
+          }}
+          onBillRefresh={(latestBill) => {
+            if (latestBill) {
+              setUnverifiedPaymentBillVersion(null);
+              updateBill(latestBill);
+            } else {
+              setUnverifiedPaymentBillVersion(paymentBillVersion);
+              router.refresh();
+            }
           }}
         />
       ) : null}
@@ -197,7 +245,19 @@ export function BuyerErrandOrderDetailView({
           billUpdatedAt={bill.updatedAt}
           dataSource={dataSource}
           connectBaseUrl={connectBaseUrl}
-          onSuccess={updateBill}
+          onSuccess={(updatedBill) => {
+            setUnverifiedSupplementBillVersion(null);
+            updateBill(updatedBill);
+          }}
+          onBillRefresh={(latestBill) => {
+            if (latestBill) {
+              setUnverifiedSupplementBillVersion(null);
+              updateBill(latestBill);
+            } else {
+              setUnverifiedSupplementBillVersion(supplementBillVersion);
+              router.refresh();
+            }
+          }}
         />
       ) : null}
     </div>
@@ -328,7 +388,7 @@ function ProductItem({ item }: { item: BuyerErrandOrderProductItem }) {
         </div>
       </div>
 
-      <dl className="grid grid-cols-3 gap-2 rounded-lg bg-muted p-3 text-center text-xs">
+      <dl className="grid grid-cols-3 gap-2 border-y py-2 text-center text-xs">
         <div>
           <dt className="text-muted-foreground">需求</dt>
           <dd className="mt-1 font-medium">{item.requiredQuantity} 件</dd>
@@ -368,13 +428,7 @@ function ProductItem({ item }: { item: BuyerErrandOrderProductItem }) {
 }
 
 function AmountSummaryCard({ order }: { order: BuyerErrandOrderDetail }) {
-  const productAmount =
-    order.totalActualAmountCents ?? order.totalOriginAmountCents;
-  const subtotal = productAmount + order.totalServiceFeeCents;
-  const packagingFee = order.bill
-    ? order.bill.amountCents - subtotal
-    : 0;
-  const total = order.bill ? order.bill.amountCents : subtotal;
+  const amount = getBuyerErrandOrderAmountBreakdown(order);
 
   return (
     <Card>
@@ -388,18 +442,18 @@ function AmountSummaryCard({ order }: { order: BuyerErrandOrderDetail }) {
               ? "预估商品金额"
               : "商品金额"}
           </dt>
-          <dd>{formatPrice(productAmount)}</dd>
+          <dd>{formatPrice(amount.productAmountCents)}</dd>
           <dt className="text-muted-foreground">跑腿费</dt>
-          <dd>{formatPrice(order.totalServiceFeeCents)}</dd>
-          {packagingFee > 0 ? (
+          <dd>{formatPrice(amount.serviceFeeCents)}</dd>
+          {amount.packagingShareCents > 0 ? (
             <>
               <dt className="text-muted-foreground">分摊包装费</dt>
-              <dd>{formatPrice(packagingFee)}</dd>
+              <dd>{formatPrice(amount.packagingShareCents)}</dd>
             </>
           ) : null}
           <dt className="pt-2 font-medium">合计</dt>
           <dd className="pt-2 text-base font-semibold text-primary">
-            {formatPrice(total)}
+            {formatPrice(amount.totalAmountCents)}
           </dd>
         </dl>
       </CardContent>

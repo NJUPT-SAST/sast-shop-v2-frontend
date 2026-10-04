@@ -18,7 +18,7 @@ export function MobileShell({ children }: { children: ReactNode }) {
       <MobileScrollProvider>
         <MobileHeader />
 
-        <MobileScrollArea hasBottomNav={isMainRoute}>
+        <MobileScrollArea key={pathname} hasBottomNav={isMainRoute}>
           {children}
         </MobileScrollArea>
 

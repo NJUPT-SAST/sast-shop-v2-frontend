@@ -9,6 +9,7 @@ import {
   RiQrCodeLine,
   RiQrScan2Line,
   RiWallet3Line,
+  RiUser3Line,
   RiWechatPayLine,
 } from "@remixicon/react";
 import { formatPrice } from "@sast-shop/domain";
@@ -45,6 +46,7 @@ export type PaymentDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   amountCents: number;
+  payeeName: string | null;
   verifyCode: string;
   qrCodes: Partial<Record<PaymentPlatform, string>>;
   defaultPlatform: PaymentPlatform;
@@ -92,6 +94,7 @@ export function PaymentDialog({
 
 function PaymentDialogBody({
   amountCents,
+  payeeName,
   verifyCode,
   qrCodes,
   defaultPlatform,
@@ -160,10 +163,14 @@ function PaymentDialogBody({
 
     try {
       void Promise.resolve(onPay(platform)).catch((error: unknown) => {
-        toast.error(error instanceof Error ? error.message : "支付提交失败，请稍后再试");
+        toast.error(
+          error instanceof Error ? error.message : "支付提交失败，请稍后再试",
+        );
       });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "支付提交失败，请稍后再试");
+      toast.error(
+        error instanceof Error ? error.message : "支付提交失败，请稍后再试",
+      );
     }
   }
 
@@ -222,8 +229,8 @@ function PaymentDialogBody({
   }
 
   return (
-    <ResponsiveDialogContent className="max-h-[88dvh] overflow-hidden px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-md">
-      <ResponsiveDialogHeader className="px-0">
+    <ResponsiveDialogContent className="max-h-[94dvh] overflow-hidden px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-md">
+      <ResponsiveDialogHeader className="px-0 py-3">
         <ResponsiveDialogTitle className="text-lg">支付</ResponsiveDialogTitle>
         <ResponsiveDialogDescription className="sr-only">
           支付状态
@@ -258,123 +265,128 @@ function PaymentDialogBody({
           />
         ) : null}
         {status === "ready" ? (
-          <Tabs
-            value={platform}
-            onValueChange={(value) => selectPlatform(value as PaymentPlatform)}
-            className="min-h-0 flex-col"
-          >
-            <TabsList className="grid w-full grid-cols-2">
+          <div className="flex flex-col gap-3">
+            <PaymentBillSummary
+              amountCents={amountCents}
+              payeeName={payeeName}
+              verifyCode={verifyCode}
+            />
+            <Tabs
+              value={platform}
+              onValueChange={(value) =>
+                selectPlatform(value as PaymentPlatform)
+              }
+              className="min-h-0 flex-col"
+            >
+              <TabsList className="grid w-full grid-cols-2">
+                {PAYMENT_PLATFORMS.map(
+                  ({ platform: value, label, icon: Icon }) => (
+                    <TabsTrigger key={value} value={value}>
+                      <Icon data-icon="inline-start" />
+                      {label}
+                    </TabsTrigger>
+                  ),
+                )}
+              </TabsList>
               {PAYMENT_PLATFORMS.map(
-                ({ platform: value, label, icon: Icon }) => (
-                  <TabsTrigger key={value} value={value}>
-                    <Icon data-icon="inline-start" />
-                    {label}
-                  </TabsTrigger>
-                ),
-              )}
-            </TabsList>
-            {PAYMENT_PLATFORMS.map(
-              ({ platform: value, label, scannerLabel }) => {
-                const panelQrCodeContent = qrCodes[value];
-                const panelHasQrCode = Boolean(panelQrCodeContent);
-                const panelQrSaved = Boolean(savedPlatforms[value]);
-                const panelScannerAttempted = Boolean(
-                  attemptedPlatforms[value],
-                );
+                ({ platform: value, label, scannerLabel }) => {
+                  const panelQrCodeContent = qrCodes[value];
+                  const panelHasQrCode = Boolean(panelQrCodeContent);
+                  const panelQrSaved = Boolean(savedPlatforms[value]);
+                  const panelScannerAttempted = Boolean(
+                    attemptedPlatforms[value],
+                  );
 
-                return (
-                  <TabsContent
-                    key={value}
-                    value={value}
-                    className={cn(
-                      "mt-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200",
-                      transitionDirection === "next"
-                        ? "motion-safe:slide-in-from-right-3"
-                        : "motion-safe:slide-in-from-left-3",
-                    )}
-                  >
-                    <div
-                      className="flex flex-col gap-4"
-                      onTouchStart={handleTouchStart}
-                      onTouchEnd={handleTouchEnd}
-                      onTouchCancel={() => {
-                        touchStartRef.current = null;
-                      }}
+                  return (
+                    <TabsContent
+                      key={value}
+                      value={value}
+                      className={cn(
+                        "mt-2 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200",
+                        transitionDirection === "next"
+                          ? "motion-safe:slide-in-from-right-3"
+                          : "motion-safe:slide-in-from-left-3",
+                      )}
                     >
-                      <div className="flex flex-col items-center gap-3 rounded-lg bg-muted p-4">
-                        {panelQrCodeContent ? (
-                          <PaymentQrCode
-                            content={panelQrCodeContent}
-                            channel={value}
-                            canvasRef={(canvas) => {
-                              qrCanvasRefs.current[value] = canvas;
-                            }}
-                          />
-                        ) : (
-                          <Empty
-                            icon={<RiQrCodeLine className="size-5" />}
-                            title="暂无收款码"
-                            description={`收款人还没有配置${label}收款码。`}
-                            className="w-full border bg-card text-card-foreground"
-                          />
-                        )}
-                      </div>
-
-                      <PaymentBillSummary
-                        amountCents={amountCents}
-                        verifyCode={verifyCode}
-                      />
-
-                      <Separator />
-
-                      <div className="grid gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          disabled={!panelHasQrCode}
-                          onClick={saveQrCode}
-                        >
-                          {panelQrSaved ? (
-                            <RiCheckboxCircleLine data-icon="inline-start" />
+                      <div
+                        className="flex flex-col gap-4"
+                        onTouchStart={handleTouchStart}
+                        onTouchEnd={handleTouchEnd}
+                        onTouchCancel={() => {
+                          touchStartRef.current = null;
+                        }}
+                      >
+                        <div className="flex flex-col items-center gap-3 rounded-lg bg-muted p-3">
+                          {panelQrCodeContent ? (
+                            <PaymentQrCode
+                              content={panelQrCodeContent}
+                              channel={value}
+                              canvasRef={(canvas) => {
+                                qrCanvasRefs.current[value] = canvas;
+                              }}
+                            />
                           ) : (
-                            <RiDownload2Line data-icon="inline-start" />
+                            <Empty
+                              icon={<RiQrCodeLine className="size-5" />}
+                              title="暂无收款码"
+                              description={`收款人还没有配置${label}收款码。`}
+                              className="w-full border-0 bg-transparent"
+                            />
                           )}
-                          {panelQrSaved ? "收款码已保存" : "保存收款码"}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={panelQrSaved ? "secondary" : "outline"}
-                          disabled={!panelHasQrCode || !panelQrSaved}
-                          onClick={openScanner}
-                        >
-                          {panelScannerAttempted ? (
-                            <RiCheckboxCircleLine data-icon="inline-start" />
-                          ) : (
-                            <RiQrScan2Line data-icon="inline-start" />
-                          )}
-                          {panelScannerAttempted
-                            ? `已尝试打开${scannerLabel}`
-                            : `打开${scannerLabel}扫一扫`}
-                        </Button>
+                        </div>
+
+                        <Separator />
+
+                        <div className="grid gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={!panelHasQrCode}
+                            onClick={saveQrCode}
+                          >
+                            {panelQrSaved ? (
+                              <RiCheckboxCircleLine data-icon="inline-start" />
+                            ) : (
+                              <RiDownload2Line data-icon="inline-start" />
+                            )}
+                            {panelQrSaved ? "收款码已保存" : "保存收款码"}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={panelQrSaved ? "secondary" : "outline"}
+                            disabled={!panelHasQrCode || !panelQrSaved}
+                            onClick={openScanner}
+                          >
+                            {panelScannerAttempted ? (
+                              <RiCheckboxCircleLine data-icon="inline-start" />
+                            ) : (
+                              <RiQrScan2Line data-icon="inline-start" />
+                            )}
+                            {panelScannerAttempted
+                              ? `已尝试打开${scannerLabel}`
+                              : `打开${scannerLabel}扫一扫`}
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  </TabsContent>
-                );
-              },
-            )}
-          </Tabs>
+                    </TabsContent>
+                  );
+                },
+              )}
+            </Tabs>
+          </div>
         ) : null}
       </div>
 
       {status === "ready" ? (
-        <ResponsiveDialogFooter className="flex-col gap-1 pt-4">
+        <ResponsiveDialogFooter className="flex-row-reverse gap-2 pt-2">
           <Button
             type="button"
             disabled={!hasQrCode || submitting}
+            className="flex-[2]"
             onClick={handlePay}
           >
             <RiCheckboxCircleLine data-icon="inline-start" />
-            {submitting ? "提交中" : "我已支付"}
+            {submitting ? "提交中" : `我已支付 · ${formatPrice(amountCents)}`}
           </Button>
           <Button
             type="button"
@@ -405,6 +417,7 @@ function PaymentDialogBody({
 function PaymentDialogSkeleton() {
   return (
     <div className="flex flex-col gap-4">
+      <Skeleton className="h-20 rounded-lg" />
       <div className="grid grid-cols-2 gap-2">
         <Skeleton className="h-10 rounded-md" />
         <Skeleton className="h-10 rounded-md" />
@@ -413,41 +426,50 @@ function PaymentDialogSkeleton() {
         <Skeleton className="size-44 rounded-lg" />
         <Skeleton className="h-6 w-32 rounded-full" />
       </div>
-      <div className="flex flex-col gap-3">
-        <Skeleton className="h-8 rounded-md" />
-        <Skeleton className="h-14 rounded-lg" />
-      </div>
     </div>
   );
 }
 
 function PaymentBillSummary({
   amountCents,
+  payeeName,
   verifyCode,
 }: {
   amountCents: number;
+  payeeName: string | null;
   verifyCode: string;
 }) {
   const isShortVerifyCode = verifyCode.length <= 8;
 
   return (
-    <div className="divide-y divide-border/70 overflow-hidden rounded-lg bg-muted/70 px-3">
-      <div className="flex min-h-12 items-center justify-between gap-4 py-2.5">
-        <span className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
-          <RiWallet3Line className="size-4" />
-          金额
-        </span>
-        <span className="text-right text-xl font-semibold tabular-nums text-primary">
-          {formatPrice(amountCents)}
-        </span>
+    <dl className="shrink-0 divide-y divide-border/70 rounded-lg bg-muted/70 px-3">
+      <div className="grid grid-cols-2 items-start gap-3 py-1.5">
+        <div className="flex min-w-0 flex-col gap-1">
+          <dt className="flex items-center gap-2 text-sm text-muted-foreground">
+            <RiWallet3Line className="size-4" aria-hidden="true" />
+            金额
+          </dt>
+          <dd className="text-xl font-semibold tabular-nums text-primary">
+            {formatPrice(amountCents)}
+          </dd>
+        </div>
+        <div className="flex min-w-0 flex-col items-end gap-1">
+          <dt className="flex items-center gap-2 text-sm text-muted-foreground">
+            <RiUser3Line className="size-4" aria-hidden="true" />
+            收款人
+          </dt>
+          <dd className="break-all text-right text-sm font-medium">
+            {payeeName?.trim() || "未提供姓名"}
+          </dd>
+        </div>
       </div>
 
-      <div className="flex min-h-12 items-center justify-between gap-4 py-2.5">
-        <span className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
-          <RiKey2Line className="size-4" />
+      <div className="flex min-h-12 items-center justify-between gap-4 py-1">
+        <dt className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
+          <RiKey2Line className="size-4" aria-hidden="true" />
           付款标识码
-        </span>
-        <span className="flex min-w-0 items-center justify-end gap-1">
+        </dt>
+        <dd className="flex min-w-0 items-center justify-end gap-1">
           <span
             className={cn(
               "min-w-0 break-all text-right font-mono font-semibold tabular-nums",
@@ -461,8 +483,8 @@ function PaymentBillSummary({
           {verifyCode ? (
             <CopyButton value={verifyCode} label="付款标识码" />
           ) : null}
-        </span>
+        </dd>
       </div>
-    </div>
+    </dl>
   );
 }

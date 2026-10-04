@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   RiAddLine,
   RiShoppingBag3Line,
@@ -48,6 +49,7 @@ import {
   isValidErrandDeadline,
   toDateTimeLocalValue,
 } from "@/lib/errand-delivery-time";
+import { calculateErrandCartTotal } from "@/lib/errand-cart-total";
 import { ManagedImage } from "./managed-image";
 import { MobileFixedFooter } from "./mobile-fixed-footer";
 
@@ -114,38 +116,24 @@ export function ErrandShop({
     () => new Map(items.map((item) => [item.template.id, item])),
     [items],
   );
-  const pricedItems = useMemo(
+  const cartTotal = useMemo(
     () =>
-      items.map((item) => ({
-        ...item,
-        serviceFeePerUnitCents:
-          parseServiceFeeDraft(
+      calculateErrandCartTotal(
+        items.map((item) => ({
+          quantity: item.quantity,
+          priceCents: item.template.priceCents,
+          serviceFeeDraft:
             feeDrafts[item.template.id] ??
-              formatYuanInput(item.serviceFeePerUnitCents),
-          ) ?? 0,
-      })),
+            formatYuanInput(item.serviceFeePerUnitCents),
+        })),
+      ),
     [feeDrafts, items],
   );
-  const hasInvalidServiceFee = items.some(
-    (item) =>
-      parseServiceFeeDraft(
-        feeDrafts[item.template.id] ??
-          formatYuanInput(item.serviceFeePerUnitCents),
-      ) === null,
-  );
-  const totalCount = pricedItems.reduce(
-    (total, item) => total + item.quantity,
-    0,
-  );
-  const totalOriginAmountCents = pricedItems.reduce(
-    (total, item) => total + item.template.priceCents * item.quantity,
-    0,
-  );
-  const totalServiceFeeCents = pricedItems.reduce(
-    (total, item) => total + item.serviceFeePerUnitCents * item.quantity,
-    0,
-  );
-  const estimatedTotalCents = totalOriginAmountCents + totalServiceFeeCents;
+  const totalCount = cartTotal.quantity;
+  const totalOriginAmountCents = cartTotal.productCents;
+  const totalServiceFeeCents = cartTotal.serviceFeeCents;
+  const estimatedTotalCents = cartTotal.totalCents;
+  const hasInvalidServiceFee = totalServiceFeeCents === null;
 
   const addItem = (template: ProductTemplate) => {
     setFeeDrafts((currentDrafts) =>
@@ -305,15 +293,16 @@ export function ErrandShop({
       setCartOpen(false);
       router.push("/orders?type=errand");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "跑腿需求提交失败，请稍后再试");
-    } finally {
+      toast.error(
+        error instanceof Error ? error.message : "跑腿需求提交失败，请稍后再试",
+      );
       submittingRef.current = false;
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-5 py-5 pb-24">
+    <div className="flex flex-1 flex-col gap-5 py-5">
       <section className="flex items-start gap-3 rounded-lg border bg-card p-3">
         <ManagedImage
           src={store.logoUrl}
@@ -338,6 +327,12 @@ export function ErrandShop({
           <Empty
             icon={<RiShoppingBag3Line className="size-5" />}
             title="此店铺暂无可用商品模板"
+            description="可以返回团购页选择其他店铺。"
+            action={
+              <Button asChild size="touch" variant="outline">
+                <Link href="/group">返回团购</Link>
+              </Button>
+            }
           />
         ) : templates.length > 0 ? (
           <div className="columns-1 gap-3 md:columns-2">
@@ -351,6 +346,7 @@ export function ErrandShop({
                 >
                   <button
                     type="button"
+                    disabled={submitting}
                     className="block shrink-0 rounded-lg text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                     onClick={() => setSelectedTemplate(template)}
                     aria-label={`查看${template.title}详情`}
@@ -385,6 +381,7 @@ export function ErrandShop({
                         <QuantityControl
                           title={template.title}
                           quantity={cartItem.quantity}
+                          disabled={submitting}
                           onDecrement={() =>
                             updateQuantity(template.id, cartItem.quantity - 1)
                           }
@@ -396,6 +393,7 @@ export function ErrandShop({
                         <Button
                           type="button"
                           size="icon-touch"
+                          disabled={submitting}
                           aria-label={`将${template.title}加入跑腿清单`}
                           title="加入清单"
                           onClick={() => addItem(template)}
@@ -436,7 +434,11 @@ export function ErrandShop({
             </span>
           </span>
           <span className="shrink-0 text-right text-sm font-semibold tabular-nums">
-            {totalCount > 0 ? formatPrice(estimatedTotalCents) : "请选择商品"}
+            {estimatedTotalCents === null
+              ? "金额待确认"
+              : totalCount > 0
+                ? formatPrice(estimatedTotalCents)
+                : "请选择商品"}
           </span>
         </Button>
       </MobileFixedFooter>
@@ -448,7 +450,7 @@ export function ErrandShop({
         }}
       >
         {selectedTemplate ? (
-          <ResponsiveDialogContent className="max-h-[88dvh] overflow-hidden px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-md">
+          <ResponsiveDialogContent className="max-h-[88dvh] overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-md">
             <ResponsiveDialogHeader className="px-0 text-left">
               <ResponsiveDialogTitle>
                 {selectedTemplate.title}
@@ -502,7 +504,7 @@ export function ErrandShop({
           if (!submitting) setCartOpen(open);
         }}
       >
-        <ResponsiveDialogContent className="max-h-[88dvh] overflow-hidden px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-lg">
+        <ResponsiveDialogContent className="max-h-[88dvh] overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-lg">
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>跑腿清单</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
@@ -542,6 +544,7 @@ export function ErrandShop({
                         <QuantityControl
                           title={item.template.title}
                           quantity={item.quantity}
+                          disabled={submitting}
                           onDecrement={() =>
                             updateQuantity(item.template.id, item.quantity - 1)
                           }
@@ -557,6 +560,7 @@ export function ErrandShop({
                             <InputGroupText>¥</InputGroupText>
                           </InputGroupAddon>
                           <InputGroupInput
+                            disabled={submitting}
                             type="text"
                             inputMode="decimal"
                             value={
@@ -595,6 +599,7 @@ export function ErrandShop({
                   期望送达时间
                   <Input
                     type="datetime-local"
+                    disabled={submitting}
                     min={minimumDeadlineValue}
                     value={deadlineValue}
                     onChange={(event) => setDeadlineValue(event.target.value)}
@@ -608,11 +613,19 @@ export function ErrandShop({
                   />
                   <TotalRow
                     label="跑腿费合计"
-                    value={formatPrice(totalServiceFeeCents)}
+                    value={
+                      totalServiceFeeCents === null
+                        ? "待确认"
+                        : formatPrice(totalServiceFeeCents)
+                    }
                   />
                   <TotalRow
                     label="预估合计"
-                    value={formatPrice(estimatedTotalCents)}
+                    value={
+                      estimatedTotalCents === null
+                        ? "金额待确认"
+                        : formatPrice(estimatedTotalCents)
+                    }
                     strong
                   />
                 </div>
@@ -664,11 +677,13 @@ function getTemplateKey(template: ProductTemplate) {
 function QuantityControl({
   title,
   quantity,
+  disabled,
   onDecrement,
   onIncrement,
 }: {
   title: string;
   quantity: number;
+  disabled: boolean;
   onDecrement: () => void;
   onIncrement: () => void;
 }) {
@@ -677,6 +692,7 @@ function QuantityControl({
       className="shrink-0"
       label={`${title}数量`}
       value={quantity}
+      disabled={disabled}
       min={0}
       max={MAX_QUANTITY}
       onValueChange={(next) => {
@@ -689,7 +705,7 @@ function QuantityControl({
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 rounded-lg border p-3 text-sm">
+    <div className="flex items-start justify-between gap-4 text-sm">
       <span className="shrink-0 text-muted-foreground">{label}</span>
       <span className="min-w-0 text-right font-medium">{value}</span>
     </div>

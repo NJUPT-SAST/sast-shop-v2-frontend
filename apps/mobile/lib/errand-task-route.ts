@@ -82,6 +82,26 @@ export function getActiveErrandTasks(
     .map(({ task }) => task);
 }
 
+export function getGroupTaskPreview(
+  tasks: ErrandTaskBrief[],
+): ErrandTaskBrief[] {
+  const seen = new Set<string>();
+
+  return tasks
+    .filter((task) => ACTIVE_TASK_STATUSES.has(task.status))
+    .filter((task) => {
+      if (seen.has(task.id)) return false;
+      seen.add(task.id);
+      return true;
+    })
+    .sort(
+      (left, right) =>
+        getCreatedAt(right) - getCreatedAt(left) ||
+        right.id.localeCompare(left.id, undefined, { numeric: true }),
+    )
+    .slice(0, 2);
+}
+
 function getCreatedAt(task: ErrandTaskBrief): number {
   if (!task.createdAt) return 0;
 

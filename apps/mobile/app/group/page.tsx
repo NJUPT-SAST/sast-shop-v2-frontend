@@ -2,6 +2,7 @@ import {
   listErrandTasks,
   listStores,
   type ErrandTaskBrief,
+  type ErrandTaskStatusFilter,
   type Store,
 } from "@sast-shop/api";
 import {
@@ -13,6 +14,7 @@ import {
 import Link from "next/link";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
+import { Empty } from "@workspace/ui/components/empty";
 import {
   Card,
   CardDescription,
@@ -23,7 +25,7 @@ import { LoadFailure } from "@workspace/ui/components/load-failure";
 import { ManagedImage } from "@/components/managed-image";
 import { StoreCreateDialog } from "@/components/store-create-dialog";
 import { mobileAppConfig } from "@/lib/app-config";
-import { getActiveErrandTasks } from "@/lib/errand-task-route";
+import { getGroupTaskPreview } from "@/lib/errand-task-route";
 import { getStatusBadgeVariant, getStatusLabel } from "@/lib/order-filters";
 import { isValidRouteId } from "@/lib/route-id";
 import { getServerServiceOptions } from "@/lib/server-service-options";
@@ -35,16 +37,26 @@ async function loadGroupOverview(): Promise<{
   taskError: string | null;
 }> {
   const options = await getServerServiceOptions();
+  const activeStatuses: ErrandTaskStatusFilter[] = [
+    "shopping",
+    "pending_distributing",
+    "distributing",
+    "collecting_payment",
+  ];
   const [storeResult, taskResult] = await Promise.allSettled([
     listStores(options),
-    listErrandTasks({ ...options, page: 1, pageSize: 2 }),
+    Promise.all(
+      activeStatuses.map((status) =>
+        listErrandTasks({ ...options, status, page: 1, pageSize: 2 }),
+      ),
+    ).then((pages) => pages.flat()),
   ]);
 
   return {
     stores: storeResult.status === "fulfilled" ? storeResult.value : [],
     tasks:
       taskResult.status === "fulfilled"
-        ? getActiveErrandTasks(taskResult.value)
+        ? getGroupTaskPreview(taskResult.value)
         : [],
     storeError:
       storeResult.status === "rejected" ? "店铺暂不可用，请稍后再试" : null,
@@ -66,7 +78,7 @@ export default async function GroupPage() {
         <section className="flex flex-col gap-3">
           <div className="flex items-end justify-between gap-3">
             <h2 className="min-w-0 text-xl font-semibold leading-7 md:text-2xl">
-              正在采购
+              进行中的任务
             </h2>
             {tasks.length > 0 ? (
               <Button
@@ -89,7 +101,7 @@ export default async function GroupPage() {
             />
           ) : (
             <div className="grid min-w-0 gap-3 md:grid-cols-2">
-              {tasks.slice(0, 2).map((task) => (
+              {tasks.map((task) => (
                 <TaskCard key={task.id} task={task} />
               ))}
             </div>
@@ -109,11 +121,11 @@ export default async function GroupPage() {
           >
             <Button
               variant="ghost"
-              size="icon-touch"
-              aria-label="创建店铺"
-              title="创建店铺"
+              size="touch"
+              className="gap-1.5 text-primary"
             >
-              <RiStore2Line />
+              <RiStore2Line aria-hidden="true" />
+              创建店铺
             </Button>
           </StoreCreateDialog>
         </div>
@@ -145,10 +157,22 @@ export default async function GroupPage() {
             )}
           </div>
         ) : (
-          <p className="flex items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
-            <RiStore2Line className="size-4" aria-hidden="true" />
-            <span>暂无店铺信息</span>
-          </p>
+          <Empty
+            icon={<RiStore2Line className="size-5" />}
+            title="暂无店铺"
+            description="可以先创建店铺。"
+            action={
+              <StoreCreateDialog
+                dataSource={mobileAppConfig.dataSource}
+                connectBaseUrl={mobileAppConfig.connectBaseUrl}
+                returnTo="/group"
+              >
+                <Button type="button" size="touch">
+                  创建店铺
+                </Button>
+              </StoreCreateDialog>
+            }
+          />
         )}
       </section>
 

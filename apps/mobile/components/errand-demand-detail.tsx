@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   RiCheckboxBlankLine,
   RiCheckboxCircleLine,
@@ -20,6 +21,11 @@ import {
   AvatarImage,
 } from "@workspace/ui/components/avatar";
 import { Button } from "@workspace/ui/components/button";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@workspace/ui/components/alert";
 import { Card } from "@workspace/ui/components/card";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Empty } from "@workspace/ui/components/empty";
@@ -64,6 +70,7 @@ export function ErrandDemandDetail({
   details,
 }: ErrandDemandDetailProps) {
   const router = useRouter();
+  const submittingRef = useRef(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -106,12 +113,18 @@ export function ErrandDemandDetail({
     [details, selectedIds],
   );
   const canSubmit = demandItems.length > 0;
+  const hasSelectableDemand = selectionGroups.some((group) =>
+    group.requesters.some(
+      (requester) => requester.errandDemandItemId && requester.updatedAt,
+    ),
+  );
 
   const handleSubmit = async () => {
-    if (!canSubmit || submitting) {
+    if (!canSubmit || submittingRef.current) {
       return;
     }
 
+    submittingRef.current = true;
     setSubmitting(true);
 
     try {
@@ -127,9 +140,13 @@ export function ErrandDemandDetail({
       setConfirmOpen(false);
       router.push(`/group/purchase/${result.errandTaskId}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "部分需求已被接单，请刷新后重试");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "部分需求已被接单，请刷新后重试",
+      );
       router.refresh();
-    } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };
@@ -141,6 +158,11 @@ export function ErrandDemandDetail({
           icon={<RiStore2Line className="size-5" />}
           title="这个店铺暂无可接单需求"
           description="可以返回跑腿采购大厅查看其他店铺。"
+          action={
+            <Button asChild size="touch">
+              <Link href="/group/errand">查看其他店铺</Link>
+            </Button>
+          }
         />
       </div>
     );
@@ -148,18 +170,32 @@ export function ErrandDemandDetail({
 
   return (
     <>
-      <div className="flex flex-1 flex-col gap-4 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-6 md:pb-[calc(4.5rem+env(safe-area-inset-bottom))]">
+      <div className="flex flex-1 flex-col gap-4 py-6">
         <section className="space-y-1">
-          <h1
-            className="text-xl font-semibold leading-7 md:text-2xl"
-            style={{ opacity: 1 }}
-          >
+          <h1 className="text-xl font-semibold leading-7 md:text-2xl">
             {storeName}
           </h1>
           <p className="text-sm leading-6 text-muted-foreground">
             勾选完整需求行，创建采购任务。
           </p>
         </section>
+
+        {!hasSelectableDemand ? (
+          <Alert>
+            <AlertTitle>暂不可接单</AlertTitle>
+            <AlertDescription>
+              当前需求缺少最新状态，请刷新后重试。
+            </AlertDescription>
+            <Button
+              type="button"
+              size="touch"
+              variant="outline"
+              onClick={() => router.refresh()}
+            >
+              刷新需求
+            </Button>
+          </Alert>
+        ) : null}
 
         <section className="flex flex-col gap-3">
           {details.map((group, groupIndex) => (
@@ -169,6 +205,7 @@ export function ErrandDemandDetail({
               groupIndex={groupIndex}
               selectedIds={selectedIds}
               selectionGroups={selectionGroups}
+              disabled={submitting}
               onSelectProduct={(nextSelectedIds) =>
                 setSelectedIds(nextSelectedIds)
               }
@@ -203,7 +240,12 @@ export function ErrandDemandDetail({
         </Button>
       </MobileFixedFooter>
 
-      <ResponsiveDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+      <ResponsiveDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          if (!submitting) setConfirmOpen(open);
+        }}
+      >
         <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-md">
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>确认接单</ResponsiveDialogTitle>
@@ -262,6 +304,7 @@ function DemandProductGroup({
   groupIndex,
   selectedIds,
   selectionGroups,
+  disabled,
   onSelectProduct,
   onSelectRequester,
 }: {
@@ -269,6 +312,7 @@ function DemandProductGroup({
   groupIndex: number;
   selectedIds: Set<string>;
   selectionGroups: ErrandSelectionGroup[];
+  disabled: boolean;
   onSelectProduct: (selectedIds: Set<string>) => void;
   onSelectRequester: (requesterId: string) => void;
 }) {
@@ -311,13 +355,14 @@ function DemandProductGroup({
               htmlFor={productCheckboxId}
               className={cn(
                 "flex min-h-11 shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-md px-2 text-sm text-muted-foreground",
-                !hasSelectableRows && "cursor-not-allowed opacity-50",
+                (!hasSelectableRows || disabled) &&
+                  "cursor-not-allowed opacity-50",
               )}
             >
               <Checkbox
                 id={productCheckboxId}
                 checked={allSelected}
-                disabled={!hasSelectableRows}
+                disabled={!hasSelectableRows || disabled}
                 onCheckedChange={handleProductToggle}
               />
               <span>全选</span>
@@ -345,12 +390,13 @@ function DemandProductGroup({
         </div>
       </div>
 
-      <div className="space-y-2 border-t p-3">
+      <div className="divide-y border-t px-3">
         {group.requesters.map((requester) => (
           <RequesterRow
             key={requester.errandDemandItemId || requester.requesterId}
             requester={requester}
             selected={selectedIds.has(requester.errandDemandItemId)}
+            disabled={disabled}
             onSelect={onSelectRequester}
           />
         ))}
@@ -362,13 +408,16 @@ function DemandProductGroup({
 function RequesterRow({
   requester,
   selected,
+  disabled: taskSubmitting,
   onSelect,
 }: {
   requester: ErrandDemandDetailGroup["requesters"][number];
   selected: boolean;
+  disabled: boolean;
   onSelect: (requesterId: string) => void;
 }) {
-  const disabled = !requester.errandDemandItemId || !requester.updatedAt;
+  const disabled =
+    taskSubmitting || !requester.errandDemandItemId || !requester.updatedAt;
   const rowServiceFeeCents =
     requester.serviceFeePerUnitCents * requester.quantity;
   const handleSelect = () => {
@@ -384,11 +433,11 @@ function RequesterRow({
       aria-pressed={selected}
       onClick={handleSelect}
       className={cn(
-        "flex min-h-16 w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors motion-reduce:transition-none",
-        selected && "border-primary bg-primary/5",
+        "flex min-h-16 w-full items-center gap-3 px-2 py-3 text-left transition-colors motion-reduce:transition-none",
+        selected && "bg-primary/5",
         disabled
-          ? "cursor-not-allowed border-border bg-muted/40 text-muted-foreground"
-          : "cursor-pointer border-border bg-background",
+          ? "cursor-not-allowed text-muted-foreground"
+          : "cursor-pointer",
       )}
     >
       <span aria-hidden="true" className="shrink-0 text-primary">

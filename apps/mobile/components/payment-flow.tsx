@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  getBill,
   listPaymentQrCodes,
   payBill,
   supplementBillSerialNumber,
@@ -45,6 +46,7 @@ export function SupplementSerialNumberDialog({
   dataSource,
   connectBaseUrl,
   onSuccess,
+  onBillRefresh,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -53,13 +55,19 @@ export function SupplementSerialNumberDialog({
   dataSource: DataSource;
   connectBaseUrl: string;
   onSuccess: (bill: PaymentBill) => void;
+  onBillRefresh: (bill: PaymentBill | null) => void;
 }) {
   const [serialNumber, setSerialNumber] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [unverifiedBillVersion, setUnverifiedBillVersion] = useState<
+    string | null
+  >(null);
   const submittingRef = useRef(false);
+  const billVersion = `${billId}:${billUpdatedAt}`;
+  const unverified = unverifiedBillVersion === billVersion;
 
   async function handleSubmit() {
-    if (submittingRef.current) return;
+    if (submittingRef.current || unverified) return;
 
     const trimmed = serialNumber.trim();
 
@@ -80,7 +88,30 @@ export function SupplementSerialNumberDialog({
       onOpenChange(false);
       onSuccess(updatedBill);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "提交失败，请稍后再试");
+      let latestBill: PaymentBill;
+
+      try {
+        latestBill = await getBill(billId, { dataSource, connectBaseUrl });
+      } catch {
+        setUnverifiedBillVersion(billVersion);
+        onOpenChange(false);
+        onBillRefresh(null);
+        toast.error("无法确认流水号提交结果，正在刷新订单，请核对后再操作");
+        return;
+      }
+
+      onOpenChange(false);
+      if (latestBill.serialNumber === trimmed) {
+        onSuccess(latestBill);
+        toast.info("已读取最新支付流水号");
+      } else {
+        onBillRefresh(latestBill);
+        toast.error(
+          error instanceof Error
+            ? `${error.message}，账单已刷新，请核对后重试`
+            : "流水号状态已更新，请核对后重试",
+        );
+      }
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -116,7 +147,11 @@ export function SupplementSerialNumberDialog({
           >
             取消
           </Button>
-          <Button type="button" disabled={submitting} onClick={handleSubmit}>
+          <Button
+            type="button"
+            disabled={submitting || unverified}
+            onClick={handleSubmit}
+          >
             {submitting ? <Spinner data-icon="inline-start" /> : null}
             {submitting ? "提交中" : "确认提交"}
           </Button>
@@ -133,6 +168,7 @@ export function PaymentSection({
   dataSource,
   connectBaseUrl,
   onSuccess,
+  onBillRefresh,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -140,6 +176,7 @@ export function PaymentSection({
   dataSource: DataSource;
   connectBaseUrl: string;
   onSuccess: (bill: PaymentBill) => void;
+  onBillRefresh: (bill: PaymentBill | null) => void;
 }) {
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
@@ -148,8 +185,14 @@ export function PaymentSection({
   const [qrCodes, setQrCodes] = useState<
     Partial<Record<PaymentPlatform, string>>
   >({});
+  const [qrPayeeId, setQrPayeeId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
+  const [unverifiedPaymentVersion, setUnverifiedPaymentVersion] = useState<
+    string | null
+  >(null);
   const payeeId = bill.payee.id;
+  const paymentVersion = `${bill.id}:${bill.updatedAt}`;
+  const paymentVersionUnverified = unverifiedPaymentVersion === paymentVersion;
   const loadCounterRef = useRef(0);
 
   async function fetchQrCodes() {
@@ -174,9 +217,11 @@ export function PaymentSection({
       }
 
       setQrCodes(qrMap);
+      setQrPayeeId(payeeId);
       setDialogStatus("ready");
     } catch (error) {
       if (generation !== loadCounterRef.current) return;
+      setQrPayeeId(payeeId);
       setErrorMessage(
         error instanceof Error ? error.message : "获取收款码失败，请稍后重试",
       );
@@ -191,14 +236,28 @@ export function PaymentSection({
       void fetchQrCodes();
     }, 0);
 
-    return () => window.clearTimeout(timeoutId);
+    return () => {
+      window.clearTimeout(timeoutId);
+      loadCounterRef.current += 1;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, dataSource, connectBaseUrl, payeeId]);
 
   const defaultPlatform: PaymentPlatform = bill.channel ?? "wechat";
 
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      loadCounterRef.current += 1;
+      setQrCodes({});
+      setQrPayeeId(null);
+      setDialogStatus("loading");
+    }
+
+    onOpenChange(nextOpen);
+  }
+
   async function handlePay(platform: PaymentPlatform) {
-    if (submittingRef.current) return;
+    if (submittingRef.current || paymentVersionUnverified) return;
 
     submittingRef.current = true;
     setSubmitting(true);
@@ -208,10 +267,41 @@ export function PaymentSection({
         { billId: bill.id, channel: platform, updatedAt: bill.updatedAt },
         { dataSource, connectBaseUrl },
       );
+      setUnverifiedPaymentVersion(null);
       setDialogStatus("submitted");
       onSuccess(submittedBill);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "提交支付失败，账单可能已更新，请刷新后重试");
+      let latestBill: PaymentBill;
+
+      try {
+        latestBill = await getBill(bill.id, { dataSource, connectBaseUrl });
+      } catch {
+        setUnverifiedPaymentVersion(paymentVersion);
+        handleOpenChange(false);
+        onBillRefresh(null);
+        toast.error("无法确认支付结果，正在刷新订单，请核对后再操作");
+        return;
+      }
+
+      if (
+        latestBill.status === "submitted" ||
+        latestBill.status === "completed"
+      ) {
+        setUnverifiedPaymentVersion(null);
+        toast.info("已读取最新支付状态");
+        onSuccess(latestBill);
+      } else {
+        setUnverifiedPaymentVersion(null);
+        handleOpenChange(false);
+        onBillRefresh(latestBill);
+        toast.error(
+          latestBill.status === "unpaid"
+            ? "支付确认未完成，账单已刷新，请核对后重试"
+            : error instanceof Error
+              ? error.message
+              : "账单状态已更新，请核对后重试",
+        );
+      }
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -221,17 +311,28 @@ export function PaymentSection({
   return (
     <PaymentDialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={handleOpenChange}
       amountCents={bill.amountCents}
+      payeeName={bill.payee.name}
       verifyCode={bill.verifyCode}
-      qrCodes={qrCodes}
+      qrCodes={qrPayeeId === payeeId ? qrCodes : {}}
       defaultPlatform={defaultPlatform}
-      status={dialogStatus}
-      errorMessage={errorMessage}
+      status={
+        paymentVersionUnverified
+          ? "error"
+          : qrPayeeId === payeeId
+            ? dialogStatus
+            : "loading"
+      }
+      errorMessage={
+        paymentVersionUnverified
+          ? "支付结果尚未确认，请重新进入订单查看最新账单。"
+          : errorMessage
+      }
       submitting={submitting}
       onPay={handlePay}
-      onCancelPayment={() => onOpenChange(false)}
-      onRetry={() => void fetchQrCodes()}
+      onCancelPayment={() => handleOpenChange(false)}
+      onRetry={paymentVersionUnverified ? undefined : () => void fetchQrCodes()}
     />
   );
 }

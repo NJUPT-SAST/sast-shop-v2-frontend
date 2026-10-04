@@ -13,8 +13,8 @@ export default function GroupShopError({ reset }: { reset: () => void }) {
       description="网络或服务暂时不可用，请稍后重试。"
       onRetry={reset}
       secondaryAction={
-        <Button asChild variant="outline">
-          <Link href="/shop">返回商城</Link>
+        <Button asChild variant="outline" size="touch">
+          <Link href="/group">返回团购</Link>
         </Button>
       }
     />

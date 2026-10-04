@@ -1,6 +1,173 @@
 stubs:
+  - id: errand-task-get-list-shopping
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/GetErrandTaskList
+    active_if: req.filter_status == 1 && req.page == 1
+    priority: 100
+    content:
+      errandTasks:
+        - taskId: "7001"
+          storeId: "3001"
+          storeName: SAST 小卖部
+          status: ERRAND_TASK_STATUS_SHOPPING
+          items:
+            - id: "7101"
+              updatedAt: "2026-06-09T00:00:00Z"
+            - id: "7102"
+              updatedAt: "2026-06-09T00:00:00Z"
+          createdAt: "2026-07-18T02:00:00Z"
+      currentPage: 1
+      totalCount: 1
+  - id: errand-task-get-list-pending-distributing
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/GetErrandTaskList
+    active_if: req.filter_status == 2 && req.page == 1
+    priority: 100
+    content:
+      errandTasks:
+        - taskId: "7002"
+          storeId: "3001"
+          storeName: SAST 小卖部
+          status: ERRAND_TASK_STATUS_PENDING_DISTRIBUTING
+          items:
+            - id: "7201"
+              updatedAt: "2026-07-18T02:00:00Z"
+            - id: "7202"
+              updatedAt: "2026-07-18T02:00:00Z"
+          createdAt: "2026-07-17T08:00:00Z"
+      currentPage: 1
+      totalCount: 1
+  - id: errand-task-get-list-distributing
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/GetErrandTaskList
+    active_if: req.filter_status == 3 && req.page == 1
+    priority: 100
+    content:
+      errandTasks:
+        - taskId: "7003"
+          storeId: "3001"
+          storeName: SAST 小卖部
+          status: ERRAND_TASK_STATUS_DISTRIBUTING
+          items:
+            - id: "7301"
+              updatedAt: "2026-07-18T02:00:00Z"
+            - id: "7302"
+              updatedAt: "2026-07-18T02:00:00Z"
+          createdAt: "2026-07-17T06:00:00Z"
+      currentPage: 1
+      totalCount: 1
+  - id: errand-task-get-list-collecting-payment
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/GetErrandTaskList
+    active_if: req.filter_status == 4 && req.page == 1
+    priority: 100
+    content:
+      errandTasks:
+        - taskId: "7004"
+          storeId: "3001"
+          storeName: SAST 小卖部
+          status: ERRAND_TASK_STATUS_COLLECTING_PAYMENT
+          items:
+            - id: "7401"
+          createdAt: "2026-07-16T08:00:00Z"
+      currentPage: 1
+      totalCount: 1
+  - id: errand-task-get-list-active-later-pages
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/GetErrandTaskList
+    active_if: req.filter_status in [1, 2, 3, 4] && req.page > 1
+    priority: 100
+    cel_content: |
+      {
+        'errand_tasks': [],
+        'current_page': req.page,
+        'total_count': 1
+      }
+  - id: errand-task-get-list-unfiltered-five-first
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/GetErrandTaskList
+    active_if: req.filter_status == 0 && req.page == 1 && req.page_size == 5
+    priority: 100
+    content:
+      errandTasks:
+        - taskId: "7001"
+          storeId: "3001"
+          storeName: SAST 小卖部
+          status: ERRAND_TASK_STATUS_SHOPPING
+          items:
+            - id: "7101"
+              updatedAt: "2026-06-09T00:00:00Z"
+            - id: "7102"
+              updatedAt: "2026-06-09T00:00:00Z"
+          createdAt: "2026-07-18T02:00:00Z"
+        - taskId: "7002"
+          storeId: "3001"
+          storeName: SAST 小卖部
+          status: ERRAND_TASK_STATUS_PENDING_DISTRIBUTING
+          items:
+            - id: "7201"
+              updatedAt: "2026-07-18T02:00:00Z"
+            - id: "7202"
+              updatedAt: "2026-07-18T02:00:00Z"
+          createdAt: "2026-07-17T08:00:00Z"
+        - taskId: "7003"
+          storeId: "3001"
+          storeName: SAST 小卖部
+          status: ERRAND_TASK_STATUS_DISTRIBUTING
+          items:
+            - id: "7301"
+              updatedAt: "2026-07-18T02:00:00Z"
+            - id: "7302"
+              updatedAt: "2026-07-18T02:00:00Z"
+          createdAt: "2026-07-17T06:00:00Z"
+        - taskId: "7004"
+          storeId: "3001"
+          storeName: SAST 小卖部
+          status: ERRAND_TASK_STATUS_COLLECTING_PAYMENT
+          items:
+            - id: "7401"
+          createdAt: "2026-07-16T08:00:00Z"
+        - taskId: "7005"
+          storeId: "3001"
+          storeName: SAST 小卖部
+          status: ERRAND_TASK_STATUS_COMPLETED
+          items:
+            - id: "7501"
+          createdAt: "2026-07-15T08:00:00Z"
+      currentPage: 1
+      totalCount: 6
+  - id: errand-task-get-list-unfiltered-five-second
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/GetErrandTaskList
+    active_if: req.filter_status == 0 && req.page == 2 && req.page_size == 5
+    priority: 100
+    content:
+      errandTasks:
+        - taskId: "7006"
+          storeId: "3001"
+          storeName: SAST 小卖部
+          status: ERRAND_TASK_STATUS_CANCELLED
+          items:
+            - id: "7601"
+          createdAt: "2026-07-14T08:00:00Z"
+      currentPage: 2
+      totalCount: 6
+  - id: errand-task-get-list-unfiltered-five-later
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/GetErrandTaskList
+    active_if: req.filter_status == 0 && req.page > 2 && req.page_size == 5
+    priority: 100
+    cel_content: |
+      {
+        'errand_tasks': [],
+        'current_page': req.page,
+        'total_count': 6
+      }
+  - id: errand-task-get-list-unfiltered-large-later
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/GetErrandTaskList
+    active_if: req.filter_status == 0 && req.page > 1 && req.page_size > 5
+    priority: 100
+    cel_content: |
+      {
+        'errand_tasks': [],
+        'current_page': req.page,
+        'total_count': 6
+      }
   - id: errand-task-get-list
     target: sast.sastshopv2.errand.v1.ErrandTaskService/GetErrandTaskList
+    active_if: req.filter_status == 0 && req.page == 1 && req.page_size > 5
     content:
       errandTasks:
         - taskId: "7001"
@@ -46,6 +213,16 @@ stubs:
             - id: "7202"
               updatedAt: "2026-07-18T02:00:00Z"
           createdAt: "2026-07-17T08:00:00Z"
+        - taskId: "7003"
+          storeId: "3001"
+          storeName: SAST 小卖部
+          status: ERRAND_TASK_STATUS_DISTRIBUTING
+          items:
+            - id: "7301"
+              updatedAt: "2026-07-18T02:00:00Z"
+            - id: "7302"
+              updatedAt: "2026-07-18T02:00:00Z"
+          createdAt: "2026-07-17T06:00:00Z"
         - taskId: "7004"
           storeId: "3001"
           storeName: SAST 小卖部
@@ -68,7 +245,7 @@ stubs:
             - id: "7601"
           createdAt: "2026-07-14T08:00:00Z"
       currentPage: 1
-      totalCount: 5
+      totalCount: 6
   - id: errand-task-create
     target: sast.sastshopv2.errand.v1.ErrandTaskService/CreateTask
     content:
@@ -113,6 +290,8 @@ stubs:
     content: {}
   - id: errand-task-get-distributing-detail
     target: sast.sastshopv2.errand.v1.ErrandTaskService/GetDistributingTaskDetail
+    active_if: req.errand_task_id == 7002
+    priority: 100
     content:
       errandTaskId: "7002"
       storeId: "3001"
@@ -126,12 +305,13 @@ stubs:
           imageUrlSnapshot: https://images.unsplash.com/photo-1564419320461-6870880221ad?auto=format&fit=crop&w=640&q=80
           originUnitPriceCents: 200
           actualUnitPriceCents: 200
+          purchasedQuantity: 12
+          updatedAt: "2026-07-18T02:00:00Z"
           requesters:
             - purchaserId: "1001"
               purchaserName: 李同学
               purchaserAvatarUrl: https://example.test/avatar/li.png
               quantity: 6
-              distributedQuantity: 0
               errandTaskAssignmentId: "8201"
               errandDemandItemId: "6101"
               errandTaskAssignmentUpdatedAt: "2026-07-17T08:00:00Z"
@@ -139,10 +319,96 @@ stubs:
               purchaserName: 王同学
               purchaserAvatarUrl: https://example.test/avatar/wang.png
               quantity: 6
-              distributedQuantity: 0
               errandTaskAssignmentId: "8202"
               errandDemandItemId: "6102"
               errandTaskAssignmentUpdatedAt: "2026-07-17T08:00:00Z"
+        - errandTaskItemId: "7202"
+          productTemplateId: "4002"
+          titleSnapshot: 经典火腿三明治
+          descriptionSnapshot: 冷藏即食，采购后请尽快分发
+          imageUrlSnapshot: https://images.unsplash.com/photo-1528736235302-52922df5c122?auto=format&fit=crop&w=640&q=80
+          originUnitPriceCents: 1200
+          actualUnitPriceCents: 1100
+          purchasedQuantity: 4
+          updatedAt: "2026-07-18T02:00:00Z"
+          requesters:
+            - purchaserId: "1001"
+              purchaserName: 李同学
+              purchaserAvatarUrl: https://example.test/avatar/li.png
+              quantity: 2
+              errandTaskAssignmentId: "8203"
+              errandDemandItemId: "6103"
+              errandTaskAssignmentUpdatedAt: "2026-07-17T08:00:00Z"
+            - purchaserId: "1002"
+              purchaserName: 王同学
+              purchaserAvatarUrl: https://example.test/avatar/wang.png
+              quantity: 2
+              errandTaskAssignmentId: "8204"
+              errandDemandItemId: "6104"
+              errandTaskAssignmentUpdatedAt: "2026-07-17T08:00:00Z"
+      updatedAt: "2026-07-18T02:00:00Z"
+  - id: errand-task-get-distributing-detail-active
+    target: sast.sastshopv2.errand.v1.ErrandTaskService/GetDistributingTaskDetail
+    active_if: req.errand_task_id == 7003
+    priority: 100
+    content:
+      errandTaskId: "7003"
+      storeId: "3001"
+      storeName: SAST 小卖部
+      packagingFeeCents: 300
+      distributingItems:
+        - errandTaskItemId: "7301"
+          productTemplateId: "4001"
+          titleSnapshot: 农夫山泉矿泉水
+          descriptionSnapshot: 550ml 瓶装水，适合活动采购
+          imageUrlSnapshot: https://images.unsplash.com/photo-1564419320461-6870880221ad?auto=format&fit=crop&w=640&q=80
+          originUnitPriceCents: 200
+          actualUnitPriceCents: 200
+          purchasedQuantity: 12
+          updatedAt: "2026-07-18T02:00:00Z"
+          requesters:
+            - purchaserId: "1001"
+              purchaserName: 李同学
+              purchaserAvatarUrl: https://example.test/avatar/li.png
+              quantity: 6
+              distributedQuantity: 6
+              errandTaskAssignmentId: "8301"
+              errandDemandItemId: "6301"
+              errandTaskAssignmentUpdatedAt: "2026-07-18T02:00:00Z"
+            - purchaserId: "1002"
+              purchaserName: 王同学
+              purchaserAvatarUrl: https://example.test/avatar/wang.png
+              quantity: 6
+              errandTaskAssignmentId: "8302"
+              errandDemandItemId: "6302"
+              errandTaskAssignmentUpdatedAt: "2026-07-18T02:00:00Z"
+        - errandTaskItemId: "7302"
+          productTemplateId: "4002"
+          titleSnapshot: 经典火腿三明治
+          descriptionSnapshot: 冷藏即食，采购后请尽快分发
+          imageUrlSnapshot: https://images.unsplash.com/photo-1528736235302-52922df5c122?auto=format&fit=crop&w=640&q=80
+          originUnitPriceCents: 1200
+          actualUnitPriceCents: 1100
+          purchasedQuantity: 4
+          updatedAt: "2026-07-18T02:00:00Z"
+          requesters:
+            - purchaserId: "1001"
+              purchaserName: 李同学
+              purchaserAvatarUrl: https://example.test/avatar/li.png
+              quantity: 2
+              distributedQuantity: 2
+              errandTaskAssignmentId: "8303"
+              errandDemandItemId: "6303"
+              errandTaskAssignmentUpdatedAt: "2026-07-18T02:00:00Z"
+            - purchaserId: "1002"
+              purchaserName: 王同学
+              purchaserAvatarUrl: https://example.test/avatar/wang.png
+              quantity: 2
+              distributedQuantity: 2
+              errandTaskAssignmentId: "8304"
+              errandDemandItemId: "6304"
+              errandTaskAssignmentUpdatedAt: "2026-07-18T02:00:00Z"
+      updatedAt: "2026-07-18T02:00:00Z"
   - id: errand-task-update-actual-price
     target: sast.sastshopv2.errand.v1.ErrandTaskService/UpdateActualPrice
     content: {}

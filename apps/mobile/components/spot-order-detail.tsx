@@ -44,7 +44,6 @@ import {
 } from "@workspace/ui/components/responsive-dialog";
 import { Separator } from "@workspace/ui/components/separator";
 import { Spinner } from "@workspace/ui/components/spinner";
-import { cn } from "@workspace/ui/lib/utils";
 import { toast } from "sonner";
 
 import type { SpotOrderView } from "@/lib/order-filters";
@@ -87,6 +86,10 @@ export function SpotOrderDetail({
   const [confirmPaymentDialogOpen, setConfirmPaymentDialogOpen] =
     useState(false);
   const [supplementOpen, setSupplementOpen] = useState(false);
+  const [unverifiedPaymentBillVersion, setUnverifiedPaymentBillVersion] =
+    useState<string | null>(null);
+  const [unverifiedSupplementBillVersion, setUnverifiedSupplementBillVersion] =
+    useState<string | null>(null);
   const [lifecyclePending, setLifecyclePending] = useState<
     "cancel" | "complete" | "confirm-payment" | null
   >(null);
@@ -103,11 +106,26 @@ export function SpotOrderDetail({
   const versionedBill: VersionedPaymentBill | null = bill?.updatedAt
     ? { ...bill, updatedAt: bill.updatedAt }
     : null;
+  const paymentBillVersion = versionedBill
+    ? `${versionedBill.id}:${versionedBill.updatedAt}`
+    : null;
+  const paymentVersionUnverified =
+    paymentBillVersion !== null &&
+    paymentBillVersion === unverifiedPaymentBillVersion;
+  const supplementBillVersion = versionedBill
+    ? `${versionedBill.id}:${versionedBill.updatedAt}`
+    : null;
+  const supplementVersionUnverified =
+    supplementBillVersion !== null &&
+    supplementBillVersion === unverifiedSupplementBillVersion;
   const payableBill: PayablePaymentBill | null =
     versionedBill && hasPaymentRecipient(versionedBill) ? versionedBill : null;
-  const canSubmitPayment = actions.canPay && Boolean(payableBill);
+  const canSubmitPayment =
+    actions.canPay && Boolean(payableBill) && !paymentVersionUnverified;
   const canSupplementSerialNumber =
-    actions.canSupplementSerialNumber && Boolean(versionedBill);
+    actions.canSupplementSerialNumber &&
+    Boolean(versionedBill) &&
+    !supplementVersionUnverified;
   const canConfirmPayment = actions.canConfirmPayment && Boolean(versionedBill);
   const feishuUiEnvironment = useFeishuUiEnvironment();
   const contactAction = resolveOrderContactAction({
@@ -167,7 +185,15 @@ export function SpotOrderDetail({
 
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "操作失败，订单状态可能已更新，请刷新后重试");
+      setCancelDialogOpen(false);
+      setCompleteDialogOpen(false);
+      setConfirmPaymentDialogOpen(false);
+      router.refresh();
+      toast.error(
+        error instanceof Error
+          ? `${error.message}，正在刷新订单状态`
+          : "操作结果未确认，正在刷新订单状态",
+      );
     } finally {
       lifecyclePendingRef.current = false;
       setLifecyclePending(null);
@@ -176,12 +202,7 @@ export function SpotOrderDetail({
 
   return (
     <div className="flex flex-1 flex-col">
-      <div
-        className={cn(
-          "flex flex-1 flex-col gap-4 py-4",
-          showActionBar && "pb-24",
-        )}
-      >
+      <div className="flex flex-1 flex-col gap-3 py-4">
         <h1 className="text-lg font-semibold">订单详情</h1>
 
         <OrderTimelinePanel
@@ -193,6 +214,22 @@ export function SpotOrderDetail({
 
         <OrderInfoCard order={resolvedOrder} view={view} />
         {bill ? <BillCard bill={bill} /> : null}
+        {paymentVersionUnverified ? (
+          <Alert>
+            <AlertTitle>支付结果待确认</AlertTitle>
+            <AlertDescription>
+              请重新进入订单查看最新账单后再操作。
+            </AlertDescription>
+          </Alert>
+        ) : null}
+        {supplementVersionUnverified ? (
+          <Alert>
+            <AlertTitle>流水号状态待确认</AlertTitle>
+            <AlertDescription>
+              请重新进入订单查看最新账单后再操作。
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
         {view === "buyer" && actions.canPay && !payableBill ? (
           <UnavailablePaymentBill />
@@ -288,8 +325,18 @@ export function SpotOrderDetail({
           dataSource={dataSource}
           connectBaseUrl={connectBaseUrl}
           onSuccess={(submittedBill) => {
+            setUnverifiedPaymentBillVersion(null);
             setCurrentOrder({ ...resolvedOrder, bill: submittedBill });
             setPaymentDrawerOpen(false);
+            router.refresh();
+          }}
+          onBillRefresh={(latestBill) => {
+            if (latestBill) {
+              setUnverifiedPaymentBillVersion(null);
+              setCurrentOrder({ ...resolvedOrder, bill: latestBill });
+            } else {
+              setUnverifiedPaymentBillVersion(paymentBillVersion);
+            }
             router.refresh();
           }}
         />
@@ -304,8 +351,18 @@ export function SpotOrderDetail({
           dataSource={dataSource}
           connectBaseUrl={connectBaseUrl}
           onSuccess={(updatedBill) => {
+            setUnverifiedSupplementBillVersion(null);
             setCurrentOrder({ ...resolvedOrder, bill: updatedBill });
             setSupplementOpen(false);
+            router.refresh();
+          }}
+          onBillRefresh={(latestBill) => {
+            if (latestBill) {
+              setUnverifiedSupplementBillVersion(null);
+              setCurrentOrder({ ...resolvedOrder, bill: latestBill });
+            } else {
+              setUnverifiedSupplementBillVersion(supplementBillVersion);
+            }
             router.refresh();
           }}
         />

@@ -114,10 +114,12 @@ export function PublishSpotForm({
   dataSource,
   connectBaseUrl,
   entry,
+  initialBarcode = "",
 }: {
   dataSource: DataSource;
   connectBaseUrl: string;
   entry: "manual" | "scan";
+  initialBarcode?: string;
 }) {
   const serviceOptions: ServiceOptions = useMemo(
     () => ({ dataSource, connectBaseUrl }),
@@ -127,7 +129,7 @@ export function PublishSpotForm({
   const showFeishuEntry = useFeishuUiEnvironment();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { barcode: "", price: 0.01, stock: 1 },
+    defaultValues: { barcode: initialBarcode, price: 0.01, stock: 1 },
   });
   const barcode = useWatch({ control: form.control, name: "barcode" });
   const activeLookup = useRef(0);
@@ -146,6 +148,10 @@ export function PublishSpotForm({
   const [submitting, setSubmitting] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [manualEntry, setManualEntry] = useState(entry === "manual");
+  const [scanFeedback, setScanFeedback] = useState<{
+    message: string;
+    failed: boolean;
+  } | null>(null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   function resetLookup() {
@@ -261,6 +267,7 @@ export function PublishSpotForm({
 
     scanningRef.current = true;
     setScanning(true);
+    setScanFeedback(null);
     try {
       const signingUrl = window.location.href.split("#", 1)[0] ?? "";
       const response = await fetch(
@@ -290,10 +297,19 @@ export function PublishSpotForm({
       }
       toast.success("已识别商品条码");
     } catch (reason) {
-      if (isLarkScanCancelledError(reason)) return;
-      toast.error(
-        reason instanceof Error ? reason.message : "扫码失败，请手动输入条码",
-      );
+      if (isLarkScanCancelledError(reason)) {
+        setScanFeedback({
+          message: "已取消扫码，可以重试或手动输入条码",
+          failed: false,
+        });
+        return;
+      }
+      const message =
+        reason instanceof Error
+          ? reason.message
+          : "扫码失败，请重试或手动输入条码";
+      setScanFeedback({ message, failed: true });
+      toast.error(message);
     } finally {
       scanningRef.current = false;
       setScanning(false);
@@ -334,7 +350,9 @@ export function PublishSpotForm({
         qrCodes = await listPaymentQrCodes(serviceOptions);
       } catch (error) {
         const message =
-          error instanceof Error ? error.message : "收款码状态暂时无法确认，请稍后重试";
+          error instanceof Error
+            ? error.message
+            : "收款码状态暂时无法确认，请稍后重试";
         setSubmissionError(message);
         toast.error(message);
         return;
@@ -409,6 +427,57 @@ export function PublishSpotForm({
       <h1 className="min-w-0 text-xl font-semibold md:text-2xl">上架现货</h1>
 
       <section className="flex min-w-0 flex-col gap-5">
+        <h2 className="text-sm font-medium text-muted-foreground">
+          第 1 步 · 识别商品
+        </h2>
+        {!showEntryForm ? (
+          <div className="flex flex-col gap-4 rounded-lg border bg-card p-4">
+            <div className="flex items-center gap-3">
+              <RiBarcodeLine className="size-5 text-primary" />
+              <p className="font-medium">扫描商品条码</p>
+            </div>
+            {scanFeedback ? (
+              <p
+                role={scanFeedback.failed ? "alert" : "status"}
+                className={
+                  scanFeedback.failed
+                    ? "text-sm text-destructive"
+                    : "text-sm text-muted-foreground"
+                }
+              >
+                {scanFeedback.message}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                扫描商品包装上的条码，或手动输入编号。
+              </p>
+            )}
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                className="min-h-11 flex-1"
+                disabled={scanning}
+                onClick={() => void scanBarcode()}
+              >
+                {scanning ? (
+                  <Spinner className="size-4" />
+                ) : (
+                  <RiBarcodeLine data-icon="inline-start" />
+                )}
+                {scanning ? "正在扫码" : scanFeedback ? "再次扫码" : "开始扫码"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 flex-1"
+                disabled={scanning}
+                onClick={() => setManualEntry(true)}
+              >
+                手动输入
+              </Button>
+            </div>
+          </div>
+        ) : null}
         {showEntryForm ? (
           <Controller
             name="barcode"
@@ -507,6 +576,9 @@ export function PublishSpotForm({
 
       {selectedMatch?.store ? (
         <>
+          <h2 className="text-sm font-medium text-muted-foreground">
+            第 2 步 · 填写上架信息
+          </h2>
           <FieldGroup className="grid grid-cols-2 gap-4">
             <Controller
               name="price"
@@ -558,6 +630,31 @@ export function PublishSpotForm({
             />
           </FieldGroup>
 
+          <Alert>
+            <RiErrorWarningLine />
+            <AlertTitle>上架前确认收款码</AlertTitle>
+            <AlertDescription>
+              请确认已上传微信或支付宝收款码，提交时会再次检查。
+            </AlertDescription>
+            <AlertAction>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={openQrCodeDialog}
+              >
+                查看收款码
+              </Button>
+            </AlertAction>
+          </Alert>
+
+          {submissionError ? (
+            <Alert variant="destructive">
+              <RiErrorWarningLine />
+              <AlertTitle>上架失败</AlertTitle>
+              <AlertDescription>{submissionError}</AlertDescription>
+            </Alert>
+          ) : null}
           <Button
             type="button"
             size="lg"
@@ -568,13 +665,6 @@ export function PublishSpotForm({
             <RiCheckboxCircleLine />
             {submitting ? "提交中" : "上架商品"}
           </Button>
-          {submissionError ? (
-            <Alert variant="destructive">
-              <RiErrorWarningLine />
-              <AlertTitle>上架失败</AlertTitle>
-              <AlertDescription>{submissionError}</AlertDescription>
-            </Alert>
-          ) : null}
         </>
       ) : null}
 
@@ -639,13 +729,6 @@ export function PublishSpotForm({
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
-
-      {scanning && !showEntryForm ? (
-        <div className="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
-          <Spinner />
-          正在扫码
-        </div>
-      ) : null}
     </div>
   );
 }

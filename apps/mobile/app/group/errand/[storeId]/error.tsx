@@ -17,7 +17,7 @@ export default function ErrandDemandDetailError({
       description="网络或服务暂时不可用，请稍后重试。"
       onRetry={reset}
       secondaryAction={
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" size="touch">
           <Link href="/group/errand">返回跑腿大厅</Link>
         </Button>
       }

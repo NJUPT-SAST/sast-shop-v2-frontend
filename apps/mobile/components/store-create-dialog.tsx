@@ -90,6 +90,7 @@ export function StoreCreateDialog({
   const [submitting, setSubmitting] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [logoError, setLogoError] = useState<string | null>(null);
   const fieldValidation = validateStoreCreateFields({ name, address });
   const fieldErrors =
     hasSubmitted && !fieldValidation.ok ? fieldValidation.errors : {};
@@ -100,6 +101,7 @@ export function StoreCreateDialog({
     setLogoUrl("");
     setHasSubmitted(false);
     setError(null);
+    setLogoError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -122,12 +124,12 @@ export function StoreCreateDialog({
     if (!file) return;
 
     setUploading(true);
-    setError(null);
+    setLogoError(null);
     try {
       setLogoUrl(await uploadProductImage(file));
       toast.success("店铺 Logo 已上传");
     } catch (caught) {
-      toast.error(caught instanceof Error ? caught.message : "图片上传失败");
+      setLogoError(caught instanceof Error ? caught.message : "图片上传失败");
     } finally {
       setUploading(false);
     }
@@ -187,7 +189,7 @@ export function StoreCreateDialog({
   return (
     <Drawer open={open} onOpenChange={handleOpenChange}>
       {children ? <DrawerTrigger asChild>{children}</DrawerTrigger> : null}
-      <DrawerContent className="max-h-[88dvh]">
+      <DrawerContent className="max-h-[88dvh] overflow-clip">
         <DrawerHeader className="shrink-0 text-left">
           <DrawerTitle>创建店铺</DrawerTitle>
           <DrawerDescription className="sr-only">
@@ -214,6 +216,7 @@ export function StoreCreateDialog({
                 <Button
                   type="button"
                   variant="outline"
+                  className="min-h-11"
                   disabled={uploading}
                   onClick={() => fileInputRef.current?.click()}
                 >
@@ -232,6 +235,9 @@ export function StoreCreateDialog({
                   onChange={handleLogoChange}
                 />
               </div>
+              {logoError ? (
+                <FieldError role="alert">{logoError}</FieldError>
+              ) : null}
             </Field>
 
             <Field data-invalid={Boolean(fieldErrors.name)}>

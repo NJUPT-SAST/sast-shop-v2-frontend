@@ -1,10 +1,4 @@
-import {
-  listProductTemplatesPage,
-  listStores,
-  type PageResult,
-  type ProductTemplate,
-  type Store,
-} from "@sast-shop/api";
+import { listProductTemplatesPage, listStores } from "@sast-shop/api";
 import { notFound } from "next/navigation";
 
 import { ErrandShop } from "@/components/errand-shop";
@@ -18,35 +12,19 @@ type GroupShopPageProps = {
   }>;
 };
 
-type StoreDetail = {
-  store: Store | null;
-  templatePage: PageResult<ProductTemplate>;
-};
-
-async function loadStoreDetail(storeId: string): Promise<StoreDetail> {
-  const options = await getServerServiceOptions();
-  const [stores, templatePage] = await Promise.all([
-    listStores(options),
-    listProductTemplatesPage({
-      ...options,
-      storeId,
-      page: 1,
-      pageSize: 20,
-    }),
-  ]);
-
-  return {
-    store: stores.find((store) => store.id === storeId) ?? null,
-    templatePage,
-  };
-}
-
 export default async function GroupShopPage({ params }: GroupShopPageProps) {
   const { id } = await params;
   if (!isValidRouteId(id)) notFound();
-  const { store, templatePage } = await loadStoreDetail(id);
-
+  const options = await getServerServiceOptions();
+  const stores = await listStores(options);
+  const store = stores.find((candidate) => candidate.id === id);
   if (!store) notFound();
+  const templatePage = await listProductTemplatesPage({
+    ...options,
+    storeId: id,
+    page: 1,
+    pageSize: 20,
+  });
 
   return (
     <ErrandShop
