@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import {
   createAddress,
   deleteAddress,
+  isLarkClientEnvironment,
   updateAddress,
   updatePaymentQrCode,
   type DataSource,
@@ -264,7 +265,25 @@ export function ProfileManagement({
 
       {feedbackFormUrl ? (
         <Button variant="ghost" className="w-full justify-start" asChild>
-          <a href={feedbackFormUrl} target="_blank" rel="noopener noreferrer">
+          <a
+            href={feedbackFormUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(event) => {
+              if (!isLarkClientEnvironment(window.h5sdk)) return;
+              if (
+                event.metaKey ||
+                event.ctrlKey ||
+                event.shiftKey ||
+                event.altKey
+              )
+                return;
+              event.preventDefault();
+              window.location.assign(
+                `https://applink.feishu.cn/client/web_url/open?mode=window&url=${encodeURIComponent(feedbackFormUrl)}`,
+              );
+            }}
+          >
             <RiQuestionLine data-icon="inline-start" />
             帮助与反馈
           </a>

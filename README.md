@@ -67,7 +67,7 @@ NEXT_PUBLIC_FEEDBACK_FORM_URL=https://example.feishu.cn/share/base/form/example
 
 `NEXT_PUBLIC_APP_ORIGIN` 用于声明当前应用访问源，例如本地开发地址或线上子域名。
 
-`NEXT_PUBLIC_FEEDBACK_FORM_URL` 用于配置个人中心“帮助与反馈”入口跳转的飞书问卷地址。仅接受 `feishu.cn` / `larksuite.com` 及其子域下、不含内嵌凭据的 HTTPS URL；本地留空或配置无效时不展示入口，生产镜像构建时必须提供。
+`NEXT_PUBLIC_FEEDBACK_FORM_URL` 用于配置个人中心“帮助与反馈”入口的飞书问卷地址。仅接受 `feishu.cn` / `larksuite.com` 及其子域下、不含内嵌凭据的 HTTPS URL；留空或配置无效时不展示入口。线上地址在 GitHub 仓库的 Settings → Secrets and variables → Actions → Variables 中配置同名 Repository Variable，由发布流程在镜像构建时注入，修改后需重新构建部署。飞书客户端内通过 [AppLink](https://open.feishu.cn/document/common-capabilities/applink-protocol/supported-protocol/open-the-web-view-in-feishu-to-access-the-specified-url) 打开端内网页（桌面端使用独立窗口），无需额外 JSAPI 签名；普通浏览器直接打开问卷链接。
 
 移动端本地视觉验收可临时设置 `NEXT_PUBLIC_FORCE_FEISHU_UI=true`，以展示飞书移动端专属入口。该开关不会注入或模拟飞书 JSAPI，实际调用仍要求真实 SDK 环境；生产环境应保持关闭。
 
@@ -78,7 +78,7 @@ cp apps/mobile/.env.example apps/mobile/.env.local
 cp apps/desktop/.env.example apps/desktop/.env.local
 ```
 
-非容器生产环境可复制为 `.env`，并至少配置 `NEXT_PUBLIC_DATA_SOURCE`、`NEXT_PUBLIC_APP_ORIGIN`、`NEXT_PUBLIC_FEISHU_APP_ID`、`NEXT_PUBLIC_FEEDBACK_FORM_URL`、私有 `SESSION_COOKIE_SECRET`、`CONNECT_BASE_URL` 和 `CONNECT_HEALTH_URL`；桌面端普通浏览器 OAuth 还需要服务端 `FEISHU_APP_ID` 与 `FEISHU_REDIRECT_URI`：
+非容器生产环境可复制为 `.env`，并至少配置 `NEXT_PUBLIC_DATA_SOURCE`、`NEXT_PUBLIC_APP_ORIGIN`、`NEXT_PUBLIC_FEISHU_APP_ID`、私有 `SESSION_COOKIE_SECRET`、`CONNECT_BASE_URL` 和 `CONNECT_HEALTH_URL`；桌面端普通浏览器 OAuth 还需要服务端 `FEISHU_APP_ID` 与 `FEISHU_REDIRECT_URI`：
 
 ```bash
 cp apps/mobile/.env.example apps/mobile/.env

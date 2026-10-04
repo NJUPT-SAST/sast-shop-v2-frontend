@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { RiArrowRightSLine } from "@remixicon/react";
+import { isLarkClientEnvironment } from "@sast-shop/api";
 import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
 import { BrandIllustration } from "./brand-illustration";
@@ -64,7 +65,20 @@ function ProfileMenuLink({
       className="h-auto min-h-16 w-full justify-start gap-4 rounded-t-none rounded-b-xl px-4 py-3"
       asChild
     >
-      <a href={href} target="_blank" rel="noopener noreferrer">
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(event) => {
+          if (!isLarkClientEnvironment(window.h5sdk)) return;
+          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+            return;
+          event.preventDefault();
+          window.location.assign(
+            `https://applink.feishu.cn/client/web_url/open?mode=window&url=${encodeURIComponent(href)}`,
+          );
+        }}
+      >
         <span className="flex size-10 shrink-0 items-center justify-center">
           {icon}
         </span>
