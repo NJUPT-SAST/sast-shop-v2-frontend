@@ -22,7 +22,7 @@ const navItems = [
 
 const NAV_CLICK_DEBOUNCE_MS = 350;
 
-export function MobileBottomNav() {
+export function MobileBottomNav({ hidden = false }: { hidden?: boolean }) {
   const pathname = usePathname();
   const lastCurrentRoutePressAtRef = useRef(0);
   const { handleCurrentRoutePress, scrollToTop } = useMobileScroll();
@@ -48,7 +48,10 @@ export function MobileBottomNav() {
   }
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border/80 bg-card pb-[env(safe-area-inset-bottom)]">
+    <nav
+      hidden={hidden}
+      className="fixed inset-x-0 bottom-0 z-20 border-t border-border/80 bg-card pb-[env(safe-area-inset-bottom)]"
+    >
       <div className="mx-auto flex h-16 w-full max-w-md items-center justify-around px-2">
         {navItems.slice(0, 2).map((item) => (
           <NavLink
@@ -92,11 +95,11 @@ function NavLink({
       aria-current={isActive ? "page" : undefined}
       onClick={(event) => onNavClick(event, isActive)}
       className={cn(
-        "flex min-w-14 flex-col items-center justify-center gap-1 px-3 py-2 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "flex min-w-14 flex-col items-center justify-center gap-1 px-3 py-1.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         isActive ? "text-primary" : "text-muted-foreground",
       )}
     >
-      <Icon className="size-5" />
+      <Icon className="size-6" />
       <span>{item.label}</span>
     </Link>
   );

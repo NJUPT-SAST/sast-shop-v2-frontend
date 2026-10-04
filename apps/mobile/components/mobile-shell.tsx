@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { useMobileKeyboard } from "@/hooks/use-mobile-keyboard";
 import { MobileBottomNav } from "./mobile-bottom-nav";
 import { MobileHeader } from "./mobile-header";
 import { MobileHeaderActionsProvider } from "./mobile-header-actions";
@@ -13,6 +14,7 @@ const mainRoutes = ["/shop", "/group", "/orders", "/profile"] as const;
 export function MobileShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isMainRoute = mainRoutes.some((route) => route === pathname);
+  const isKeyboardOpen = useMobileKeyboard();
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
@@ -20,11 +22,14 @@ export function MobileShell({ children }: { children: ReactNode }) {
         <MobileHeaderActionsProvider>
           <MobileHeader />
 
-          <MobileScrollArea key={pathname} hasBottomNav={isMainRoute}>
+          <MobileScrollArea
+            key={pathname}
+            hasBottomNav={isMainRoute && !isKeyboardOpen}
+          >
             {children}
           </MobileScrollArea>
 
-          {isMainRoute ? <MobileBottomNav /> : null}
+          {isMainRoute ? <MobileBottomNav hidden={isKeyboardOpen} /> : null}
         </MobileHeaderActionsProvider>
       </MobileScrollProvider>
     </div>

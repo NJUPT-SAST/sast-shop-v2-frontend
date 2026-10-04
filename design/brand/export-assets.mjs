@@ -11,19 +11,54 @@ const nextRequire = createRequire(mobileRequire.resolve("next/package.json"));
 const sharp = nextRequire("sharp");
 const brandDirectory = path.join(root, "design/brand");
 const logo = await readFile(path.join(brandDirectory, "logo-master.png"));
+const smallLogo = await readFile(path.join(brandDirectory, "logo-small.svg"));
 const illustration = await readFile(
   path.join(brandDirectory, "errand-empty-master.png"),
 );
 
-const icon = await sharp(logo).resize(64, 64).png().toBuffer();
-const appleIcon = await sharp(logo)
-  .resize(180, 180)
+const transparent = { r: 0, g: 0, b: 0, alpha: 0 };
+
+async function trimTransparentCanvas(source) {
+  const metadata = await sharp(source).metadata();
+  const mask = await sharp(source)
+    .extractChannel("alpha")
+    .threshold(64)
+    .png()
+    .toBuffer();
+  const { info } = await sharp(mask)
+    .trim({ background: "#000000" })
+    .png()
+    .toBuffer({ resolveWithObject: true });
+  const padding = Math.round(Math.max(info.width, info.height) * 0.025);
+  const left = Math.max(0, -info.trimOffsetLeft - padding);
+  const top = Math.max(0, -info.trimOffsetTop - padding);
+  const right = Math.min(
+    metadata.width,
+    -info.trimOffsetLeft + info.width + padding,
+  );
+  const bottom = Math.min(
+    metadata.height,
+    -info.trimOffsetTop + info.height + padding,
+  );
+  return sharp(source)
+    .extract({ left, top, width: right - left, height: bottom - top })
+    .png()
+    .toBuffer();
+}
+
+const compactLogo = await trimTransparentCanvas(logo);
+const icon = await sharp(compactLogo)
+  .resize(512, 512, { fit: "contain", background: transparent })
+  .png()
+  .toBuffer();
+const appleIcon = await sharp(compactLogo)
+  .resize(180, 180, { fit: "contain", background: "#f6f3ef" })
   .flatten({ background: "#f6f3ef" })
   .png()
   .toBuffer();
 const sizes = [16, 32, 48, 64];
 const frames = await Promise.all(
-  sizes.map((size) => sharp(logo).resize(size, size).png().toBuffer()),
+  sizes.map((size) => sharp(smallLogo).resize(size, size).png().toBuffer()),
 );
 const directory = Buffer.alloc(6 + 16 * frames.length);
 directory.writeUInt16LE(1, 2);
@@ -45,6 +80,7 @@ for (const app of ["mobile", "desktop"]) {
   const directory = path.join(root, "apps", app, "app");
   await writeFile(path.join(directory, "favicon.ico"), favicon);
   await writeFile(path.join(directory, "icon.png"), icon);
+  await writeFile(path.join(directory, "icon.svg"), smallLogo);
   await writeFile(path.join(directory, "apple-icon.png"), appleIcon);
 }
 
@@ -52,7 +88,7 @@ const publicDirectory = path.join(root, "apps/mobile/public/brand");
 await mkdir(publicDirectory, { recursive: true });
 await sharp(logo)
   .resize(512, 512)
-  .webp({ quality: 86, alphaQuality: 100 })
+  .webp({ lossless: true })
   .toFile(path.join(publicDirectory, "logo.webp"));
 await sharp(illustration)
   .resize(384, 384)
@@ -73,10 +109,18 @@ const moduleNames = [
 ];
 
 for (const name of moduleNames) {
-  await sharp(path.join(brandDirectory, `${name}-master.png`))
-    .resize(256, 256)
-    .webp({ quality: 86, alphaQuality: 100 })
+  const source = await readFile(
+    path.join(brandDirectory, `${name}-master.png`),
+  );
+  await sharp(source)
+    .resize(384, 384)
+    .webp({ lossless: true })
     .toFile(path.join(publicDirectory, `${name}.webp`));
+  const compactSource = await trimTransparentCanvas(source);
+  await sharp(compactSource)
+    .resize(256, 256, { fit: "contain", background: transparent })
+    .webp({ lossless: true })
+    .toFile(path.join(publicDirectory, `${name}-compact.webp`));
 }
 
 console.log("Exported app icons and mobile brand assets.");

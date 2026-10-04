@@ -19,20 +19,20 @@ export function ProfileManagementClient({
     <div className="overflow-hidden rounded-xl border bg-card">
       <ProfileMenuButton
         title="地址簿"
-        icon={<BrandIllustration name="address" size={40} />}
+        icon={<BrandIllustration name="address" size={32} />}
         onClick={openAddressDialog}
         border
         first
       />
       <ProfileMenuButton
         title="收款码"
-        icon={<BrandIllustration name="collection" size={40} />}
+        icon={<BrandIllustration name="collection" size={32} />}
         onClick={openQrCodeDialog}
         border
       />
       <ProfileMenuButton
         title="默认支付方式"
-        icon={<BrandIllustration name="wallet" size={40} />}
+        icon={<BrandIllustration name="wallet" size={32} />}
         onClick={openPaymentPreferenceDialog}
         border={Boolean(feedbackFormUrl)}
         last={!feedbackFormUrl}
@@ -40,7 +40,7 @@ export function ProfileManagementClient({
       {feedbackFormUrl ? (
         <ProfileMenuLink
           title="帮助与反馈"
-          icon={<BrandIllustration name="help" size={40} />}
+          icon={<BrandIllustration name="help" size={32} />}
           href={feedbackFormUrl}
         />
       ) : null}

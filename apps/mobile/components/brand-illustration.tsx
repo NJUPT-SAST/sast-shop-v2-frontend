@@ -24,11 +24,12 @@ export function BrandIllustration({
 }) {
   return (
     <Image
-      src={`/brand/${name}.webp`}
+      src={`/brand/${name}${size <= 64 ? "-compact" : ""}.webp`}
       width={size}
       height={size}
       alt=""
       aria-hidden="true"
+      unoptimized
       className={cn("shrink-0 object-contain", className)}
     />
   );

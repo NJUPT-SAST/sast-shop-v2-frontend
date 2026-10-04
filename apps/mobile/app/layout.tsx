@@ -24,6 +24,7 @@ export default function RootLayout({
     <html lang="zh-CN" className="h-full antialiased">
       <head>
         <meta name="showNavBar" content="false" lk-config="" />
+        <meta name="showBottomNavBar" content="false" lk-config="" />
       </head>
       <body className="min-h-full">
         {authRequired ? (

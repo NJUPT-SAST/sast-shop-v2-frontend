@@ -92,7 +92,7 @@ export function MobilePublishEntry() {
           </DrawerHeader>
           <div
             className={cn(
-              "grid gap-3 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]",
+              "grid gap-3 px-4 pb-[calc(2rem+env(safe-area-inset-bottom))]",
               showFeishuEntry ? "grid-cols-2" : "grid-cols-1",
             )}
           >
@@ -183,7 +183,7 @@ export function MobilePublishEntry() {
                 ) : null}
               </Field>
             </FieldGroup>
-            <DrawerFooter className="shrink-0 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            <DrawerFooter className="shrink-0 pb-[calc(2rem+env(safe-area-inset-bottom))]">
               <Button type="submit" className="min-h-11">
                 继续填写商品信息
               </Button>
