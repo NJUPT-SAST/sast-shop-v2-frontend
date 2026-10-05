@@ -3,6 +3,14 @@ name: Deploy
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        description: Diagnose server state or deploy an image
+        required: true
+        default: diagnostic
+        type: choice
+        options:
+          - diagnostic
+          - deploy
       service:
         description: Service to deploy
         required: true
@@ -12,129 +20,171 @@ on:
           - desktop
       image_tag:
         description: GHCR tag produced by Publish Images, such as sha-<commit>
-        required: true
+        required: false
         type: string
 
 permissions:
   contents: read
+  packages: read
 
 concurrency:
-  group: deploy-production-${{ inputs.service }}
+  group: deploy-production
   cancel-in-progress: false
 
 jobs:
   deploy:
-    name: Deploy ${{ inputs.service }} to production
+    name: ${{ inputs.mode }} ${{ inputs.service }} on production
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: production
+    env:
+      DEPLOY_SSH_HOST: ${{ secrets.SERVER_HOST }}
+      DEPLOY_SSH_USER: ${{ secrets.SERVER_USER }}
+      DEPLOY_SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      DEPLOY_MODE: ${{ inputs.mode }}
+      DEPLOY_SSH_FINGERPRINT: ${{ secrets.SERVER_SSH_FINGERPRINT }}
+      GHCR_USERNAME: ${{ secrets.GHCR_READ_TOKEN != '' && secrets.GHCR_USERNAME || github.actor }}
+      GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN || github.token }}
+      GHCR_USING_CUSTOM_TOKEN: ${{ secrets.GHCR_READ_TOKEN != '' }}
+      GHCR_CUSTOM_USERNAME: ${{ secrets.GHCR_USERNAME }}
 
     steps:
       - name: Validate deployment request
         env:
           IMAGE_TAG: ${{ inputs.image_tag }}
+          APP_NAME: ${{ inputs.service }}
         run: |
-          revision="${IMAGE_TAG#sha-}"
-          test "$IMAGE_TAG" = "sha-$revision"
-          test "${#revision}" -eq 40
-          case "$revision" in
-            *[!0-9a-f]*) echo "Deploy an immutable sha-<full commit> image tag" >&2; exit 1 ;;
+          case "$DEPLOY_MODE" in
+            diagnostic) ;;
+            deploy)
+              revision="${IMAGE_TAG#sha-}"
+              test "$IMAGE_TAG" = "sha-$revision"
+              test "${#revision}" -eq 40
+              case "$revision" in
+                *[!0-9a-f]*) echo "Deploy an immutable sha-<full commit> image tag" >&2; exit 1 ;;
+              esac
+              ;;
+            *) echo "Unknown deployment mode" >&2; exit 1 ;;
           esac
 
-      - name: Deploy immutable image
-        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+          case "$APP_NAME" in
+            mobile|desktop) ;;
+            *) echo "Unknown frontend service" >&2; exit 1 ;;
+          esac
+
+          test -n "$DEPLOY_SSH_HOST" || { echo "SERVER_HOST is required" >&2; exit 1; }
+          test -n "$DEPLOY_SSH_USER" || { echo "SERVER_USER is required" >&2; exit 1; }
+          test -n "$DEPLOY_SSH_KEY" || { echo "SSH_PRIVATE_KEY is required" >&2; exit 1; }
+          if ! [[ "$DEPLOY_SSH_FINGERPRINT" =~ ^SHA256:[A-Za-z0-9+/]{43}=?$ ]]; then
+            echo "SERVER_SSH_FINGERPRINT must be a verified SHA256 host key fingerprint" >&2
+            exit 1
+          fi
+          if [ "$DEPLOY_MODE" = deploy ] && [ "$GHCR_USING_CUSTOM_TOKEN" = true ] && [ -z "$GHCR_CUSTOM_USERNAME" ]; then
+            echo "GHCR_USERNAME is required when GHCR_READ_TOKEN is configured" >&2
+            exit 1
+          fi
+
+      - name: Run server diagnostics or deploy immutable image
         env:
           APP_NAME: ${{ inputs.service }}
           IMAGE_TAG: ${{ inputs.image_tag }}
-          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
-          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets[inputs.service == 'mobile' && 'MOBILE_SERVER_USER' || 'DESKTOP_SERVER_USER'] }}
-          key: ${{ secrets[inputs.service == 'mobile' && 'MOBILE_SSH_PRIVATE_KEY' || 'DESKTOP_SSH_PRIVATE_KEY'] }}
-          fingerprint: ${{ secrets.SERVER_SSH_FINGERPRINT }}
-          envs: APP_NAME,IMAGE_TAG,GHCR_USERNAME,GHCR_READ_TOKEN
-          script: |
-            set -eu
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          ssh_dir="$(mktemp -d)"
+          trap 'rm -rf "$ssh_dir"' EXIT
 
-            case "$APP_NAME" in
-              mobile)
-                service_name=sast-shop-mobile
-                service_port=3001
-                data_dir=/data/sast-shop-mobile
-                ;;
-              desktop)
-                service_name=sast-shop-desktop
-                service_port=3002
-                data_dir=/data/sast-shop-desktop
-                ;;
-              *) exit 1 ;;
-            esac
+          ssh-keyscan -T 10 -t ed25519 -- "$DEPLOY_SSH_HOST" > "$ssh_dir/known_hosts"
+          actual_fingerprint="$(ssh-keygen -lf "$ssh_dir/known_hosts" -E sha256 | awk '{print $2}')"
+          if [ "$actual_fingerprint" != "$DEPLOY_SSH_FINGERPRINT" ]; then
+            echo "Server ED25519 host key does not match SERVER_SSH_FINGERPRINT" >&2
+            exit 1
+          fi
 
-            remote_image="ghcr.io/njupt-sast/sast-shop-v2-frontend-${APP_NAME}:${IMAGE_TAG}"
-            local_image="sast/${service_name}"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$ssh_dir/key"
+          ssh_options=(
+            -F /dev/null
+            -i "$ssh_dir/key"
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o IdentityAgent=none
+            -o HostKeyAlgorithms=ssh-ed25519
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile="$ssh_dir/known_hosts"
+            -o GlobalKnownHostsFile=/dev/null
+            -o UpdateHostKeys=no
+            -o ConnectTimeout=30
+            -o ServerAliveInterval=30
+            -o ServerAliveCountMax=3
+            -l "$DEPLOY_SSH_USER" -- "$DEPLOY_SSH_HOST"
+          )
 
-            printf '%s' "$GHCR_READ_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
-            trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+          if [ "$DEPLOY_MODE" = diagnostic ]; then
+            cat <<'DIAGNOSTIC_SCRIPT' | timeout 10m ssh "${ssh_options[@]}" 'sh -se'
+          set -eu
 
-            cd "$data_dir"
-            test -f docker-compose.yml
-            test -f .env
-            docker compose config --quiet
-            docker pull "$remote_image"
+          printf '\nDeployment identity\n'
+          id
 
-            expected_revision="${IMAGE_TAG#sha-}"
-            actual_revision="$(docker image inspect "$remote_image" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
-            test "$actual_revision" = "$expected_revision"
+          printf '\nAllowed sudo commands\n'
+          sudo -n -l 2>&1 || true
 
-            if docker image inspect "$local_image:current" >/dev/null 2>&1; then
-              docker image tag "$local_image:current" "$local_image:backup"
+          printf '\nDeployment path permissions\n'
+          for path in /data/sast-shop-mobile /data/sast-shop-desktop /usr/local/lib/sast-shop/deploy-image; do
+            namei -l "$path" 2>&1 || true
+          done
+
+          printf '\nDeployment helper usage\n'
+          helper=/usr/local/lib/sast-shop/deploy-image
+          if [ -r "$helper" ]; then
+            stat -c '%A %U %G %s bytes' "$helper" 2>&1 || true
+            if [ "$(head -c 2 "$helper")" = '#!' ]; then
+              awk '/[Uu][Ss][Aa][Gg][Ee]/ { print NR ": " $0; if (++count == 20) exit }' "$helper"
+            else
+              echo "Helper is not a readable script; usage was not extracted"
             fi
+          else
+            echo "Deployment helper is absent or inaccessible"
+          fi
 
-            rollback() {
-              if docker image inspect "$local_image:backup" >/dev/null 2>&1; then
-                docker image tag "$local_image:backup" "$local_image:current"
-                if ! docker compose up -d --remove-orphans --force-recreate; then
-                  echo "Automatic rollback could not restart the previous image" >&2
-                  return 1
-                fi
-                rollback_attempt=1
-                while [ "$rollback_attempt" -le 30 ]; do
-                  if curl --fail --silent --show-error "http://127.0.0.1:${service_port}/api/health/ready" >/dev/null; then
-                    return 0
-                  fi
-                  rollback_attempt=$((rollback_attempt + 1))
-                  sleep 2
-                done
-              fi
-              echo "Automatic rollback did not restore a ready service" >&2
-              return 1
-            }
-
-            docker image tag "$remote_image" "$local_image:current"
-            if ! docker compose up -d --remove-orphans --force-recreate; then
-              docker compose logs --tail=100 || true
-              rollback || true
-              exit 1
-            fi
-
-            ready=false
-            attempt=1
-            while [ "$attempt" -le 30 ]; do
-              if curl --fail --silent --show-error "http://127.0.0.1:${service_port}/api/health/ready" >/dev/null; then
-                ready=true
-                break
-              fi
-              attempt=$((attempt + 1))
-              sleep 2
+          printf '\nShop containers and Compose metadata\n'
+          if docker ps --filter name=sast-shop --format '{{.Names}} | {{.Image}} | {{.Ports}}'; then
+            for app in mobile desktop; do
+              containers="$(docker ps -aq --filter "name=sast-shop-$app")"
+              for container in $containers; do
+                docker inspect --format '{{.Name}} | project={{index .Config.Labels "com.docker.compose.project"}} | working_dir={{index .Config.Labels "com.docker.compose.project.working_dir"}} | config_files={{index .Config.Labels "com.docker.compose.project.config_files"}} | ports={{json .NetworkSettings.Ports}}' "$container" 2>&1 || true
+              done
             done
+          fi
 
-            if [ "$ready" != true ]; then
-              docker compose logs --tail=100 || true
-              rollback || true
-              exit 1
-            fi
-
-            deployed_digest="$(docker image inspect "$remote_image" --format '{{index .RepoDigests 0}}')"
-            printf '%s %s %s\n' "$(date -u +%FT%TZ)" "$IMAGE_TAG" "$deployed_digest" > deployment-current.txt
+          printf '\nCandidate frontend readiness ports\n'
+          for port in 3001 3002 23001 23002; do
+            printf '%s: ' "$port"
+            curl --max-time 5 --silent --show-error --output /dev/null --write-out '%{http_code}\n' "http://127.0.0.1:$port/api/health/ready" || true
+          done
+          DIAGNOSTIC_SCRIPT
+          else
+            revision="${IMAGE_TAG#sha-}"
+            remote_image="ghcr.io/njupt-sast/sast-shop-v2-frontend-${APP_NAME}:${IMAGE_TAG}"
+            registry_payload="$(node -e '
+              const credentials = {
+                registry: "ghcr.io",
+                username: process.env.GHCR_USERNAME,
+                password: process.env.GHCR_READ_TOKEN,
+              };
+              if (Object.values(credentials).some((value) => typeof value !== "string" || !value.trim() || /[\r\n\0]/.test(value))) {
+                console.error("Registry credentials must be nonempty strings without line breaks");
+                process.exit(1);
+              }
+              const payload = JSON.stringify(credentials);
+              if (Buffer.byteLength(payload) > 16 * 1024) {
+                console.error("Registry credentials exceed the helper stdin limit");
+                process.exit(1);
+              }
+              process.stdout.write(payload);
+            ')"
+            remote_command="sudo -n /usr/local/lib/sast-shop/deploy-image $APP_NAME $revision $remote_image --registry-stdin"
+            printf '%s' "$registry_payload" | timeout 10m ssh "${ssh_options[@]}" "$remote_command"
+          fi

@@ -120,8 +120,8 @@ Next App Router 默认使用 Server Components。若 proto message 只在服务�
 交付链路分为三个阶段：
 
 1. `CI` 在 PR、合并队列与 `main` push 上执行 Proto drift、依赖审计、Lint、类型检查、测试、构建和两套容器冒烟测试。
-2. `Publish Images` 只消费通过 CI 的 `main` commit，使用生产域名向 GHCR 发布 mobile/desktop 的 amd64 与 arm64 镜像、SBOM 和 provenance。不可变标签格式为 `sha-<完整提交 SHA>`。
-3. `Deploy` 仅允许从 `main` 手动选择服务和不可变镜像标签，并固定使用 `production` Environment。生产 Environment 应配置 required reviewers，部署失败会自动回滚并重新检查服务器保留的 `backup` 镜像。
+2. `Publish Images` 只消费通过 CI 的 `main` commit，使用生产域名向 GHCR 发布 mobile/desktop 的 `linux/amd64` 镜像、SBOM 和 provenance，与当前 AMD64 服务器架构一致。不可变标签格式为 `sha-<完整提交 SHA>`。
+3. `Deploy` 仅允许从 `main` 手动运行，并固定使用 `production` Environment。默认 `diagnostic` 模式只检查服务器状态；正式发布选择 `mode=deploy`、目标服务和 `sha-<完整提交 SHA>` 镜像标签。两端串行执行，通过服务器受限 helper 完成发布。
 
 镜像地址：
 
@@ -137,15 +137,19 @@ ghcr.io/njupt-sast/sast-shop-v2-frontend-desktop
 ```text
 SERVER_HOST
 SERVER_SSH_FINGERPRINT
-MOBILE_SERVER_USER
-MOBILE_SSH_PRIVATE_KEY
-DESKTOP_SERVER_USER
-DESKTOP_SSH_PRIVATE_KEY
+SERVER_USER
+SSH_PRIVATE_KEY
 GHCR_USERNAME
 GHCR_READ_TOKEN
 ```
 
-`GHCR_READ_TOKEN` 只需要读取私有 package 的权限。推荐为 mobile 和 desktop 分别创建低权限 Linux 用户，只允许操作对应服务目录；若用户可直接访问 Docker daemon，应将它视为等同 root 的高权限账号，并进一步使用 rootless Docker 或受限的部署入口。
+两端统一使用 `SERVER_USER` / `SSH_PRIVATE_KEY`。部署使用 OpenSSH，固定协商 ED25519 主机密钥；扫描公钥并与 `SERVER_SSH_FINGERPRINT` 严格比对后才连接。该指纹必须来自可信服务器控制台，可执行 `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub -E sha256` 获取其中的 `SHA256:...` 值，不能通过关闭校验解决不匹配。部署私钥仍可使用服务器支持的其他类型，与主机密钥类型无关。
+
+首次核查先运行 `mode=diagnostic`，不需要镜像标签。诊断不传递镜像仓库凭据，不读取 `.env` 或完整容器配置，不执行发布 helper 或更新容器；部分检查因权限不足失败时会保留错误供排查。
+
+`GHCR_USERNAME` / `GHCR_READ_TOKEN` 可选。未配置 token 时，Deploy 使用当前运行的 `github.actor` 和具有 `packages: read` 权限的 `GITHUB_TOKEN` 拉取本仓库镜像，镜像 package 需允许本仓库的 Actions 访问；配置自定义 token 时必须同时配置其所属用户名，token 只需读取 package 的权限。凭据仅通过 SSH 标准输入传入 helper，JSON 包含 `registry`、`username`、`password` 三个字段，最多 16 KiB，字段必须为非空且不含换行或 NUL 的字符串。
+
+服务器允许部署账号免密执行 `/usr/local/lib/sast-shop/deploy-image`。工作流调用 `sudo -n /usr/local/lib/sast-shop/deploy-image TARGET REVISION IMAGE_REF --registry-stdin`，其中 `TARGET` 为 `mobile` 或 `desktop`，`REVISION` 为完整 40 位 SHA；服务器入口负责仓库白名单、镜像版本校验、部署锁、容器更新及失败恢复。部署账号通过该入口操作，保持现有目录和 Docker socket 权限。
 
 仓库级 Secret 保留现有的 `NEXT_PUBLIC_FEISHU_APP_ID`，供镜像发布阶段读取；桌面端服务器 `.env` 同时配置同值的 `FEISHU_APP_ID` 与对应域名的 `FEISHU_REDIRECT_URI`。
 
@@ -167,12 +171,7 @@ NEXT_PUBLIC_FEEDBACK_FORM_URL=https://example.feishu.cn/share/base/form/example
 /data/sast-shop-desktop
 ```
 
-服务器分别复制仓库模板：
-
-```bash
-cp deploy/compose.mobile.yml /data/sast-shop-mobile/docker-compose.yml
-cp deploy/compose.desktop.yml /data/sast-shop-desktop/docker-compose.yml
-```
+现有生产目录为 `root:root`、权限 `0700`，Compose 项目由服务器管理员和发布 helper 维护。仓库 `deploy/compose.*.yml` 仅为基础模板，初始化新环境时需按实际端口及资源限制调整。
 
 每个目录创建权限为 `0600` 的 `.env`：
 
@@ -186,12 +185,7 @@ FEISHU_REDIRECT_URI=https://shop-admin.example.com/auth/callback
 
 商品图片由前端同源代理上传到 `CONNECT_BASE_URL` 对应后端的 `/api/uploads/product-image`，不需要额外图床地址或图床令牌。
 
-先验证配置，再由 Deploy workflow 拉取并切换 GHCR 镜像：
-
-```bash
-cd /data/sast-shop-mobile
-docker compose config --quiet
-```
+当前生产宿主机端口为 mobile `23001`、desktop `23002`，容器内部端口仍为 `3001`、`3002`。应用就绪检查和容器切换由服务器 helper 根据实际 Compose 配置执行。
 
 ### Caddy 示例
 
@@ -199,11 +193,11 @@ docker compose config --quiet
 
 ```caddyfile
 shop.example.com {
-	reverse_proxy 127.0.0.1:3001
+	reverse_proxy 127.0.0.1:23001
 }
 
 shop-admin.example.com {
-	reverse_proxy 127.0.0.1:3002
+	reverse_proxy 127.0.0.1:23002
 }
 ```
 
@@ -215,16 +209,4 @@ sudo systemctl reload caddy.service
 
 ### 回滚
 
-部署 workflow 会在启动新容器前把 `current` 旋转为 `backup`，并以应用 `/api/health/ready` 作为成功条件。需要手动回滚时，在对应服务器目录执行：
-
-```bash
-docker image tag sast/sast-shop-mobile:backup sast/sast-shop-mobile:current
-docker compose up -d --remove-orphans
-```
-
-桌面端：
-
-```bash
-docker image tag sast/sast-shop-desktop:backup sast/sast-shop-desktop:current
-docker compose up -d --remove-orphans
-```
+失败恢复由服务器 `deploy-image` 入口处理，按单服务恢复之前实际运行的镜像并检查就绪状态。GitHub Actions 保留 helper 的非零退出码，将失败作为发布失败报告；排查及人工恢复依据服务器发布记录进行。
