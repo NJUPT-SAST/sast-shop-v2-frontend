@@ -5,6 +5,7 @@ type BrandElement =
   | "errand"
   | "template"
   | "transaction-agreement"
+  | "feishu-required"
   | "manual"
   | "scan"
   | "address"

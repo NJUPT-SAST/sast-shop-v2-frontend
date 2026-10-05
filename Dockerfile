@@ -64,6 +64,7 @@ RUN addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 --ingroup nodejs nextjs
 COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/static ./apps/${APP_NAME}/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/public ./apps/${APP_NAME}/public
 COPY --chown=nextjs:nodejs docker/entrypoint.sh /usr/local/bin/sast-shop-entrypoint
 RUN chmod 0555 /usr/local/bin/sast-shop-entrypoint \
     && mkdir -p "/app/apps/${APP_NAME}/.next/cache" \

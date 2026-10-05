@@ -1,0 +1,9 @@
+Use case: stylized-concept
+Asset type: SAST Shop in-app notice illustration, transparent PNG master asset
+Primary request: a gentle visual cue that this app should be opened in its client: one rounded cream-white smartphone with a simple coral-orange chat bubble on its screen, and one smaller cream-white speech bubble beside the phone containing a bold coral-orange exclamation mark.
+Style/medium: premium soft matte clay 3D render, matching the existing SAST Shop brand illustrations: generous rounded geometry, subtle hand-made softness, clean sculptural edges, soft lighting, not glossy or photorealistic.
+Composition/framing: single centered, upright, balanced compact silhouette; the complete phone and small alert bubble fill about 80% of a square canvas; clear separation between objects, no cropping. Keep the smartphone unmistakable but simple, screen almost blank except the coral chat bubble.
+Color palette: warm cream white, Action Coral #c9431f, minimal charcoal-gray detail only where needed.
+Scene/backdrop: genuinely transparent background with alpha, including all corners; no background color, panel, floor, ground shadow, plinth, or pedestal.
+Text: none.
+Constraints: no brand logos, no Feishu, Telegram, or any other platform marks; no paper airplane; no browser controls or buttons; no letters, numbers, watermark, or UI chrome.

@@ -1,18 +1,22 @@
 type SecurityHeadersOptions = {
   allowCamera: boolean;
+  allowLarkSdk?: boolean;
 };
 
 export function createSecurityHeaders({
   allowCamera,
+  allowLarkSdk = false,
 }: SecurityHeadersOptions): Array<{ key: string; value: string }> {
   const isProduction = process.env.NODE_ENV === "production";
+  // Feishu H5 SDK 1.5.34 uses Function to resolve the global object during initialization.
+  const allowScriptEvaluation = !isProduction || allowLarkSdk;
   const contentSecurityPolicy = [
     "default-src 'self'",
     "base-uri 'self'",
     "object-src 'none'",
     "form-action 'self'",
     "frame-ancestors https://*.feishu.cn https://*.larksuite.com",
-    `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"} https://lf-scm-cn.feishucdn.com`,
+    `script-src 'self' 'unsafe-inline'${allowScriptEvaluation ? " 'unsafe-eval'" : ""} https://lf-scm-cn.feishucdn.com`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",

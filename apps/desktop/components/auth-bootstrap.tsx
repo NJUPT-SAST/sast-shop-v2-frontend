@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   Suspense,
   type ReactNode,
 } from "react";
@@ -28,6 +29,7 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card";
 import { Spinner } from "@workspace/ui/components/spinner";
+import { BrandIllustration } from "@/components/brand-illustration";
 
 type AuthState =
   "checking" | "authenticating" | "authenticated" | "unsupported" | "error";
@@ -61,6 +63,12 @@ export function AuthBootstrap({
   const recoveringRef = useRef(false);
   const recoveredAtRef = useRef(0);
   const retryAfterRef = useRef(0);
+  const isInLark = useSyncExternalStore(
+    subscribeLarkEnvironment,
+    () => !enabled || isLarkClientEnvironment(window.h5sdk),
+    () => true,
+  );
+  const unsupported = enabled && (state === "unsupported" || !isInLark);
 
   const verifyCurrentSession = useCallback(async () => {
     const status = await fetch("/api/auth/session", { cache: "no-store" });
@@ -239,6 +247,21 @@ export function AuthBootstrap({
       );
   }, [authenticate, enabled]);
 
+  if (unsupported) {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-muted/40 px-6 py-10">
+        <section className="flex w-full max-w-sm flex-col items-center text-center">
+          <h1 className="text-xl font-semibold">请在飞书中打开应用</h1>
+          <BrandIllustration
+            name="feishu-required"
+            size={176}
+            className="mt-6 size-40 sm:size-44"
+          />
+        </section>
+      </main>
+    );
+  }
+
   if (state === "authenticated") {
     return (
       <>
@@ -257,34 +280,26 @@ export function AuthBootstrap({
           <span className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
             <RiShieldUserLine />
           </span>
-          <CardTitle>
-            {state === "unsupported" ? "请在飞书中打开应用" : "登录 SAST 商城"}
-          </CardTitle>
+          <CardTitle>登录 SAST 商城</CardTitle>
           <CardDescription>
-            {state === "unsupported"
-              ? "此应用需要在飞书客户端中使用"
-              : state === "error"
-                ? error
-                : "正在通过飞书安全登录，请稍候…"}
+            {state === "error" ? error : "正在通过飞书安全登录，请稍候…"}
           </CardDescription>
         </CardHeader>
-        {state !== "unsupported" && (
-          <CardContent className="flex justify-center">
-            {state === "error" ? (
-              <Button
-                disabled={retryAfter > 0}
-                onClick={() => {
-                  startedRef.current = true;
-                  void authenticate();
-                }}
-              >
-                {retryAfter > 0 ? `${retryAfter} 秒后重试` : "重新登录"}
-              </Button>
-            ) : (
-              <Spinner className="text-primary" />
-            )}
-          </CardContent>
-        )}
+        <CardContent className="flex justify-center">
+          {state === "error" ? (
+            <Button
+              disabled={retryAfter > 0}
+              onClick={() => {
+                startedRef.current = true;
+                void authenticate();
+              }}
+            >
+              {retryAfter > 0 ? `${retryAfter} 秒后重试` : "重新登录"}
+            </Button>
+          ) : (
+            <Spinner className="text-primary" />
+          )}
+        </CardContent>
       </Card>
     </main>
   );

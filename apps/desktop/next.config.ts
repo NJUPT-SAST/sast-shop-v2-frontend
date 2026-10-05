@@ -8,7 +8,10 @@ const workspaceRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../..",
 );
-const securityHeaders = createSecurityHeaders({ allowCamera: false });
+const securityHeaders = createSecurityHeaders({
+  allowCamera: false,
+  allowLarkSdk: (process.env.AUTH_MODE ?? "required") === "required",
+});
 
 const nextConfig: NextConfig = {
   output: "standalone",

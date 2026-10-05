@@ -102,6 +102,7 @@ const moduleNames = [
   "errand",
   "template",
   "transaction-agreement",
+  "feishu-required",
   "manual",
   "scan",
   "address",

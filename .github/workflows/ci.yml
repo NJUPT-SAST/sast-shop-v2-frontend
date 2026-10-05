@@ -147,6 +147,10 @@ jobs:
           for attempt in $(seq 1 30); do
             if curl --fail --silent --show-error \
               "http://127.0.0.1:${HOST_PORT}/api/health/live" >/dev/null; then
+              curl --fail --silent --show-error \
+                "http://127.0.0.1:${HOST_PORT}/brand/feishu-required.webp" >/dev/null
+              curl --fail --silent --show-error \
+                "http://127.0.0.1:${HOST_PORT}/brand/help.webp" >/dev/null
               exit 0
             fi
             sleep 1

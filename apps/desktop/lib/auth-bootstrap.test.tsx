@@ -90,6 +90,7 @@ describe("desktop auth bootstrap client gate", () => {
     await renderBootstrap();
     expect(container.querySelector('[data-testid="app-content"]')).toBeNull();
     expect(container.textContent).toMatch(/请在飞书.*打开/);
+    expect(container.querySelector("button")).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
     expect(validateSessionUser).not.toHaveBeenCalled();
   });
@@ -104,6 +105,7 @@ describe("desktop auth bootstrap client gate", () => {
         get(target, key) {
           if (key === "location") {
             return {
+              href: target.location.href,
               origin: target.location.origin,
               pathname: target.location.pathname,
               search: target.location.search,
@@ -126,6 +128,26 @@ describe("desktop auth bootstrap client gate", () => {
       container.querySelector('[data-testid="app-content"]'),
     ).not.toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("removes the login retry when the client environment becomes unsupported", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 (Macintosh) Feishu/7.35.0",
+    );
+    fetchMock.mockResolvedValue(missingSession);
+    await renderBootstrap();
+    expect(container.textContent).toContain("重新登录");
+    const callsBeforeChange = fetchMock.mock.calls.length;
+
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 (Macintosh) Chrome/140.0",
+    );
+    await act(async () => window.dispatchEvent(new Event("focus")));
+
+    expect(container.textContent).toContain("请在飞书中打开应用");
+    expect(container.querySelector("button")).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(callsBeforeChange);
+    expect(requestLarkAuthorizationCode).not.toHaveBeenCalled();
   });
 
   it("allows an existing session in a native UA before the SDK is ready", async () => {
