@@ -64,19 +64,36 @@ describe("payment preferences", () => {
     expect(readDefaultPaymentPlatform(storage)).toBe(DEFAULT_PAYMENT_PLATFORM);
   });
 
+  it("falls back when storage rejects a read", () => {
+    const storage = new MemoryStorage();
+    vi.spyOn(storage, "getItem").mockImplementation(() => {
+      throw new DOMException("Blocked", "SecurityError");
+    });
+
+    expect(readDefaultPaymentPlatform(storage)).toBe(DEFAULT_PAYMENT_PLATFORM);
+  });
+
   it("persists alipay as the default platform", () => {
     const storage = new MemoryStorage();
 
-    writeDefaultPaymentPlatform("alipay", storage);
+    expect(writeDefaultPaymentPlatform("alipay", storage)).toBe(true);
 
     expect(storage.getItem(PAYMENT_PLATFORM_STORAGE_KEY)).toBe("alipay");
     expect(readDefaultPaymentPlatform(storage)).toBe("alipay");
   });
 
-  it("skips writes when storage is unavailable", () => {
-    expect(() =>
-      writeDefaultPaymentPlatform("alipay", undefined),
-    ).not.toThrow();
+  it("reports failure when storage is unavailable", () => {
+    expect(writeDefaultPaymentPlatform("alipay", undefined)).toBe(false);
+  });
+
+  it("reports failure when storage rejects a write", () => {
+    const storage = new MemoryStorage();
+    vi.spyOn(storage, "setItem").mockImplementation(() => {
+      throw new DOMException("Blocked", "QuotaExceededError");
+    });
+
+    expect(writeDefaultPaymentPlatform("alipay", storage)).toBe(false);
+    expect(readDefaultPaymentPlatform(storage)).toBe(DEFAULT_PAYMENT_PLATFORM);
   });
 
   it("falls back when browser storage access throws", () => {
@@ -90,6 +107,6 @@ describe("payment preferences", () => {
     );
 
     expect(readDefaultPaymentPlatform()).toBe(DEFAULT_PAYMENT_PLATFORM);
-    expect(() => writeDefaultPaymentPlatform("alipay")).not.toThrow();
+    expect(writeDefaultPaymentPlatform("alipay")).toBe(false);
   });
 });

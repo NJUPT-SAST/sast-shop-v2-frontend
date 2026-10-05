@@ -22,6 +22,7 @@ const {
   confirmBill,
   getDistributingTaskDetail,
   getErrandTaskBrief,
+  saveDistributingAssignment,
   transitionToCompleted,
   transitionToCollectingPayment,
   transitionToDistributing,
@@ -34,6 +35,7 @@ const {
   confirmBill: vi.fn(),
   getDistributingTaskDetail: vi.fn(),
   getErrandTaskBrief: vi.fn(),
+  saveDistributingAssignment: vi.fn(),
   transitionToCompleted: vi.fn(),
   transitionToCollectingPayment: vi.fn(),
   transitionToDistributing: vi.fn(),
@@ -56,7 +58,7 @@ vi.mock("@sast-shop/api", () => ({
   getDistributingTaskDetail,
   getErrandTaskBrief,
   getShoppingTaskDetail: vi.fn(),
-  saveDistributingAssignment: vi.fn(),
+  saveDistributingAssignment,
   saveShoppingTaskItem: vi.fn(),
   transitionToCollectingPayment,
   transitionToCompleted,
@@ -182,6 +184,7 @@ beforeEach(() => {
   cancelTask.mockReset();
   confirmBill.mockReset();
   getDistributingTaskDetail.mockReset();
+  saveDistributingAssignment.mockReset();
   transitionToPendingDistributing.mockReset();
   updateActualPrice.mockReset();
   transitionToDistributing.mockReset();
@@ -214,6 +217,32 @@ function getButton(label: string, last = false) {
     (button) => button.textContent?.trim() === label,
   );
   return last ? buttons.at(-1) : buttons[0];
+}
+
+function getAction(label: string) {
+  return container.querySelector<HTMLButtonElement>(`[aria-label="${label}"]`);
+}
+
+async function expandDistributionItem() {
+  const toggle = container.querySelector<HTMLButtonElement>(
+    '[aria-controls="distributing-item-7201"]',
+  );
+  expect(toggle).not.toBeNull();
+  await act(async () => toggle!.click());
+}
+
+function distributionView(
+  detail: DistributingTaskDetail = distributingDetail,
+  mode: "pending_distributing" | "distributing" = "distributing",
+) {
+  return (
+    <DistributingTaskView
+      dataSource="mock"
+      connectBaseUrl="http://127.0.0.1:6660"
+      detail={detail}
+      mode={mode}
+    />
+  );
 }
 
 describe("errand purchase refresh recovery", () => {
@@ -308,6 +337,39 @@ describe("errand purchase refresh recovery", () => {
     expect(ensureAgreement).toHaveBeenCalledTimes(1);
     expect(confirmBill).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ["pending_confirmation", "wechat", "微信支付"],
+    ["pending_confirmation", "alipay", "支付宝"],
+    ["pending_confirmation", null, "未提供"],
+    ["confirmed", "wechat", "微信支付"],
+    ["confirmed", "alipay", "支付宝"],
+    ["confirmed", null, "未提供"],
+  ] as const)(
+    "shows %s bill payment channel %s as %s in the expanded detail",
+    async (paymentStatus, paymentChannel, expectedLabel) => {
+      await render(
+        <CollectingPaymentView
+          dataSource="local"
+          connectBaseUrl="http://127.0.0.1:1327"
+          detail={{
+            ...collectingDetail,
+            bills: [{ ...bill, paymentStatus, paymentChannel }],
+          }}
+          taskId="7004"
+          taskUpdatedAt={collectingDetail.taskUpdatedAt}
+        />,
+      );
+      const billToggle = container.querySelector<HTMLButtonElement>(
+        '[aria-controls="payment-bill-9101"]',
+      );
+      await act(async () => billToggle!.click());
+
+      const billDetail = container.querySelector("#payment-bill-9101");
+      expect(billDetail?.textContent).toContain("支付平台");
+      expect(billDetail?.textContent).toContain(expectedLabel);
+    },
+  );
 
   it("keeps price editing separate from requester expansion", async () => {
     getDistributingTaskDetail.mockResolvedValue(distributingDetail);
@@ -839,5 +901,163 @@ describe("errand purchase refresh recovery", () => {
 
     expect(container.textContent).toContain("1/1 人已收款");
     expect(container.textContent).not.toContain("0/1 人已收款");
+  });
+});
+
+describe("distribution requester actions", () => {
+  it("records a full distribution and revokes it with the returned assignment version", async () => {
+    saveDistributingAssignment
+      .mockResolvedValueOnce({ assignmentUpdatedAt: "2026-07-18T02:00:01Z" })
+      .mockResolvedValueOnce({ assignmentUpdatedAt: "2026-07-18T02:00:02Z" });
+    await render(distributionView());
+    await expandDistributionItem();
+
+    const full = getAction("李同学全部分发");
+    expect(full?.getAttribute("aria-checked")).toBe("false");
+    await act(async () => full!.click());
+    expect(saveDistributingAssignment).toHaveBeenNthCalledWith(
+      1,
+      {
+        errandTaskItemId: "7201",
+        errandTaskAssignmentId: "8201",
+        distributedQuantity: 1,
+        assignmentUpdatedAt: "2026-07-18T02:00:00Z",
+      },
+      expect.any(Object),
+    );
+
+    const revoke = getAction("李同学撤销分发结果");
+    expect(revoke?.getAttribute("aria-checked")).toBe("true");
+    await act(async () => revoke!.click());
+    expect(saveDistributingAssignment).toHaveBeenNthCalledWith(
+      2,
+      {
+        errandTaskItemId: "7201",
+        errandTaskAssignmentId: "8201",
+        distributedQuantity: -1,
+        assignmentUpdatedAt: "2026-07-18T02:00:01Z",
+      },
+      expect.any(Object),
+    );
+    expect(getAction("李同学全部分发")?.getAttribute("aria-checked")).toBe(
+      "false",
+    );
+  });
+
+  it("blocks full distribution without stock and limits the partial editor", async () => {
+    const item = distributingDetail.items[0]!;
+    await render(
+      distributionView({
+        ...distributingDetail,
+        items: [
+          {
+            ...item,
+            purchasedQuantity: 2,
+            requesters: [{ ...item.requesters[0]!, quantity: 3 }],
+          },
+        ],
+      }),
+    );
+    await expandDistributionItem();
+    const full = getAction("李同学全部分发");
+    expect(full?.disabled).toBe(true);
+    await act(async () => full!.click());
+    expect(saveDistributingAssignment).not.toHaveBeenCalled();
+
+    const partial = getAction("李同学部分分发");
+    expect(partial).not.toBeNull();
+    await act(async () => partial!.click());
+    const input = container.querySelector<HTMLInputElement>(
+      "#partial-distribution-quantity",
+    )!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )!.set!.call(input, "3");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(getButton("记录分发数量")?.disabled).toBe(true);
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )!.set!.call(input, "2");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    saveDistributingAssignment.mockResolvedValue({
+      assignmentUpdatedAt: "2026-07-18T02:00:01Z",
+    });
+    await click("记录分发数量");
+    expect(saveDistributingAssignment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        distributedQuantity: 2,
+        assignmentUpdatedAt: "2026-07-18T02:00:00Z",
+      }),
+      expect.any(Object),
+    );
+    expect(getAction("李同学撤销分发结果")?.getAttribute("aria-checked")).toBe(
+      "mixed",
+    );
+  });
+
+  it("records no distribution as indeterminate and revokes it with -1", async () => {
+    saveDistributingAssignment
+      .mockResolvedValueOnce({ assignmentUpdatedAt: "2026-07-18T02:00:01Z" })
+      .mockResolvedValueOnce({ assignmentUpdatedAt: "2026-07-18T02:00:02Z" });
+    await render(distributionView());
+    await expandDistributionItem();
+    await act(async () => getAction("李同学不分发")!.click());
+    expect(saveDistributingAssignment).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        distributedQuantity: 0,
+        assignmentUpdatedAt: "2026-07-18T02:00:00Z",
+      }),
+      expect.any(Object),
+    );
+    const revoke = getAction("李同学撤销分发结果");
+    expect(revoke?.getAttribute("aria-checked")).toBe("mixed");
+    await act(async () => revoke!.click());
+    expect(saveDistributingAssignment).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        distributedQuantity: -1,
+        assignmentUpdatedAt: "2026-07-18T02:00:01Z",
+      }),
+      expect.any(Object),
+    );
+  });
+
+  it("hides requester actions before the distribution phase", async () => {
+    await render(distributionView(distributingDetail, "pending_distributing"));
+    await expandDistributionItem();
+    expect(getAction("李同学全部分发")).toBeNull();
+    expect(getAction("李同学部分分发")).toBeNull();
+    expect(getAction("李同学不分发")).toBeNull();
+    expect(saveDistributingAssignment).not.toHaveBeenCalled();
+  });
+
+  it("locks every requester action while saving and keeps the old state on failure", async () => {
+    let rejectSave!: (error: Error) => void;
+    saveDistributingAssignment.mockReturnValue(
+      new Promise((_resolve, reject) => {
+        rejectSave = reject;
+      }),
+    );
+    await render(distributionView());
+    await expandDistributionItem();
+    await act(async () => getAction("李同学全部分发")!.click());
+    expect(getAction("李同学全部分发")?.disabled).toBe(true);
+    expect(getAction("李同学不分发")?.disabled).toBe(true);
+    await act(async () => getAction("李同学不分发")!.click());
+    expect(saveDistributingAssignment).toHaveBeenCalledTimes(1);
+
+    await act(async () => rejectSave(new Error("响应中断")));
+    expect(getAction("李同学全部分发")?.disabled).toBe(false);
+    expect(getAction("李同学全部分发")?.getAttribute("aria-checked")).toBe(
+      "false",
+    );
+    expect(container.textContent).not.toContain("已分发 1 件");
   });
 });

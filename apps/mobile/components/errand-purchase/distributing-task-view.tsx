@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { RiArrowDownSLine, RiEditLine } from "@remixicon/react";
+import { RiArrowDownSLine, RiEditLine, RiForbidLine } from "@remixicon/react";
 import {
   cancelTask,
   getDistributingTaskDetail,
@@ -24,6 +24,7 @@ import {
 } from "@workspace/ui/components/avatar";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
+import { Checkbox } from "@workspace/ui/components/checkbox";
 import {
   Collapsible,
   CollapsibleContent,
@@ -46,6 +47,7 @@ import {
   ResponsiveDialogTitle,
 } from "@workspace/ui/components/responsive-dialog";
 import { toast } from "sonner";
+import { Spinner } from "@workspace/ui/components/spinner";
 import { cn } from "@workspace/ui/lib/utils";
 
 import { ManagedImage } from "@/components/managed-image";
@@ -1063,30 +1065,68 @@ function RequesterRow({
   onSkip: () => void;
   onRevoke: () => void;
 }) {
+  const checkboxId = useId();
   const isDone =
     requester.distributedQuantity !== null && requester.distributedQuantity > 0;
   const isSkipped = requester.distributedQuantity === 0;
+  const recorded = requester.distributedQuantity !== null;
+  const fullyDistributed = requester.distributedQuantity === requester.quantity;
+  const canDistributeAll = availableQuantity >= requester.quantity;
+  const canDistributePartial = availableQuantity > 0 && requester.quantity > 1;
 
   return (
-    <div className="py-3">
-      <div className="flex min-h-11 items-center gap-3">
-        <Avatar className="size-9 shrink-0">
+    <div className="flex min-h-18 items-center gap-2 py-2">
+      {mode === "distributing" ? (
+        <FieldLabel
+          htmlFor={checkboxId}
+          className="relative size-11 shrink-0 cursor-pointer justify-center"
+        >
+          <Checkbox
+            id={checkboxId}
+            checked={
+              recorded ? (fullyDistributed ? true : "indeterminate") : false
+            }
+            disabled={disabled || (!recorded && !canDistributeAll)}
+            className={cn(saving && "invisible")}
+            aria-label={`${requester.purchaserName}${recorded ? "撤销分发结果" : "全部分发"}`}
+            onCheckedChange={() => {
+              if (recorded) onRevoke();
+              else onDistributeAll();
+            }}
+          />
+          {saving ? (
+            <span role="status" className="absolute text-primary">
+              <Spinner className="size-4" aria-hidden="true" />
+              <span className="sr-only">保存中，请稍候</span>
+            </span>
+          ) : null}
+        </FieldLabel>
+      ) : null}
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <Avatar className="size-8 shrink-0">
           <AvatarImage
             src={requester.purchaserAvatarUrl}
             alt={requester.purchaserName}
           />
           <AvatarFallback className="text-xs">
-            {requester.purchaserName[0]}
+            {Array.from(requester.purchaserName)[0]}
           </AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">
             {requester.purchaserName}
           </p>
-          <p className="text-xs text-muted-foreground">
-            需 {requester.quantity} 件
-            {isDone ? `，已分发 ${requester.distributedQuantity} 件` : ""}
-            {isSkipped ? "，不分发" : ""}
+          <p
+            className={cn(
+              "text-xs tabular-nums text-muted-foreground",
+              isDone && "text-primary",
+            )}
+          >
+            {isDone
+              ? `已分发 ${requester.distributedQuantity}/${requester.quantity} 件`
+              : isSkipped
+                ? `不分发 · 需 ${requester.quantity} 件`
+                : `需 ${requester.quantity} 件`}
           </p>
           {!isDone && !isSkipped && availableQuantity < requester.quantity ? (
             <p className="text-xs text-muted-foreground">
@@ -1097,67 +1137,32 @@ function RequesterRow({
           ) : null}
         </div>
       </div>
-      {mode === "distributing" ? (
-        <div className="mt-3">
-          {saving ? (
-            <p className="mb-2 text-xs text-primary" role="status">
-              保存中，请稍候
-            </p>
-          ) : null}
-          {isDone || isSkipped ? (
+      {mode === "distributing" && !recorded ? (
+        <div className="flex shrink-0 items-center">
+          {canDistributePartial ? (
             <Button
               type="button"
-              size="touch"
-              variant="outline"
-              className="w-full"
+              size="icon-touch"
+              variant="ghost"
+              className="text-muted-foreground active:bg-muted"
+              aria-label={`${requester.purchaserName}部分分发`}
               disabled={disabled}
-              onClick={onRevoke}
+              onClick={onDistributePartial}
             >
-              {saving ? "撤销中" : "撤销结果"}
+              <RiEditLine className="size-4" aria-hidden="true" />
             </Button>
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              {availableQuantity >= requester.quantity ? (
-                <Button
-                  type="button"
-                  size="touch"
-                  disabled={disabled}
-                  onClick={onDistributeAll}
-                >
-                  全部分发
-                </Button>
-              ) : null}
-              {availableQuantity > 0 && requester.quantity > 1 ? (
-                <Button
-                  type="button"
-                  size="touch"
-                  variant="secondary"
-                  className={
-                    availableQuantity < requester.quantity ? "col-span-2" : ""
-                  }
-                  disabled={disabled}
-                  onClick={onDistributePartial}
-                >
-                  部分分发
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                size="touch"
-                variant="outline"
-                className={
-                  availableQuantity < requester.quantity ||
-                  requester.quantity > 1
-                    ? "col-span-2"
-                    : ""
-                }
-                disabled={disabled}
-                onClick={onSkip}
-              >
-                不分发
-              </Button>
-            </div>
-          )}
+          ) : null}
+          <Button
+            type="button"
+            size="icon-touch"
+            variant="ghost"
+            className="text-muted-foreground active:bg-muted"
+            aria-label={`${requester.purchaserName}不分发`}
+            disabled={disabled}
+            onClick={onSkip}
+          >
+            <RiForbidLine className="size-4" aria-hidden="true" />
+          </Button>
         </div>
       ) : null}
     </div>

@@ -287,7 +287,10 @@ export function ProfileDialogsProvider({
   }
 
   function saveDefaultPaymentPlatform(platform: PaymentPlatform) {
-    writeDefaultPaymentPlatform(platform);
+    if (!writeDefaultPaymentPlatform(platform)) {
+      toast.error("浏览器无法保存设置，请检查存储权限");
+      return;
+    }
     setDefaultPaymentPlatform(platform);
     toast.success("默认支付方式已更新");
   }

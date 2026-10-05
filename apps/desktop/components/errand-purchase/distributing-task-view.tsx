@@ -592,8 +592,8 @@ export function DistributingTaskView({
           </div>
         </div>
         <Button
-          variant="outline"
-          className="text-destructive"
+          variant="destructive-text"
+          size="touch"
           disabled={actionsDisabled}
           onClick={() => setConfirmation("cancel")}
         >

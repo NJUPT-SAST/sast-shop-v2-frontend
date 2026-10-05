@@ -4,12 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  RiAlipayLine,
   RiArrowLeftLine,
   RiCheckboxCircleLine,
   RiCloseCircleLine,
   RiErrorWarningLine,
   RiInformationLine,
-  RiTimeLine,
+  RiWechatPayLine,
 } from "@remixicon/react";
 import {
   getBill,
@@ -43,6 +44,7 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card";
 import { CopyButton } from "@workspace/ui/components/copy-button";
+import { PaymentCodeHelp } from "@workspace/ui/components/payment-code-help";
 import {
   Dialog,
   DialogContent,
@@ -159,15 +161,6 @@ export function BuyerErrandOrderDetailView({
               去支付
             </Button>
           ) : null}
-          {canSupplement ? (
-            <Button
-              variant="outline"
-              onClick={() => setSupplementOpen(true)}
-              disabled={supplementUnverified}
-            >
-              补充流水号
-            </Button>
-          ) : null}
         </div>
       </section>
 
@@ -206,7 +199,16 @@ export function BuyerErrandOrderDetailView({
             </Card>
           ) : null}
           <AmountSummaryCard order={resolvedOrder} />
-          {bill ? <BillCard bill={bill} /> : null}
+          {bill ? (
+            <BillCard
+              bill={bill}
+              onSupplement={
+                canSupplement && !supplementUnverified
+                  ? () => setSupplementOpen(true)
+                  : undefined
+              }
+            />
+          ) : null}
         </div>
       </div>
 
@@ -274,17 +276,6 @@ function StatusNotice({
         <AlertTitle>等待团长接单</AlertTitle>
         <AlertDescription>
           尚未接单的商品会继续保留在跑腿大厅。
-        </AlertDescription>
-      </Alert>
-    );
-  }
-  if (paymentState === "submitted") {
-    return (
-      <Alert>
-        <RiTimeLine />
-        <AlertTitle>付款信息已提交</AlertTitle>
-        <AlertDescription>
-          请等待团长核对到账；必要时可补充支付流水号。
         </AlertDescription>
       </Alert>
     );
@@ -468,7 +459,14 @@ function AmountSummaryCard({ order }: { order: BuyerErrandOrderDetail }) {
   );
 }
 
-function BillCard({ bill }: { bill: PaymentBill }) {
+function BillCard({
+  bill,
+  onSupplement,
+}: {
+  bill: PaymentBill;
+  onSupplement?: () => void;
+}) {
+  const payeeName = bill.payee?.name?.trim() || "未提供姓名";
   return (
     <Card>
       <CardHeader className="flex-row items-start justify-between gap-3">
@@ -496,16 +494,29 @@ function BillCard({ bill }: { bill: PaymentBill }) {
         </Badge>
       </CardHeader>
       <CardContent>
-        <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
+        <dl className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
           {bill.payee?.name ? (
             <>
               <dt className="text-muted-foreground">收款人</dt>
-              <dd className="truncate text-right">{bill.payee.name}</dd>
+              <dd className="flex min-w-0 items-center justify-end gap-2 font-medium">
+                <Avatar className="size-6" aria-hidden="true">
+                  <AvatarImage src={bill.payee.avatarUrl || undefined} alt="" />
+                  <AvatarFallback className="text-xs">
+                    {Array.from(payeeName)[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="min-w-0 break-all text-right">
+                  {payeeName}
+                </span>
+              </dd>
             </>
           ) : null}
           {bill.verifyCode ? (
             <>
-              <dt className="text-muted-foreground">付款标识码</dt>
+              <dt className="flex items-center gap-1 text-muted-foreground">
+                付款标识码
+                <PaymentCodeHelp />
+              </dt>
               <dd className="break-all text-right font-mono font-semibold">
                 {bill.verifyCode}
               </dd>
@@ -515,6 +526,25 @@ function BillCard({ bill }: { bill: PaymentBill }) {
           <dd className="text-right font-semibold">
             {formatPrice(bill.amountCents)}
           </dd>
+          {bill.channel ? (
+            <>
+              <dt className="text-muted-foreground">支付方式</dt>
+              <dd className="flex items-center justify-end gap-1.5 text-right">
+                {bill.channel === "wechat" ? (
+                  <RiWechatPayLine
+                    className="size-4 text-[#07c160]"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <RiAlipayLine
+                    className="size-4 text-[#1677ff]"
+                    aria-hidden="true"
+                  />
+                )}
+                {bill.channel === "wechat" ? "微信支付" : "支付宝"}
+              </dd>
+            </>
+          ) : null}
           {bill.serialNumber ? (
             <>
               <dt className="text-muted-foreground">流水号</dt>
@@ -524,6 +554,22 @@ function BillCard({ bill }: { bill: PaymentBill }) {
             </>
           ) : null}
         </dl>
+        {bill.status === "submitted" ? (
+          <p className="mt-3 border-t pt-3 text-sm text-muted-foreground">
+            付款信息已提交，等待团长核对到账
+          </p>
+        ) : null}
+        {onSupplement ? (
+          <Button
+            type="button"
+            variant="plain"
+            size="touch"
+            className="mt-2 h-auto min-h-0 px-0 py-0 text-sm leading-5"
+            onClick={onSupplement}
+          >
+            忘记备注？补充流水号
+          </Button>
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -558,6 +604,7 @@ function PaymentDialog({
   const [paying, setPaying] = useState(false);
   const [reloadCount, setReloadCount] = useState(0);
   const payingRef = useRef(false);
+  const payeeName = bill.payee?.name?.trim() || "未提供姓名";
   const qrKey =
     bill.payee?.id && bill.updatedAt
       ? `${bill.payee.id}:${bill.updatedAt}:${reloadCount}`
@@ -671,16 +718,28 @@ function PaymentDialog({
         </DialogHeader>
         <div className="grid min-h-0 gap-5 overflow-y-auto overscroll-contain sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="flex flex-col gap-3">
-            <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 gap-y-2 rounded-lg bg-muted/70 p-3 text-sm">
+            <dl className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 rounded-lg bg-muted/70 p-3 text-sm">
               <dt className="text-muted-foreground">应付金额</dt>
               <dd className="font-semibold text-primary">
                 {formatPrice(bill.amountCents)}
               </dd>
               <dt className="text-muted-foreground">收款人</dt>
-              <dd className="break-all font-medium">
-                {bill.payee?.name?.trim() || "未提供姓名"}
+              <dd className="flex min-w-0 items-center gap-2 font-medium">
+                <Avatar className="size-6" aria-hidden="true">
+                  <AvatarImage
+                    src={bill.payee?.avatarUrl || undefined}
+                    alt=""
+                  />
+                  <AvatarFallback className="bg-background text-xs">
+                    {Array.from(payeeName)[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="min-w-0 break-all">{payeeName}</span>
               </dd>
-              <dt className="text-muted-foreground">付款标识码</dt>
+              <dt className="flex items-center gap-1 text-muted-foreground">
+                付款标识码
+                <PaymentCodeHelp />
+              </dt>
               <dd className="break-all font-mono font-semibold">
                 {bill.verifyCode || "暂无"}
               </dd>
@@ -693,14 +752,27 @@ function PaymentDialog({
             >
               <TabsList className="w-full">
                 <TabsTrigger value="wechat" disabled={!currentCodes.wechat}>
+                  <RiWechatPayLine
+                    aria-hidden="true"
+                    className="size-4 text-[#07c160]"
+                  />
                   微信
                 </TabsTrigger>
                 <TabsTrigger value="alipay" disabled={!currentCodes.alipay}>
+                  <RiAlipayLine
+                    aria-hidden="true"
+                    className="size-4 text-[#1677ff]"
+                  />
                   支付宝
                 </TabsTrigger>
               </TabsList>
             </Tabs>
-            <div className="flex min-h-52 items-center justify-center rounded-xl bg-white p-3">
+            <div
+              className={cn(
+                "flex min-h-52 items-center justify-center rounded-xl p-3",
+                content ? "bg-white" : "bg-muted",
+              )}
+            >
               {loading ? (
                 <Spinner className="text-primary" />
               ) : content ? (
@@ -820,14 +892,14 @@ function SupplementDialog({
         <DialogHeader>
           <DialogTitle>补充支付流水号</DialogTitle>
           <DialogDescription>
-            仅在已经支付但缺少流水号时填写。
+            忘记备注付款标识码时，可补充交易单号协助核款
           </DialogDescription>
         </DialogHeader>
         <Input
           aria-label="支付流水号"
           value={value}
           onChange={(event) => setValue(event.target.value)}
-          placeholder="请输入支付流水号"
+          placeholder="请输入交易单号或流水号"
         />
         <DialogFooter>
           <Button

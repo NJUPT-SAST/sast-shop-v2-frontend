@@ -3,6 +3,7 @@
 @source "../lib";
 
 :root {
+  color-scheme: light;
   --background: #f6f3ef;
   --foreground: #1d1d1f;
   --card: #ffffff;
@@ -53,54 +54,57 @@
   --badge-danger-border: #ffd1d6;
 }
 
-.dark {
-  --background: #111114;
-  --foreground: #f5f5f7;
-  --card: #1b1b20;
-  --card-foreground: #f5f5f7;
-  --popover: #1b1b20;
-  --popover-foreground: #f5f5f7;
-  --primary: #ff9a78;
-  --primary-foreground: #2b1008;
-  --secondary: #24242a;
-  --secondary-foreground: #f5f5f7;
-  --accent: #24242a;
-  --accent-foreground: #f5f5f7;
-  --destructive: #ff453a;
-  --destructive-foreground: #ffffff;
-  --muted: #202026;
-  --muted-foreground: #a1a1aa;
-  --border: #303038;
-  --input: #3a3a42;
-  --ring: #ff9a78;
-  --image-surface: #28231f;
-  --section-highlight: #3a211a;
-  --section-highlight-foreground: #ffd8c9;
-  --service-fee: #f0ba70;
-  --badge-neutral: #24242a;
-  --badge-neutral-foreground: #d6d6dc;
-  --badge-neutral-border: #3a3a42;
-  --badge-warning: #3d2a08;
-  --badge-warning-foreground: #ffd98a;
-  --badge-warning-border: #76540c;
-  --badge-info: #082f42;
-  --badge-info-foreground: #8bdfff;
-  --badge-info-border: #155f80;
-  --badge-payment: #102a4d;
-  --badge-payment-foreground: #8ec5ff;
-  --badge-payment-border: #1f4f87;
-  --badge-attention: #4a1f05;
-  --badge-attention-foreground: #ffbc91;
-  --badge-attention-border: #873d12;
-  --badge-review: #2b184f;
-  --badge-review-foreground: #c7a8ff;
-  --badge-review-border: #593894;
-  --badge-success: #0b3320;
-  --badge-success-foreground: #8fe0ad;
-  --badge-success-border: #176239;
-  --badge-danger: #4a1118;
-  --badge-danger-foreground: #ff9aa6;
-  --badge-danger-border: #8a2632;
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --background: #111114;
+    --foreground: #f5f5f7;
+    --card: #1b1b20;
+    --card-foreground: #f5f5f7;
+    --popover: #1b1b20;
+    --popover-foreground: #f5f5f7;
+    --primary: #ff9a78;
+    --primary-foreground: #2b1008;
+    --secondary: #24242a;
+    --secondary-foreground: #f5f5f7;
+    --accent: #24242a;
+    --accent-foreground: #f5f5f7;
+    --destructive: #ff453a;
+    --destructive-foreground: #2b1008;
+    --muted: #202026;
+    --muted-foreground: #a1a1aa;
+    --border: #303038;
+    --input: #3a3a42;
+    --ring: #ff9a78;
+    --image-surface: #28231f;
+    --section-highlight: #3a211a;
+    --section-highlight-foreground: #ffd8c9;
+    --service-fee: #f0ba70;
+    --badge-neutral: #24242a;
+    --badge-neutral-foreground: #d6d6dc;
+    --badge-neutral-border: #3a3a42;
+    --badge-warning: #3d2a08;
+    --badge-warning-foreground: #ffd98a;
+    --badge-warning-border: #76540c;
+    --badge-info: #082f42;
+    --badge-info-foreground: #8bdfff;
+    --badge-info-border: #155f80;
+    --badge-payment: #102a4d;
+    --badge-payment-foreground: #8ec5ff;
+    --badge-payment-border: #1f4f87;
+    --badge-attention: #4a1f05;
+    --badge-attention-foreground: #ffbc91;
+    --badge-attention-border: #873d12;
+    --badge-review: #2b184f;
+    --badge-review-foreground: #c7a8ff;
+    --badge-review-border: #593894;
+    --badge-success: #0b3320;
+    --badge-success-foreground: #8fe0ad;
+    --badge-success-border: #176239;
+    --badge-danger: #4a1118;
+    --badge-danger-foreground: #ff9aa6;
+    --badge-danger-border: #8a2632;
+  }
 }
 
 @theme inline {
@@ -148,11 +152,6 @@
     background: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
-    color-scheme: light;
-  }
-
-  .dark {
-    color-scheme: dark;
   }
 }
 

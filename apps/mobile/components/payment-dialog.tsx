@@ -5,16 +5,20 @@ import {
   RiAlipayLine,
   RiCheckboxCircleLine,
   RiDownload2Line,
-  RiKey2Line,
   RiQrCodeLine,
   RiQrScan2Line,
-  RiWallet3Line,
   RiUser3Line,
   RiWechatPayLine,
 } from "@remixicon/react";
 import { formatPrice } from "@sast-shop/domain";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar";
 import { Button } from "@workspace/ui/components/button";
 import { CopyButton } from "@workspace/ui/components/copy-button";
+import { PaymentCodeHelp } from "@workspace/ui/components/payment-code-help";
 import { Empty } from "@workspace/ui/components/empty";
 import { LoadFailure } from "@workspace/ui/components/load-failure";
 import {
@@ -47,6 +51,7 @@ export type PaymentDialogProps = {
   onOpenChange: (open: boolean) => void;
   amountCents: number;
   payeeName: string | null;
+  payeeAvatarUrl?: string | null;
   verifyCode: string;
   qrCodes: Partial<Record<PaymentPlatform, string>>;
   defaultPlatform: PaymentPlatform;
@@ -95,6 +100,7 @@ export function PaymentDialog({
 function PaymentDialogBody({
   amountCents,
   payeeName,
+  payeeAvatarUrl,
   verifyCode,
   qrCodes,
   defaultPlatform,
@@ -269,6 +275,7 @@ function PaymentDialogBody({
             <PaymentBillSummary
               amountCents={amountCents}
               payeeName={payeeName}
+              payeeAvatarUrl={payeeAvatarUrl}
               verifyCode={verifyCode}
             />
             <Tabs
@@ -282,7 +289,15 @@ function PaymentDialogBody({
                 {PAYMENT_PLATFORMS.map(
                   ({ platform: value, label, icon: Icon }) => (
                     <TabsTrigger key={value} value={value}>
-                      <Icon data-icon="inline-start" />
+                      <Icon
+                        data-icon="inline-start"
+                        aria-hidden="true"
+                        className={
+                          value === "wechat"
+                            ? "text-[#07c160]"
+                            : "text-[#1677ff]"
+                        }
+                      />
                       {label}
                     </TabsTrigger>
                   ),
@@ -433,48 +448,51 @@ function PaymentDialogSkeleton() {
 function PaymentBillSummary({
   amountCents,
   payeeName,
+  payeeAvatarUrl,
   verifyCode,
 }: {
   amountCents: number;
   payeeName: string | null;
+  payeeAvatarUrl?: string | null;
   verifyCode: string;
 }) {
   const isShortVerifyCode = verifyCode.length <= 8;
+  const name = payeeName?.trim();
 
   return (
     <dl className="shrink-0 divide-y divide-border/70 rounded-lg bg-muted/70 px-3">
-      <div className="grid grid-cols-2 items-start gap-3 py-1.5">
-        <div className="flex min-w-0 flex-col gap-1">
-          <dt className="flex items-center gap-2 text-sm text-muted-foreground">
-            <RiWallet3Line className="size-4" aria-hidden="true" />
-            金额
-          </dt>
-          <dd className="text-xl font-semibold tabular-nums text-primary">
-            {formatPrice(amountCents)}
-          </dd>
-        </div>
-        <div className="flex min-w-0 flex-col items-end gap-1">
-          <dt className="flex items-center gap-2 text-sm text-muted-foreground">
-            <RiUser3Line className="size-4" aria-hidden="true" />
-            收款人
-          </dt>
-          <dd className="break-all text-right text-sm font-medium">
-            {payeeName?.trim() || "未提供姓名"}
-          </dd>
-        </div>
+      <div className="flex min-h-10 items-center justify-between gap-4 py-1.5">
+        <dt className="shrink-0 text-sm text-muted-foreground">金额</dt>
+        <dd className="text-lg font-semibold tabular-nums text-primary">
+          {formatPrice(amountCents)}
+        </dd>
+      </div>
+      <div className="flex min-h-10 items-center justify-between gap-4 py-1.5">
+        <dt className="shrink-0 text-sm text-muted-foreground">收款人</dt>
+        <dd className="flex min-w-0 items-center justify-end gap-2 text-sm font-medium">
+          <Avatar className="size-6" aria-hidden="true">
+            <AvatarImage src={payeeAvatarUrl || undefined} alt="" />
+            <AvatarFallback className="bg-background text-xs">
+              {name ? Array.from(name)[0] : <RiUser3Line className="size-4" />}
+            </AvatarFallback>
+          </Avatar>
+          <span className="min-w-0 break-all text-right">
+            {name || "未提供姓名"}
+          </span>
+        </dd>
       </div>
 
       <div className="flex min-h-12 items-center justify-between gap-4 py-1">
-        <dt className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
-          <RiKey2Line className="size-4" aria-hidden="true" />
+        <dt className="flex shrink-0 items-center gap-1 whitespace-nowrap text-sm text-muted-foreground">
           付款标识码
+          <PaymentCodeHelp presentation="drawer" />
         </dt>
         <dd className="flex min-w-0 items-center justify-end gap-1">
           <span
             className={cn(
               "min-w-0 break-all text-right font-mono font-semibold tabular-nums",
               isShortVerifyCode
-                ? "text-2xl tracking-[0.2em]"
+                ? "text-lg tracking-[0.15em]"
                 : "text-base leading-6 tracking-normal",
             )}
           >

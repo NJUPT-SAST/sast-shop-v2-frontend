@@ -304,6 +304,8 @@ Store and shop surfaces retain the same chassis but switch modes. Dense task sur
 
 ### Surface
 
+Mobile and desktop follow the system color scheme. Shared semantic tokens and native controls switch through `prefers-color-scheme` in `packages/ui/src/styles/globals.css`; theme changes apply without a reload. Dark surfaces use Soft Coral for actions. Product imagery and brand illustrations retain their original colors, and payment QR codes retain a white background for scanning.
+
 - **Pure White** (`{colors.canvas}` — #ffffff): The dominant canvas. Content, utility cards, store tiles, configurator grids.
 - **Parchment** (`{colors.canvas-parchment}` — #f5f5f7): The signature Apple off-white. Used for alternating light tiles, footer region, and the default page canvas in store utility sections. Just different enough from white to create rhythm.
 - **Pearl Button** (`{colors.surface-pearl}` — #fafafc): A near-white used as the fill for secondary "ghost" buttons — lighter than the parchment canvas so the button still reads as a button against `{colors.canvas-parchment}`.
@@ -494,6 +496,18 @@ Apple's whitespace is the product's pedestal. Every tile begins with at least 64
 **`search-input`** — The accessories search input. Background `{colors.canvas}`, text `{colors.ink}` in `{typography.body}` (17px), 1px solid `rgba(0, 0, 0, 0.08)` border, rounded `{rounded.pill}` (full pill — search is also pill-shaped, matching the CTA grammar), padding 12px × 20px, height 44px. Leading icon: search glyph at 14px, muted tint.
 
 Error and validation states were not surfaced in the analyzed pages.
+
+### Shop Transaction UI
+
+- Show a person's avatar beside their name in payment and order details. Use the API identity, with an initial fallback when the avatar is unavailable.
+- Show the WeChat Pay or Alipay symbol beside the payment platform name. The platform follows the collection code selected for that payment and the channel recorded on the bill.
+- Use the platform's own brand color for its payment symbol; keep adjacent names and action buttons in the app's semantic colors.
+- Keep submitted-payment status inside the bill card. Distinguish a payment report from confirmed receipt, and avoid a second card repeating the same status.
+- Explain “付款标识码” with an adjacent question mark that opens a Drawer in the mobile app and a Popover in the desktop app. Emphasize key instructions with a subtle marker underline. Supplementing a transaction number is an optional aid when the payer forgot the payment remark; present it as a secondary action within the bill card.
+- Reserve space below Drawer content and actions, including the device's bottom safe-area inset. Keep scrolling inside the body so footer actions remain reachable on short screens.
+- Use compact todo rows for distribution: a checkbox records full distribution or revokes a recorded result, while adjacent icons expose partial distribution and skipping. Partial and skipped results use the mixed checkbox state with explicit quantity/status text. Keep touch controls at 44px.
+- Align mobile secondary-page header actions with the content edges on wide screens. Copy controls are 24px and stay in normal layout so their hover and pressed states do not cover the number.
+- Place business cancellation actions at the page header's right edge as red text buttons without icons. Keep confirmation dialogs and pending or unverified-result guards; form cancellation and row-specific actions stay with their context.
 
 ### Footer
 

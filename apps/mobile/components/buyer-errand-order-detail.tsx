@@ -5,6 +5,7 @@ import { useTransactionAgreement } from "./transaction-agreement-provider";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  RiAlipayLine,
   RiCheckboxCircleLine,
   RiCloseCircleLine,
   RiArrowDownSLine,
@@ -13,6 +14,7 @@ import {
   RiFileList3Line,
   RiInformationLine,
   RiTimeLine,
+  RiWechatPayLine,
 } from "@remixicon/react";
 import type {
   BuyerErrandOrderDetail,
@@ -41,6 +43,7 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card";
 import { CopyButton } from "@workspace/ui/components/copy-button";
+import { PaymentCodeHelp } from "@workspace/ui/components/payment-code-help";
 import { Separator } from "@workspace/ui/components/separator";
 
 import {
@@ -116,8 +119,7 @@ export function BuyerErrandOrderDetailView({
   const canContactCaptain = Boolean(contactAction);
   const showActionBar =
     canContactCaptain ||
-    (paymentState === "payable" && payableBill && !paymentVersionUnverified) ||
-    canSupplementSerialNumber;
+    (paymentState === "payable" && payableBill && !paymentVersionUnverified);
 
   function updateBill(updatedBill: PaymentBill) {
     setCurrentOrder({ ...resolvedOrder, bill: updatedBill });
@@ -140,11 +142,7 @@ export function BuyerErrandOrderDetailView({
               <span className="shrink-0 font-mono tabular-nums">
                 {resolvedOrder.id}
               </span>
-              <CopyButton
-                value={String(resolvedOrder.id)}
-                label="订单号"
-                compact
-              />
+              <CopyButton value={String(resolvedOrder.id)} label="订单号" />
             </div>
           </div>
           <Badge variant={getStatusBadgeVariant(resolvedOrder.status)}>
@@ -165,7 +163,19 @@ export function BuyerErrandOrderDetailView({
         <CaptainCard order={resolvedOrder} />
         <ProductItemsCard items={resolvedOrder.productItems} />
         <AmountSummaryCard order={resolvedOrder} />
-        {bill ? <BillCard bill={bill} /> : null}
+        {bill ? (
+          <BillCard
+            bill={bill}
+            onSupplement={
+              canSupplementSerialNumber
+                ? () =>
+                    void ensureAgreement().then((agreed) => {
+                      if (agreed) setSupplementOpen(true);
+                    })
+                : undefined
+            }
+          />
+        ) : null}
         {paymentVersionUnverified ? (
           <Alert>
             <AlertTitle>支付结果待确认</AlertTitle>
@@ -210,19 +220,6 @@ export function BuyerErrandOrderDetailView({
               }
             >
               去支付 {formatPrice(payableBill.amountCents)}
-            </Button>
-          ) : null}
-          {canSupplementSerialNumber ? (
-            <Button
-              type="button"
-              className="flex-1"
-              onClick={() =>
-                void ensureAgreement().then((agreed) => {
-                  if (agreed) setSupplementOpen(true);
-                })
-              }
-            >
-              补充流水号
             </Button>
           ) : null}
         </MobileFixedFooter>
@@ -295,18 +292,6 @@ function StatusNotice({
         <AlertTitle>等待团长接单</AlertTitle>
         <AlertDescription>
           尚未接单的商品会继续保留在跑腿大厅；接单后可在此查看采购进度。
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  if (paymentState === "submitted") {
-    return (
-      <Alert>
-        <RiTimeLine />
-        <AlertTitle>付款信息已提交</AlertTitle>
-        <AlertDescription>
-          请等待团长核对到账；如需协助，可补充支付流水号。
         </AlertDescription>
       </Alert>
     );
@@ -478,7 +463,14 @@ function AmountSummaryCard({ order }: { order: BuyerErrandOrderDetail }) {
   );
 }
 
-function BillCard({ bill }: { bill: PaymentBill }) {
+function BillCard({
+  bill,
+  onSupplement,
+}: {
+  bill: PaymentBill;
+  onSupplement?: () => void;
+}) {
+  const payeeName = bill.payee?.name?.trim() || "未提供姓名";
   return (
     <Card>
       <CardHeader className="flex-row items-start justify-between gap-3 p-3">
@@ -488,11 +480,7 @@ function BillCard({ bill }: { bill: PaymentBill }) {
             <CardDescription className="min-w-0 truncate font-mono tabular-nums">
               {bill.billNo || bill.id}
             </CardDescription>
-            <CopyButton
-              value={bill.billNo || String(bill.id)}
-              label="账单号"
-              compact
-            />
+            <CopyButton value={bill.billNo || String(bill.id)} label="账单号" />
           </div>
         </div>
         <Badge variant={getBillBadgeVariant(bill.status)}>
@@ -500,23 +488,32 @@ function BillCard({ bill }: { bill: PaymentBill }) {
         </Badge>
       </CardHeader>
       <CardContent className="p-3 pt-0">
-        <dl className="grid auto-rows-[minmax(2rem,auto)] grid-cols-[5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 text-sm">
+        <dl className="grid auto-rows-[minmax(2rem,auto)] grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 text-sm">
           {bill.payee?.name ? (
             <>
               <dt className="text-muted-foreground">收款人</dt>
-              <dd className="min-w-0 truncate text-right">{bill.payee.name}</dd>
+              <dd className="flex min-w-0 items-center justify-end gap-2 font-medium">
+                <Avatar className="size-6" aria-hidden="true">
+                  <AvatarImage src={bill.payee.avatarUrl || undefined} alt="" />
+                  <AvatarFallback className="text-xs">
+                    {Array.from(payeeName)[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="min-w-0 break-all text-right">
+                  {payeeName}
+                </span>
+              </dd>
             </>
           ) : null}
           {bill.verifyCode ? (
             <>
-              <dt className="text-muted-foreground">付款标识码</dt>
+              <dt className="flex items-center gap-1 whitespace-nowrap text-muted-foreground">
+                付款标识码
+                <PaymentCodeHelp presentation="drawer" />
+              </dt>
               <dd className="flex min-w-0 items-center justify-end gap-1 font-mono font-semibold">
                 <span className="break-all text-right">{bill.verifyCode}</span>
-                <CopyButton
-                  value={bill.verifyCode}
-                  label="付款标识码"
-                  compact
-                />
+                <CopyButton value={bill.verifyCode} label="付款标识码" />
               </dd>
             </>
           ) : null}
@@ -524,6 +521,25 @@ function BillCard({ bill }: { bill: PaymentBill }) {
           <dd className="text-right font-semibold">
             {formatPrice(bill.amountCents)}
           </dd>
+          {bill.channel ? (
+            <>
+              <dt className="text-muted-foreground">支付方式</dt>
+              <dd className="flex items-center justify-end gap-1.5 text-right">
+                {bill.channel === "wechat" ? (
+                  <RiWechatPayLine
+                    className="size-4 text-[#07c160]"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <RiAlipayLine
+                    className="size-4 text-[#1677ff]"
+                    aria-hidden="true"
+                  />
+                )}
+                {bill.channel === "wechat" ? "微信支付" : "支付宝"}
+              </dd>
+            </>
+          ) : null}
           {bill.serialNumber ? (
             <>
               <dt className="text-muted-foreground">支付流水号</dt>
@@ -533,6 +549,22 @@ function BillCard({ bill }: { bill: PaymentBill }) {
             </>
           ) : null}
         </dl>
+        {bill.status === "submitted" ? (
+          <p className="mt-2 border-t pt-2 text-sm text-muted-foreground">
+            付款信息已提交，等待团长核对到账
+          </p>
+        ) : null}
+        {onSupplement ? (
+          <Button
+            type="button"
+            variant="plain"
+            size="touch"
+            className="mt-2 h-auto min-h-0 px-0 py-0 text-sm leading-5"
+            onClick={onSupplement}
+          >
+            忘记备注？补充流水号
+          </Button>
+        ) : null}
       </CardContent>
     </Card>
   );

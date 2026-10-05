@@ -3,7 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { RiArrowLeftLine, RiCheckboxCircleLine } from "@remixicon/react";
+import {
+  RiAlipayLine,
+  RiArrowLeftLine,
+  RiCheckboxCircleLine,
+  RiWechatPayLine,
+} from "@remixicon/react";
 import {
   confirmBill,
   getErrandTaskBrief,
@@ -25,6 +30,7 @@ import {
 } from "@workspace/ui/components/alert";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
+import { PaymentCodeHelp } from "@workspace/ui/components/payment-code-help";
 import {
   Card,
   CardContent,
@@ -39,7 +45,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@workspace/ui/components/dialog";
-import { Separator } from "@workspace/ui/components/separator";
 import { Spinner } from "@workspace/ui/components/spinner";
 import { toast } from "sonner";
 import {
@@ -454,14 +459,12 @@ export function CollectingPaymentView({
                   </dd>
                 </>
               ) : null}
-              {currentBillToConfirm.paymentChannel ? (
-                <>
-                  <dt className="text-muted-foreground">支付渠道</dt>
-                  <dd className="text-right">
-                    {formatPaymentChannel(currentBillToConfirm.paymentChannel)}
-                  </dd>
-                </>
-              ) : null}
+              <dt className="text-muted-foreground">支付平台</dt>
+              <dd className="text-right">
+                <PaymentChannelDisplay
+                  channel={currentBillToConfirm.paymentChannel}
+                />
+              </dd>
               {currentBillToConfirm.serialNumber ? (
                 <>
                   <dt className="text-muted-foreground">支付流水号</dt>
@@ -472,7 +475,10 @@ export function CollectingPaymentView({
               ) : null}
               {currentBillToConfirm.verifyCode ? (
                 <>
-                  <dt className="text-muted-foreground">付款标识码</dt>
+                  <dt className="flex items-center gap-1 text-muted-foreground">
+                    付款标识码
+                    <PaymentCodeHelp />
+                  </dt>
                   <dd className="text-right font-mono font-semibold tracking-widest">
                     {currentBillToConfirm.verifyCode}
                   </dd>
@@ -515,7 +521,24 @@ function formatPaymentChannel(
 ): string {
   if (channel === "wechat") return "微信支付";
   if (channel === "alipay") return "支付宝";
-  return "未选择";
+  return "未提供";
+}
+
+function PaymentChannelDisplay({
+  channel,
+}: {
+  channel: CollectingPaymentBill["paymentChannel"];
+}) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      {channel === "wechat" ? (
+        <RiWechatPayLine aria-hidden="true" className="size-4 text-[#07c160]" />
+      ) : channel === "alipay" ? (
+        <RiAlipayLine aria-hidden="true" className="size-4 text-[#1677ff]" />
+      ) : null}
+      {formatPaymentChannel(channel)}
+    </span>
+  );
 }
 
 function PaymentItemBreakdown({
@@ -644,8 +667,11 @@ function BillCard({
                 />
               ))}
             </div>
-            <Separator />
             <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 text-sm">
+              <dt className="text-muted-foreground">支付平台</dt>
+              <dd className="text-right">
+                <PaymentChannelDisplay channel={bill.paymentChannel} />
+              </dd>
               <dt className="text-muted-foreground">商品费</dt>
               <dd>{formatPrice(bill.productAmountCents)}</dd>
               <dt className="text-muted-foreground">跑腿费</dt>

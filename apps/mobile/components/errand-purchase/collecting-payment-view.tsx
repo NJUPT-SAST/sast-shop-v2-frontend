@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { RiArrowDownSLine, RiArrowUpSLine, RiBillLine } from "@remixicon/react";
+import {
+  RiAlipayLine,
+  RiArrowDownSLine,
+  RiArrowUpSLine,
+  RiBillLine,
+  RiWechatPayLine,
+} from "@remixicon/react";
 import {
   confirmBill,
   getErrandTaskBrief,
@@ -25,6 +31,7 @@ import {
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Empty } from "@workspace/ui/components/empty";
+import { PaymentCodeHelp } from "@workspace/ui/components/payment-code-help";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -96,7 +103,7 @@ function PaymentItemBreakdown({
   const mismatchLabel = getQuantityMismatchLabel(item);
 
   return (
-    <div className="border-b pb-3 last:border-b-0">
+    <div className="border-b pb-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <p className="min-w-0 flex-1 text-sm font-medium">{item.title}</p>
         {mismatchLabel ? (
@@ -141,7 +148,24 @@ function formatPaymentChannel(
 ): string {
   if (channel === "wechat") return "微信支付";
   if (channel === "alipay") return "支付宝";
-  return "未选择";
+  return "未提供";
+}
+
+function PaymentChannelDisplay({
+  channel,
+}: {
+  channel: CollectingPaymentBill["paymentChannel"];
+}) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      {channel === "wechat" ? (
+        <RiWechatPayLine aria-hidden="true" className="size-4 text-[#07c160]" />
+      ) : channel === "alipay" ? (
+        <RiAlipayLine aria-hidden="true" className="size-4 text-[#1677ff]" />
+      ) : null}
+      {formatPaymentChannel(channel)}
+    </span>
+  );
 }
 
 export function CollectingPaymentView({
@@ -414,7 +438,15 @@ export function CollectingPaymentView({
                           item={item}
                         />
                       ))}
-                      <div className="mt-1 border-t pt-2 flex flex-col gap-1 text-sm">
+                      <div className="mt-1 flex flex-col gap-1 pt-2 text-sm">
+                        <div className="flex justify-between gap-3">
+                          <span className="text-muted-foreground">
+                            支付平台
+                          </span>
+                          <PaymentChannelDisplay
+                            channel={bill.paymentChannel}
+                          />
+                        </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">商品费</span>
                           <span>{formatPrice(bill.productAmountCents)}</span>
@@ -634,14 +666,12 @@ export function CollectingPaymentView({
                     </dd>
                   </>
                 ) : null}
-                {billToConfirm.paymentChannel ? (
-                  <>
-                    <dt className="text-muted-foreground">支付渠道</dt>
-                    <dd className="text-right">
-                      {formatPaymentChannel(billToConfirm.paymentChannel)}
-                    </dd>
-                  </>
-                ) : null}
+                <dt className="text-muted-foreground">支付平台</dt>
+                <dd className="text-right">
+                  <PaymentChannelDisplay
+                    channel={billToConfirm.paymentChannel}
+                  />
+                </dd>
                 {billToConfirm.serialNumber ? (
                   <>
                     <dt className="text-muted-foreground">支付流水号</dt>
@@ -652,7 +682,10 @@ export function CollectingPaymentView({
                 ) : null}
                 {billToConfirm.verifyCode ? (
                   <>
-                    <dt className="text-muted-foreground">付款标识码</dt>
+                    <dt className="flex items-center gap-1 whitespace-nowrap text-muted-foreground">
+                      付款标识码
+                      <PaymentCodeHelp presentation="drawer" />
+                    </dt>
                     <dd className="text-right font-mono font-semibold tracking-widest">
                       {billToConfirm.verifyCode}
                     </dd>

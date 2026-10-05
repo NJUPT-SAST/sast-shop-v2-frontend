@@ -24,7 +24,7 @@ export function MobileHeader() {
       ref={headerRef}
       className="sticky top-0 z-20 border-b border-border/80 bg-background/90 backdrop-blur-xl"
     >
-      <div className="mx-auto grid min-h-13 w-full max-w-md grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-center gap-2 px-2 has-[[data-slot=mobile-header-action]]:grid-cols-[6.5rem_minmax(0,1fr)_6.5rem]">
+      <div className="grid min-h-13 w-full grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-center gap-2 px-2 sm:px-4 md:px-6 has-[[data-slot=mobile-header-action]]:grid-cols-[6.5rem_minmax(0,1fr)_6.5rem]">
         <Button
           type="button"
           variant="ghost"

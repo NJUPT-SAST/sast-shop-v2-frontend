@@ -131,21 +131,23 @@ export function SupplementSerialNumberDialog({
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>补充支付流水号</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            请在支付记录中找到流水号（交易单号），填写后收款人可以核对款项。
+            忘记备注付款标识码时，可补充交易单号协助核款
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
         <FieldGroup className="px-4 pb-2">
           <Field>
-            <FieldLabel htmlFor="serial-number">支付流水号</FieldLabel>
+            <FieldLabel htmlFor="serial-number" className="sr-only">
+              支付流水号
+            </FieldLabel>
             <Input
               id="serial-number"
               value={serialNumber}
               onChange={(event) => setSerialNumber(event.target.value)}
-              placeholder="请输入支付流水号"
+              placeholder="请输入交易单号或流水号"
             />
           </Field>
         </FieldGroup>
-        <ResponsiveDialogFooter>
+        <ResponsiveDialogFooter className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <Button
             type="button"
             variant="outline"
@@ -327,6 +329,7 @@ export function PaymentSection({
       onOpenChange={handleOpenChange}
       amountCents={bill.amountCents}
       payeeName={bill.payee.name}
+      payeeAvatarUrl={bill.payee.avatarUrl}
       verifyCode={bill.verifyCode}
       qrCodes={qrPayeeId === payeeId ? qrCodes : {}}
       defaultPlatform={defaultPlatform}

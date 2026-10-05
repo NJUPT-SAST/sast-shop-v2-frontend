@@ -2,25 +2,33 @@
 
 import { useTransactionAgreement } from "./transaction-agreement-provider";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  RiAlipayLine,
   RiArrowDownSLine,
   RiArrowUpSLine,
   RiCheckboxCircleLine,
   RiCloseCircleLine,
   RiFileList3Line,
   RiTimeLine,
+  RiWechatPayLine,
 } from "@remixicon/react";
 import {
   cancelSpotOrder,
   completeSpotOrder,
   confirmBill,
+  getSpotOrderDetail,
   type DataSource,
   type PaymentBill,
   type SpotOrder,
 } from "@sast-shop/api";
 import { formatPrice } from "@sast-shop/domain";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar";
 import {
   Alert,
   AlertDescription,
@@ -36,6 +44,7 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card";
 import { CopyButton } from "@workspace/ui/components/copy-button";
+import { PaymentCodeHelp } from "@workspace/ui/components/payment-code-help";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -61,6 +70,7 @@ import {
   useLarkContactAvailability,
 } from "./lark-contact-button";
 import { MobileFixedFooter } from "./mobile-fixed-footer";
+import { MobileHeaderActions } from "./mobile-header-actions";
 import {
   PaymentSection,
   SupplementSerialNumberDialog,
@@ -75,6 +85,11 @@ export type SpotOrderDetailProps = {
 };
 
 type VersionedPaymentBill = PaymentBill & { updatedAt: string };
+
+function getLifecycleVersion(order: SpotOrder) {
+  return `${order.id}:${order.status}:${order.bill?.status ?? "none"}:${order.bill?.updatedAt ?? "none"}:${order.completedAt ?? "none"}:${order.cancelledAt ?? "none"}`;
+}
+
 export function SpotOrderDetail({
   dataSource,
   connectBaseUrl,
@@ -95,13 +110,25 @@ export function SpotOrderDetail({
     useState<string | null>(null);
   const [unverifiedSupplementBillVersion, setUnverifiedSupplementBillVersion] =
     useState<string | null>(null);
+  const [unverifiedLifecycleVersion, setUnverifiedLifecycleVersion] = useState<
+    string | null
+  >(null);
   const [lifecyclePending, setLifecyclePending] = useState<
     "cancel" | "complete" | "confirm-payment" | null
   >(null);
   const lifecyclePendingRef = useRef(false);
+  const unverifiedLifecycleVersionRef = useRef<string | null>(null);
 
   const resolvedOrder = reconcileSpotOrderUpdate(currentOrder, order);
   const bill = resolvedOrder.bill;
+  const lifecycleVersion = getLifecycleVersion(resolvedOrder);
+  const lifecycleVersionRef = useRef(lifecycleVersion);
+  const lifecycleUnverified = lifecycleVersion === unverifiedLifecycleVersion;
+
+  useEffect(() => {
+    lifecycleVersionRef.current = lifecycleVersion;
+  }, [lifecycleVersion]);
+
   const isCancelled = resolvedOrder.status === "cancelled";
   const actions = resolveSpotOrderActions(
     view,
@@ -141,9 +168,7 @@ export function SpotOrderDetail({
   const canContactSeller = Boolean(contactAction);
   const showActionBar =
     canContactSeller ||
-    actions.canCancel ||
     canSubmitPayment ||
-    canSupplementSerialNumber ||
     canConfirmPayment ||
     actions.canComplete;
   const currentStatusLabel = getCurrentStatusLabel(
@@ -155,59 +180,138 @@ export function SpotOrderDetail({
   async function handleLifecycleAction(
     action: "cancel" | "complete" | "confirm-payment",
   ) {
-    if (lifecyclePendingRef.current) return;
-    if (action === "confirm-payment" && !versionedBill) return;
     if (
-      !(await ensureAgreement(() => {
-        setCancelDialogOpen(false);
-        setCompleteDialogOpen(false);
-        setConfirmPaymentDialogOpen(false);
-      })) ||
-      lifecyclePendingRef.current
+      lifecyclePendingRef.current ||
+      lifecycleUnverified ||
+      lifecycleVersionRef.current !== lifecycleVersion ||
+      unverifiedLifecycleVersionRef.current === lifecycleVersion ||
+      (action === "cancel" && !actions.canCancel) ||
+      (action === "complete" && !actions.canComplete) ||
+      (action === "confirm-payment" &&
+        (!actions.canConfirmPayment || !versionedBill))
     )
       return;
 
+    const attemptedVersion = lifecycleVersion;
+    const orderId = resolvedOrder.id;
+    const billToConfirm = versionedBill;
     lifecyclePendingRef.current = true;
-    setLifecyclePending(action);
 
     try {
-      if (action === "cancel") {
-        const updatedOrder = await cancelSpotOrder(
-          { spotOrderId: resolvedOrder.id },
-          { dataSource, connectBaseUrl },
-        );
-        setCurrentOrder(updatedOrder);
-        setCancelDialogOpen(false);
-        toast.success("订单已取消");
-      } else if (action === "complete") {
-        const updatedOrder = await completeSpotOrder(
-          { spotOrderId: resolvedOrder.id },
-          { dataSource, connectBaseUrl },
-        );
-        setCurrentOrder(updatedOrder);
-        setCompleteDialogOpen(false);
-        toast.success("已确认收货");
-      } else {
-        const updatedBill = await confirmBill(
-          { billId: versionedBill!.id, updatedAt: versionedBill!.updatedAt },
-          { dataSource, connectBaseUrl },
-        );
-        setCurrentOrder({ ...resolvedOrder, bill: updatedBill });
-        setConfirmPaymentDialogOpen(false);
-        toast.success("已确认收款");
+      let agreed: boolean;
+      try {
+        agreed = await ensureAgreement(() => {
+          setCancelDialogOpen(false);
+          setCompleteDialogOpen(false);
+          setConfirmPaymentDialogOpen(false);
+        });
+      } catch {
+        toast.error("协议确认失败，请稍后重试");
+        return;
       }
+      if (
+        !agreed ||
+        lifecycleVersionRef.current !== attemptedVersion ||
+        unverifiedLifecycleVersionRef.current === attemptedVersion
+      )
+        return;
 
-      router.refresh();
-    } catch (error) {
-      setCancelDialogOpen(false);
-      setCompleteDialogOpen(false);
-      setConfirmPaymentDialogOpen(false);
-      router.refresh();
-      toast.error(
-        error instanceof Error
-          ? `${error.message}，正在刷新订单状态`
-          : "操作结果未确认，正在刷新订单状态",
-      );
+      setLifecyclePending(action);
+
+      try {
+        if (action === "cancel") {
+          const updatedOrder = await cancelSpotOrder(
+            { spotOrderId: orderId },
+            { dataSource, connectBaseUrl },
+          );
+          lifecycleVersionRef.current = getLifecycleVersion(updatedOrder);
+          setCurrentOrder((current) =>
+            reconcileSpotOrderUpdate(current, updatedOrder),
+          );
+          setCancelDialogOpen(false);
+          toast.success("订单已取消");
+        } else if (action === "complete") {
+          const updatedOrder = await completeSpotOrder(
+            { spotOrderId: orderId },
+            { dataSource, connectBaseUrl },
+          );
+          lifecycleVersionRef.current = getLifecycleVersion(updatedOrder);
+          setCurrentOrder((current) =>
+            reconcileSpotOrderUpdate(current, updatedOrder),
+          );
+          setCompleteDialogOpen(false);
+          toast.success("已确认收货");
+        } else if (billToConfirm) {
+          const updatedBill = await confirmBill(
+            { billId: billToConfirm.id, updatedAt: billToConfirm.updatedAt },
+            { dataSource, connectBaseUrl },
+          );
+          lifecycleVersionRef.current = getLifecycleVersion({
+            ...resolvedOrder,
+            bill: updatedBill,
+          });
+          setCurrentOrder((current) =>
+            reconcileSpotOrderUpdate(current, {
+              ...resolvedOrder,
+              bill: updatedBill,
+            }),
+          );
+          setConfirmPaymentDialogOpen(false);
+          toast.success("已确认收款");
+        }
+
+        unverifiedLifecycleVersionRef.current = null;
+        setUnverifiedLifecycleVersion(null);
+        router.refresh();
+      } catch (error) {
+        setCancelDialogOpen(false);
+        setCompleteDialogOpen(false);
+        setConfirmPaymentDialogOpen(false);
+        try {
+          const latestOrder = await getSpotOrderDetail(orderId, {
+            dataSource,
+            connectBaseUrl,
+          });
+          const acceptedOrder = reconcileSpotOrderUpdate(
+            resolvedOrder,
+            latestOrder,
+          );
+          const latestVersion = getLifecycleVersion(acceptedOrder);
+          lifecycleVersionRef.current = latestVersion;
+          setCurrentOrder((current) =>
+            reconcileSpotOrderUpdate(current, latestOrder),
+          );
+          const completed =
+            action === "cancel"
+              ? acceptedOrder.status === "cancelled"
+              : action === "complete"
+                ? acceptedOrder.status === "completed"
+                : acceptedOrder.bill?.status === "completed";
+          if (completed || latestVersion !== attemptedVersion) {
+            unverifiedLifecycleVersionRef.current = null;
+            setUnverifiedLifecycleVersion(null);
+          } else {
+            unverifiedLifecycleVersionRef.current = attemptedVersion;
+            setUnverifiedLifecycleVersion(attemptedVersion);
+          }
+          if (completed) {
+            toast.info("已读取最新订单状态");
+          } else if (latestVersion !== attemptedVersion) {
+            toast.error(
+              error instanceof Error
+                ? `${error.message}，订单已刷新，请核对后重试`
+                : "订单状态已刷新，请核对后重试",
+            );
+          } else {
+            toast.error("无法确认操作结果，正在刷新订单，请核对后再操作");
+          }
+        } catch {
+          unverifiedLifecycleVersionRef.current = attemptedVersion;
+          setUnverifiedLifecycleVersion(attemptedVersion);
+          toast.error("无法确认操作结果，正在刷新订单，请核对后再操作");
+        }
+        router.refresh();
+      }
     } finally {
       lifecyclePendingRef.current = false;
       setLifecyclePending(null);
@@ -216,6 +320,19 @@ export function SpotOrderDetail({
 
   return (
     <div className="flex flex-1 flex-col">
+      <MobileHeaderActions>
+        {actions.canCancel ? (
+          <Button
+            type="button"
+            variant="destructive-text"
+            size="touch"
+            disabled={lifecyclePending !== null || lifecycleUnverified}
+            onClick={() => setCancelDialogOpen(true)}
+          >
+            取消订单
+          </Button>
+        ) : null}
+      </MobileHeaderActions>
       <div className="flex flex-1 flex-col gap-2 py-3">
         <h1 className="text-lg font-semibold">订单详情</h1>
 
@@ -227,7 +344,19 @@ export function SpotOrderDetail({
         />
 
         <OrderInfoCard order={resolvedOrder} view={view} />
-        {bill ? <BillCard bill={bill} /> : null}
+        {bill ? (
+          <BillCard
+            bill={bill}
+            onSupplement={
+              canSupplementSerialNumber
+                ? () =>
+                    void ensureAgreement().then((agreed) => {
+                      if (agreed) setSupplementOpen(true);
+                    })
+                : undefined
+            }
+          />
+        ) : null}
         {paymentVersionUnverified ? (
           <Alert>
             <AlertTitle>支付结果待确认</AlertTitle>
@@ -241,6 +370,14 @@ export function SpotOrderDetail({
             <AlertTitle>流水号状态待确认</AlertTitle>
             <AlertDescription>
               请重新进入订单查看最新账单后再操作。
+            </AlertDescription>
+          </Alert>
+        ) : null}
+        {lifecycleUnverified ? (
+          <Alert>
+            <AlertTitle>操作结果待核实</AlertTitle>
+            <AlertDescription>
+              请重新进入订单查看最新状态后再操作。
             </AlertDescription>
           </Alert>
         ) : null}
@@ -282,20 +419,11 @@ export function SpotOrderDetail({
               className="shrink-0"
             />
           ) : null}
-          {actions.canCancel ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              onClick={() => setCancelDialogOpen(true)}
-            >
-              取消订单
-            </Button>
-          ) : null}
           {canSubmitPayment ? (
             <Button
               type="button"
               className="flex-1"
+              disabled={lifecyclePending !== null || lifecycleUnverified}
               onClick={() =>
                 void ensureAgreement().then((agreed) => {
                   if (agreed) setPaymentDrawerOpen(true);
@@ -305,23 +433,11 @@ export function SpotOrderDetail({
               去支付
             </Button>
           ) : null}
-          {canSupplementSerialNumber ? (
-            <Button
-              type="button"
-              className="flex-1"
-              onClick={() =>
-                void ensureAgreement().then((agreed) => {
-                  if (agreed) setSupplementOpen(true);
-                })
-              }
-            >
-              补充流水号
-            </Button>
-          ) : null}
           {canConfirmPayment ? (
             <Button
               type="button"
               className="flex-1"
+              disabled={lifecyclePending !== null || lifecycleUnverified}
               onClick={() =>
                 void ensureAgreement().then((agreed) => {
                   if (agreed) setConfirmPaymentDialogOpen(true);
@@ -335,6 +451,7 @@ export function SpotOrderDetail({
             <Button
               type="button"
               className="flex-1"
+              disabled={lifecyclePending !== null || lifecycleUnverified}
               onClick={() => setCompleteDialogOpen(true)}
             >
               确认收货
@@ -399,6 +516,7 @@ export function SpotOrderDetail({
         onOpenChange={setCancelDialogOpen}
         hasSubmittedPayment={bill?.status === "submitted"}
         pending={lifecyclePending === "cancel"}
+        blocked={lifecycleUnverified}
         onConfirm={() => void handleLifecycleAction("cancel")}
       />
 
@@ -409,6 +527,7 @@ export function SpotOrderDetail({
         description="确认已经收到商品且无误吗？确认后订单将完成。"
         confirmLabel="确认收货"
         pending={lifecyclePending === "complete"}
+        blocked={lifecycleUnverified}
         onConfirm={() => void handleLifecycleAction("complete")}
       />
 
@@ -423,6 +542,7 @@ export function SpotOrderDetail({
         }
         confirmLabel="确认已到账"
         pending={lifecyclePending === "confirm-payment"}
+        blocked={lifecycleUnverified}
         onConfirm={() => void handleLifecycleAction("confirm-payment")}
       />
     </div>
@@ -604,7 +724,6 @@ function OrderInfoCard({
           <CopyButton
             value={order.orderNo || String(order.id)}
             label="订单号"
-            compact
           />
         </div>
       </CardHeader>
@@ -657,7 +776,14 @@ function OrderInfoCard({
   );
 }
 
-function BillCard({ bill }: { bill: PaymentBill }) {
+function BillCard({
+  bill,
+  onSupplement,
+}: {
+  bill: PaymentBill;
+  onSupplement?: () => void;
+}) {
+  const payeeName = bill.payee?.name?.trim() || "未提供姓名";
   return (
     <Card className="rounded-lg">
       <CardHeader className="flex-row items-start justify-between gap-3 p-3">
@@ -667,11 +793,7 @@ function BillCard({ bill }: { bill: PaymentBill }) {
             <CardDescription className="min-w-0 truncate font-mono tabular-nums">
               {bill.billNo || bill.id}
             </CardDescription>
-            <CopyButton
-              value={bill.billNo || String(bill.id)}
-              label="账单号"
-              compact
-            />
+            <CopyButton value={bill.billNo || String(bill.id)} label="账单号" />
           </div>
         </div>
         <Badge variant={getBillBadgeVariant(bill.status)}>
@@ -679,23 +801,32 @@ function BillCard({ bill }: { bill: PaymentBill }) {
         </Badge>
       </CardHeader>
       <CardContent className="p-3 pt-0">
-        <dl className="grid auto-rows-[minmax(2rem,auto)] grid-cols-[5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 text-sm">
+        <dl className="grid auto-rows-[minmax(2rem,auto)] grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 text-sm">
           {bill.payee?.name ? (
             <>
               <dt className="text-muted-foreground">收款人</dt>
-              <dd className="min-w-0 truncate text-right">{bill.payee.name}</dd>
+              <dd className="flex min-w-0 items-center justify-end gap-2 font-medium">
+                <Avatar className="size-6" aria-hidden="true">
+                  <AvatarImage src={bill.payee.avatarUrl || undefined} alt="" />
+                  <AvatarFallback className="text-xs">
+                    {Array.from(payeeName)[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="min-w-0 break-all text-right">
+                  {payeeName}
+                </span>
+              </dd>
             </>
           ) : null}
           {bill.verifyCode ? (
             <>
-              <dt className="text-muted-foreground">付款标识码</dt>
+              <dt className="flex items-center gap-1 whitespace-nowrap text-muted-foreground">
+                付款标识码
+                <PaymentCodeHelp presentation="drawer" />
+              </dt>
               <dd className="flex min-w-0 items-center justify-end gap-1 font-mono font-semibold">
                 <span className="break-all text-right">{bill.verifyCode}</span>
-                <CopyButton
-                  value={bill.verifyCode}
-                  label="付款标识码"
-                  compact
-                />
+                <CopyButton value={bill.verifyCode} label="付款标识码" />
               </dd>
             </>
           ) : null}
@@ -706,7 +837,18 @@ function BillCard({ bill }: { bill: PaymentBill }) {
           {bill.channel ? (
             <>
               <dt className="text-muted-foreground">支付方式</dt>
-              <dd className="text-right">
+              <dd className="flex items-center justify-end gap-1.5 text-right">
+                {bill.channel === "wechat" ? (
+                  <RiWechatPayLine
+                    className="size-4 text-[#07c160]"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <RiAlipayLine
+                    className="size-4 text-[#1677ff]"
+                    aria-hidden="true"
+                  />
+                )}
                 {bill.channel === "wechat" ? "微信支付" : "支付宝"}
               </dd>
             </>
@@ -720,6 +862,22 @@ function BillCard({ bill }: { bill: PaymentBill }) {
             </>
           ) : null}
         </dl>
+        {bill.status === "submitted" ? (
+          <p className="mt-2 border-t pt-2 text-sm text-muted-foreground">
+            付款信息已提交，等待收款人核对到账
+          </p>
+        ) : null}
+        {onSupplement ? (
+          <Button
+            type="button"
+            variant="plain"
+            size="touch"
+            className="mt-2 h-auto min-h-0 px-0 py-0 text-sm leading-5"
+            onClick={onSupplement}
+          >
+            忘记备注？补充流水号
+          </Button>
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -743,12 +901,14 @@ function CancelOrderDialog({
   onOpenChange,
   hasSubmittedPayment,
   pending,
+  blocked,
   onConfirm,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   hasSubmittedPayment: boolean;
   pending: boolean;
+  blocked: boolean;
   onConfirm: () => void;
 }) {
   return (
@@ -774,7 +934,7 @@ function CancelOrderDialog({
           <Button
             type="button"
             variant="destructive"
-            disabled={pending}
+            disabled={pending || blocked}
             onClick={onConfirm}
           >
             {pending ? <Spinner data-icon="inline-start" /> : null}
@@ -793,6 +953,7 @@ function LifecycleConfirmDialog({
   description,
   confirmLabel,
   pending,
+  blocked,
   onConfirm,
 }: {
   open: boolean;
@@ -801,6 +962,7 @@ function LifecycleConfirmDialog({
   description: string;
   confirmLabel: string;
   pending: boolean;
+  blocked: boolean;
   onConfirm: () => void;
 }) {
   return (
@@ -821,7 +983,11 @@ function LifecycleConfirmDialog({
           >
             返回核对
           </Button>
-          <Button type="button" disabled={pending} onClick={onConfirm}>
+          <Button
+            type="button"
+            disabled={pending || blocked}
+            onClick={onConfirm}
+          >
             {pending ? <Spinner data-icon="inline-start" /> : null}
             {pending ? "处理中" : confirmLabel}
           </Button>

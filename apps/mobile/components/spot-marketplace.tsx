@@ -766,6 +766,7 @@ export function SpotMarketplace({
         }}
         amountCents={amount}
         payeeName={checkoutDraft?.bill?.payee?.name ?? null}
+        payeeAvatarUrl={checkoutDraft?.bill?.payee?.avatarUrl ?? null}
         verifyCode={verifyCode}
         qrCodes={paymentQrCodes}
         defaultPlatform={defaultPlatform}

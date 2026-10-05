@@ -28,6 +28,7 @@ import {
   DialogTitle,
 } from "#components/dialog";
 import { cn } from "#lib/utils";
+import { HighlightedText } from "#components/text-highlight";
 import {
   hasAcceptedTransactionAgreement,
   saveTransactionAgreementAcceptance,
@@ -263,7 +264,10 @@ export function TransactionAgreementProvider({
                         : "text-muted-foreground"
                     }
                   >
-                    {section.text}
+                    <HighlightedText
+                      text={section.text}
+                      highlights={section.highlights}
+                    />
                   </p>
                 </section>
               ))}
@@ -283,9 +287,6 @@ export function TransactionAgreementProvider({
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               ) : null}
-              <p className="text-xs leading-5 text-muted-foreground">
-                同意记录保存在当前浏览器；清除浏览器数据或更换设备后需重新确认。
-              </p>
               <div className="flex gap-3">
                 <Button
                   variant="outline"

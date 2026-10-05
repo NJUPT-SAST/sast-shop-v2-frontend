@@ -3,6 +3,7 @@
 import React, { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { toast } from "sonner";
 import {
   ProfileDialogsProvider,
   useProfileDialogs,
@@ -67,11 +68,13 @@ const address = {
 };
 
 function Menu() {
-  const { openQrCodeDialog, openAddressDialog } = useProfileDialogs();
+  const { openQrCodeDialog, openAddressDialog, openPaymentPreferenceDialog } =
+    useProfileDialogs();
   return (
     <>
       <button onClick={openQrCodeDialog}>打开收款码</button>
       <button onClick={openAddressDialog}>打开地址簿</button>
+      <button onClick={openPaymentPreferenceDialog}>打开默认支付方式</button>
     </>
   );
 }
@@ -213,6 +216,7 @@ afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 async function renderProvider() {
@@ -309,5 +313,42 @@ describe("profile drawer loading", () => {
       container.querySelector('[aria-label="更改微信支付收款码"]'),
     ).not.toBeNull();
     expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
+});
+
+describe("payment preference storage failures", () => {
+  it("keeps the selected platform unchanged and reports a failed write", async () => {
+    const storageDescriptor = Object.getOwnPropertyDescriptor(
+      window,
+      "localStorage",
+    );
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      get() {
+        throw new DOMException("Blocked", "SecurityError");
+      },
+    });
+    const success = vi.spyOn(toast, "success");
+    const error = vi.spyOn(toast, "error");
+
+    try {
+      await renderProvider();
+      await click("打开默认支付方式");
+      const alipay = container.querySelector<HTMLButtonElement>(
+        "#payment-platform-alipay",
+      );
+      expect(alipay).not.toBeNull();
+      await act(async () => alipay!.click());
+
+      expect(alipay?.getAttribute("aria-checked")).toBe("false");
+      expect(success).not.toHaveBeenCalledWith("默认支付方式已更新");
+      expect(error).toHaveBeenCalledWith("浏览器无法保存设置，请检查存储权限");
+    } finally {
+      if (storageDescriptor) {
+        Object.defineProperty(window, "localStorage", storageDescriptor);
+      } else {
+        Reflect.deleteProperty(window, "localStorage");
+      }
+    }
   });
 });

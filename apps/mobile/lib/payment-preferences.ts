@@ -9,20 +9,29 @@ export function isPaymentPlatform(value: unknown): value is PaymentPlatform {
 }
 
 export function readDefaultPaymentPlatform(
-  storage: Storage | undefined = getBrowserStorage(),
+  storage: Pick<Storage, "getItem"> | undefined = getBrowserStorage(),
 ): PaymentPlatform {
-  const storedPlatform = storage?.getItem(PAYMENT_PLATFORM_STORAGE_KEY);
-
-  return isPaymentPlatform(storedPlatform)
-    ? storedPlatform
-    : DEFAULT_PAYMENT_PLATFORM;
+  try {
+    const storedPlatform = storage?.getItem(PAYMENT_PLATFORM_STORAGE_KEY);
+    return isPaymentPlatform(storedPlatform)
+      ? storedPlatform
+      : DEFAULT_PAYMENT_PLATFORM;
+  } catch {
+    return DEFAULT_PAYMENT_PLATFORM;
+  }
 }
 
 export function writeDefaultPaymentPlatform(
   platform: PaymentPlatform,
-  storage: Storage | undefined = getBrowserStorage(),
-) {
-  storage?.setItem(PAYMENT_PLATFORM_STORAGE_KEY, platform);
+  storage: Pick<Storage, "setItem"> | undefined = getBrowserStorage(),
+): boolean {
+  if (!storage) return false;
+  try {
+    storage.setItem(PAYMENT_PLATFORM_STORAGE_KEY, platform);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function getBrowserStorage(): Storage | undefined {

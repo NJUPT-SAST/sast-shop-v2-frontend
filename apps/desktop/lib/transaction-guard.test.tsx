@@ -455,7 +455,7 @@ describe("desktop payment recovery", () => {
       ...order,
       bill: { ...order.bill!, status: "submitted" },
     });
-    await click("补充流水号");
+    await click("忘记备注？补充流水号");
     await enterSerialNumber("WX-12345");
     await click("提交");
     const supplementButton = Array.from(
@@ -478,7 +478,7 @@ describe("desktop payment recovery", () => {
       ...order,
       bill: { ...order.bill!, status: "submitted" },
     });
-    await click("补充流水号");
+    await click("忘记备注？补充流水号");
     await enterSerialNumber("WX-12345");
     await click("提交");
     expect(container.textContent).toContain("WX-12345");

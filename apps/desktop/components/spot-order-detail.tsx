@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  RiAlipayLine,
   RiArrowLeftLine,
   RiCheckboxCircleLine,
   RiCloseCircleLine,
+  RiWechatPayLine,
 } from "@remixicon/react";
 import {
   cancelSpotOrder,
@@ -23,6 +25,11 @@ import {
   type SpotOrder,
 } from "@sast-shop/api";
 import { formatPrice } from "@sast-shop/domain";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -32,6 +39,7 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card";
 import { CopyButton } from "@workspace/ui/components/copy-button";
+import { PaymentCodeHelp } from "@workspace/ui/components/payment-code-help";
 import {
   Dialog,
   DialogContent,
@@ -44,6 +52,7 @@ import { Input } from "@workspace/ui/components/input";
 import { Separator } from "@workspace/ui/components/separator";
 import { Spinner } from "@workspace/ui/components/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
+import { cn } from "@workspace/ui/lib/utils";
 import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 
@@ -278,15 +287,27 @@ export function SpotOrderDetail({
             />
           </div>
         </div>
-        {view === "buyer" ? (
-          <LarkContactButton
-            target="spot-seller"
-            orderId={String(resolvedOrder.id)}
-            dataSource={dataSource}
-            connectBaseUrl={connectBaseUrl}
-            label="联系卖家"
-          />
-        ) : null}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {view === "buyer" ? (
+            <LarkContactButton
+              target="spot-seller"
+              orderId={String(resolvedOrder.id)}
+              dataSource={dataSource}
+              connectBaseUrl={connectBaseUrl}
+              label="联系卖家"
+            />
+          ) : null}
+          {actions.canCancel ? (
+            <Button
+              variant="destructive-text"
+              size="touch"
+              onClick={() => setConfirmation("cancel")}
+              disabled={lifecycleUnverified}
+            >
+              取消订单
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       {timeline.length > 0 ? (
@@ -391,7 +412,7 @@ export function SpotOrderDetail({
           </CardHeader>
           <CardContent className="space-y-3">
             {bill ? (
-              <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
+              <dl className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
                 <dt className="text-muted-foreground">应付金额</dt>
                 <dd className="font-semibold">
                   {formatPrice(bill.amountCents)}
@@ -399,14 +420,49 @@ export function SpotOrderDetail({
                 {bill.payee?.name ? (
                   <>
                     <dt className="text-muted-foreground">收款方</dt>
-                    <dd className="truncate">{bill.payee.name}</dd>
+                    <dd className="flex min-w-0 items-center gap-2 font-medium">
+                      <Avatar className="size-6" aria-hidden="true">
+                        <AvatarImage
+                          src={bill.payee.avatarUrl || undefined}
+                          alt=""
+                        />
+                        <AvatarFallback className="text-xs">
+                          {Array.from(bill.payee.name.trim())[0] || "未"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="min-w-0 break-all">
+                        {bill.payee.name}
+                      </span>
+                    </dd>
                   </>
                 ) : null}
                 {bill.verifyCode ? (
                   <>
-                    <dt className="text-muted-foreground">付款标识码</dt>
+                    <dt className="flex items-center gap-1 text-muted-foreground">
+                      付款标识码
+                      <PaymentCodeHelp />
+                    </dt>
                     <dd className="font-mono text-lg font-semibold tracking-widest">
                       {bill.verifyCode}
+                    </dd>
+                  </>
+                ) : null}
+                {bill.channel ? (
+                  <>
+                    <dt className="text-muted-foreground">支付方式</dt>
+                    <dd className="flex items-center gap-1.5">
+                      {bill.channel === "wechat" ? (
+                        <RiWechatPayLine
+                          className="size-4 text-[#07c160]"
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <RiAlipayLine
+                          className="size-4 text-[#1677ff]"
+                          aria-hidden="true"
+                        />
+                      )}
+                      {bill.channel === "wechat" ? "微信支付" : "支付宝"}
                     </dd>
                   </>
                 ) : null}
@@ -433,11 +489,13 @@ export function SpotOrderDetail({
               ) : null}
               {canSupplementSerialNumber ? (
                 <Button
-                  variant="outline"
+                  variant="plain"
+                  size="touch"
+                  className="h-auto min-h-0 px-0 py-0 text-sm leading-5"
                   onClick={() => setSupplementOpen(true)}
                   disabled={supplementUnverified}
                 >
-                  补充流水号
+                  忘记备注？补充流水号
                 </Button>
               ) : null}
               {actions.canConfirmPayment ? (
@@ -454,15 +512,6 @@ export function SpotOrderDetail({
                   disabled={lifecycleUnverified}
                 >
                   确认完成
-                </Button>
-              ) : null}
-              {actions.canCancel ? (
-                <Button
-                  variant="outline"
-                  onClick={() => setConfirmation("cancel")}
-                  disabled={lifecycleUnverified}
-                >
-                  取消订单
                 </Button>
               ) : null}
             </div>
@@ -553,14 +602,14 @@ export function SpotOrderDetail({
           <DialogHeader>
             <DialogTitle>补充支付流水号</DialogTitle>
             <DialogDescription>
-              仅在已经支付但缺少流水号时填写。
+              忘记备注付款标识码时，可补充交易单号协助核款
             </DialogDescription>
           </DialogHeader>
           <Input
             aria-label="支付流水号"
             value={serialNumber}
             onChange={(event) => setSerialNumber(event.target.value)}
-            placeholder="请输入支付流水号"
+            placeholder="请输入交易单号或流水号"
           />
           <DialogFooter>
             <Button
@@ -613,6 +662,7 @@ function PaymentDialog({
   const [reloadCount, setReloadCount] = useState(0);
   const payingRef = useRef(false);
   const bill = order.bill;
+  const payeeName = bill?.payee?.name?.trim() || "未提供姓名";
   const qrKey =
     bill?.payee?.id && bill.updatedAt
       ? `${bill.payee.id}:${bill.updatedAt}:${reloadCount}`
@@ -728,16 +778,28 @@ function PaymentDialog({
         </DialogHeader>
         <div className="grid min-h-0 gap-5 overflow-y-auto overscroll-contain sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="flex flex-col gap-3">
-            <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 gap-y-2 rounded-lg bg-muted/70 p-3 text-sm">
+            <dl className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 rounded-lg bg-muted/70 p-3 text-sm">
               <dt className="text-muted-foreground">应付金额</dt>
               <dd className="font-semibold text-primary">
                 {formatPrice(bill?.amountCents ?? order.totalAmountCents)}
               </dd>
               <dt className="text-muted-foreground">收款人</dt>
-              <dd className="break-all font-medium">
-                {bill?.payee?.name?.trim() || "未提供姓名"}
+              <dd className="flex min-w-0 items-center gap-2 font-medium">
+                <Avatar className="size-6" aria-hidden="true">
+                  <AvatarImage
+                    src={bill?.payee?.avatarUrl || undefined}
+                    alt=""
+                  />
+                  <AvatarFallback className="bg-background text-xs">
+                    {Array.from(payeeName)[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="min-w-0 break-all">{payeeName}</span>
               </dd>
-              <dt className="text-muted-foreground">付款标识码</dt>
+              <dt className="flex items-center gap-1 text-muted-foreground">
+                付款标识码
+                <PaymentCodeHelp />
+              </dt>
               <dd className="break-all font-mono font-semibold">
                 {bill?.verifyCode || "暂无"}
               </dd>
@@ -750,14 +812,27 @@ function PaymentDialog({
             >
               <TabsList className="w-full">
                 <TabsTrigger value="wechat" disabled={!currentCodes.wechat}>
+                  <RiWechatPayLine
+                    aria-hidden="true"
+                    className="size-4 text-[#07c160]"
+                  />
                   微信
                 </TabsTrigger>
                 <TabsTrigger value="alipay" disabled={!currentCodes.alipay}>
+                  <RiAlipayLine
+                    aria-hidden="true"
+                    className="size-4 text-[#1677ff]"
+                  />
                   支付宝
                 </TabsTrigger>
               </TabsList>
             </Tabs>
-            <div className="flex min-h-52 items-center justify-center rounded-xl bg-white p-3">
+            <div
+              className={cn(
+                "flex min-h-52 items-center justify-center rounded-xl p-3",
+                content ? "bg-white" : "bg-muted",
+              )}
+            >
               {loading ? (
                 <Spinner className="text-primary" />
               ) : content ? (
