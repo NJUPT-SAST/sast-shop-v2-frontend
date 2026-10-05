@@ -39,6 +39,7 @@ import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
 import { formatErrandDisplayPrice } from "@/lib/errand-display";
 import { sanitizeImageSrc } from "@/lib/image-src";
 import { isValidRouteId } from "@/lib/route-id";
+import errandEmpty from "../public/brand/errand-empty.webp";
 
 type ErrandDemandHallProps = {
   dataSource: DataSource;
@@ -149,7 +150,7 @@ export function ErrandDemandHall({
           illustration={
             !hasKeyword ? (
               <Image
-                src="/brand/errand-empty.webp"
+                src={errandEmpty}
                 width={128}
                 height={128}
                 alt=""

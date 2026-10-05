@@ -96,6 +96,49 @@ async function renderBootstrap(
 }
 
 describe("mobile auth bootstrap client gate", () => {
+  it("replaces the login entry with the requested page after authorization", async () => {
+    const returnTo = "/orders?type=errand&view=buyer";
+    window.history.replaceState(
+      null,
+      "",
+      `/?returnTo=${encodeURIComponent(returnTo)}`,
+    );
+    const loginHref = window.location.href;
+    const historyLength = window.history.length;
+    replace.mockImplementation((href: string) => {
+      window.history.replaceState(window.history.state, "", href);
+    });
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 (iPhone) Lark/7.35.0",
+    );
+    vi.stubGlobal("h5sdk", { ready: vi.fn() });
+    vi.stubGlobal("tt", {});
+    let authorize!: (code: string) => void;
+    requestLarkAuthorizationCode.mockImplementation(
+      () => new Promise<string>((resolve) => (authorize = resolve)),
+    );
+    fetchMock
+      .mockReset()
+      .mockResolvedValueOnce(missingSession)
+      .mockResolvedValueOnce({ ok: true, status: 200 })
+      .mockResolvedValue(currentSession);
+
+    try {
+      await renderBootstrap(true, <Home />);
+      expect(window.location.href).toBe(loginHref);
+      expect(replace).not.toHaveBeenCalled();
+
+      await act(async () => authorize("auth-code"));
+      expect(replace).toHaveBeenCalledExactlyOnceWith(returnTo);
+      expect(`${window.location.pathname}${window.location.search}`).toBe(
+        returnTo,
+      );
+      expect(window.history.length).toBe(historyLength);
+    } finally {
+      window.history.replaceState(null, "", "/");
+    }
+  });
+
   it("keeps the home URL until authorization and session creation finish", async () => {
     vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
       "Mozilla/5.0 (iPhone) Lark/7.35.0",
