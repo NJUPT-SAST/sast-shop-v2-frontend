@@ -28,7 +28,7 @@ export function resolveDesktopDataSource(
 }
 
 export const desktopAppConfig = {
-  appName: "SAST 商城 PC 端",
+  appName: "SAST 商城",
   dataSource: resolveDesktopDataSource(dataSourceEnv),
   appOrigin,
   connectBaseUrl: `${appOrigin}/api/connect`,
