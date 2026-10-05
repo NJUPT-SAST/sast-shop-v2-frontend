@@ -96,6 +96,89 @@ async function renderBootstrap(
 }
 
 describe("desktop auth bootstrap client gate", () => {
+  it("invalidates private caches only when the validated session user changes", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 Lark/7.35.0",
+    );
+    const dispatch = vi.spyOn(window, "dispatchEvent");
+    const changes = () =>
+      dispatch.mock.calls.filter(
+        ([event]) => event.type === "sast-shop:session-changed",
+      );
+    await renderBootstrap();
+    expect(changes()).toHaveLength(1);
+    await act(async () => window.dispatchEvent(new Event("focus")));
+    expect(changes()).toHaveLength(1);
+
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ authenticated: true, user: { id: "20002" } }),
+    });
+    await act(async () => window.dispatchEvent(new Event("focus")));
+    expect(validateSessionUser).toHaveBeenLastCalledWith("20002", {
+      dataSource: "local",
+      connectBaseUrl: "http://127.0.0.1:1323",
+    });
+    expect(changes()).toHaveLength(2);
+    expect(
+      container.querySelector('[data-testid="app-content"]'),
+    ).not.toBeNull();
+  });
+
+  it("pauses private caches during recovery and resumes them only after a new session is created", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 Lark/7.35.0",
+    );
+    vi.stubGlobal("h5sdk", { ready: vi.fn() });
+    vi.stubGlobal("tt", {});
+    let authorize!: (code: string) => void;
+    requestLarkAuthorizationCode.mockImplementation(
+      () =>
+        new Promise<string>((resolve) => {
+          authorize = resolve;
+        }),
+    );
+    fetchMock.mockImplementation(
+      async (_url: string, options?: { method?: string }) =>
+        options?.method ? { ok: true, status: 200 } : currentSession,
+    );
+    const dispatch = vi.spyOn(window, "dispatchEvent");
+    await renderBootstrap();
+    dispatch.mockClear();
+
+    await act(async () =>
+      window.dispatchEvent(new Event(AuthRequiredError.browserEventName)),
+    );
+    expect(
+      dispatch.mock.calls.some(
+        ([event]) => event.type === "sast-shop:session-changing",
+      ),
+    ).toBe(true);
+    expect(
+      dispatch.mock.calls.some(
+        ([event]) => event.type === "sast-shop:session-changed",
+      ),
+    ).toBe(false);
+    expect(container.querySelector('[data-testid="app-content"]')).toBeNull();
+
+    await act(async () => authorize("new-auth-code"));
+    expect(
+      dispatch.mock.calls.some(
+        ([event]) => event.type === "sast-shop:session-changed",
+      ),
+    ).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/auth/session",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ code: "new-auth-code" }),
+      }),
+    );
+    expect(
+      container.querySelector('[data-testid="app-content"]'),
+    ).not.toBeNull();
+  });
+
   it("keeps the home URL until authorization and session creation finish", async () => {
     vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
       "Mozilla/5.0 (iPhone) Lark/7.35.0",

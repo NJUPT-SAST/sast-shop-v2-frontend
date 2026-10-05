@@ -153,6 +153,44 @@ export function ProfileManagement({
     knownIds: string[];
   } | null>(null);
 
+  const [addressSnapshot, setAddressSnapshot] = useState({
+    addresses: initialOverview?.addresses,
+    error: initialAddressError,
+  });
+  const [qrSnapshot, setQrSnapshot] = useState({
+    qrCodes: initialOverview?.paymentQrCodes,
+    error: initialQrError,
+  });
+  if (
+    !addressFormOpen &&
+    !deleteTarget &&
+    !pendingAction &&
+    !loadingSection &&
+    !addressNeedsVerification &&
+    (addressSnapshot.addresses !== initialOverview?.addresses ||
+      addressSnapshot.error !== initialAddressError)
+  ) {
+    setAddressSnapshot({
+      addresses: initialOverview?.addresses,
+      error: initialAddressError,
+    });
+    setAddresses(initialOverview?.addresses ?? []);
+    setAddressError(initialAddressError);
+  }
+  if (
+    !pendingAction &&
+    !loadingSection &&
+    (qrSnapshot.qrCodes !== initialOverview?.paymentQrCodes ||
+      qrSnapshot.error !== initialQrError)
+  ) {
+    setQrSnapshot({
+      qrCodes: initialOverview?.paymentQrCodes,
+      error: initialQrError,
+    });
+    setQrCodes(initialOverview?.paymentQrCodes ?? []);
+    setQrError(initialQrError);
+  }
+
   const user = initialOverview?.user;
   const cityOptions = getCityOptions(addressDraft.province);
   const districtOptions = getDistrictOptions(

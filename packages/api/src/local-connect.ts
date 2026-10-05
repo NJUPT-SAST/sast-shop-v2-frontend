@@ -50,5 +50,13 @@ export async function requestLocal<T>(
     }
 
     throw new ApiRequestError(feature, error);
+  } finally {
+    // A lost write response can still have changed server data.
+    if (
+      typeof window !== "undefined" &&
+      !/^(get|list|validate)/.test(feature)
+    ) {
+      window.dispatchEvent(new Event("sast-shop:data-changed"));
+    }
   }
 }

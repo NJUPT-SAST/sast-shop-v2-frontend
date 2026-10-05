@@ -1,66 +1,18 @@
-import type { ProfileOverview } from "@sast-shop/api";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@workspace/ui/components/avatar";
-import { LoadFailure } from "@workspace/ui/components/load-failure";
-import { loadProfileOverview } from "@/lib/profile-overview";
+import { randomUUID } from "node:crypto";
+import { ProfilePageClient } from "@/components/profile-page-client";
 import { mobileAppConfig } from "@/lib/app-config";
-import { ProfileManagement } from "@/components/profile-management";
+import { getServerAuthMode } from "@/lib/auth-mode";
 
-async function getProfilePageOverview(): Promise<{
-  overview: ProfileOverview | null;
-  error: string | null;
-}> {
-  try {
-    return {
-      overview: await loadProfileOverview(),
-      error: null,
-    };
-  } catch {
-    return {
-      overview: null,
-      error: "个人资料暂不可用，请稍后再试",
-    };
-  }
-}
+export const dynamic = "force-dynamic";
 
-export default async function ProfilePage() {
-  const result = await getProfilePageOverview();
-  const overview = result.overview;
-
+export default function ProfilePage() {
   return (
-    <div className="flex flex-1 flex-col gap-6 py-6">
-      <h1 className="text-xl font-semibold md:text-2xl">我的</h1>
-
-      {result.error ? (
-        <LoadFailure
-          variant="compact"
-          title="资料加载失败"
-          description={result.error}
-          retryHref="/profile"
-        />
-      ) : null}
-
-      {overview ? (
-        <div className="flex items-center gap-3 px-1">
-          <Avatar className="size-12">
-            <AvatarImage
-              src={overview.user.avatarUrl}
-              alt={overview.user.name}
-            />
-            <AvatarFallback className="text-lg font-semibold">
-              {overview.user.name.slice(0, 1)}
-            </AvatarFallback>
-          </Avatar>
-          <p className="min-w-0 break-words text-xl font-semibold leading-7">
-            {overview.user.name}
-          </p>
-        </div>
-      ) : null}
-
-      <ProfileManagement feedbackFormUrl={mobileAppConfig.feedbackFormUrl} />
-    </div>
+    <ProfilePageClient
+      dataSource={mobileAppConfig.dataSource}
+      connectBaseUrl={mobileAppConfig.connectBaseUrl}
+      feedbackFormUrl={mobileAppConfig.feedbackFormUrl}
+      authRequired={getServerAuthMode() === "required"}
+      refreshKey={randomUUID()}
+    />
   );
 }

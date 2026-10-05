@@ -1,22 +1,18 @@
-import { ProfileManagement } from "@/components/profile-management";
+import { randomUUID } from "node:crypto";
+import { ProfilePageClient } from "@/components/profile-page-client";
 import { desktopAppConfig } from "@/lib/app-config";
-import { loadDesktopProfileOverview } from "@/lib/profile-overview";
-import { getServerServiceOptions } from "@/lib/server-service-options";
+import { getServerAuthMode } from "@/lib/auth-mode";
 
-export default async function ProfilePage() {
-  const result = await loadDesktopProfileOverview(
-    await getServerServiceOptions(),
-  );
+export const dynamic = "force-dynamic";
+
+export default function ProfilePage() {
   return (
-    <ProfileManagement
-      key={JSON.stringify(result)}
-      initialOverview={result.overview}
-      error={result.error}
-      initialAddressError={result.addressError}
-      initialQrError={result.qrError}
+    <ProfilePageClient
       dataSource={desktopAppConfig.dataSource}
       connectBaseUrl={desktopAppConfig.connectBaseUrl}
       feedbackFormUrl={desktopAppConfig.feedbackFormUrl}
+      authRequired={getServerAuthMode() === "required"}
+      refreshKey={randomUUID()}
     />
   );
 }

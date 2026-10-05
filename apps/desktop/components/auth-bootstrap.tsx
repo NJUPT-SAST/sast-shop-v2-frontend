@@ -58,6 +58,7 @@ export function AuthBootstrap({
   const recoveringRef = useRef(false);
   const recoveredAtRef = useRef(0);
   const retryAfterRef = useRef(0);
+  const sessionUserIdRef = useRef<string | null>(null);
   const isInLark = useSyncExternalStore(
     subscribeLarkEnvironment,
     () => !enabled || isLarkClientEnvironment(window.h5sdk),
@@ -73,6 +74,10 @@ export function AuthBootstrap({
     };
     if (!status.ok || !current.authenticated || !current.user?.id) return false;
     await validateSessionUser(current.user.id, { dataSource, connectBaseUrl });
+    if (sessionUserIdRef.current !== current.user.id) {
+      sessionUserIdRef.current = current.user.id;
+      window.dispatchEvent(new Event("sast-shop:session-changed"));
+    }
     return true;
   }, [connectBaseUrl, dataSource]);
 
@@ -89,6 +94,8 @@ export function AuthBootstrap({
           return false;
         }
         if (clearSession) {
+          sessionUserIdRef.current = null;
+          window.dispatchEvent(new Event("sast-shop:session-changing"));
           const cleared = await fetch("/api/auth/session", {
             method: "DELETE",
           });
@@ -139,6 +146,7 @@ export function AuthBootstrap({
           throw new Error(`登录请求过于频繁，请 ${seconds} 秒后重试`);
         }
         if (!response.ok) throw new Error("登录会话建立失败，请重新授权");
+        window.dispatchEvent(new Event("sast-shop:session-changed"));
         setState("authenticated");
         router.refresh();
         return true;

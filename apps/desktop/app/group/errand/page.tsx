@@ -1,35 +1,16 @@
-import { listErrandDemandStoresPage, type PageResult } from "@sast-shop/api";
+import { randomUUID } from "node:crypto";
 
-import { ErrandDemandHall } from "@/components/errand-demand-hall";
+import { CachedErrandLobby } from "@/components/cached-errand-lobby";
 import { desktopAppConfig } from "@/lib/app-config";
-import { getServerServiceOptions } from "@/lib/server-service-options";
 
-export default async function ErrandDemandHallPage() {
-  let page: PageResult<import("@sast-shop/api").ErrandDemandStoreSummary> = {
-    items: [],
-    currentPage: 1,
-    pageSize: 24,
-    totalCount: 0,
-    hasMore: false,
-  };
-  let error: string | null = null;
+export const dynamic = "force-dynamic";
 
-  try {
-    page = await listErrandDemandStoresPage({
-      ...(await getServerServiceOptions()),
-      page: 1,
-      pageSize: 24,
-    });
-  } catch {
-    error = "跑腿需求暂不可用，请稍后再试。";
-  }
-
+export default function ErrandDemandHallPage() {
   return (
-    <ErrandDemandHall
+    <CachedErrandLobby
       dataSource={desktopAppConfig.dataSource}
       connectBaseUrl={desktopAppConfig.connectBaseUrl}
-      initialPage={page}
-      error={error}
+      refreshKey={randomUUID()}
     />
   );
 }

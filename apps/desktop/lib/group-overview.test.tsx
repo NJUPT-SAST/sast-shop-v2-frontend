@@ -1,5 +1,8 @@
-import React from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+// @vitest-environment jsdom
+
+import React, { act } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { clearResourceCache } from "@workspace/ui/lib/resource-cache";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import GroupPage from "../app/group/page";
 
@@ -27,13 +30,30 @@ vi.mock("../components/managed-image", () => ({
 vi.mock("../components/brand-illustration", () => ({
   BrandIllustration: () => null,
 }));
-vi.mock("../lib/server-service-options", () => ({
-  getServerServiceOptions: async () => ({ dataSource: "mock" }),
+vi.mock("../lib/app-config", () => ({
+  desktopAppConfig: {
+    dataSource: "mock",
+    connectBaseUrl: "http://localhost/api/connect",
+  },
 }));
 
 describe("desktop group overview", () => {
-  beforeEach(() => vi.stubGlobal("React", React));
-  afterEach(() => vi.unstubAllGlobals());
+  let root: Root;
+  let container: HTMLDivElement;
+  beforeEach(() => {
+    vi.stubGlobal("React", React);
+    vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+    clearResourceCache();
+    vi.clearAllMocks();
+    container = document.createElement("div");
+    document.body.append(container);
+    root = createRoot(container);
+  });
+  afterEach(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+    vi.unstubAllGlobals();
+  });
 
   it("shows an active task even when the first unfiltered page contains terminal tasks", async () => {
     listStores.mockResolvedValue([]);
@@ -62,7 +82,8 @@ describe("desktop group overview", () => {
               ],
     );
 
-    const html = renderToStaticMarkup(await GroupPage());
+    await act(async () => root.render(<GroupPage />));
+    const html = container.innerHTML;
 
     expect(
       listErrandTasks.mock.calls.map(([options]) => options.status),
