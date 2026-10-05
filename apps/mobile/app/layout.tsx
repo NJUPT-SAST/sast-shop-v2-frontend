@@ -8,6 +8,7 @@ import { ProfileDialogsProvider } from "@/components/profile-dialogs-provider";
 import { TransactionAgreementProvider } from "@/components/transaction-agreement-provider";
 import { mobileAppConfig } from "@/lib/app-config";
 import { getServerAuthMode } from "@/lib/auth-mode";
+import { resolveFeishuRedirectUri } from "../../../config/feishu-redirect-uri";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -37,6 +38,15 @@ export default function RootLayout({
         <AuthBootstrap
           enabled={authRequired}
           appId={process.env.NEXT_PUBLIC_FEISHU_APP_ID ?? ""}
+          redirectUri={
+            authRequired
+              ? resolveFeishuRedirectUri(
+                  process.env.NEXT_PUBLIC_FEISHU_REDIRECT_URI,
+                  mobileAppConfig.appOrigin,
+                  process.env.NODE_ENV === "production",
+                )
+              : undefined
+          }
           dataSource={mobileAppConfig.dataSource}
           connectBaseUrl={mobileAppConfig.connectBaseUrl}
         >

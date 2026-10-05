@@ -155,11 +155,15 @@ GHCR_READ_TOKEN
 
 飞书 `requestAccess` 调用所在页面的完整路径须配置在同一应用的「安全设置 → 重定向 URL」中，`/shop` 或 `/auth/callback` 不覆盖域名根路径。部署验收应使用真实飞书客户端或官方 H5 模拟器，分别确认授权码获取、后端换码、会话 Cookie 写入和读取；来源校验或 mock 换码通过不能代替真实登录验收。
 
+双端 JSAPI 登录入口使用 `NEXT_PUBLIC_FEISHU_REDIRECT_URI`，必须是与 `NEXT_PUBLIC_APP_ORIGIN` 同源的根地址。没有有效会话时，前端先进入该地址再发起授权，成功后返回原页面；`AUTH_MODE=off` 跳过此流程。`requestAccess` 没有 `redirect_uri` 参数，它校验调用页面地址；这项公开配置与桌面端独立 OAuth 回调的 `FEISHU_REDIRECT_URI` 不同，后者仍指向 `/auth/callback`。
+
 仓库还需要配置以下 Repository Variables，用于 Docker build 阶段注入公开配置：
 
 ```text
 MOBILE_APP_ORIGIN=https://shop.example.com
 DESKTOP_APP_ORIGIN=https://shop-admin.example.com
+MOBILE_FEISHU_REDIRECT_URI=https://shop.example.com/
+DESKTOP_FEISHU_REDIRECT_URI=https://shop-admin.example.com/
 NEXT_PUBLIC_DATA_SOURCE=local
 NEXT_PUBLIC_FEEDBACK_FORM_URL=https://example.feishu.cn/share/base/form/example
 ```

@@ -5,21 +5,25 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthRequiredError } from "@sast-shop/api";
 import { AuthBootstrap } from "../components/auth-bootstrap";
+import Home from "../app/page";
 
 const {
   refresh,
+  replace,
   validateSessionUser,
   waitForLarkReady,
   requestLarkAuthorizationCode,
 } = vi.hoisted(() => ({
   refresh: vi.fn(),
+  replace: vi.fn(),
   validateSessionUser: vi.fn(),
   waitForLarkReady: vi.fn(),
   requestLarkAuthorizationCode: vi.fn(),
 }));
 
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh }),
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()),
+  useRouter: () => ({ refresh, replace }),
   usePathname: () => "/shop",
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -55,6 +59,7 @@ beforeEach(() => {
   fetchMock = vi.fn().mockResolvedValue(currentSession);
   vi.stubGlobal("fetch", fetchMock);
   refresh.mockReset();
+  replace.mockReset();
   validateSessionUser.mockReset().mockResolvedValue(undefined);
   waitForLarkReady.mockReset().mockResolvedValue(undefined);
   requestLarkAuthorizationCode.mockReset().mockResolvedValue("auth-code");
@@ -70,22 +75,121 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 
-async function renderBootstrap(enabled = true) {
+async function renderBootstrap(
+  enabled = true,
+  children = <div data-testid="app-content">商城内容</div>,
+  redirectUri?: string,
+) {
   await act(async () =>
     root.render(
       <AuthBootstrap
         enabled={enabled}
         appId="cli_test"
+        redirectUri={redirectUri}
         dataSource="local"
         connectBaseUrl="http://127.0.0.1:1323"
       >
-        <div data-testid="app-content">商城内容</div>
+        {children}
       </AuthBootstrap>,
     ),
   );
 }
 
 describe("desktop auth bootstrap client gate", () => {
+  it("keeps the home URL until authorization and session creation finish", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 (iPhone) Lark/7.35.0",
+    );
+    vi.stubGlobal("h5sdk", { ready: vi.fn() });
+    vi.stubGlobal("tt", {});
+    let authorize!: (code: string) => void;
+    requestLarkAuthorizationCode.mockImplementation(
+      () => new Promise<string>((resolve) => (authorize = resolve)),
+    );
+    fetchMock
+      .mockReset()
+      .mockResolvedValueOnce(missingSession)
+      .mockResolvedValueOnce({ ok: true, status: 200 })
+      .mockResolvedValue(currentSession);
+
+    await renderBootstrap(true, <Home />);
+    expect(requestLarkAuthorizationCode).toHaveBeenCalledOnce();
+    expect(replace).not.toHaveBeenCalled();
+    expect(
+      fetchMock.mock.calls.some(([, options]) => options?.method === "POST"),
+    ).toBe(false);
+
+    await act(async () => authorize("auth-code"));
+    expect(replace).toHaveBeenCalledWith("/shop");
+  });
+
+  it("does not leave the home URL when authorization fails", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 (iPhone) Lark/7.35.0",
+    );
+    vi.stubGlobal("h5sdk", { ready: vi.fn() });
+    vi.stubGlobal("tt", {});
+    fetchMock.mockResolvedValue(missingSession);
+    requestLarkAuthorizationCode.mockRejectedValue(
+      new Error("invalid redirect uri"),
+    );
+
+    await renderBootstrap(true, <Home />);
+    expect(container.textContent).toContain("invalid redirect uri");
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("uses the configured root before SDK authorization on a deep link", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 Lark/7.35.0",
+    );
+    vi.stubGlobal("h5sdk", { ready: vi.fn() });
+    vi.stubGlobal("tt", {});
+    fetchMock.mockResolvedValue(missingSession);
+    const locationReplace = vi.fn();
+    const originalWindow = window;
+    vi.stubGlobal(
+      "window",
+      new Proxy(originalWindow, {
+        get(target, key) {
+          if (key === "location")
+            return {
+              href: "http://localhost:3000/orders?view=buyer",
+              replace: locationReplace,
+            };
+          return Reflect.get(target, key, target);
+        },
+      }),
+    );
+    await renderBootstrap(true, undefined, "http://localhost:3000/");
+    expect(locationReplace).toHaveBeenCalledWith(
+      "http://localhost:3000/?returnTo=%2Forders%3Fview%3Dbuyer",
+    );
+    expect(requestLarkAuthorizationCode).not.toHaveBeenCalled();
+    expect(
+      fetchMock.mock.calls.some(([, options]) => options?.method === "POST"),
+    ).toBe(false);
+  });
+
+  it("keeps an existing session on its current page despite root configuration", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 Lark/7.35.0",
+    );
+    await renderBootstrap(true, undefined, "https://other.example.test/");
+    expect(
+      container.querySelector('[data-testid="app-content"]'),
+    ).not.toBeNull();
+    expect(requestLarkAuthorizationCode).not.toHaveBeenCalled();
+  });
+
+  it("does not enforce the configured entry when authentication is disabled", async () => {
+    await renderBootstrap(false, undefined, "https://other.example.test/");
+    expect(
+      container.querySelector('[data-testid="app-content"]'),
+    ).not.toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("blocks an ordinary browser before checking an existing valid session", async () => {
     await renderBootstrap();
     expect(container.querySelector('[data-testid="app-content"]')).toBeNull();

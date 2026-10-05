@@ -65,6 +65,7 @@ jobs:
           NEXT_PUBLIC_DATA_SOURCE: local
           NEXT_PUBLIC_APP_ORIGIN: https://ci.example.invalid
           NEXT_PUBLIC_FEISHU_APP_ID: cli_ci_validation
+          NEXT_PUBLIC_FEISHU_REDIRECT_URI: https://ci.example.invalid/
           NEXT_PUBLIC_FEEDBACK_FORM_URL: https://example.feishu.cn/share/base/form/ci
           SESSION_COOKIE_SECRET: ci-session-cookie-secret-at-least-32-bytes
           CONNECT_BASE_URL: https://backend.example.invalid
@@ -119,6 +120,7 @@ jobs:
             NEXT_PUBLIC_DATA_SOURCE=local
             NEXT_PUBLIC_APP_ORIGIN=https://${{ matrix.app_name }}.ci.example.invalid
             NEXT_PUBLIC_FEISHU_APP_ID=cli_ci_validation
+            NEXT_PUBLIC_FEISHU_REDIRECT_URI=https://${{ matrix.app_name }}.ci.example.invalid/
             NEXT_PUBLIC_FEEDBACK_FORM_URL=https://example.feishu.cn/share/base/form/ci
           cache-from: type=gha,scope=ci-${{ matrix.app_name }}
           cache-to: type=gha,mode=max,scope=ci-${{ matrix.app_name }}

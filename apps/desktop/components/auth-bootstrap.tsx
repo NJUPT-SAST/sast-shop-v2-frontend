@@ -30,6 +30,7 @@ import {
 } from "@workspace/ui/components/card";
 import { Spinner } from "@workspace/ui/components/spinner";
 import { BrandIllustration } from "@/components/brand-illustration";
+import { getFeishuLoginRedirect } from "../../../config/feishu-redirect-uri";
 
 type AuthState =
   "checking" | "authenticating" | "authenticated" | "unsupported" | "error";
@@ -41,12 +42,14 @@ const sessionProbeEventName = "sast-shop:probe-session";
 export function AuthBootstrap({
   enabled,
   appId,
+  redirectUri,
   dataSource,
   connectBaseUrl,
   children,
 }: {
   enabled: boolean;
   appId: string;
+  redirectUri?: string;
   dataSource: DataSource;
   connectBaseUrl: string;
   children: ReactNode;
@@ -110,6 +113,17 @@ export function AuthBootstrap({
           }
         }
 
+        if (redirectUri) {
+          const loginEntry = getFeishuLoginRedirect(
+            window.location.href,
+            redirectUri,
+          );
+          if (loginEntry) {
+            window.location.replace(loginEntry);
+            return false;
+          }
+        }
+
         if (!appId)
           throw new Error("缺少飞书应用 ID，请联系管理员完成部署配置");
         if (!window.h5sdk?.ready || !window.tt) {
@@ -146,7 +160,7 @@ export function AuthBootstrap({
         authenticatingRef.current = false;
       }
     },
-    [appId, router, verifyCurrentSession],
+    [appId, redirectUri, router, verifyCurrentSession],
   );
 
   useEffect(() => {

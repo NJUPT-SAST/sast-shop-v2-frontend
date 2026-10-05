@@ -25,6 +25,7 @@ jobs:
     name: Publish ${{ matrix.app_name }}
     if: >-
       vars.MOBILE_APP_ORIGIN != '' && vars.DESKTOP_APP_ORIGIN != '' &&
+      vars.MOBILE_FEISHU_REDIRECT_URI != '' && vars.DESKTOP_FEISHU_REDIRECT_URI != '' &&
       vars.NEXT_PUBLIC_DATA_SOURCE != '' &&
       ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
       (github.event.workflow_run.conclusion == 'success' &&
@@ -42,10 +43,12 @@ jobs:
             app_filter: "@sast-shop/mobile"
             app_port: 3001
             app_origin_var: MOBILE_APP_ORIGIN
+            redirect_uri_var: MOBILE_FEISHU_REDIRECT_URI
           - app_name: desktop
             app_filter: "@sast-shop/desktop"
             app_port: 3002
             app_origin_var: DESKTOP_APP_ORIGIN
+            redirect_uri_var: DESKTOP_FEISHU_REDIRECT_URI
 
     steps:
       - name: Resolve source revision
@@ -63,12 +66,14 @@ jobs:
       - name: Validate public build configuration
         env:
           APP_ORIGIN: ${{ vars[matrix.app_origin_var] }}
+          FEISHU_REDIRECT_URI: ${{ vars[matrix.redirect_uri_var] }}
           DATA_SOURCE: ${{ vars.NEXT_PUBLIC_DATA_SOURCE }}
           FEISHU_APP_ID: ${{ secrets.NEXT_PUBLIC_FEISHU_APP_ID }}
           FEEDBACK_FORM_URL: ${{ vars.NEXT_PUBLIC_FEEDBACK_FORM_URL }}
         run: |
           test -n "$APP_ORIGIN"
           test -n "$FEISHU_APP_ID"
+          test -n "$FEISHU_REDIRECT_URI"
           case "$DATA_SOURCE" in
             mock|local) ;;
             remote) echo "NEXT_PUBLIC_DATA_SOURCE=remote is not connected" >&2; exit 1 ;;
@@ -76,8 +81,10 @@ jobs:
           esac
           APP_ORIGIN="$APP_ORIGIN" FEEDBACK_FORM_URL="$FEEDBACK_FORM_URL" node -e '
             const appOrigin = new URL(process.env.APP_ORIGIN)
+            const redirectUri = new URL(process.env.FEISHU_REDIRECT_URI)
             const allowedFeedbackHosts = ["feishu.cn", "larksuite.com"]
             if (appOrigin.protocol !== "https:" || appOrigin.username || appOrigin.password || appOrigin.pathname !== "/" || appOrigin.search || appOrigin.hash) process.exit(1)
+            if (redirectUri.origin !== appOrigin.origin || redirectUri.pathname !== "/" || redirectUri.username || redirectUri.password || redirectUri.search || redirectUri.hash) process.exit(1)
             if (process.env.FEEDBACK_FORM_URL) {
               const feedbackFormUrl = new URL(process.env.FEEDBACK_FORM_URL)
               if (feedbackFormUrl.protocol !== "https:" || feedbackFormUrl.username || feedbackFormUrl.password) process.exit(1)
@@ -130,6 +137,7 @@ jobs:
             NEXT_PUBLIC_DATA_SOURCE=${{ vars.NEXT_PUBLIC_DATA_SOURCE }}
             NEXT_PUBLIC_APP_ORIGIN=${{ vars[matrix.app_origin_var] }}
             NEXT_PUBLIC_FEISHU_APP_ID=${{ secrets.NEXT_PUBLIC_FEISHU_APP_ID }}
+            NEXT_PUBLIC_FEISHU_REDIRECT_URI=${{ vars[matrix.redirect_uri_var] }}
             NEXT_PUBLIC_FEEDBACK_FORM_URL=${{ vars.NEXT_PUBLIC_FEEDBACK_FORM_URL }}
           cache-from: type=gha,scope=publish-${{ matrix.app_name }}
           cache-to: type=gha,mode=max,scope=publish-${{ matrix.app_name }}

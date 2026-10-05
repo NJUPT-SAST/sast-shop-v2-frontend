@@ -5,6 +5,7 @@ set -eu
 : "${PORT:?PORT is required}"
 : "${NEXT_PUBLIC_FEISHU_APP_ID:?NEXT_PUBLIC_FEISHU_APP_ID is required}"
 : "${NEXT_PUBLIC_APP_ORIGIN:?NEXT_PUBLIC_APP_ORIGIN is required}"
+: "${NEXT_PUBLIC_FEISHU_REDIRECT_URI:?NEXT_PUBLIC_FEISHU_REDIRECT_URI is required}"
 : "${SESSION_COOKIE_SECRET:?SESSION_COOKIE_SECRET is required}"
 : "${CONNECT_BASE_URL:?CONNECT_BASE_URL is required}"
 : "${CONNECT_HEALTH_URL:?CONNECT_HEALTH_URL is required}"
@@ -55,6 +56,7 @@ node -e '
     ["CONNECT_BASE_URL", process.env.CONNECT_BASE_URL, false, false],
     ["CONNECT_HEALTH_URL", process.env.CONNECT_HEALTH_URL, false, false],
     ["NEXT_PUBLIC_APP_ORIGIN", process.env.NEXT_PUBLIC_APP_ORIGIN, true, false],
+    ["NEXT_PUBLIC_FEISHU_REDIRECT_URI", process.env.NEXT_PUBLIC_FEISHU_REDIRECT_URI, true, false],
   ];
   const feedbackFormUrl = process.env.NEXT_PUBLIC_FEEDBACK_FORM_URL;
   if (feedbackFormUrl) {
@@ -65,6 +67,7 @@ node -e '
     if (url.protocol !== "https:" || url.username || url.password) throw new Error(name);
     if (!allowQueryAndHash && (url.search || url.hash)) throw new Error(name);
     if (originOnly && url.pathname !== "/") throw new Error(name);
+    if (name === "NEXT_PUBLIC_FEISHU_REDIRECT_URI" && url.origin !== new URL(process.env.NEXT_PUBLIC_APP_ORIGIN).origin) throw new Error(name);
     if (name === "NEXT_PUBLIC_FEEDBACK_FORM_URL") {
       const allowedHosts = ["feishu.cn", "larksuite.com"];
       if (!allowedHosts.some((root) => url.hostname === root || url.hostname.endsWith(`.${root}`))) throw new Error(name);
