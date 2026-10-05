@@ -1,150 +1,118 @@
-# 项目概述
+# SAST 商城开发约定
 
-这是一个面向飞书网页应用的在线商城前端 monorepo。当前已经拆分为 `apps/mobile` 移动端商城、`apps/desktop` 桌面端界面，以及 `packages/api`、`packages/domain`、`packages/ui` 共享包。已经落地的技术栈包括 Next.js 16 App Router、React 19、TypeScript strict、Tailwind CSS v4、ESLint 9、Vitest 和 pnpm workspace。
+本文件适用于整个 frontend monorepo；修改子应用时同时阅读 `apps/mobile/AGENTS.md` 或 `apps/desktop/AGENTS.md`。以用户当前指令和已确认的产品决定为准，不重新提出已解决的问题。
 
-已落地 shadcn-style workspace UI 包、`@remixicon/react` 图标、ConnectRPC Web v2、Buf/Protobuf-ES v2 代码生成、fauxrpc mock tooling、Docker/GitHub Actions 部署工作流和 `DESIGN.md` 设计规范。`fauxrpc` 仍是外部 CLI，仓库不提交 CLI 二进制。
+## 开始任务
 
-# 常用命令
+- 先确认当前分支、工作树、相关目录和正在运行的服务。保留用户及其他任务的未提交改动，只修改本次范围内的文件。
+- 区分核查、修复、提交和推送：用户要求核查时先提供证据；要求修复时完成实现与验证。commit 和 push 仅在已明确授权的工作范围内执行，已授权的操作不重复询问。
+- 沿用当前分支；用户明确要求在 `main` 操作时，不自行创建分支或 worktree。同步远端前检查本地改动，按用户要求使用 `pull --rebase`，不覆盖工作树或改写远端历史。
+- 多步骤任务维护进度清单。收到中途反馈时并入当前任务；处理临时问题后说明“回到主线”及下一步。
+- 优先使用 `pnpm`、`rg`、`fd`、`eza`、`sd`；工具不可用时使用已有替代，不为普通核查安装额外工具。
 
-优先使用 `pnpm`。
+## 项目与目录
+
+这是面向飞书网页应用的商城，采用 pnpm workspace、Next.js App Router、React、TypeScript strict、Tailwind CSS v4、Vitest 和 ConnectRPC。具体版本以各 `package.json` 和锁文件为准。
+
+| 目录                                    | 职责                                                           |
+| --------------------------------------- | -------------------------------------------------------------- |
+| `apps/mobile`                           | 移动端应用，开发端口 `3001`；触屏、底部导航和 Drawer 交互      |
+| `apps/desktop`                          | 桌面端应用，开发端口 `3002`；桌面导航、Dialog 和键盘操作       |
+| `packages/api/src/services`             | API facade、RPC 调用和数据映射；页面通过 `@sast-shop/api` 调用 |
+| `packages/api/src/gen`                  | Buf/Protobuf-ES 生成物，提交入库，不手写或手改                 |
+| `packages/api/src/lark-client.ts`       | 飞书环境识别、SDK 订阅和 JSAPI 调用适配                        |
+| `packages/domain`                       | 金额、数量、状态等领域类型与纯函数                             |
+| `packages/ui`                           | 共享组件、语义样式及交易协议内容与交互                         |
+| `mock/fauxrpc`                          | ConnectRPC mock stubs；生成 schema 放在忽略的 `.mock/`         |
+| `design/brand`                          | 品牌源图、提示词及两端图标导出脚本                             |
+| `config`、`.github/workflows`、`docker` | 共享配置、CI、部署和容器启动约束                               |
+
+## 产品与接口依据
+
+- 产品流程审查使用最新 PRD 和流程图；涉及金额、分摊、权限、状态流转时，追踪 **页面 → API facade → ConnectRPC → 后端实现 → 状态映射**。不要只根据文案、mock 样例或旧讨论推断规则。
+- PRD：[产品需求](https://njupt-sast.feishu.cn/wiki/TQAcwn0yTixmEBkhGhPcHyT3n3c)；[数据库设计](https://njupt-sast.feishu.cn/wiki/QBzywhf7XiavnjkMeYJcj2w7ntd)；[proto](https://buf.build/sast/sast-shop-v2)。读取飞书文档使用可用的 `lark-wiki`、`lark-doc` 等技能。
+- UI 只能使用当前接口支持的字段和功能。人数、金额构成、原价比较、取消、结算预览等展示或操作，先确认对应数据和 RPC；缺失时明确降级或记录后端阻塞，不伪造业务状态。
+- 核查结论分为“确认缺陷”“待产品确认”“后端阻塞”，给出代码或接口证据。文档与实现不一致时说明差异，不能把猜测写成事实。
+- 设计参考 `DESIGN.md`、现有页面及可用的 `../frontend-v2` 原型。颜色和组件保持一致；营销式大留白、整屏展示等参考描述不适用于商城任务页，优先采用用户已确认的紧凑布局。
+
+## 环境、数据源与飞书
+
+| 配置                               | 约定                                                                                                            |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `AUTH_MODE=off`                    | 仅用于本地 mock/local，跳过登录及登录时的飞书环境检查；生产环境禁止                                             |
+| `AUTH_MODE=required`               | 两端在读取登录会话前检查飞书环境；普通浏览器提示“请在飞书中打开应用”                                            |
+| `NEXT_PUBLIC_FORCE_FEISHU_UI=true` | 仅用于移动端本地视觉验收，展示专属入口；不模拟 SDK，不绕过登录或签名，生产关闭                                  |
+| `NEXT_PUBLIC_DATA_SOURCE`          | `mock`、`local` 经 ConnectRPC 接入；`remote` 尚未实现，不能静默 fallback；默认值查看各 app 配置，不假设两端相同 |
+| `NEXT_PUBLIC_APP_ORIGIN`           | 当前应用访问源；应用通过同源 `/api/connect` 代理访问后端                                                        |
+| `CONNECT_BASE_URL`                 | 服务端私有上游地址；`NEXT_PUBLIC_CONNECT_BASE_URL` 仅用于已有本地开发配置，不向公开 bundle 暴露生产私有地址     |
+| `NEXT_PUBLIC_FEEDBACK_FORM_URL`    | 业务 URL 放在部署配置中；检查 Repository Variable → workflow → Docker build arg 的注入链路                      |
+
+- `.env.local`、`.env` 和凭据不提交。使用各 app 的 `.env.example`；修改 env 后重启受影响的 Next 服务。`NEXT_PUBLIC_*` 在构建时内联，线上修改公开配置需要重新构建部署。
+- 官方 H5 SDK 和公开应用 ID 可在客户端使用；应用密钥、session secret、签名生成及服务端凭据必须留在服务端。
+- 环境判断统一调用 `isLarkClientEnvironment` / `isLarkMobileClientEnvironment`。不要仅凭 `window.h5sdk` 存在或 `h5sdk.browser.versions` 判断；当前 CDN SDK 不保证暴露 `browser` 字段。
+- 区分“在飞书内”和“SDK/API 已就绪”。依赖 SDK 的入口需处理加载后的状态更新，复用 `subscribeLarkEnvironment` / `useSyncExternalStore`，不能用空订阅固定首次渲染结果。
+- 执行扫码、联系前仍检查 SDK 方法并完成必要的服务端签名；环境识别不替代签名或服务端会话校验。SDK 迟到显示可重试提示，扫码取消保留输入并允许重试或手动录入。
+- 飞书 AppLink、相机、原生导航栏、输入法等行为需核对官方支持并在真实客户端验证。浏览器 UA 模拟只证明入口和布局，不能报告为真机 JSAPI 成功。
+
+## 实现与交互
+
+- 页面使用 `@sast-shop/api` facade，不直接导入生成 proto。沿用 Connect-ES v2：`createClient`、`createConnectTransport` 和生成的 service definitions，不引入旧版 `protoc-gen-connect-es`。
+- Server Component 可直接 await facade；客户端交互才使用 `"use client"`。proto message 不直接跨 Server/Client 边界，需要时显式使用 `toJson/fromJson`。
+- 运行时 mock 数据统一维护在 `mock/fauxrpc/stubs`，通过 ConnectRPC 获取；组件/API facade 不添加手写运行时 fixture。单元测试可使用隔离的测试数据。
+- `useSearchParams()` 用于共享 bootstrap 或静态可预渲染路由时，使用 Suspense 包裹的子组件，避免生产构建失败。
+- 优先组合 `packages/ui` 的 shadcn-style 组件；接入或修改 shadcn 组件时使用相关技能/CLI。行为 prop 继续传给 primitive，使用真实 Radix `data-*` 状态选择器。
+- 样式以 `packages/ui/src/styles/globals.css` 的语义 token 为实现基准，保持单一 Action Coral；状态色使用现有语义样式。基础规则放在 `@layer base`，避免覆盖工具类。不添加远程 Google 字体或散落的原始颜色值。
+- 界面使用自然中文，描述保持必要且简短；个人中心/交易协议弹层的可见短描述沿用不加末尾句号的文案风格。展示型说明不重复操作按钮或同一价格。
+- 遵循现有信息层级和紧凑间距；列表尾部复用 `InfiniteListStatus`，不要紧贴最后一张卡片。局部间距问题局部修复，不全局强制固定行高或 padding。
+- 主导航沿用品牌矢量图标，通用功能控件使用已有 Remixicon；品牌插画使用 `BrandIllustration` 及 `design/brand` 导出的对应模块素材。小尺寸图标使用矢量或 compact 高分辨率资源，避免压缩、透明留白造成模糊。
+- 商品/店铺图片加载和失败使用共享占位，不暴露默认破图。品牌装饰图不能替代真实头像、商品图或微信/支付宝平台标志。
+- 可点击卡片保持键盘可访问性，可展开卡片维护 `aria-expanded`；子操作不能嵌套在 button 内。展开/收起使用现有 Collapsible 动画，支持减少动态效果设置。
+
+## 交易与失败恢复
+
+- 金额沿用整数分和现有解析/格式化函数；包装费、单价、数量分配等规则核对当前后端，不能凭印象计算。更新需要的 `updatedAt` 等版本字段必须来自写入响应或重新拉取的详情。
+- 涉及交易的写操作先等待 `ensureAgreement()`。协议内容维护在 `packages/ui/src/content/transaction-agreement.json`，同意至少等待 5 秒；鉴权开启时 localStorage 记录按现有版本和用户隔离，关闭鉴权的 mock 沿用本地测试记录。拒绝、身份确认失败或存储失败时不得继续写入。
+- 防止重复点击、扫码与提交竞争；异步完成后避免回填到已关闭或已切换的表单。优先保留用户输入、局部错误及可用恢复入口。
+- 超时、网络中断、写入成功但响应缺失等结果不明情况，先刷新详情核实；沿用现有 pending/recovery 锁，不盲目重发或宣称成功。并发冲突先刷新版本，避免覆盖新数据。
+- 商品、收款码、地址等独立数据的局部失败不应使整页失效；明确 loading、空状态、失败状态，重试只覆盖受影响部分。
+
+## 调试与验证
+
+常用命令：
 
 ```bash
-pnpm install
 pnpm dev:mobile
 pnpm dev:desktop
+pnpm mock:schema
+pnpm mock:fauxrpc
 pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
-pnpm format
+pnpm audit:prod
 pnpm proto:generate
-pnpm mock:schema
-pnpm mock:fauxrpc
-pnpm mock:generate:user
 ```
 
-- `pnpm dev:mobile` 启动 `apps/mobile`，默认端口为 `3001`。
-- `pnpm dev:desktop` 启动 `apps/desktop`，默认端口为 `3002`。
-- `pnpm proto:generate` 使用 `buf.gen.yaml` 从 `buf.build/sast/sast-shop-v2` 生成 Protobuf-ES v2 TypeScript 到 `packages/api/src/gen`，生成物提交入库。
-- `pnpm mock:schema` 生成 `.mock/fauxrpc/sast-shop-v2.binpb`；`pnpm mock:fauxrpc` 再在 `127.0.0.1:6660` 启动 fauxrpc mock backend。
-- 交付前至少运行 `pnpm lint`；涉及路由、构建配置、服务端代码或依赖变更时同时运行 `pnpm build`。
-- `pnpm build` 在沙箱内可能因 Turbopack 端口权限失败；审批模式下可通过。
+- 启动前核对端口和已有进程，优先复用相符的服务。`fauxrpc` 是外部 CLI；先确认可用，再按 `mock/fauxrpc/README.md` 启动 `127.0.0.1:6660`，不要把二进制提交入库。
+- 本地 mock 联调核对 data source、`AUTH_MODE=off`、当前 app origin 和代理上游，验证实际 RPC 数据与错误分支，不能只看到页面就认为联调成功。记录自己启动的进程，结束临时验证服务时只停止这些进程。
+- 普通前端代码改动至少运行 lint、typecheck 和受影响的行为测试。纯文案/样式微调不添加实现镜像测试；登录、交易、状态流转、异步互斥或失败恢复需补能复现问题的回归测试。
+- 回归测试保留被修复的环境识别、状态映射等逻辑，mock RPC 或 SDK 回调边界；不要把待验证的函数 mock 成固定结果而遗漏缺陷。
+- 跨端/共享逻辑改动、提交前的较大变更运行 `pnpm lint` → `pnpm typecheck` → `pnpm test` → `pnpm build`。路由、服务端、构建配置或依赖改动必须构建；依赖改动额外运行 `pnpm audit:prod`，不关闭 CI 检查来获得通过。
+- 依赖升级同步 package 文件、锁文件及必要的 `pnpm-workspace.yaml` overrides/build 白名单，验证冻结锁文件安装。更新 GitHub Actions 保留现有 SHA 固定方式，核对官方版本及运行环境要求。
+- **同一 app 的 build、生成 Next 类型和 typecheck 顺序执行**，不要并发读写 `.next`。类型检查遇到丢失的 `.next/types` 或已删除路由，先核实生成缓存，再有针对性地重新生成并重跑；不通过删除源码、收窄 tsconfig 或隐藏错误解决。
+- 生产构建必须使用 `AUTH_MODE=required`，可参照 `.github/workflows/ci.yml` 的无真实凭据验证配置。当前 `output: standalone` 的运行和资源布局按 `Dockerfile` / `docker/entrypoint.sh` 核对。
+- 修改容器或启动脚本时额外检查 shell 语法和容器健康端点，复用 CI smoke 流程；普通前端修改无需重复全部容器验证。
+- 仅在 proto/schema、`buf.gen.yaml` 或生成接口预期变化时运行 `pnpm proto:generate` 并核对生成差异；普通 UI 或 facade 逻辑修复不顺带拉取浮动 proto。CI 会检查生成物 drift。
+- 视觉改动用 Codex in-app Browser 检查影响页面、操作及溢出。移动端通常 390×844，并检查矮屏；桌面检查窄/宽视口。截图标明 mock、UA 模拟或真机条件，用户要求效果图时直接展示图片。
+- 只格式化本次修改文件，避免 `pnpm format` 改写整个脏工作树。交付前运行 `git diff --check`；文档-only 修改检查准确性、引用和格式即可。
+- 如实报告检查结果：失败先排查，缓存修复后重跑并说明；未执行或真机无法验证的项目明确注明，不能称“全部通过”。
 
-# 当前目录入口
+## 协作与交付
 
-- `apps/mobile/app/`：移动端商城 App Router 入口。
-- `apps/desktop/app/`：桌面端 App Router 入口。
-- `apps/mobile/next.config.ts`、`apps/desktop/next.config.ts`：子应用 Next 配置入口。
-- `packages/api/src/`：前端 API facade，维护 `mock`、`local`、`remote` 数据源边界；当前 mock/local 都通过 ConnectRPC 访问 fauxrpc/local backend，`remote` 仍明确未接入。
-- `packages/api/src/gen/`：Buf/Protobuf-ES v2 生成物；不要手写或手改生成文件。
-- `packages/domain/src/`：领域逻辑与纯函数。
-- `packages/ui/src/`：共享 UI 组件、样式和工具函数。
-- `apps/mobile/app/profile/`、`apps/desktop/app/profile/`：个人资料、地址簿与收款码页面；页面只调用 `@sast-shop/api` facade。
-- `packages/ui/src/components/dialog.tsx`、`packages/ui/src/components/drawer.tsx`：shadcn overlay 基础组件；桌面 profile 用 Dialog，移动端 profile 用 Drawer。
-- `buf.gen.yaml`：Connect Web 官方推荐的本地生成配置。
-- `mock/fauxrpc/`：fauxrpc stub 与说明；schema 输出在 `.mock/`，不提交。
-- `eslint.config.mjs`：Next core-web-vitals 与 TypeScript ESLint 配置。
-- 各 workspace package 的 `tsconfig.json`：开启 `strict` 并配置对应 package 的编译边界。
-- `pnpm-workspace.yaml`：pnpm 构建依赖白名单；变更 native/build 依赖时注意同步。
-
-# 相关文档
-
-需要读取飞书文档时使用 `lark-wiki`、`lark-doc` 等 skills。
-
-- PRD：https://njupt-sast.feishu.cn/wiki/TQAcwn0yTixmEBkhGhPcHyT3n3c
-- 后端数据库设计：https://njupt-sast.feishu.cn/wiki/QBzywhf7XiavnjkMeYJcj2w7ntd
-- proto 接口：https://buf.build/sast/sast-shop-v2
-
-# 环境变量
-
-- 每个 app 提交 `.env.example`；本地开发复制为 `.env.local`，生产环境复制为 `.env`。
-- `.env.local` 与 `.env` 不提交。
-- `NEXT_PUBLIC_DATA_SOURCE` 支持 `mock`、`local`、`remote`；当前默认 `mock`。
-- `NEXT_PUBLIC_CONNECT_BASE_URL` 用于 `mock` 和 `local` 数据源，本地 fauxrpc URL 写在各 app 的 `.env.local` 中，默认 `http://127.0.0.1:6660`。
-- Next.js 会内联 `NEXT_PUBLIC_*`；部署镜像构建阶段必须注入目标环境值。
-
-# 开发规范
-
-- 界面语言使用中文，不需要 i18n。
-- 移动端优先，同时适配桌面端；优先用 Tailwind 响应式工具处理布局。
-- 已经在 `~/sast-shop/frontend-v2` 实现了一套 UI/UX 设计稿代码；最终实现不必逐像素一致，但核心功能、信息架构和交互应保持一致。
-- 使用 Next App Router 约定。默认优先 Server Component；只有需要浏览器状态、事件处理、飞书 JSAPI 或客户端副作用时才使用 `"use client"`。
-- 飞书开放平台、Lark SDK、密钥和服务端凭据只能放在服务端边界内，不能泄露到 Client Component 或公开环境变量。
-- 接入 shadcn/ui 时使用 shadcn skill/CLI，并保持组件风格与本项目中文移动端商城场景一致。
-- 主题色与语义 token 以 `packages/ui/src/styles/globals.css` 为实现基准、`DESIGN.md` 为设计说明：保持单一 Action Coral（浅色主题 `#c9431f`，深色主题 `#ff9a78`），不要引入第二强调色；调整全局色彩时优先改 `background`、`card`、`muted`、`secondary`、`border` 等语义变量，不在业务组件里散落 raw hex。
-- Tailwind CSS v4 的全局基础样式放在 `@layer base` 内，避免 `*` 级规则覆盖 `border-transparent` 等工具类；修 shadcn/Radix 组件时使用真实 data selector（如 `data-[state=active]`、`group-data-[orientation=vertical]/tabs`），wrapper 接收 `orientation` 等行为 prop 时要继续传给 primitive。
-- 图标按计划使用 remixicon；接入前先安装依赖。若临时使用其他图标库，需要保持风格统一并在依赖中体现。
-- 网络请求使用 ConnectRPC 与 Buf 生成代码；页面只调用 `@sast-shop/api` facade，不直接 import proto 生成文件。
-- 使用 Connect-ES v2 官方方向：`createClient` + `createConnectTransport({ baseUrl })` + Buf 生成的 service definitions；不要引入过时的 `protoc-gen-connect-es`。
-- Server Component 可以直接 await facade；proto message 不跨 Server/Client 边界。若未来需要跨边界传递，使用 `toJson/fromJson` 显式处理序列化。
-- runtime mock 数据统一维护在 `mock/fauxrpc/stubs` 并通过 fauxrpc/local Connect 获取；不要在业务代码或 API facade 中新增手写 fixture。
-- `mock`、`local`、`remote` 不要静默互相 fallback；未接入能力应抛 `FeatureUnavailableError` 或展示明确降级状态。
-
-# 前端体验要求
-
-- 这是商城业务界面，不要做营销式落地页；首屏应直接呈现可用的购物、商品、分类、订单或个人中心体验。
-- 控件选择贴合实际操作：按钮带清晰命令或图标，二元设置用开关/复选框，选项集用菜单、tabs 或 segmented controls。
-- 小屏上优先保证浏览、筛选、加购、结算等主流程顺畅；避免文字溢出、控件挤压和卡片套卡片。
-- 页面文字、空状态、错误提示和按钮文案都使用自然中文。
-
-## 移动端 UI/交互约定
-
-- `apps/mobile` 的整体信息架构、底部导航、一级/二级页面标题逻辑和主要交互参考 `../frontend-v2`；设计细节同时对齐 `DESIGN.md` 与 PRD 示意图。
-- 一级页面默认从商城进入；底部导航顺序为商城、团购、订单、我的。一级页面不显示顶部导航栏；二级页面才按原型显示顶部标题与返回逻辑。
-- 尽可能使用 `packages/ui` 中的 shadcn-style 组件。Tabs、Drawer、Dialog、Spinner、Item 等不要用手绘替代；缺组件时先补共享 UI 组件，再在业务页面组合。
-- 移动端底部弹层使用 Drawer，不用 Sheet。Drawer 需要有顶部小横条、上方圆角、纯净背景，层级高于底部导航栏，宽度占满视口；地址簿、收款码等抽屉不放明显关闭按钮。
-- 个人中心用户信息只展示头像和用户名，头像使用 `@workspace/ui/components/avatar`；收款码入口和弹窗统一称为“收款码”，只展示微信/支付宝平台上传状态，整张卡片负责上传或更改，不展示二维码图片或二维码内容。
-- 地址簿抽屉的滚动区域应限制在地址信息列表内，列表滚动容器使用 mobile 已定义的 `app-scrollbar`；地址卡片支持点击编辑时必须保留键盘可访问性（可聚焦、`role="button"`、Enter/Space 激活）。地址省市区使用中国大陆地址数据级联 `Select`，不要回退成自由文本输入。
-- 页面滚动只发生在内容区域，滚动条不能延伸到底部导航栏后方，也不要挤压页面导致内容偏移；滚动底部留白按导航栏高度控制，避免空白过多。
-- 商品或店铺图片加载中使用合适的图标占位，加载失败使用裂图占位，不直接暴露浏览器默认破图样式。
-- 当前页面的底部导航点击不刷新路由：有滚动位置时回到顶部；已在顶部时触发下拉刷新 loading。刷新行为需要防抖，短时间只允许执行一次。
-
-# 验证要求
-
-- 文档或纯配置变更：检查内容准确性即可。
-- 前端代码变更：运行 `pnpm lint`，必要时运行 `pnpm build`。
-- 视觉/交互变更：按影响范围启动 `pnpm dev:mobile` 或 `pnpm dev:desktop`，在移动端和桌面端视口检查关键流程。
-- 本地 localhost 视觉验收优先使用 Codex in-app Browser；移动端常用 390×844 视口，必要时检查 computed style（例如 Tabs 的 `border-color`、active 背景、shadow），检查完成后保持移动端 viewport，不需要复位。
-- 接入数据、鉴权、飞书接口或服务端逻辑：额外关注 secrets、权限边界、错误处理和降级状态。
-- 接入数据层、生成物或 proto 配置时，运行 `pnpm proto:generate` 并确认 `buf.gen.yaml`、`packages/api/src/gen` 无 drift。
-
-# Agent Orchestration
-
-仓库内的 agent 规则来源见 `.agents/rules/agents.md`。如果当前运行环境支持 Task/子代理，按该文件进行分派；如果不支持，则在主线程完成同等检查并说明未分派原因。
-
-## Immediate Agent Usage
-
-No user prompt needed:
-
-1. Complex feature requests - Use **planner** agent
-2. Code just written/modified - Use **code-reviewer** agent
-3. Bug fix or new feature - Use **tdd-guide** agent
-4. Architectural decision - Use **architect** agent
-
-## Parallel Task Execution
-
-ALWAYS use parallel Task execution for independent operations:
-
-```markdown
-# GOOD: Parallel execution
-
-Launch 3 agents in parallel:
-
-1. Agent 1: Security analysis of auth module
-2. Agent 2: Performance review of cache system
-3. Agent 3: Type checking of utilities
-
-# BAD: Sequential when unnecessary
-
-First agent 1, then agent 2, then agent 3
-```
-
-## Multi-Perspective Analysis
-
-For complex problems, use split role sub-agents:
-
-- Factual reviewer
-- Senior engineer
-- Security expert
-- Consistency reviewer
-- Redundancy checker
+- 当前环境支持子代理时，将独立的契约核对、回归测试或代码审查并行分派；先划清文件所有权，避免多人改同一文件。共享缓存、端口和 Git 操作按依赖顺序执行。
+- 简单文案和局部样式无需固定数量的代理、完整规划文档或覆盖率门槛；复杂交易/鉴权修改应有独立审查。缺少代理工具时在主线程完成检查，不因此停工。
+- `.agents/rules/` 下的 development-workflow、code-review、git-workflow 等是通用参考；本文件规定本仓库的授权、验证和分派方式。不要引用不存在的 `.agents/rules/agents.md` 或要求不可用的固定角色工具。
+- 默认不添加解释“做了什么”的代码注释；仅为隐藏约束、非显然原因或必要 workaround 写注释，保留仍有效的既有注释。
+- 提交前审查实际 diff 与文件范围，使用 Conventional Commits。push 前核对分支、remote、待推送提交和授权；明确要求“只 commit 不 push”时止于提交。
+- GitHub CI 排查读取失败 job 和完整日志，定位锁文件、生成物、环境或构建问题；依赖 PR 合并、远端分支删除等远端写操作按用户授权执行。后端需求提 issue 前搜索所有状态的现有 issue，避免重复。
+- 交付说明包含改动、验证、仍需真机/后端核验的事项及实际提交状态；不要把本地修复写成已经上线。
