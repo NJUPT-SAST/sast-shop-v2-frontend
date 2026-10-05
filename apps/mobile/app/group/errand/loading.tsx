@@ -2,13 +2,16 @@ import { Skeleton } from "@workspace/ui/components/skeleton";
 
 export default function ErrandDemandHallLoading() {
   return (
-    <div className="flex flex-1 flex-col gap-5 py-6">
-      <section className="flex flex-col gap-2">
+    <div
+      className="flex flex-1 flex-col gap-5 py-6"
+      role="status"
+      aria-label="跑腿大厅加载中"
+    >
+      <section>
         <Skeleton className="h-7 w-36 rounded-lg" />
-        <Skeleton className="h-5 w-64 max-w-full rounded-lg" />
       </section>
 
-      <Skeleton className="h-10 w-full rounded-lg" />
+      <Skeleton className="h-11 w-full rounded-lg" />
 
       <section className="flex flex-col gap-3">
         {Array.from({ length: 3 }).map((_, index) => (
@@ -27,9 +30,9 @@ export default function ErrandDemandHallLoading() {
               <Skeleton className="h-6 w-20 rounded-lg" />
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <Skeleton className="h-14 rounded-lg" />
-              <Skeleton className="h-14 rounded-lg" />
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Skeleton className="h-7 w-24 rounded-full" />
+              <Skeleton className="h-7 w-20 rounded-full" />
             </div>
 
             <div className="mt-4 flex items-center justify-between gap-3">
@@ -41,7 +44,7 @@ export default function ErrandDemandHallLoading() {
                 </div>
                 <Skeleton className="h-4 w-14 rounded-lg" />
               </div>
-              <Skeleton className="h-9 w-24 rounded-lg" />
+              <Skeleton className="size-5" />
             </div>
           </div>
         ))}

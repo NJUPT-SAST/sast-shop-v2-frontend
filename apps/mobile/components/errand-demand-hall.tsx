@@ -198,15 +198,34 @@ export function ErrandDemandHall({
 
 function DemandLoadingSkeletons() {
   return (
-    <div className="flex flex-col gap-3" aria-label="正在加载更多跑腿需求">
+    <div
+      className="flex flex-col gap-3"
+      role="status"
+      aria-label="正在加载更多跑腿需求"
+    >
       {Array.from({ length: 2 }, (_, index) => (
         <Card key={index} aria-hidden="true">
-          <CardHeader className="gap-3">
-            <Skeleton className="h-5 w-2/5" />
-            <Skeleton className="h-4 w-3/4" />
+          <CardHeader className="flex-row items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-start gap-3">
+              <Skeleton className="size-10 shrink-0 rounded-lg" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-5 w-3/5" />
+                <Skeleton className="h-4 w-2/5" />
+              </div>
+            </div>
+            <Skeleton className="h-5 w-16" />
           </CardHeader>
-          <CardContent>
-            <Skeleton className="h-12 w-full" />
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Skeleton className="h-7 w-24 rounded-full" />
+              <Skeleton className="h-7 w-20 rounded-full" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="size-7 rounded-full" />
+              <Skeleton className="size-7 rounded-full" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="ml-auto size-5" />
+            </div>
           </CardContent>
         </Card>
       ))}

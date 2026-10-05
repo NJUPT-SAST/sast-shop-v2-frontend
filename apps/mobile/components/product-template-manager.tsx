@@ -651,7 +651,11 @@ export function ProductTemplateManager({
 
 function TemplateLoadingSkeletons() {
   return (
-    <div className="flex flex-col gap-3" aria-label="正在加载更多商品模板">
+    <div
+      className="flex flex-col gap-3"
+      role="status"
+      aria-label="正在加载更多商品模板"
+    >
       {Array.from({ length: 3 }, (_, index) => (
         <Item key={index} variant="outline" aria-hidden="true">
           <Skeleton className="size-14 shrink-0 rounded-lg" />

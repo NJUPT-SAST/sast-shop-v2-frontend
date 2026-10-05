@@ -793,6 +793,7 @@ function SpotGoodsLoadingSkeletons() {
   return (
     <div
       className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4"
+      role="status"
       aria-label="正在加载更多商品"
       aria-live="polite"
     >

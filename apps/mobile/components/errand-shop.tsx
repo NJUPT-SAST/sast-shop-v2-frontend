@@ -661,7 +661,7 @@ export function ErrandShop({
 
 function TemplateLoadingSkeletons() {
   return (
-    <div className="grid gap-3" aria-label="正在加载更多可选商品">
+    <div className="grid gap-3" role="status" aria-label="正在加载更多可选商品">
       {Array.from({ length: 2 }, (_, index) => (
         <Card key={index} className="flex gap-3 p-3" aria-hidden="true">
           <Skeleton className="size-20 shrink-0 rounded-lg" />

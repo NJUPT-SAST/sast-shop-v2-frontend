@@ -529,6 +529,7 @@ export function OrdersView({
         type="single"
         value={filters.status}
         variant="outline"
+        size="sm"
         selectionVariant="primary"
         aria-label="订单状态"
         className="flex flex-wrap justify-start"
@@ -537,7 +538,11 @@ export function OrdersView({
         }}
       >
         {getStatusOptions(filters.type, filters.view).map((option) => (
-          <ToggleGroupItem key={option.value} value={option.value}>
+          <ToggleGroupItem
+            key={option.value}
+            value={option.value}
+            className="h-8 min-w-0 rounded-full px-3 text-xs md:min-w-0"
+          >
             {option.label}
           </ToggleGroupItem>
         ))}
@@ -661,8 +666,12 @@ function OrderLoadingSkeletons() {
         <Item key={index} variant="outline" aria-hidden="true">
           <Skeleton className="size-14 shrink-0 rounded-lg" />
           <ItemContent className="gap-2">
-            <Skeleton className="h-5 w-2/5" />
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-5 w-2/5" />
+              <Skeleton className="h-5 w-14 rounded-full" />
+            </div>
             <Skeleton className="h-4 w-3/5" />
+            <Skeleton className="h-4 w-2/5" />
           </ItemContent>
         </Item>
       ))}

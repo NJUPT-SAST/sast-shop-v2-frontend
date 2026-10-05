@@ -509,6 +509,13 @@ Error and validation states were not surfaced in the analyzed pages.
 - Align mobile secondary-page header actions with the content edges on wide screens. Copy controls are 24px and stay in normal layout so their hover and pressed states do not cover the number.
 - Place business cancellation actions at the page header's right edge as red text buttons without icons. Keep confirmation dialogs and pending or unverified-result guards; form cancellation and row-specific actions stay with their context.
 
+### Loading States
+
+- Match each route's actual title, filters, card proportions, responsive columns, and detail sections. Mobile and desktop use their own page structures; payment verification has a separate fallback from purchasing.
+- Keep navigation in the shared shell. Reserve the space occupied by fixed action bars, and keep placeholders non-interactive without guessed prices, names, counts, or statuses.
+- Use the same card structure for initial loading and list pagination. Retain existing content during local refreshes, and limit placeholders to the data being loaded.
+- Group placeholders under a named loading status, hide decorative shapes from assistive technology, and use shared semantic Skeleton colors with reduced-motion support.
+
 ### Footer
 
 **`footer`** — Background `{colors.canvas-parchment}` (#f5f5f7), text `{colors.ink-muted-80}`. Link columns in `{typography.dense-link}` (17px / 400 / 2.41 line-height — the relaxed leading is what makes the dense columns scannable). Column headings in `{typography.caption-strong}` (14px / 600). Legal row at the very bottom in `{typography.fine-print}` (12px / 400) with `{colors.ink-muted-48}` text. Vertical padding 64px.

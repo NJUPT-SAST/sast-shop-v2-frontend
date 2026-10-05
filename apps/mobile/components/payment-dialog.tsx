@@ -432,7 +432,17 @@ function PaymentDialogBody({
 function PaymentDialogSkeleton() {
   return (
     <div className="flex flex-col gap-4">
-      <Skeleton className="h-20 rounded-lg" />
+      <div className="space-y-2 rounded-lg bg-muted/70 p-3">
+        {Array.from({ length: 3 }, (_, index) => (
+          <div
+            key={index}
+            className="flex min-h-10 items-center justify-between gap-3"
+          >
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-5 w-24" />
+          </div>
+        ))}
+      </div>
       <div className="grid grid-cols-2 gap-2">
         <Skeleton className="h-10 rounded-md" />
         <Skeleton className="h-10 rounded-md" />

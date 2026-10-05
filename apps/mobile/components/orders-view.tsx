@@ -481,7 +481,8 @@ export function OrdersView({
           <Button
             type="button"
             variant={filters.status === "all" ? "default" : "outline"}
-            className="h-11 shrink-0 px-3 text-xs"
+            size="sm"
+            className="h-8 shrink-0 rounded-full px-3 text-xs"
             aria-pressed={filters.status === "all"}
             onClick={() => updateFilters({ status: "all" })}
           >
@@ -500,6 +501,7 @@ export function OrdersView({
                 type="single"
                 value={filters.status === "all" ? "" : filters.status}
                 variant="outline"
+                size="sm"
                 spacing={1}
                 selectionVariant="primary"
                 aria-label="订单状态筛选"
@@ -513,7 +515,7 @@ export function OrdersView({
                     key={option.value}
                     value={option.value}
                     aria-label={`筛选${option.label}订单`}
-                    className="h-11 min-w-11 px-3 text-xs"
+                    className="h-8 min-w-0 rounded-full px-3 text-xs"
                   >
                     {option.label}
                   </ToggleGroupItem>
@@ -621,18 +623,29 @@ function OrderLoadingSkeletons() {
   return (
     <div
       className="grid min-w-0 gap-3 md:grid-cols-2"
+      role="status"
       aria-label="正在加载更多订单"
     >
       {Array.from({ length: 2 }, (_, index) => (
         <Card key={index} aria-hidden="true">
-          <CardHeader className="gap-3">
-            <Skeleton className="h-5 w-3/5" />
+          <CardHeader className="gap-2 pb-3">
+            <div className="flex items-center justify-between gap-3">
+              <Skeleton className="h-5 w-3/5" />
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </div>
             <Skeleton className="h-4 w-2/5" />
           </CardHeader>
-          <CardContent className="space-y-3">
-            <Skeleton className="h-4 w-4/5" />
-            <Skeleton className="h-10 w-full" />
+          <CardContent className="flex items-center gap-3 pb-3">
+            <Skeleton className="size-16 shrink-0 rounded-lg" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-3 w-3/4" />
+            </div>
           </CardContent>
+          <div className="flex justify-between border-t bg-muted/30 px-4 py-3">
+            <Skeleton className="h-4 w-2/5" />
+            <Skeleton className="h-5 w-20" />
+          </div>
         </Card>
       ))}
     </div>

@@ -3,7 +3,11 @@ import { MobileFixedFooter } from "@/components/mobile-fixed-footer";
 
 export default function ErrandDemandDetailLoading() {
   return (
-    <div className="flex flex-1 flex-col gap-4 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-6">
+    <div
+      className="flex flex-1 flex-col gap-4 py-6"
+      role="status"
+      aria-label="跑腿需求加载中"
+    >
       <section className="space-y-2">
         <Skeleton className="h-7 w-36" />
         <Skeleton className="h-5 w-56" />

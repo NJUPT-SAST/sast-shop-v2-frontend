@@ -176,12 +176,19 @@ function DemandLoadingSkeletons() {
     >
       {Array.from({ length: 2 }, (_, index) => (
         <Card key={index} aria-hidden="true">
-          <CardHeader className="gap-3">
-            <Skeleton className="h-5 w-2/5" />
-            <Skeleton className="h-4 w-3/4" />
+          <CardHeader className="flex-row items-start gap-3">
+            <Skeleton className="size-10 shrink-0 rounded-lg" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-5 w-2/5" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <Skeleton className="h-12 w-full" />
+          <CardContent className="space-y-3">
+            <div className="flex gap-2">
+              <Skeleton className="h-6 w-24 rounded-full" />
+              <Skeleton className="h-6 w-20 rounded-full" />
+            </div>
+            <Skeleton className="h-4 w-3/4" />
           </CardContent>
         </Card>
       ))}
