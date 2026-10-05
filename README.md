@@ -151,7 +151,9 @@ GHCR_READ_TOKEN
 
 服务器允许部署账号免密执行 `/usr/local/lib/sast-shop/deploy-image`。工作流调用 `sudo -n /usr/local/lib/sast-shop/deploy-image TARGET REVISION IMAGE_REF --registry-stdin`，其中 `TARGET` 为 `mobile` 或 `desktop`，`REVISION` 为完整 40 位 SHA；服务器入口负责仓库白名单、镜像版本校验、部署锁、容器更新及失败恢复。部署账号通过该入口操作，保持现有目录和 Docker socket 权限。
 
-仓库级 Secret 保留现有的 `NEXT_PUBLIC_FEISHU_APP_ID`，供镜像发布阶段读取；桌面端服务器 `.env` 同时配置同值的 `FEISHU_APP_ID` 与对应域名的 `FEISHU_REDIRECT_URI`。
+仓库级 Secret `NEXT_PUBLIC_FEISHU_APP_ID` 在镜像发布阶段注入双端公开应用 ID。修改后必须重新构建并手动部署新镜像；运行时修改服务器 `.env` 不会替换客户端 bundle 中的值。该 ID 必须与后端飞书应用配置及 `GetJSAPIAuthConfig` 返回的 `appId` 一致；应用密钥只配置在后端。桌面端服务器 `.env` 的 `FEISHU_APP_ID` 也使用同一应用 ID，`FEISHU_REDIRECT_URI` 使用对应域名的回调地址。
+
+飞书 `requestAccess` 调用所在页面的完整路径须配置在同一应用的「安全设置 → 重定向 URL」中，`/shop` 或 `/auth/callback` 不覆盖域名根路径。部署验收应使用真实飞书客户端或官方 H5 模拟器，分别确认授权码获取、后端换码、会话 Cookie 写入和读取；来源校验或 mock 换码通过不能代替真实登录验收。
 
 仓库还需要配置以下 Repository Variables，用于 Docker build 阶段注入公开配置：
 
