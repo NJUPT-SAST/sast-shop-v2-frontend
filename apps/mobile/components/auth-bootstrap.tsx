@@ -19,15 +19,7 @@ import {
   validateSessionUser,
   waitForLarkReady,
 } from "@sast-shop/api";
-import { RiShieldUserLine } from "@remixicon/react";
 import { Button } from "@workspace/ui/components/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card";
 import { Spinner } from "@workspace/ui/components/spinner";
 import { BrandIllustration } from "@/components/brand-illustration";
 import { getFeishuLoginRedirect } from "../../../config/feishu-redirect-uri";
@@ -289,30 +281,44 @@ export function AuthBootstrap({
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-muted/40 p-6">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="items-center text-center">
-          <span className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <RiShieldUserLine />
-          </span>
-          <CardTitle>登录 SAST 商城</CardTitle>
-          <CardDescription>
-            {state === "error" ? error : "正在通过飞书安全登录，请稍候…"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-center">
-          {state === "error" ? (
-            <Button
-              disabled={retryAfter > 0}
-              onClick={() => void authenticate()}
-            >
-              {retryAfter > 0 ? `${retryAfter} 秒后重试` : "重新登录"}
-            </Button>
-          ) : (
-            <Spinner className="text-primary" />
+    <main className="flex min-h-dvh items-center justify-center bg-muted/40 px-6 py-10">
+      <section className="flex w-full max-w-sm flex-col items-center text-center">
+        <BrandIllustration
+          name="login"
+          size={176}
+          className="size-36 sm:size-44"
+        />
+        <h1 className="mt-6 text-xl font-semibold">
+          {state === "error" ? "暂时无法登录" : "正在进入 SAST 商城"}
+        </h1>
+        <div
+          role={state === "error" ? "alert" : "status"}
+          className="mt-2 flex items-center justify-center gap-2 text-sm leading-6 text-muted-foreground"
+        >
+          {state !== "error" && (
+            <Spinner
+              className="size-4 shrink-0 text-primary"
+              aria-hidden="true"
+            />
           )}
-        </CardContent>
-      </Card>
+          <p>
+            {state === "error"
+              ? error
+              : state === "checking"
+                ? "正在检查登录状态"
+                : "正在通过飞书登录"}
+          </p>
+        </div>
+        {state === "error" && (
+          <Button
+            className="mt-5"
+            disabled={retryAfter > 0}
+            onClick={() => void authenticate()}
+          >
+            {retryAfter > 0 ? `${retryAfter} 秒后重试` : "重新登录"}
+          </Button>
+        )}
+      </section>
     </main>
   );
 }

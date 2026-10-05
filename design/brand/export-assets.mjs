@@ -103,6 +103,7 @@ const moduleNames = [
   "template",
   "transaction-agreement",
   "feishu-required",
+  "login",
   "manual",
   "scan",
   "address",
