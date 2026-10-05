@@ -5,17 +5,13 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MobileBottomNav } from "../components/mobile-bottom-nav";
 
-const { push, feishuEnvironment } = vi.hoisted(() => ({
+const { push } = vi.hoisted(() => ({
   push: vi.fn(),
-  feishuEnvironment: { current: true },
 }));
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/shop",
   useRouter: () => ({ push, refresh: vi.fn() }),
-}));
-vi.mock("../hooks/use-feishu-ui-environment", () => ({
-  useFeishuUiEnvironment: () => feishuEnvironment.current,
 }));
 vi.mock("../components/mobile-scroll-context", () => ({
   useMobileScroll: () => ({
@@ -107,8 +103,11 @@ let container: HTMLDivElement;
 beforeEach(() => {
   vi.stubGlobal("React", React);
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  vi.stubGlobal("h5sdk", undefined);
+  vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+    "Mozilla/5.0 (Linux; Android 15) Mobile Feishu/7.35.0",
+  );
   push.mockReset();
-  feishuEnvironment.current = true;
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -117,11 +116,16 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
 async function renderNav(feishu = true) {
-  feishuEnvironment.current = feishu;
+  if (!feishu) {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 (Linux; Android 15) Mobile Chrome/140.0",
+    );
+  }
   await act(async () => root.render(<MobileBottomNav />));
 }
 
@@ -214,6 +218,7 @@ describe("mobile publish entry", () => {
   });
 
   it("keeps scan routing in Feishu and hides scan outside Feishu", async () => {
+    vi.stubGlobal("h5sdk", { ready: vi.fn(), config: vi.fn() });
     await renderNav();
     await clickButton("上架现货");
     await clickButton("扫码录入");

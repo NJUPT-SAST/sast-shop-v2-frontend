@@ -241,9 +241,9 @@ export function ProductTemplateManager({
   }
 
   async function scanTemplateBarcode() {
-    if (scanningBarcodeRef.current) return;
+    if (scanningBarcodeRef.current || submittingRef.current) return;
     if (!window.h5sdk || !window.tt) {
-      toast.message("请在飞书移动端内扫码");
+      toast.message("飞书扫码组件尚未就绪，请稍后重试或手动输入");
       return;
     }
 
@@ -284,7 +284,12 @@ export function ProductTemplateManager({
   }
 
   async function saveTemplate(values: TemplateFormValues) {
-    if (submittingRef.current || imageUploadingRef.current) return;
+    if (
+      submittingRef.current ||
+      imageUploadingRef.current ||
+      scanningBarcodeRef.current
+    )
+      return;
 
     submittingRef.current = true;
     setSubmitting(true);
@@ -506,7 +511,11 @@ export function ProductTemplateManager({
       <Drawer
         open={drawerOpen}
         onOpenChange={(open) => {
-          if (!submittingRef.current && !imageUploadingRef.current)
+          if (
+            !submittingRef.current &&
+            !imageUploadingRef.current &&
+            !scanningBarcodeRef.current
+          )
             setDrawerOpen(open);
         }}
       >
@@ -537,6 +546,7 @@ export function ProductTemplateManager({
               stores={stores}
               lockStore={Boolean(editingTemplate)}
               scanEnabled={showFeishuEntry}
+              submitting={submitting}
               scanningBarcode={scanningBarcode}
               onScanBarcode={() => void scanTemplateBarcode()}
               onImageUploadingChange={handleImageUploadingChange}
@@ -558,7 +568,7 @@ export function ProductTemplateManager({
                   size="lg"
                   className="min-h-11"
                   aria-label="删除商品模板"
-                  disabled={submitting || imageUploading}
+                  disabled={submitting || imageUploading || scanningBarcode}
                   onClick={() => {
                     setDeleteError(null);
                     setDeleteConfirmOpen(true);
@@ -575,6 +585,7 @@ export function ProductTemplateManager({
                 disabled={
                   submitting ||
                   imageUploading ||
+                  scanningBarcode ||
                   (Boolean(editingTemplate) && !editingTemplate?.updatedAt)
                 }
               >
@@ -709,6 +720,7 @@ function TemplateFields({
   stores,
   lockStore,
   scanEnabled,
+  submitting,
   scanningBarcode,
   onScanBarcode,
   onImageUploadingChange,
@@ -717,6 +729,7 @@ function TemplateFields({
   stores: Store[];
   lockStore: boolean;
   scanEnabled: boolean;
+  submitting: boolean;
   scanningBarcode: boolean;
   onScanBarcode: () => void;
   onImageUploadingChange: (uploading: boolean) => void;
@@ -778,14 +791,15 @@ function TemplateFields({
                 autoComplete="off"
                 placeholder="输入条码编号"
                 aria-invalid={fieldState.invalid}
+                disabled={scanningBarcode || submitting}
               />
               {scanEnabled ? (
                 <InputGroupAddon align="inline-end">
                   <InputGroupButton
-                    size="icon-sm"
+                    size="icon-touch"
                     aria-label="扫码填写商品条码"
                     title="扫码"
-                    disabled={scanningBarcode}
+                    disabled={scanningBarcode || submitting}
                     onClick={onScanBarcode}
                   >
                     {scanningBarcode ? <Spinner /> : <RiQrScan2Line />}

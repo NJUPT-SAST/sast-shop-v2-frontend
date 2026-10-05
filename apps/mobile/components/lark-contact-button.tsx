@@ -8,6 +8,7 @@ import {
   getBuyerErrandOrderCaptainContact,
   getSpotOrderSellerContact,
   isLarkClientEnvironment,
+  subscribeLarkEnvironment,
   type DataSource,
 } from "@sast-shop/api";
 import { Button } from "@workspace/ui/components/button";
@@ -44,7 +45,7 @@ export function LarkContactButton({
   async function openChat() {
     if (pendingRef.current) return;
     if (!window.h5sdk || !window.tt) {
-      toast.error("请在飞书客户端内使用联系功能");
+      toast.error("飞书联系组件尚未就绪，请稍后重试");
       return;
     }
     pendingRef.current = true;
@@ -105,13 +106,8 @@ export function LarkContactButton({
 export function useLarkContactAvailability(): boolean {
   const feishuUiEnvironment = useFeishuUiEnvironment();
   const jsapiAvailable = useSyncExternalStore(
-    emptySubscribe,
-    () =>
-      Boolean(
-        isLarkClientEnvironment(window.h5sdk) &&
-        window.h5sdk?.config &&
-        window.tt?.enterChat,
-      ),
+    subscribeLarkEnvironment,
+    () => isLarkClientEnvironment(window.h5sdk),
     () => false,
   );
 
@@ -145,8 +141,4 @@ async function loadContactOpenId({
   } catch {
     throw new Error("联系人信息暂不可用，请稍后再试");
   }
-}
-
-function emptySubscribe() {
-  return () => {};
 }

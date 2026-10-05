@@ -66,15 +66,41 @@ export interface LarkH5Sdk {
   ) => void;
 }
 
-export function isLarkClientEnvironment(sdk: LarkH5Sdk | undefined): boolean {
+export function isLarkClientEnvironment(
+  sdk: LarkH5Sdk | undefined,
+  userAgent = typeof navigator === "undefined" ? "" : navigator.userAgent,
+): boolean {
   const versions = sdk?.browser?.versions;
-  return Boolean(versions?.PCFeishu || versions?.mobileFeishu);
+  return Boolean(
+    versions?.PCFeishu ||
+    versions?.mobileFeishu ||
+    /(?:Lark|Feishu)(?:-staging|-prerelease|-oversea)?\/[\d.]+/i.test(
+      userAgent,
+    ),
+  );
 }
 
 export function isLarkMobileClientEnvironment(
   sdk: LarkH5Sdk | undefined,
+  userAgent = typeof navigator === "undefined" ? "" : navigator.userAgent,
 ): boolean {
-  return Boolean(sdk?.browser?.versions?.mobileFeishu);
+  return Boolean(
+    sdk?.browser?.versions?.mobileFeishu ||
+    (isLarkClientEnvironment(undefined, userAgent) &&
+      /Android|Mobile|iPhone|iPad|iPod|iOS/i.test(userAgent)),
+  );
+}
+
+export function subscribeLarkEnvironment(onChange: () => void): () => void {
+  if (typeof window === "undefined") return () => undefined;
+  document.addEventListener("load", onChange, true);
+  window.addEventListener("pageshow", onChange);
+  window.addEventListener("focus", onChange);
+  return () => {
+    document.removeEventListener("load", onChange, true);
+    window.removeEventListener("pageshow", onChange);
+    window.removeEventListener("focus", onChange);
+  };
 }
 
 export function requestLarkAuthorizationCode(

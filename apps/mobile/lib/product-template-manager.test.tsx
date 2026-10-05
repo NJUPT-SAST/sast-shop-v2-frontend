@@ -4,26 +4,32 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  configureLarkJsapi,
   createProductTemplate,
   deleteProductTemplate,
+  LarkClientError,
+  scanLarkBarcode,
   type PageResult,
   type ProductTemplate,
 } from "@sast-shop/api";
 import { ProductTemplateManager } from "../components/product-template-manager";
 import { uploadProductImage } from "./product-image-upload";
+import { toast } from "sonner";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), replace: vi.fn() }),
 }));
-vi.mock("@sast-shop/api", () => ({
+vi.mock("@sast-shop/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@sast-shop/api")>()),
+  configureLarkJsapi: vi.fn(),
   createProductTemplate: vi.fn(),
   deleteProductTemplate: vi.fn(),
   listProductTemplatesPage: vi.fn(),
+  scanLarkBarcode: vi.fn(),
   updateProductTemplate: vi.fn(),
-  ValidationError: class ValidationError extends Error {},
 }));
-vi.mock("../hooks/use-feishu-ui-environment", () => ({
-  useFeishuUiEnvironment: () => false,
+vi.mock("sonner", () => ({
+  toast: { message: vi.fn(), success: vi.fn(), error: vi.fn() },
 }));
 vi.mock("./product-image-upload", () => ({
   uploadProductImage: vi.fn(),
@@ -83,6 +89,12 @@ let root: Root;
 beforeEach(() => {
   vi.stubGlobal("React", React);
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  vi.stubGlobal("h5sdk", undefined);
+  vi.stubGlobal("tt", undefined);
+  vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+    "Mozilla/5.0 (Linux; Android 15) Mobile Chrome/140.0",
+  );
+  vi.mocked(configureLarkJsapi).mockResolvedValue(undefined);
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -92,6 +104,7 @@ afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
   vi.clearAllMocks();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -251,5 +264,122 @@ describe("product template drawer failures", () => {
       }),
       expect.anything(),
     );
+  });
+});
+
+describe("product template barcode scan", () => {
+  function enterFeishu() {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 (Linux; Android 15) Mobile Feishu/7.35.0",
+    );
+    vi.stubGlobal("h5sdk", { ready: vi.fn(), config: vi.fn() });
+    vi.stubGlobal("tt", { scanCode: vi.fn() });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              appId: "cli_test",
+              timestamp: "1234567890",
+              nonceStr: "test-nonce",
+              signature: "test-signature",
+            }),
+            { status: 200 },
+          ),
+      ),
+    );
+  }
+
+  function scanButton() {
+    return container.querySelector<HTMLButtonElement>(
+      '[aria-label="扫码填写商品条码"]',
+    )!;
+  }
+
+  it("shows the icon with the real environment hook and fills scanned barcode", async () => {
+    enterFeishu();
+    vi.mocked(scanLarkBarcode).mockResolvedValue("0690000000001");
+    await renderManager([], true);
+    expect(scanButton()).not.toBeNull();
+    expect(scanButton().getAttribute("type")).toBe("button");
+    await act(async () => scanButton().click());
+    expect(configureLarkJsapi).toHaveBeenCalledWith(
+      window.h5sdk,
+      expect.objectContaining({ appId: "cli_test" }),
+    );
+    expect(scanLarkBarcode).toHaveBeenCalledWith(window.tt);
+    expect(container.querySelector<HTMLInputElement>("#barcode")?.value).toBe(
+      "0690000000001",
+    );
+    expect(createProductTemplate).not.toHaveBeenCalled();
+  });
+
+  it("allows retry after cancellation without changing the barcode", async () => {
+    enterFeishu();
+    vi.mocked(scanLarkBarcode).mockRejectedValueOnce(
+      new LarkClientError("用户取消扫码", 1505002),
+    );
+    await renderManager([], true);
+    await act(async () => scanButton().click());
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(scanButton().disabled).toBe(false);
+    expect(container.querySelector<HTMLInputElement>("#barcode")?.value).toBe(
+      "690000000001",
+    );
+    vi.mocked(scanLarkBarcode).mockResolvedValueOnce("690000000002");
+    await act(async () => scanButton().click());
+    expect(container.querySelector<HTMLInputElement>("#barcode")?.value).toBe(
+      "690000000002",
+    );
+  });
+
+  it("keeps manual entry when SDK loading or signing fails", async () => {
+    enterFeishu();
+    vi.stubGlobal("h5sdk", undefined);
+    await renderManager([], true);
+    await act(async () => scanButton().click());
+    expect(toast.message).toHaveBeenCalledWith(
+      "飞书扫码组件尚未就绪，请稍后重试或手动输入",
+    );
+    expect(scanLarkBarcode).not.toHaveBeenCalled();
+    vi.stubGlobal("h5sdk", { ready: vi.fn(), config: vi.fn() });
+    vi.mocked(fetch).mockResolvedValueOnce(new Response("{}", { status: 401 }));
+    await act(async () => scanButton().click());
+    expect(toast.error).toHaveBeenCalledWith("登录已失效，请重新打开应用");
+    expect(scanButton().disabled).toBe(false);
+    expect(
+      container.querySelector<HTMLInputElement>("#barcode")?.disabled,
+    ).toBe(false);
+  });
+
+  it("prevents duplicate scans and saving while the scanner is active", async () => {
+    enterFeishu();
+    let resolveScan!: (barcode: string) => void;
+    vi.mocked(scanLarkBarcode).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveScan = resolve;
+      }),
+    );
+    await renderManager([], true);
+    await enterTemplateTitle("矿泉水");
+    await act(async () => {
+      scanButton().click();
+      scanButton().click();
+      submitTemplate();
+    });
+    expect(scanLarkBarcode).toHaveBeenCalledTimes(1);
+    expect(createProductTemplate).not.toHaveBeenCalled();
+    expect(scanButton().disabled).toBe(true);
+    expect(
+      container.querySelector<HTMLInputElement>("#barcode")?.disabled,
+    ).toBe(true);
+    await act(async () => resolveScan("690000000003"));
+    expect(scanButton().disabled).toBe(false);
+  });
+
+  it("hides the scan button outside the Feishu mobile client", async () => {
+    await renderManager([], true);
+    expect(scanButton()).toBeNull();
   });
 });

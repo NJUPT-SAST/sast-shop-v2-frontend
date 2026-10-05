@@ -8,6 +8,7 @@ import {
   getBuyerErrandOrderCaptainContact,
   getSpotOrderSellerContact,
   isLarkClientEnvironment,
+  subscribeLarkEnvironment,
   type DataSource,
   type JSAPIAuthConfig,
 } from "@sast-shop/api";
@@ -32,13 +33,8 @@ export function LarkContactButton({
   className?: string;
 }) {
   const available = useSyncExternalStore(
-    emptySubscribe,
-    () =>
-      Boolean(
-        isLarkClientEnvironment(window.h5sdk) &&
-        window.h5sdk?.config &&
-        window.tt?.enterChat,
-      ),
+    subscribeLarkEnvironment,
+    () => isLarkClientEnvironment(window.h5sdk),
     () => false,
   );
   const [pending, setPending] = useState(false);
@@ -47,7 +43,11 @@ export function LarkContactButton({
   if (!available) return null;
 
   async function openChat() {
-    if (pendingRef.current || !window.h5sdk || !window.tt) return;
+    if (pendingRef.current) return;
+    if (!window.h5sdk || !window.tt) {
+      toast.error("飞书联系组件尚未就绪，请稍后重试");
+      return;
+    }
     pendingRef.current = true;
     setPending(true);
 
@@ -135,8 +135,4 @@ function isJsapiAuthConfig(value: unknown): value is JSAPIAuthConfig {
   return ["appId", "timestamp", "nonceStr", "signature"].every(
     (key) => typeof config[key] === "string" && config[key].length > 0,
   );
-}
-
-function emptySubscribe() {
-  return () => {};
 }

@@ -264,7 +264,11 @@ export function PublishSpotForm({
     if (scanningRef.current) return;
     if (!window.h5sdk || !window.tt) {
       setManualEntry(true);
-      toast.message("请在飞书移动端内扫码，当前环境可手动输入条码");
+      toast.message(
+        showFeishuEntry
+          ? "飞书扫码组件尚未就绪，请稍后重试或手动输入"
+          : "请在飞书移动端内扫码，当前环境可手动输入条码",
+      );
       return;
     }
 

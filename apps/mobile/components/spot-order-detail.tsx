@@ -49,7 +49,6 @@ import { Spinner } from "@workspace/ui/components/spinner";
 import { toast } from "sonner";
 
 import type { SpotOrderView } from "@/lib/order-filters";
-import { useFeishuUiEnvironment } from "@/hooks/use-feishu-ui-environment";
 import { resolveOrderContactAction } from "@/lib/order-contact";
 import {
   hasPaymentRecipient,
@@ -57,7 +56,10 @@ import {
   resolveSpotOrderActions,
 } from "@/lib/spot-order-actions";
 import { ManagedImage } from "./managed-image";
-import { LarkContactButton } from "./lark-contact-button";
+import {
+  LarkContactButton,
+  useLarkContactAvailability,
+} from "./lark-contact-button";
 import { MobileFixedFooter } from "./mobile-fixed-footer";
 import {
   PaymentSection,
@@ -130,7 +132,7 @@ export function SpotOrderDetail({
     Boolean(versionedBill) &&
     !supplementVersionUnverified;
   const canConfirmPayment = actions.canConfirmPayment && Boolean(versionedBill);
-  const feishuUiEnvironment = useFeishuUiEnvironment();
+  const feishuUiEnvironment = useLarkContactAvailability();
   const contactAction = resolveOrderContactAction({
     orderType: "spot",
     view,

@@ -49,11 +49,13 @@ import {
   reconcileBuyerErrandOrderUpdate,
   resolveBuyerErrandPaymentState,
 } from "@/lib/buyer-errand-order-detail";
-import { useFeishuUiEnvironment } from "@/hooks/use-feishu-ui-environment";
 import { resolveOrderContactAction } from "@/lib/order-contact";
 import { getStatusBadgeVariant, getStatusLabel } from "@/lib/order-filters";
 import { ManagedImage } from "./managed-image";
-import { LarkContactButton } from "./lark-contact-button";
+import {
+  LarkContactButton,
+  useLarkContactAvailability,
+} from "./lark-contact-button";
 import { MobileFixedFooter } from "./mobile-fixed-footer";
 import {
   isPayablePaymentBill,
@@ -105,7 +107,7 @@ export function BuyerErrandOrderDetailView({
     !bill.serialNumber &&
     !supplementVersionUnverified,
   );
-  const feishuUiEnvironment = useFeishuUiEnvironment();
+  const feishuUiEnvironment = useLarkContactAvailability();
   const contactAction = resolveOrderContactAction({
     orderType: "errand",
     view: "participant",

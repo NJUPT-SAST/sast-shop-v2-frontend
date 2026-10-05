@@ -29,6 +29,7 @@ export {
   isLarkScanCancelledError,
   requestLarkAuthorizationCode,
   scanLarkBarcode,
+  subscribeLarkEnvironment,
   waitForLarkReady,
   LarkClientError,
   type LarkCallbackResult,

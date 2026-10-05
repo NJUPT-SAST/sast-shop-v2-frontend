@@ -156,6 +156,31 @@ describe("Lark client adapter", () => {
     expect(isLarkMobileClientEnvironment(undefined)).toBe(false);
   });
 
+  it("recognizes mobile Feishu without private SDK browser metadata", () => {
+    const userAgent = "Mozilla/5.0 (Linux; Android 15) Mobile Feishu/7.35.0";
+    expect(isLarkMobileClientEnvironment({}, userAgent)).toBe(true);
+    expect(isLarkMobileClientEnvironment(undefined, userAgent)).toBe(true);
+    expect(isLarkClientEnvironment({}, userAgent)).toBe(true);
+  });
+
+  it("recognizes Lark on iOS while excluding desktop from scanning", () => {
+    expect(
+      isLarkMobileClientEnvironment(
+        {},
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Lark/7.35.0",
+      ),
+    ).toBe(true);
+    const desktopAgent = "Mozilla/5.0 (Macintosh) Feishu/7.35.0 WebApp";
+    expect(isLarkClientEnvironment({}, desktopAgent)).toBe(true);
+    expect(isLarkMobileClientEnvironment({}, desktopAgent)).toBe(false);
+    expect(
+      isLarkMobileClientEnvironment(
+        {},
+        "Mozilla/5.0 (Linux; Android 15) Mobile",
+      ),
+    ).toBe(false);
+  });
+
   it("does not pass an internal numeric user ID to enterChat", async () => {
     const enterChat = vi.fn<NonNullable<LarkClientApi["enterChat"]>>();
 

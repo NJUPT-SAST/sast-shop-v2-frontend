@@ -11,7 +11,9 @@ import {
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   AuthRequiredError,
+  isLarkClientEnvironment,
   requestLarkAuthorizationCode,
+  subscribeLarkEnvironment,
   type DataSource,
   validateSessionUser,
   waitForLarkReady,
@@ -27,7 +29,9 @@ import {
 } from "@workspace/ui/components/card";
 import { Spinner } from "@workspace/ui/components/spinner";
 
-type AuthState = "checking" | "authenticating" | "authenticated" | "error";
+type AuthState =
+  "checking" | "authenticating" | "authenticated" | "unsupported" | "error";
+const sdkNotReadyMessage = "飞书登录组件尚未就绪，请稍后重试";
 const staleRequestWindowMs = 15_000;
 const sessionProbeIntervalMs = 30_000;
 const sessionProbeEventName = "sast-shop:probe-session";
@@ -77,6 +81,10 @@ export function AuthBootstrap({
       setError("");
       setState("checking");
       try {
+        if (!isLarkClientEnvironment(window.h5sdk)) {
+          setState("unsupported");
+          return false;
+        }
         if (clearSession) {
           const cleared = await fetch("/api/auth/session", {
             method: "DELETE",
@@ -94,18 +102,10 @@ export function AuthBootstrap({
           }
         }
 
-        if (!appId || !window.h5sdk?.ready || !window.tt) {
-          setState("authenticating");
-          const loginUrl = new URL(
-            "/api/auth/lark/authorize",
-            window.location.origin,
-          );
-          loginUrl.searchParams.set(
-            "returnTo",
-            `${window.location.pathname}${window.location.search}`,
-          );
-          window.location.assign(loginUrl.href);
-          return false;
+        if (!appId)
+          throw new Error("缺少飞书应用 ID，请联系管理员完成部署配置");
+        if (!window.h5sdk?.ready || !window.tt) {
+          throw new Error(sdkNotReadyMessage);
         }
 
         const sdk = window.h5sdk;
@@ -159,8 +159,32 @@ export function AuthBootstrap({
   }, [authenticate, enabled]);
 
   useEffect(() => {
+    if (
+      !enabled ||
+      (state !== "unsupported" &&
+        !(state === "error" && error === sdkNotReadyMessage))
+    )
+      return;
+    const retryWhenReady = () => {
+      if (
+        isLarkClientEnvironment(window.h5sdk) &&
+        window.h5sdk?.ready &&
+        window.tt
+      )
+        void authenticate();
+    };
+    const unsubscribe = subscribeLarkEnvironment(retryWhenReady);
+    retryWhenReady();
+    return unsubscribe;
+  }, [authenticate, enabled, error, state]);
+
+  useEffect(() => {
     if (!enabled || state !== "authenticated") return;
     const verify = async () => {
+      if (!isLarkClientEnvironment(window.h5sdk)) {
+        setState("unsupported");
+        return;
+      }
       try {
         if (!(await verifyCurrentSession())) {
           window.dispatchEvent(new Event(AuthRequiredError.browserEventName));
@@ -233,26 +257,34 @@ export function AuthBootstrap({
           <span className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
             <RiShieldUserLine />
           </span>
-          <CardTitle>登录 SAST 商城</CardTitle>
+          <CardTitle>
+            {state === "unsupported" ? "请在飞书中打开应用" : "登录 SAST 商城"}
+          </CardTitle>
           <CardDescription>
-            {state === "error" ? error : "正在通过飞书安全登录，请稍候…"}
+            {state === "unsupported"
+              ? "此应用需要在飞书客户端中使用"
+              : state === "error"
+                ? error
+                : "正在通过飞书安全登录，请稍候…"}
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex justify-center">
-          {state === "error" ? (
-            <Button
-              disabled={retryAfter > 0}
-              onClick={() => {
-                startedRef.current = true;
-                void authenticate();
-              }}
-            >
-              {retryAfter > 0 ? `${retryAfter} 秒后重试` : "重新登录"}
-            </Button>
-          ) : (
-            <Spinner className="text-primary" />
-          )}
-        </CardContent>
+        {state !== "unsupported" && (
+          <CardContent className="flex justify-center">
+            {state === "error" ? (
+              <Button
+                disabled={retryAfter > 0}
+                onClick={() => {
+                  startedRef.current = true;
+                  void authenticate();
+                }}
+              >
+                {retryAfter > 0 ? `${retryAfter} 秒后重试` : "重新登录"}
+              </Button>
+            ) : (
+              <Spinner className="text-primary" />
+            )}
+          </CardContent>
+        )}
       </Card>
     </main>
   );
