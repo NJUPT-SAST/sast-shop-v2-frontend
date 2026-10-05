@@ -4,9 +4,15 @@ import type {
   BuyerErrandOrderStatus,
   PaymentBill,
 } from "@sast-shop/api";
+import { compareUpdatedAt } from "./errand-recovery";
 
 export type BuyerErrandPaymentState =
-  "payable" | "submitted" | "completed" | "unavailable" | "self_purchase" | "hidden";
+  | "payable"
+  | "submitted"
+  | "completed"
+  | "unavailable"
+  | "self_purchase"
+  | "hidden";
 
 export type BuyerErrandTimelineItem = {
   label: string;
@@ -133,8 +139,8 @@ export function reconcileBuyerErrandOrderUpdate<
   if (incomingRank > currentRank) return incoming;
   if (incomingRank < currentRank) return current;
 
-  return parseTimestamp(incoming.bill?.updatedAt) >=
-    parseTimestamp(current.bill?.updatedAt)
+  return compareUpdatedAt(incoming.bill?.updatedAt, current.bill?.updatedAt) >=
+    0
     ? incoming
     : current;
 }
@@ -164,13 +170,6 @@ export function buildBuyerErrandOrderTimeline(
     ...beforeCancellation,
     { label: "订单取消", timestamp: order.cancelledAt },
   ];
-}
-
-function parseTimestamp(value: string | null | undefined): number {
-  if (!value) return -1;
-
-  const parsed = Date.parse(value);
-  return Number.isNaN(parsed) ? -1 : parsed;
 }
 
 function getActualProductAmountCents(

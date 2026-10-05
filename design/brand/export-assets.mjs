@@ -129,12 +129,12 @@ for (const name of selectedModule ? [selectedModule] : moduleNames) {
     .resize(256, 256, { fit: "contain", background: transparent })
     .webp({ lossless: true })
     .toFile(path.join(publicDirectory, `${name}-compact.webp`));
-  if (name === "transaction-agreement") {
-    const desktopDirectory = path.join(root, "apps/desktop/public/brand");
-    await mkdir(desktopDirectory, { recursive: true });
+  const desktopDirectory = path.join(root, "apps/desktop/public/brand");
+  await mkdir(desktopDirectory, { recursive: true });
+  for (const suffix of ["", "-compact"]) {
     await writeFile(
-      path.join(desktopDirectory, `${name}-compact.webp`),
-      await readFile(path.join(publicDirectory, `${name}-compact.webp`)),
+      path.join(desktopDirectory, `${name}${suffix}.webp`),
+      await readFile(path.join(publicDirectory, `${name}${suffix}.webp`)),
     );
   }
 }

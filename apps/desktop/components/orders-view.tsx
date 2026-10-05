@@ -22,6 +22,11 @@ import {
   SpotOrder,
 } from "@sast-shop/api";
 import { formatPrice } from "@sast-shop/domain";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@workspace/ui/components/alert";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -141,10 +146,17 @@ export function OrdersView({
   const [rememberedViews, setRememberedViews] = useState<RememberedOrderViews>(
     () => rememberView(DEFAULT_REMEMBERED_ORDER_VIEWS, initialFilters),
   );
-  const [now, setNow] = useState(() => new Date());
   const [cancelDemandId, setCancelDemandId] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [lockedCancelDemandId, setLockedCancelDemandId] = useState<
+    string | null
+  >(null);
+  const [verifiedCancelledDemandId, setVerifiedCancelledDemandId] = useState<
+    string | null
+  >(null);
+  const [checkingCancel, setCheckingCancel] = useState(false);
   const cancellingRef = useRef(false);
+  const checkingCancelRef = useRef(false);
   const searchTimerRef = useRef<number | null>(null);
   const pendingSearchHrefRef = useRef<string | null>(null);
   const loadSpotBuyerPage = useCallback(
@@ -217,13 +229,12 @@ export function OrdersView({
     () => [
       ...spotBuyerFeed.items.map((order) => mapSpotOrder(order, "buyer")),
       ...spotSellerFeed.items.map((order) => mapSpotOrder(order, "seller")),
-      ...buyerErrandFeed.items.map((order) => mapBuyerErrandOrder(order, now)),
+      ...buyerErrandFeed.items.map(mapBuyerErrandOrder),
       ...errandTaskFeed.items.map(mapErrandTask),
     ],
     [
       buyerErrandFeed.items,
       errandTaskFeed.items,
-      now,
       spotBuyerFeed.items,
       spotSellerFeed.items,
     ],
@@ -241,17 +252,17 @@ export function OrdersView({
       : filters.view === "captain"
         ? errandTaskFeed
         : buyerErrandFeed;
+  const cancelLockActive =
+    lockedCancelDemandId !== null &&
+    buyerErrandFeed.items.some(
+      (item) => item.id === lockedCancelDemandId && item.status === "open",
+    );
   const {
     hasMore: currentFeedHasMore,
     loadingMore: currentFeedLoadingMore,
     loadMoreError: currentFeedLoadMoreError,
     loadMore: loadMoreCurrentFeed,
   } = currentFeed;
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 60_000);
-    return () => window.clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     const shouldContinueSearching = filters.query.trim().length > 0;
@@ -311,10 +322,20 @@ export function OrdersView({
     const nextRemembered = updates.view
       ? rememberView(rememberedViews, { ...filters, view: updates.view })
       : rememberedViews;
-    const params = updateOrderFilterParams(
+    const currentParams = updateOrderFilterParams(
       new URLSearchParams(window.location.search),
-      { ...updates, rememberedViews: nextRemembered },
+      {
+        type: filters.type,
+        view: filters.view,
+        status: filters.status,
+        q: filters.query,
+        rememberedViews,
+      },
     );
+    const params = updateOrderFilterParams(currentParams, {
+      ...updates,
+      rememberedViews: nextRemembered,
+    });
     const nextFilters = getOrderFiltersFromParams(params);
     setFilters(nextFilters);
     setRememberedViews(rememberView(nextRemembered, nextFilters));
@@ -352,37 +373,107 @@ export function OrdersView({
   }
 
   async function confirmCancelDemand() {
-    if (!cancelDemandId || cancellingRef.current) return;
+    if (!cancelDemandId || cancellingRef.current || cancelLockActive) return;
     const demandId = cancelDemandId;
     if (!(await ensureAgreement(() => setCancelDemandId(null)))) return;
     if (cancellingRef.current) return;
     cancellingRef.current = true;
     setCancelling(true);
+    let writeAttempted = false;
     try {
       const detail = await getBuyerErrandOrderDetail(demandId, {
         dataSource,
         connectBaseUrl,
       });
+      if (detail.status !== "open") {
+        setCancelDemandId(null);
+        router.refresh();
+        toast.error("需求状态已变化，正在刷新订单");
+        return;
+      }
+      writeAttempted = true;
       await cancelErrandDemand(demandId, {
         dataSource,
         connectBaseUrl,
         updatedAt: detail.updatedAt ?? undefined,
       });
       toast.success("跑腿需求已撤回");
+      setLockedCancelDemandId(demandId);
+      setVerifiedCancelledDemandId(demandId);
       setCancelDemandId(null);
       router.refresh();
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "撤回失败，请刷新后重试",
-      );
+      if (writeAttempted) {
+        try {
+          const latest = await getBuyerErrandOrderDetail(demandId, {
+            dataSource,
+            connectBaseUrl,
+          });
+          if (latest.status === "cancelled") {
+            setLockedCancelDemandId(demandId);
+            setVerifiedCancelledDemandId(demandId);
+            toast.info("已读取最新撤回状态");
+          } else if (latest.status === "open") {
+            setLockedCancelDemandId(null);
+            setVerifiedCancelledDemandId(null);
+            toast.error(
+              error instanceof Error
+                ? `${error.message}，需求仍可撤回，请重新确认`
+                : "撤回未完成，请重新确认",
+            );
+          } else {
+            setLockedCancelDemandId(demandId);
+            setVerifiedCancelledDemandId(null);
+            toast.error("需求状态已变化，正在刷新订单");
+          }
+        } catch {
+          setLockedCancelDemandId(demandId);
+          setVerifiedCancelledDemandId(null);
+          toast.error("无法确认撤回结果，请核实需求状态后再操作");
+        }
+        setCancelDemandId(null);
+        router.refresh();
+      } else {
+        toast.error(
+          error instanceof Error ? error.message : "需求状态读取失败，请重试",
+        );
+      }
     } finally {
       cancellingRef.current = false;
       setCancelling(false);
     }
   }
 
+  async function verifyCancelDemand() {
+    if (!lockedCancelDemandId || checkingCancelRef.current) return;
+    checkingCancelRef.current = true;
+    setCheckingCancel(true);
+    try {
+      const latest = await getBuyerErrandOrderDetail(lockedCancelDemandId, {
+        dataSource,
+        connectBaseUrl,
+      });
+      if (latest.status === "open") {
+        setLockedCancelDemandId(null);
+        setVerifiedCancelledDemandId(null);
+        toast.info("需求仍可撤回，请重新确认");
+      } else {
+        setVerifiedCancelledDemandId(
+          latest.status === "cancelled" ? lockedCancelDemandId : null,
+        );
+        toast.info("已读取最新需求状态，正在刷新订单");
+        router.refresh();
+      }
+    } catch {
+      toast.error("需求状态暂无法核实，请稍后重试");
+    } finally {
+      checkingCancelRef.current = false;
+      setCheckingCancel(false);
+    }
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       <section className="flex flex-wrap items-end justify-between gap-4">
         <h1 className="text-3xl font-semibold tracking-tight">订单</h1>
         <p className="text-sm text-muted-foreground">
@@ -390,19 +481,33 @@ export function OrdersView({
         </p>
       </section>
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <Tabs
-          value={filters.type}
-          onValueChange={(value) => update({ type: value as OrderType })}
-        >
-          <TabsList className="w-64" aria-label="订单类型">
-            {orderTypeOptions.map((option) => (
-              <TabsTrigger key={option.value} value={option.value}>
-                {option.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Tabs
+            value={filters.type}
+            onValueChange={(value) => update({ type: value as OrderType })}
+          >
+            <TabsList aria-label="订单类型">
+              {orderTypeOptions.map((option) => (
+                <TabsTrigger key={option.value} value={option.value}>
+                  {option.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+          <Tabs
+            value={filters.view}
+            onValueChange={(value) => update({ view: value as OrderView })}
+          >
+            <TabsList aria-label="订单查看身份">
+              {getViewOptions(filters.type).map((option) => (
+                <TabsTrigger key={option.value} value={option.value}>
+                  {option.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
         <InputGroup className="w-full max-w-sm">
           <InputGroupAddon>
             <RiSearchLine />
@@ -420,23 +525,11 @@ export function OrdersView({
         </InputGroup>
       </div>
 
-      <Tabs
-        value={filters.view}
-        onValueChange={(value) => update({ view: value as OrderView })}
-      >
-        <TabsList aria-label="订单查看身份">
-          {getViewOptions(filters.type).map((option) => (
-            <TabsTrigger key={option.value} value={option.value}>
-              {option.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
-
       <ToggleGroup
         type="single"
         value={filters.status}
         variant="outline"
+        selectionVariant="primary"
         aria-label="订单状态"
         className="flex flex-wrap justify-start"
         onValueChange={(value) => {
@@ -449,6 +542,34 @@ export function OrdersView({
           </ToggleGroupItem>
         ))}
       </ToggleGroup>
+
+      {cancelLockActive &&
+      filters.type === "errand" &&
+      filters.view === "participant" ? (
+        <Alert>
+          <AlertTitle>
+            {verifiedCancelledDemandId === lockedCancelDemandId
+              ? "需求已撤回"
+              : "撤回结果待核实"}
+          </AlertTitle>
+          <AlertDescription>
+            {verifiedCancelledDemandId === lockedCancelDemandId
+              ? "正在更新订单列表。"
+              : "请核实需求状态，避免重复撤回。"}
+          </AlertDescription>
+          {verifiedCancelledDemandId !== lockedCancelDemandId ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              disabled={checkingCancel}
+              onClick={() => void verifyCancelDemand()}
+            >
+              {checkingCancel ? "正在核实…" : "重新核实"}
+            </Button>
+          ) : null}
+        </Alert>
+      ) : null}
 
       {hasError ? (
         <LoadFailure
@@ -468,9 +589,14 @@ export function OrdersView({
           {filtered.map((order) => (
             <OrderItem
               key={order.id}
-              order={order}
+              order={
+                order.cancelDemandId === lockedCancelDemandId
+                  ? { ...order, modifyHref: null }
+                  : order
+              }
               onCancelDemand={
-                order.cancelDemandId
+                order.cancelDemandId &&
+                order.cancelDemandId !== lockedCancelDemandId
                   ? () => setCancelDemandId(order.cancelDemandId!)
                   : undefined
               }
@@ -484,16 +610,18 @@ export function OrdersView({
           hasMore={currentFeed.hasMore}
           loading={currentFeed.loadingMore}
           error={currentFeed.loadMoreError}
-          hasItems={currentFeed.totalCount > 0}
+          hasItems={filtered.length > 0}
           onLoadMore={() => void currentFeed.loadMore()}
           loadingFallback={<OrderLoadingSkeletons />}
-          endMessage={`已经到底，共 ${currentFeed.items.length} 笔订单`}
+          endMessage={`已经到底，共 ${filtered.length} 笔订单`}
         />
       ) : null}
 
       <Dialog
         open={cancelDemandId !== null}
-        onOpenChange={(open) => !cancelling && !open && setCancelDemandId(null)}
+        onOpenChange={(open) =>
+          !cancellingRef.current && !open && setCancelDemandId(null)
+        }
       >
         <DialogContent>
           <DialogHeader>
@@ -507,7 +635,7 @@ export function OrdersView({
               type="button"
               variant="outline"
               disabled={cancelling}
-              onClick={() => setCancelDemandId(null)}
+              onClick={() => !cancellingRef.current && setCancelDemandId(null)}
             >
               保留需求
             </Button>
@@ -719,10 +847,7 @@ function mapSpotOrder(
   };
 }
 
-function mapBuyerErrandOrder(
-  order: BuyerErrandOrder,
-  now: Date,
-): RenderableOrder {
+function mapBuyerErrandOrder(order: BuyerErrandOrder): RenderableOrder {
   const id = parsePositiveInt64RouteId(order.id);
   const editStoreId = parsePositiveInt64RouteId(order.storeId);
   return {

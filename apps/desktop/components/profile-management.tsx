@@ -1,27 +1,36 @@
 "use client";
 
-import { type ChangeEvent, useMemo, useRef, useState } from "react";
+import {
+  type ChangeEvent,
+  useSyncExternalStore,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import {
   RiAddLine,
   RiAlipayLine,
   RiDeleteBinLine,
   RiEditLine,
+  RiArrowRightSLine,
   RiMapPinLine,
-  RiQuestionLine,
-  RiQrCodeLine,
   RiStarLine,
   RiUpload2Line,
   RiWechatPayLine,
 } from "@remixicon/react";
 import { toast } from "sonner";
 import {
+  AuthRequiredError,
   createAddress,
   deleteAddress,
   isLarkClientEnvironment,
+  listAddresses,
+  listPaymentQrCodes,
+  ResourceNotFoundError,
   updateAddress,
   updatePaymentQrCode,
+  ValidationError,
   type DataSource,
   type PaymentQrChannel,
   type PaymentQrCode,
@@ -38,6 +47,11 @@ import {
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
+import {
+  RadioGroup,
+  RadioGroupItem,
+} from "@workspace/ui/components/radio-group";
+import { Label } from "@workspace/ui/components/label";
 import {
   Dialog,
   DialogContent,
@@ -66,6 +80,14 @@ import {
   getProvinceOptions,
 } from "@/lib/mainland-address-regions";
 import { decodePaymentQrImage } from "@/lib/qr-image-decoder";
+import {
+  DEFAULT_PAYMENT_PLATFORM,
+  isPaymentPlatform,
+  readDefaultPaymentPlatform,
+  writeDefaultPaymentPlatform,
+  subscribePaymentPreference,
+} from "@/lib/payment-preferences";
+import { BrandIllustration } from "./brand-illustration";
 import { useTransactionAgreement } from "./transaction-agreement-provider";
 
 type AddressDraft = Omit<ShippingAddressInput, "isDefault"> & {
@@ -75,12 +97,16 @@ type AddressDraft = Omit<ShippingAddressInput, "isDefault"> & {
 export function ProfileManagement({
   initialOverview,
   error,
+  initialAddressError = null,
+  initialQrError = null,
   dataSource,
   connectBaseUrl,
   feedbackFormUrl,
 }: {
   initialOverview: ProfileOverview | null;
   error: string | null;
+  initialAddressError?: string | null;
+  initialQrError?: string | null;
   dataSource: DataSource;
   connectBaseUrl: string;
   feedbackFormUrl: string | null;
@@ -93,6 +119,19 @@ export function ProfileManagement({
   );
   const [addresses, setAddresses] = useState(initialOverview?.addresses ?? []);
   const [qrCodes, setQrCodes] = useState(initialOverview?.paymentQrCodes ?? []);
+  const [addressError, setAddressError] = useState(initialAddressError);
+  const [qrError, setQrError] = useState(initialQrError);
+  const [loadingSection, setLoadingSection] = useState<
+    "addresses" | "qr" | null
+  >(null);
+  const loadingRef = useRef(false);
+  const actionRef = useRef(false);
+  const [preferenceOpen, setPreferenceOpen] = useState(false);
+  const defaultPlatform = useSyncExternalStore(
+    subscribePaymentPreference,
+    readDefaultPaymentPlatform,
+    () => DEFAULT_PAYMENT_PLATFORM,
+  );
   const [addressListOpen, setAddressListOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const [addressFormOpen, setAddressFormOpen] = useState(false);
@@ -106,6 +145,13 @@ export function ProfileManagement({
   );
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [addressNeedsVerification, setAddressNeedsVerification] =
+    useState(false);
+  const unverifiedAddress = useRef<{
+    draft: AddressDraft;
+    id: string | null;
+    knownIds: string[];
+  } | null>(null);
 
   const user = initialOverview?.user;
   const cityOptions = getCityOptions(addressDraft.province);
@@ -115,7 +161,12 @@ export function ProfileManagement({
   );
 
   function openAddressForm(address?: ShippingAddress) {
+    if (actionRef.current || loadingRef.current || addressError) return;
     setAddressListOpen(false);
+    if (unverifiedAddress.current) {
+      setAddressFormOpen(true);
+      return;
+    }
     setEditingAddress(address ?? null);
     setAddressDraft(address ? { ...address } : emptyAddress());
     setFormError(null);
@@ -123,12 +174,14 @@ export function ProfileManagement({
   }
 
   async function saveAddress() {
+    if (actionRef.current || addressNeedsVerification) return;
     const validation = validateAddress(addressDraft);
     if (validation) {
       setFormError(validation);
       return;
     }
     const action = editingAddress ? `edit-${editingAddress.id}` : "add";
+    actionRef.current = true;
     setPendingAction(action);
     setFormError(null);
     try {
@@ -137,16 +190,75 @@ export function ProfileManagement({
         : await createAddress(addressDraft, serviceOptions);
       setAddresses((current) => applySavedAddress(current, saved));
       setAddressFormOpen(false);
+      setAddressListOpen(true);
       toast.success(editingAddress ? "地址已更新" : "地址已添加");
     } catch (caught) {
       setFormError(caught instanceof Error ? caught.message : "地址保存失败");
+      if (
+        caught instanceof ValidationError ||
+        caught instanceof AuthRequiredError ||
+        caught instanceof ResourceNotFoundError
+      ) {
+        return;
+      }
+      unverifiedAddress.current = {
+        draft: addressDraft,
+        id: editingAddress?.id ?? null,
+        knownIds: addresses.map((address) => address.id),
+      };
+      setAddressNeedsVerification(true);
+      await verifyAddressSave();
     } finally {
+      actionRef.current = false;
       setPendingAction(null);
     }
   }
 
+  async function verifyAddressSave() {
+    const pending = unverifiedAddress.current;
+    if (!pending || loadingRef.current) return;
+    loadingRef.current = true;
+    setLoadingSection("addresses");
+    try {
+      const latest = await listAddresses(serviceOptions);
+      const saved = latest.find(
+        (address) =>
+          (pending.id
+            ? address.id === pending.id
+            : !pending.knownIds.includes(address.id)) &&
+          address.recipientName === pending.draft.recipientName &&
+          address.recipientPhone === pending.draft.recipientPhone &&
+          address.province === pending.draft.province &&
+          address.city === pending.draft.city &&
+          address.district === pending.draft.district &&
+          address.detailAddress === pending.draft.detailAddress &&
+          address.isDefault === pending.draft.isDefault,
+      );
+      setAddresses(latest);
+      setAddressError(null);
+      if (saved) {
+        setAddressNeedsVerification(false);
+        unverifiedAddress.current = null;
+        setFormError(null);
+        setAddressFormOpen(false);
+        setAddressListOpen(true);
+        toast.success(pending.id ? "地址已更新" : "地址已添加");
+      }
+    } catch {
+      setFormError(
+        (current) =>
+          `${current ?? "保存结果待核实"}；暂时无法确认地址是否保存，请核实后再重试`,
+      );
+      setAddressError("保存结果待核实，请重新加载地址簿");
+    } finally {
+      loadingRef.current = false;
+      setLoadingSection(null);
+    }
+  }
+
   async function removeAddress() {
-    if (!deleteTarget) return;
+    if (!deleteTarget || actionRef.current || addressNeedsVerification) return;
+    actionRef.current = true;
     setPendingAction(`delete-${deleteTarget.id}`);
     try {
       await deleteAddress(deleteTarget.id, serviceOptions);
@@ -154,16 +266,20 @@ export function ProfileManagement({
         current.filter((address) => address.id !== deleteTarget.id),
       );
       setDeleteTarget(null);
+      setAddressListOpen(true);
       toast.success("地址已删除");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "地址删除失败");
     } finally {
+      actionRef.current = false;
       setPendingAction(null);
     }
   }
 
   async function makeDefault(address: ShippingAddress) {
-    if (address.isDefault) return;
+    if (address.isDefault || actionRef.current || addressNeedsVerification)
+      return;
+    actionRef.current = true;
     setPendingAction(`default-${address.id}`);
     try {
       const saved = await updateAddress(
@@ -176,11 +292,14 @@ export function ProfileManagement({
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "默认地址设置失败");
     } finally {
+      actionRef.current = false;
       setPendingAction(null);
     }
   }
 
   async function saveQrCode(channel: PaymentQrChannel, file: File) {
+    if (actionRef.current) return;
+    actionRef.current = true;
     setPendingAction(`qr-${channel}`);
     try {
       const content = await decodePaymentQrImage(file);
@@ -193,14 +312,54 @@ export function ProfileManagement({
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : "收款码保存失败");
     } finally {
+      actionRef.current = false;
       setPendingAction(null);
     }
   }
 
+  async function reloadSection(section: "addresses" | "qr") {
+    if (loadingRef.current || actionRef.current) return;
+    if (section === "addresses" && unverifiedAddress.current) {
+      await verifyAddressSave();
+      return;
+    }
+    loadingRef.current = true;
+    setLoadingSection(section);
+    try {
+      if (section === "addresses") {
+        setAddresses(await listAddresses(serviceOptions));
+        setAddressError(null);
+      } else {
+        setQrCodes(await listPaymentQrCodes(serviceOptions));
+        setQrError(null);
+      }
+    } catch (caught) {
+      const message =
+        caught instanceof Error ? caught.message : "加载失败，请重试";
+      if (section === "addresses") setAddressError(message);
+      else setQrError(message);
+    } finally {
+      loadingRef.current = false;
+      setLoadingSection(null);
+    }
+  }
+
+  function closeAddressForm(open: boolean) {
+    if (actionRef.current) return;
+    setAddressFormOpen(open);
+    if (!open) setAddressListOpen(true);
+  }
+
+  function closeDeleteDialog(open: boolean) {
+    if (open || actionRef.current) return;
+    setDeleteTarget(null);
+    setAddressListOpen(true);
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       <section className="flex items-center justify-between gap-6">
-        <h1 className="text-3xl font-semibold tracking-tight">我的资料</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">我的</h1>
         {user ? (
           <div className="flex min-w-0 items-center gap-3">
             <Avatar className="size-12">
@@ -223,123 +382,201 @@ export function ProfileManagement({
         />
       ) : null}
 
-      {initialOverview ? (
-        <section className="grid gap-4 lg:grid-cols-2">
-          <button
-            type="button"
-            className="rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            onClick={() => setQrOpen(true)}
-          >
-            <Card className="h-full transition-colors hover:border-primary/40">
-              <CardContent className="flex min-h-28 items-center gap-4 p-5">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <RiQrCodeLine className="size-5" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <h2 className="font-semibold">收款码</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {qrCodes.length}/2 已上传
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </button>
-          <button
-            type="button"
-            className="rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            onClick={() => setAddressListOpen(true)}
-          >
-            <Card className="h-full transition-colors hover:border-primary/40">
-              <CardContent className="flex min-h-28 items-center gap-4 p-5">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
-                  <RiMapPinLine className="size-5" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <h2 className="font-semibold">地址簿</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {addresses.length} 个地址
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </button>
+      <div className="grid items-start gap-6 xl:grid-cols-2">
+        <section
+          className="flex min-w-0 flex-col gap-3"
+          aria-labelledby="profile-settings-title"
+        >
+          <h2 id="profile-settings-title" className="text-base font-semibold">
+            账户设置
+          </h2>
+          <Card>
+            <CardContent className="divide-y p-0">
+              <ProfileEntry
+                name="address"
+                label="地址簿"
+                description={
+                  addressError
+                    ? "加载失败，点击重试"
+                    : `${addresses.length} 个收货地址`
+                }
+                disabled={!initialOverview}
+                onClick={() => setAddressListOpen(true)}
+              />
+              <ProfileEntry
+                name="collection"
+                label="收款码"
+                description={
+                  qrError ? "加载失败，点击重试" : `${qrCodes.length}/2 已上传`
+                }
+                disabled={!initialOverview}
+                onClick={() => setQrOpen(true)}
+              />
+              <ProfileEntry
+                name="wallet"
+                label="默认支付方式"
+                description={
+                  defaultPlatform === "wechat" ? "微信支付" : "支付宝"
+                }
+                onClick={() => {
+                  setPreferenceOpen(true);
+                }}
+              />
+            </CardContent>
+          </Card>
         </section>
-      ) : null}
+        <section
+          className="flex min-w-0 flex-col gap-3"
+          aria-labelledby="profile-help-title"
+        >
+          <h2 id="profile-help-title" className="text-base font-semibold">
+            服务与规则
+          </h2>
+          <Card>
+            <CardContent className="divide-y p-0">
+              <ProfileEntry
+                name="transaction-agreement"
+                label="交易协议"
+                description="查看交易规则与双方责任"
+                onClick={openAgreement}
+              />
+              {feedbackFormUrl ? (
+                <Button
+                  variant="ghost"
+                  className="h-auto min-h-20 w-full justify-start gap-3 rounded-none px-4 py-3 first:rounded-t-xl last:rounded-b-xl"
+                  asChild
+                >
+                  <a
+                    href={feedbackFormUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(event) => {
+                      if (
+                        !isLarkClientEnvironment(window.h5sdk) ||
+                        event.metaKey ||
+                        event.ctrlKey ||
+                        event.shiftKey ||
+                        event.altKey
+                      )
+                        return;
+                      event.preventDefault();
+                      window.location.assign(
+                        `https://applink.feishu.cn/client/web_url/open?mode=window&url=${encodeURIComponent(feedbackFormUrl)}`,
+                      );
+                    }}
+                  >
+                    <BrandIllustration name="help" size={32} />
+                    <span className="flex min-w-0 flex-1 flex-col gap-1 text-left">
+                      <span className="font-medium">帮助与反馈</span>
+                      <span className="text-xs font-normal text-muted-foreground">
+                        反馈问题或建议
+                      </span>
+                    </span>
+                    <RiArrowRightSLine className="text-muted-foreground" />
+                  </a>
+                </Button>
+              ) : null}
+            </CardContent>
+          </Card>
+        </section>
+      </div>
 
-      <Button
-        type="button"
-        variant="ghost"
-        className="w-full justify-start"
-        onClick={openAgreement}
-      >
-        <Image
-          src="/brand/transaction-agreement-compact.webp"
-          width={32}
-          height={32}
-          alt=""
-          aria-hidden="true"
-          unoptimized
-        />
-        交易协议
-      </Button>
-
-      {feedbackFormUrl ? (
-        <Button variant="ghost" className="w-full justify-start" asChild>
-          <a
-            href={feedbackFormUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(event) => {
-              if (!isLarkClientEnvironment(window.h5sdk)) return;
-              if (
-                event.metaKey ||
-                event.ctrlKey ||
-                event.shiftKey ||
-                event.altKey
-              )
+      <Dialog open={preferenceOpen} onOpenChange={setPreferenceOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>默认支付方式</DialogTitle>
+            <DialogDescription>
+              付款时优先使用此方式，收款人未提供时使用其他可用方式
+            </DialogDescription>
+          </DialogHeader>
+          <RadioGroup
+            value={defaultPlatform}
+            aria-label="默认支付方式"
+            onValueChange={(value) => {
+              if (!isPaymentPlatform(value)) return;
+              if (!writeDefaultPaymentPlatform(value)) {
+                toast.error("浏览器无法保存设置，请检查存储权限");
                 return;
-              event.preventDefault();
-              window.location.assign(
-                `https://applink.feishu.cn/client/web_url/open?mode=window&url=${encodeURIComponent(feedbackFormUrl)}`,
-              );
+              }
             }}
           >
-            <RiQuestionLine data-icon="inline-start" />
-            帮助与反馈
-          </a>
-        </Button>
-      ) : null}
+            <div className="flex items-center gap-3 rounded-lg border px-4 py-3">
+              <RadioGroupItem id="default-payment-wechat" value="wechat" />
+              <Label
+                htmlFor="default-payment-wechat"
+                className="flex flex-1 items-center gap-2"
+              >
+                <RiWechatPayLine className="size-5" />
+                微信支付
+              </Label>
+            </div>
+            <div className="flex items-center gap-3 rounded-lg border px-4 py-3">
+              <RadioGroupItem id="default-payment-alipay" value="alipay" />
+              <Label
+                htmlFor="default-payment-alipay"
+                className="flex flex-1 items-center gap-2"
+              >
+                <RiAlipayLine className="size-5" />
+                支付宝
+              </Label>
+            </div>
+          </RadioGroup>
+        </DialogContent>
+      </Dialog>
 
-      <Dialog open={qrOpen} onOpenChange={setQrOpen}>
-        <DialogContent>
+      <Dialog
+        open={qrOpen}
+        onOpenChange={(open) => {
+          if (!actionRef.current) setQrOpen(open);
+        }}
+      >
+        <DialogContent showCloseButton={pendingAction === null}>
           <DialogHeader>
             <DialogTitle>收款码</DialogTitle>
             <DialogDescription className="sr-only">
               管理微信和支付宝收款码
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-3">
-            <QrCodeRow
-              channel="wechat"
-              label="微信支付"
-              icon={RiWechatPayLine}
-              uploaded={qrCodes.some((code) => code.channel === "wechat")}
-              pending={pendingAction === "qr-wechat"}
-              onSelect={saveQrCode}
+          {qrError ? (
+            <LoadFailure
+              variant="compact"
+              title="收款码加载失败"
+              description={qrError}
+              onRetry={() => void reloadSection("qr")}
+              aria-busy={loadingSection === "qr"}
+              retryLabel={loadingSection === "qr" ? "正在加载" : "重新加载"}
             />
-            <QrCodeRow
-              channel="alipay"
-              label="支付宝"
-              icon={RiAlipayLine}
-              uploaded={qrCodes.some((code) => code.channel === "alipay")}
-              pending={pendingAction === "qr-alipay"}
-              onSelect={saveQrCode}
-            />
-          </div>
+          ) : (
+            <div className="grid gap-3">
+              <QrCodeRow
+                channel="wechat"
+                label="微信支付"
+                icon={RiWechatPayLine}
+                uploaded={qrCodes.some((code) => code.channel === "wechat")}
+                disabled={pendingAction !== null}
+                pending={pendingAction === "qr-wechat"}
+                onSelect={saveQrCode}
+              />
+              <QrCodeRow
+                channel="alipay"
+                label="支付宝"
+                icon={RiAlipayLine}
+                uploaded={qrCodes.some((code) => code.channel === "alipay")}
+                disabled={pendingAction !== null}
+                pending={pendingAction === "qr-alipay"}
+                onSelect={saveQrCode}
+              />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
-      <Dialog open={addressListOpen} onOpenChange={setAddressListOpen}>
+      <Dialog
+        open={addressListOpen}
+        onOpenChange={(open) => {
+          if (!actionRef.current) setAddressListOpen(open);
+        }}
+      >
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>地址簿</DialogTitle>
@@ -347,7 +584,18 @@ export function ProfileManagement({
               管理收货地址
             </DialogDescription>
           </DialogHeader>
-          {addresses.length === 0 ? (
+          {addressError ? (
+            <LoadFailure
+              variant="compact"
+              title="地址簿加载失败"
+              description={addressError}
+              onRetry={() => void reloadSection("addresses")}
+              aria-busy={loadingSection === "addresses"}
+              retryLabel={
+                loadingSection === "addresses" ? "正在加载" : "重新加载"
+              }
+            />
+          ) : addresses.length === 0 ? (
             <Empty
               icon={<RiMapPinLine className="size-5" />}
               title="暂无收货地址"
@@ -376,7 +624,9 @@ export function ProfileManagement({
                       size="icon-sm"
                       variant="ghost"
                       aria-label={`将${address.recipientName}的地址设为默认`}
-                      disabled={pendingAction !== null}
+                      disabled={
+                        pendingAction !== null || addressNeedsVerification
+                      }
                       onClick={() => void makeDefault(address)}
                     >
                       <RiStarLine />
@@ -387,6 +637,9 @@ export function ProfileManagement({
                     size="icon-sm"
                     variant="ghost"
                     aria-label={`编辑${address.recipientName}的地址`}
+                    disabled={
+                      pendingAction !== null || addressNeedsVerification
+                    }
                     onClick={() => openAddressForm(address)}
                   >
                     <RiEditLine />
@@ -396,6 +649,9 @@ export function ProfileManagement({
                     size="icon-sm"
                     variant="ghost"
                     className="text-destructive"
+                    disabled={
+                      pendingAction !== null || addressNeedsVerification
+                    }
                     aria-label={`删除${address.recipientName}的地址`}
                     onClick={() => {
                       setAddressListOpen(false);
@@ -409,16 +665,27 @@ export function ProfileManagement({
             </div>
           )}
           <DialogFooter>
-            <Button type="button" onClick={() => openAddressForm()}>
+            <Button
+              type="button"
+              disabled={
+                pendingAction !== null ||
+                loadingSection !== null ||
+                Boolean(addressError)
+              }
+              onClick={() => openAddressForm()}
+            >
               <RiAddLine data-icon="inline-start" />
-              添加地址
+              {addressNeedsVerification ? "继续核实保存" : "添加地址"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={addressFormOpen} onOpenChange={setAddressFormOpen}>
-        <DialogContent className="sm:max-w-2xl">
+      <Dialog open={addressFormOpen} onOpenChange={closeAddressForm}>
+        <DialogContent
+          className="max-h-[calc(100dvh-3rem)] overflow-y-auto sm:max-w-2xl"
+          showCloseButton={pendingAction === null}
+        >
           <DialogHeader>
             <DialogTitle>
               {editingAddress ? "编辑地址" : "添加地址"}
@@ -427,110 +694,146 @@ export function ProfileManagement({
               填写收货地址
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field>
-              <FieldLabel htmlFor="address-recipient">收件人</FieldLabel>
-              <Input
-                id="address-recipient"
-                value={addressDraft.recipientName}
-                onChange={(event) =>
+          <form
+            id="desktop-address-form"
+            aria-describedby={formError ? "desktop-address-error" : undefined}
+            aria-busy={pendingAction !== null}
+            noValidate
+            onSubmit={(event) => {
+              event.preventDefault();
+              void saveAddress();
+            }}
+            className="grid gap-4 sm:grid-cols-2"
+          >
+            <fieldset
+              disabled={pendingAction !== null || addressNeedsVerification}
+              className="contents"
+            >
+              <Field>
+                <FieldLabel htmlFor="address-recipient">收件人</FieldLabel>
+                <Input
+                  id="address-recipient"
+                  value={addressDraft.recipientName}
+                  onChange={(event) =>
+                    setAddressDraft((current) => ({
+                      ...current,
+                      recipientName: event.target.value,
+                    }))
+                  }
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="address-phone">手机号</FieldLabel>
+                <Input
+                  id="address-phone"
+                  inputMode="tel"
+                  value={addressDraft.recipientPhone}
+                  onChange={(event) =>
+                    setAddressDraft((current) => ({
+                      ...current,
+                      recipientPhone: event.target.value,
+                    }))
+                  }
+                />
+              </Field>
+              <RegionSelect
+                id="address-province"
+                label="省份"
+                value={addressDraft.province}
+                options={getProvinceOptions()}
+                disabled={pendingAction !== null}
+                onValueChange={(province) =>
                   setAddressDraft((current) => ({
                     ...current,
-                    recipientName: event.target.value,
+                    province,
+                    city: "",
+                    district: "",
                   }))
                 }
               />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="address-phone">手机号</FieldLabel>
-              <Input
-                id="address-phone"
-                inputMode="tel"
-                value={addressDraft.recipientPhone}
-                onChange={(event) =>
+              <RegionSelect
+                id="address-city"
+                label="城市"
+                value={addressDraft.city}
+                options={cityOptions}
+                disabled={!addressDraft.province || pendingAction !== null}
+                onValueChange={(city) =>
                   setAddressDraft((current) => ({
                     ...current,
-                    recipientPhone: event.target.value,
+                    city,
+                    district: "",
                   }))
                 }
               />
-            </Field>
-            <RegionSelect
-              id="address-province"
-              label="省份"
-              value={addressDraft.province}
-              options={getProvinceOptions()}
-              onValueChange={(province) =>
-                setAddressDraft((current) => ({
-                  ...current,
-                  province,
-                  city: "",
-                  district: "",
-                }))
-              }
-            />
-            <RegionSelect
-              id="address-city"
-              label="城市"
-              value={addressDraft.city}
-              options={cityOptions}
-              disabled={!addressDraft.province}
-              onValueChange={(city) =>
-                setAddressDraft((current) => ({
-                  ...current,
-                  city,
-                  district: "",
-                }))
-              }
-            />
-            <RegionSelect
-              id="address-district"
-              label="区县"
-              value={addressDraft.district}
-              options={districtOptions}
-              disabled={!addressDraft.city}
-              onValueChange={(district) =>
-                setAddressDraft((current) => ({ ...current, district }))
-              }
-            />
-            <Field className="sm:col-span-2">
-              <FieldLabel htmlFor="address-detail">详细地址</FieldLabel>
-              <Input
-                id="address-detail"
-                value={addressDraft.detailAddress}
-                onChange={(event) =>
-                  setAddressDraft((current) => ({
-                    ...current,
-                    detailAddress: event.target.value,
-                  }))
+              <RegionSelect
+                id="address-district"
+                label="区县"
+                value={addressDraft.district}
+                options={districtOptions}
+                disabled={!addressDraft.city || pendingAction !== null}
+                onValueChange={(district) =>
+                  setAddressDraft((current) => ({ ...current, district }))
                 }
               />
-            </Field>
-            <label className="flex items-center justify-between gap-4 rounded-lg border px-4 py-3 sm:col-span-2">
-              <span className="text-sm font-medium">默认地址</span>
-              <Switch
-                checked={addressDraft.isDefault}
-                onCheckedChange={(isDefault) =>
-                  setAddressDraft((current) => ({ ...current, isDefault }))
-                }
-              />
-            </label>
+              <Field className="sm:col-span-2">
+                <FieldLabel htmlFor="address-detail">详细地址</FieldLabel>
+                <Input
+                  id="address-detail"
+                  value={addressDraft.detailAddress}
+                  onChange={(event) =>
+                    setAddressDraft((current) => ({
+                      ...current,
+                      detailAddress: event.target.value,
+                    }))
+                  }
+                />
+              </Field>
+              <label className="flex items-center justify-between gap-4 rounded-lg border px-4 py-3 sm:col-span-2">
+                <span className="text-sm font-medium">默认地址</span>
+                <Switch
+                  disabled={pendingAction !== null}
+                  checked={addressDraft.isDefault}
+                  onCheckedChange={(isDefault) =>
+                    setAddressDraft((current) => ({ ...current, isDefault }))
+                  }
+                />
+              </label>
+            </fieldset>
             {formError ? (
-              <FieldError className="sm:col-span-2">{formError}</FieldError>
+              <FieldError
+                id="desktop-address-error"
+                role="alert"
+                className="sm:col-span-2"
+              >
+                {formError}
+              </FieldError>
             ) : null}
-          </div>
+            {addressNeedsVerification ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="sm:col-span-2"
+                disabled={loadingSection !== null}
+                onClick={() => void verifyAddressSave()}
+              >
+                {loadingSection === "addresses" ? <Spinner /> : null}
+                核实保存结果
+              </Button>
+            ) : null}
+          </form>
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
-              onClick={() => setAddressFormOpen(false)}
+              disabled={pendingAction !== null}
+              onClick={() => closeAddressForm(false)}
             >
               取消
             </Button>
             <Button
-              type="button"
-              disabled={pendingAction !== null}
-              onClick={() => void saveAddress()}
+              type="submit"
+              form="desktop-address-form"
+              disabled={pendingAction !== null || addressNeedsVerification}
             >
               {pendingAction?.startsWith("edit-") || pendingAction === "add" ? (
                 <Spinner />
@@ -541,20 +844,18 @@ export function ProfileManagement({
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={Boolean(deleteTarget)}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
-      >
-        <DialogContent>
+      <Dialog open={Boolean(deleteTarget)} onOpenChange={closeDeleteDialog}>
+        <DialogContent showCloseButton={pendingAction === null}>
           <DialogHeader>
             <DialogTitle>删除地址？</DialogTitle>
-            <DialogDescription>删除后无法恢复。</DialogDescription>
+            <DialogDescription>删除后无法恢复</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
-              onClick={() => setDeleteTarget(null)}
+              disabled={pendingAction !== null}
+              onClick={() => closeDeleteDialog(false)}
             >
               取消
             </Button>
@@ -580,6 +881,7 @@ function QrCodeRow({
   icon: Icon,
   uploaded,
   pending,
+  disabled,
   onSelect,
 }: {
   channel: PaymentQrChannel;
@@ -587,6 +889,7 @@ function QrCodeRow({
   icon: typeof RiWechatPayLine;
   uploaded: boolean;
   pending: boolean;
+  disabled: boolean;
   onSelect: (channel: PaymentQrChannel, file: File) => Promise<void>;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -599,7 +902,7 @@ function QrCodeRow({
     <button
       type="button"
       className="flex min-h-16 items-center gap-3 rounded-lg border px-4 text-left transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      disabled={pending}
+      disabled={disabled}
       onClick={() => inputRef.current?.click()}
     >
       <input
@@ -707,4 +1010,37 @@ function upsertQrCode(qrCodes: PaymentQrCode[], saved: PaymentQrCode) {
 
 function formatAddress(address: ShippingAddress): string {
   return `${address.province}${address.city}${address.district}${address.detailAddress}`;
+}
+
+function ProfileEntry({
+  name,
+  label,
+  description,
+  onClick,
+  disabled = false,
+}: {
+  name: Parameters<typeof BrandIllustration>[0]["name"];
+  label: string;
+  description: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      disabled={disabled}
+      className="h-auto min-h-20 w-full justify-start gap-3 rounded-none px-4 py-3 first:rounded-t-xl last:rounded-b-xl"
+      onClick={onClick}
+    >
+      <BrandIllustration name={name} size={32} />
+      <span className="flex min-w-0 flex-1 flex-col gap-1 text-left">
+        <span className="font-medium">{label}</span>
+        <span className="text-xs font-normal text-muted-foreground">
+          {description}
+        </span>
+      </span>
+      <RiArrowRightSLine className="text-muted-foreground" />
+    </Button>
+  );
 }

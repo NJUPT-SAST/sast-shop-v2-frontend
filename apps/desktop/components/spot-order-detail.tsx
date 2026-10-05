@@ -12,10 +12,13 @@ import {
   cancelSpotOrder,
   completeSpotOrder,
   confirmBill,
+  getBill,
+  getSpotOrderDetail,
   listPaymentQrCodes,
   payBill,
   supplementBillSerialNumber,
   type DataSource,
+  type PaymentBill,
   type PaymentQrChannel,
   type SpotOrder,
 } from "@sast-shop/api";
@@ -50,6 +53,7 @@ import {
   resolveSpotOrderActions,
   type SpotOrderView,
 } from "@/lib/spot-orders";
+import { readDefaultPaymentPlatform } from "@/lib/payment-preferences";
 import { ManagedImage } from "./managed-image";
 import { LarkContactButton } from "./lark-contact-button";
 import { useTransactionAgreement } from "./transaction-agreement-provider";
@@ -77,22 +81,39 @@ export function SpotOrderDetail({
   const [supplementOpen, setSupplementOpen] = useState(false);
   const [serialNumber, setSerialNumber] = useState("");
   const [pending, setPending] = useState(false);
+  const [unverifiedPaymentVersion, setUnverifiedPaymentVersion] = useState<
+    string | null
+  >(null);
+  const [unverifiedSupplementVersion, setUnverifiedSupplementVersion] =
+    useState<string | null>(null);
+  const [unverifiedLifecycleVersion, setUnverifiedLifecycleVersion] = useState<
+    string | null
+  >(null);
   const pendingRef = useRef(false);
   const resolvedOrder = reconcileSpotOrderUpdate(currentOrder, order);
   const bill = resolvedOrder.bill;
+  const billVersion = bill?.updatedAt ? `${bill.id}:${bill.updatedAt}` : null;
+  const lifecycleVersion = `${resolvedOrder.id}:${resolvedOrder.status}:${bill?.status ?? "none"}:${bill?.updatedAt ?? "none"}:${resolvedOrder.completedAt ?? "none"}:${resolvedOrder.cancelledAt ?? "none"}`;
+  const lifecycleUnverified = lifecycleVersion === unverifiedLifecycleVersion;
+  const paymentUnverified =
+    billVersion !== null && billVersion === unverifiedPaymentVersion;
+  const supplementUnverified =
+    billVersion !== null && billVersion === unverifiedSupplementVersion;
   const actions = resolveSpotOrderActions(
     view,
     resolvedOrder.status,
     bill?.status,
   );
+  const canSupplementSerialNumber =
+    actions.canSupplementSerialNumber && !bill?.serialNumber;
   const timeline = buildSpotOrderTimeline(resolvedOrder);
 
   async function mutate(action: Exclude<ConfirmationAction, null>) {
-    if (pendingRef.current) return;
+    if (pendingRef.current || lifecycleUnverified) return;
     const orderId = resolvedOrder.id;
     const billToConfirm = bill;
     if (!(await ensureAgreement(() => setConfirmation(null)))) return;
-    if (pendingRef.current) return;
+    if (pendingRef.current || lifecycleUnverified) return;
     pendingRef.current = true;
     setPending(true);
     try {
@@ -121,13 +142,37 @@ export function SpotOrderDetail({
         toast.success("已确认收款");
       }
       setConfirmation(null);
+      setUnverifiedLifecycleVersion(null);
       router.refresh();
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "操作失败，订单状态可能已变化，请刷新后重试",
-      );
+      setConfirmation(null);
+      try {
+        const latestOrder = await getSpotOrderDetail(orderId, {
+          dataSource,
+          connectBaseUrl,
+        });
+        setCurrentOrder(latestOrder);
+        setUnverifiedLifecycleVersion(null);
+        const completed =
+          action === "cancel"
+            ? latestOrder.status === "cancelled"
+            : action === "complete"
+              ? latestOrder.status === "completed"
+              : latestOrder.bill?.status === "completed";
+        if (completed) {
+          toast.info("已读取最新订单状态");
+        } else {
+          toast.error(
+            error instanceof Error
+              ? `${error.message}，订单已刷新，请核对后重试`
+              : "订单状态已刷新，请核对后重试",
+          );
+        }
+      } catch {
+        setUnverifiedLifecycleVersion(lifecycleVersion);
+        toast.error("无法确认操作结果，正在刷新订单，请核对后再操作");
+      }
+      router.refresh();
     } finally {
       pendingRef.current = false;
       setPending(false);
@@ -135,7 +180,13 @@ export function SpotOrderDetail({
   }
 
   async function supplement() {
-    if (!bill?.updatedAt || !serialNumber.trim() || pendingRef.current) return;
+    if (
+      !bill?.updatedAt ||
+      !serialNumber.trim() ||
+      pendingRef.current ||
+      supplementUnverified
+    )
+      return;
     const billToSupplement = bill;
     const billVersion = bill.updatedAt;
     const submittedSerialNumber = serialNumber.trim();
@@ -153,15 +204,34 @@ export function SpotOrderDetail({
         { dataSource, connectBaseUrl },
       );
       setCurrentOrder((value) => ({ ...value, bill: updatedBill }));
+      setUnverifiedSupplementVersion(null);
       setSupplementOpen(false);
       toast.success("支付流水号已补充");
       router.refresh();
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "提交失败，请刷新账单状态后重试",
-      );
+      try {
+        const latestBill = await getBill(billToSupplement.id, {
+          dataSource,
+          connectBaseUrl,
+        });
+        setCurrentOrder((value) => ({ ...value, bill: latestBill }));
+        setSupplementOpen(false);
+        if (latestBill.serialNumber === submittedSerialNumber) {
+          setUnverifiedSupplementVersion(null);
+          toast.info("已读取最新支付流水号");
+        } else {
+          toast.error(
+            error instanceof Error
+              ? `${error.message}，账单已刷新`
+              : "账单已刷新，请核对后重试",
+          );
+        }
+      } catch {
+        setUnverifiedSupplementVersion(`${billToSupplement.id}:${billVersion}`);
+        setSupplementOpen(false);
+        toast.error("无法确认流水号提交结果，正在刷新订单，请核对后再操作");
+      }
+      router.refresh();
     } finally {
       pendingRef.current = false;
       setPending(false);
@@ -319,9 +389,9 @@ export function SpotOrderDetail({
               </div>
             ) : null}
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             {bill ? (
-              <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 gap-y-3 text-sm">
+              <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
                 <dt className="text-muted-foreground">应付金额</dt>
                 <dd className="font-semibold">
                   {formatPrice(bill.amountCents)}
@@ -354,15 +424,18 @@ export function SpotOrderDetail({
               {actions.canPay ? (
                 <Button
                   onClick={() => setPaymentOpen(true)}
-                  disabled={!bill?.updatedAt || !bill.payee?.id}
+                  disabled={
+                    !bill?.updatedAt || !bill.payee?.id || paymentUnverified
+                  }
                 >
                   立即支付
                 </Button>
               ) : null}
-              {actions.canSupplementSerialNumber ? (
+              {canSupplementSerialNumber ? (
                 <Button
                   variant="outline"
                   onClick={() => setSupplementOpen(true)}
+                  disabled={supplementUnverified}
                 >
                   补充流水号
                 </Button>
@@ -370,13 +443,16 @@ export function SpotOrderDetail({
               {actions.canConfirmPayment ? (
                 <Button
                   onClick={() => setConfirmation("confirm")}
-                  disabled={!bill?.updatedAt}
+                  disabled={!bill?.updatedAt || lifecycleUnverified}
                 >
                   确认收款
                 </Button>
               ) : null}
               {actions.canComplete ? (
-                <Button onClick={() => setConfirmation("complete")}>
+                <Button
+                  onClick={() => setConfirmation("complete")}
+                  disabled={lifecycleUnverified}
+                >
                   确认完成
                 </Button>
               ) : null}
@@ -384,6 +460,7 @@ export function SpotOrderDetail({
                 <Button
                   variant="outline"
                   onClick={() => setConfirmation("cancel")}
+                  disabled={lifecycleUnverified}
                 >
                   取消订单
                 </Button>
@@ -393,6 +470,12 @@ export function SpotOrderDetail({
         </Card>
       </div>
 
+      {paymentUnverified || supplementUnverified || lifecycleUnverified ? (
+        <p className="text-sm text-muted-foreground">
+          操作结果待核实，订单更新后可继续操作。
+        </p>
+      ) : null}
+
       <PaymentDialog
         open={paymentOpen}
         onOpenChange={setPaymentOpen}
@@ -400,14 +483,27 @@ export function SpotOrderDetail({
         dataSource={dataSource}
         connectBaseUrl={connectBaseUrl}
         onPaid={(updatedBill) => {
+          setUnverifiedPaymentVersion(null);
           setCurrentOrder((value) => ({ ...value, bill: updatedBill }));
           router.refresh();
         }}
+        onBillRefresh={(latestBill) => {
+          if (latestBill) {
+            setUnverifiedPaymentVersion(null);
+            setCurrentOrder((value) => ({ ...value, bill: latestBill }));
+          } else if (billVersion) {
+            setUnverifiedPaymentVersion(billVersion);
+          }
+          router.refresh();
+        }}
+        unverified={paymentUnverified}
       />
 
       <Dialog
         open={Boolean(confirmation)}
-        onOpenChange={(open) => !open && !pending && setConfirmation(null)}
+        onOpenChange={(open) =>
+          !open && !pendingRef.current && setConfirmation(null)
+        }
       >
         <DialogContent>
           <DialogHeader>
@@ -429,14 +525,14 @@ export function SpotOrderDetail({
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setConfirmation(null)}
-              disabled={pending}
+              onClick={() => !pendingRef.current && setConfirmation(null)}
+              disabled={pending || lifecycleUnverified}
             >
               返回检查
             </Button>
             <Button
               onClick={() => confirmation && mutate(confirmation)}
-              disabled={pending}
+              disabled={pending || lifecycleUnverified}
             >
               {pending ? <Spinner /> : null}
               {confirmation === "cancel"
@@ -451,7 +547,7 @@ export function SpotOrderDetail({
 
       <Dialog
         open={supplementOpen}
-        onOpenChange={(open) => !pending && setSupplementOpen(open)}
+        onOpenChange={(open) => !pendingRef.current && setSupplementOpen(open)}
       >
         <DialogContent>
           <DialogHeader>
@@ -469,7 +565,7 @@ export function SpotOrderDetail({
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setSupplementOpen(false)}
+              onClick={() => !pendingRef.current && setSupplementOpen(false)}
               disabled={pending}
             >
               取消
@@ -494,6 +590,8 @@ function PaymentDialog({
   dataSource,
   connectBaseUrl,
   onPaid,
+  onBillRefresh,
+  unverified,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -501,46 +599,61 @@ function PaymentDialog({
   dataSource: DataSource;
   connectBaseUrl: string;
   onPaid: (bill: NonNullable<SpotOrder["bill"]>) => void;
+  onBillRefresh: (bill: PaymentBill | null) => void;
+  unverified: boolean;
 }) {
   const { ensureAgreement } = useTransactionAgreement();
   const [channel, setChannel] = useState<PaymentQrChannel>("wechat");
-  const [codes, setCodes] = useState<Partial<Record<PaymentQrChannel, string>>>(
-    {},
-  );
-  const [loading, setLoading] = useState(false);
+  const [qrResult, setQrResult] = useState<{
+    key: string;
+    codes: Partial<Record<PaymentQrChannel, string>>;
+    error: boolean;
+  } | null>(null);
   const [paying, setPaying] = useState(false);
-  const loadedForRef = useRef<string | null>(null);
+  const [reloadCount, setReloadCount] = useState(0);
   const payingRef = useRef(false);
   const bill = order.bill;
+  const qrKey =
+    bill?.payee?.id && bill.updatedAt
+      ? `${bill.payee.id}:${bill.updatedAt}:${reloadCount}`
+      : null;
+  const currentCodes =
+    qrResult?.key === qrKey && !qrResult.error ? qrResult.codes : {};
+  const qrError = qrResult?.key === qrKey && qrResult.error;
+  const loading = open && Boolean(qrKey) && qrResult?.key !== qrKey;
 
   useEffect(() => {
     const payeeId = bill?.payee?.id;
-    if (!open || !payeeId || loadedForRef.current === payeeId) return;
+    if (!open || !payeeId || !qrKey || qrResult?.key === qrKey) return;
     let cancelled = false;
-    setLoading(true);
     void listPaymentQrCodes({ dataSource, connectBaseUrl, ownerId: payeeId })
       .then((result) => {
         if (cancelled) return;
         const mapped = Object.fromEntries(
           result.map((item) => [item.channel, item.content]),
         ) as Partial<Record<PaymentQrChannel, string>>;
-        setCodes(mapped);
-        setChannel(mapped.wechat ? "wechat" : "alipay");
-        loadedForRef.current = payeeId;
+        setQrResult({ key: qrKey, codes: mapped, error: false });
+        const preferred = readDefaultPaymentPlatform();
+        setChannel(
+          mapped[preferred] ? preferred : mapped.wechat ? "wechat" : "alipay",
+        );
       })
       .catch(() => {
-        if (!cancelled) toast.error("收款码加载失败，请稍后重试");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setQrResult({ key: qrKey, codes: {}, error: true });
       });
     return () => {
       cancelled = true;
     };
-  }, [bill?.payee?.id, connectBaseUrl, dataSource, open]);
+  }, [bill?.payee?.id, connectBaseUrl, dataSource, open, qrKey, qrResult?.key]);
 
   async function submitPayment() {
-    if (!bill?.updatedAt || !codes[channel] || payingRef.current) return;
+    if (
+      !bill?.updatedAt ||
+      !currentCodes[channel] ||
+      payingRef.current ||
+      unverified
+    )
+      return;
     const billToPay = bill;
     const billVersion = bill.updatedAt;
     const paymentChannel = channel;
@@ -561,22 +674,51 @@ function PaymentDialog({
       onOpenChange(false);
       toast.success("已提交支付，等待卖家确认");
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "支付提交失败，请检查账单状态后重试",
-      );
+      try {
+        const latestBill = await getBill(billToPay.id, {
+          dataSource,
+          connectBaseUrl,
+        });
+        onOpenChange(false);
+        if (
+          latestBill.status === "submitted" ||
+          latestBill.status === "completed"
+        ) {
+          onPaid(latestBill);
+          toast.info("已读取最新支付状态");
+        } else {
+          onBillRefresh(latestBill);
+          toast.error(
+            latestBill.status === "unpaid"
+              ? "支付确认未完成，账单已刷新，请核对后重试"
+              : error instanceof Error
+                ? error.message
+                : "账单状态已更新，请核对后重试",
+          );
+        }
+      } catch {
+        onOpenChange(false);
+        onBillRefresh(null);
+        toast.error("无法确认支付结果，正在刷新订单，请核对后再操作");
+      }
     } finally {
       payingRef.current = false;
       setPaying(false);
     }
   }
 
-  const content = codes[channel];
+  const content = currentCodes[channel];
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (payingRef.current) return;
+        if (!next) setQrResult(null);
+        onOpenChange(next);
+      }}
+    >
+      <DialogContent className="flex max-h-[min(90dvh,48rem)] flex-col sm:max-w-2xl">
+        <DialogHeader className="shrink-0">
           <DialogTitle>
             扫码支付 {formatPrice(bill?.amountCents ?? order.totalAmountCents)}
           </DialogTitle>
@@ -584,47 +726,66 @@ function PaymentDialog({
             请核对收款方、金额和付款标识码，扫码完成后点击“我已支付”。
           </DialogDescription>
         </DialogHeader>
-        <Tabs
-          value={channel}
-          onValueChange={(value) => setChannel(value as PaymentQrChannel)}
-        >
-          <TabsList className="w-full">
-            <TabsTrigger value="wechat" disabled={!codes.wechat}>
-              微信
-            </TabsTrigger>
-            <TabsTrigger value="alipay" disabled={!codes.alipay}>
-              支付宝
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <div className="flex min-h-64 items-center justify-center rounded-xl bg-white p-5">
-          {loading ? (
-            <Spinner className="text-primary" />
-          ) : content ? (
-            <QRCodeCanvas value={content} size={220} level="M" />
-          ) : (
-            <p className="text-sm text-muted-foreground">暂无可用收款码</p>
-          )}
-        </div>
-        {bill?.verifyCode ? (
-          <div className="flex items-center justify-between rounded-lg bg-muted px-4 py-3 text-sm">
-            <span className="text-muted-foreground">付款标识码</span>
-            <span className="font-mono text-lg font-semibold tracking-widest">
-              {bill.verifyCode}
-            </span>
+        <div className="grid min-h-0 gap-5 overflow-y-auto overscroll-contain sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="flex flex-col gap-3">
+            <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 gap-y-2 rounded-lg bg-muted/70 p-3 text-sm">
+              <dt className="text-muted-foreground">应付金额</dt>
+              <dd className="font-semibold text-primary">
+                {formatPrice(bill?.amountCents ?? order.totalAmountCents)}
+              </dd>
+              <dt className="text-muted-foreground">收款人</dt>
+              <dd className="break-all font-medium">
+                {bill?.payee?.name?.trim() || "未提供姓名"}
+              </dd>
+              <dt className="text-muted-foreground">付款标识码</dt>
+              <dd className="break-all font-mono font-semibold">
+                {bill?.verifyCode || "暂无"}
+              </dd>
+            </dl>
           </div>
-        ) : null}
-        <DialogFooter>
+          <div className="flex min-w-0 flex-col gap-3">
+            <Tabs
+              value={channel}
+              onValueChange={(value) => setChannel(value as PaymentQrChannel)}
+            >
+              <TabsList className="w-full">
+                <TabsTrigger value="wechat" disabled={!currentCodes.wechat}>
+                  微信
+                </TabsTrigger>
+                <TabsTrigger value="alipay" disabled={!currentCodes.alipay}>
+                  支付宝
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <div className="flex min-h-52 items-center justify-center rounded-xl bg-white p-3">
+              {loading ? (
+                <Spinner className="text-primary" />
+              ) : content ? (
+                <QRCodeCanvas value={content} size={192} level="M" />
+              ) : qrError ? (
+                <Button
+                  variant="outline"
+                  onClick={() => setReloadCount((value) => value + 1)}
+                >
+                  收款码加载失败，重试
+                </Button>
+              ) : (
+                <p className="text-sm text-muted-foreground">暂无可用收款码</p>
+              )}
+            </div>
+          </div>
+        </div>
+        <DialogFooter className="shrink-0">
           <Button
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={() => !payingRef.current && onOpenChange(false)}
             disabled={paying}
           >
             稍后支付
           </Button>
           <Button
             onClick={submitPayment}
-            disabled={paying || !content || !bill?.updatedAt}
+            disabled={paying || !content || !bill?.updatedAt || unverified}
           >
             {paying ? <Spinner /> : null}我已支付
           </Button>

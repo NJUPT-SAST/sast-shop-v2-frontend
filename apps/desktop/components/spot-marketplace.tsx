@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { RiSearchLine, RiShoppingBag3Line } from "@remixicon/react";
 import {
@@ -121,6 +122,9 @@ export function SpotMarketplace({
   >("idle");
   const [quantity, setQuantity] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [unverifiedOrderVersion, setUnverifiedOrderVersion] = useState<
+    string | null
+  >(null);
   const submittingRef = useRef(false);
   const detailRequestRef = useRef(0);
   const filtered = useMemo(
@@ -136,7 +140,7 @@ export function SpotMarketplace({
   }, [hasMore, loadMore, loadMoreError, query]);
 
   function setDialogOpen(open: boolean) {
-    if (!open && !submitting) {
+    if (!open && !submittingRef.current) {
       detailRequestRef.current += 1;
       setSelectedBrief(null);
       setSelected(null);
@@ -176,6 +180,8 @@ export function SpotMarketplace({
   async function createOrder() {
     if (!selected || submittingRef.current) return;
     const product = selected;
+    const orderVersion = `${product.id}:${product.updatedAt}`;
+    if (unverifiedOrderVersion === orderVersion) return;
     const orderQuantity = quantity;
     if (!(await ensureAgreement(() => setDialogOpen(false)))) return;
     if (submittingRef.current) return;
@@ -199,19 +205,19 @@ export function SpotMarketplace({
         `/orders/spot/${order.id}?view=buyer&returnTo=${encodeURIComponent("/shop")}`,
       );
     } catch (error) {
+      setUnverifiedOrderVersion(orderVersion);
       toast.error(
         error instanceof Error
-          ? error.message
-          : "创建订单失败，商品信息可能已更新，请刷新后重试",
+          ? `${error.message}，请先到订单核对结果`
+          : "创建结果暂无法确认，请先到订单核对结果",
       );
-    } finally {
       submittingRef.current = false;
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       <section className="flex items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">商城</h1>
@@ -402,10 +408,29 @@ export function SpotMarketplace({
                       ) : null}
                     </div>
                   </div>
+                  {unverifiedOrderVersion ===
+                  `${selected.id}:${selected.updatedAt}` ? (
+                    <p className="text-sm text-muted-foreground">
+                      创建结果待核实。请先到订单查看，避免重复下单。
+                    </p>
+                  ) : null}
                   <DialogFooter>
+                    {unverifiedOrderVersion ===
+                    `${selected.id}:${selected.updatedAt}` ? (
+                      <Button variant="outline" asChild>
+                        <Link href="/orders?type=spot&view=buyer">
+                          查看我的订单
+                        </Link>
+                      </Button>
+                    ) : null}
                     <Button
                       onClick={createOrder}
-                      disabled={submitting || selected.stock === 0}
+                      disabled={
+                        submitting ||
+                        selected.stock === 0 ||
+                        unverifiedOrderVersion ===
+                          `${selected.id}:${selected.updatedAt}`
+                      }
                     >
                       {submitting ? <Spinner /> : null}
                       {selected.stock === 0

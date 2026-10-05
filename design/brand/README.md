@@ -15,8 +15,8 @@
 - 移动端 `public/brand/logo.webp`：512 × 512 无损透明 Logo。
 - 移动端 `public/brand/errand-empty.webp`：384 × 384 透明角色，页面展示为 128 × 128。
 - 功能模块 `*-master.png`、`*-prompt.txt`：内置 imagegen 生成的透明原图与完整提示词。
-- 移动端 `public/brand/{模块名}.webp`：384 × 384 无损透明素材，用于 96 像素空状态。
-- 移动端 `public/brand/{模块名}-compact.webp`：收紧透明留白后的 256 × 256 无损透明素材，用于不超过 64 像素的入口。
+- 两个应用的 `public/brand/{模块名}.webp`：384 × 384 无损透明素材，用于 96 像素空状态。
+- 两个应用的 `public/brand/{模块名}-compact.webp`：收紧透明留白后的 256 × 256 无损透明素材，用于不超过 64 像素的入口。
 
 | 模块名                | 设计元素           | 使用位置                           |
 | --------------------- | ------------------ | ---------------------------------- |
@@ -34,7 +34,7 @@
 
 ## 使用位置
 
-Next.js 使用文件约定生成浏览器图标与主屏图标标签。商城底部导航、桌面品牌标识使用共享的 `SastShopMark` 单色版本。移动端团购、订单、我的使用 `SastGroupMark`、`SastOrdersMark`、`SastProfileMark`，延续圆角实心轮廓，颜色跟随主题与选中状态；底部导航图标显示为 24 像素。
+Next.js 使用文件约定生成浏览器图标与主屏图标标签。商城底部导航、桌面品牌标识使用共享的 `SastShopMark` 单色版本。两个应用的团购、订单、我的导航使用 `SastGroupMark`、`SastOrdersMark`、`SastProfileMark`，延续圆角实心轮廓，颜色跟随主题与选中状态；移动端底部导航图标显示为 24 像素，桌面侧栏导航图标显示为 20 像素。
 
 等待中的团长角色用于跑腿大厅没有待接单需求、且没有搜索词时的空状态。功能图形通过 `BrandIllustration` 组合到对应入口和真实空状态；组件在不超过 64 像素时选用 compact 素材，并跳过 Next.js 二次图片压缩。搜索无结果保持紧凑图标。加载失败、支付与订单状态继续使用原有控件和文字。
 
@@ -54,6 +54,6 @@ node design/brand/export-assets.mjs
 node design/brand/export-assets.mjs transaction-agreement
 ```
 
-交易协议图形也导出到桌面端的 `public/brand/transaction-agreement-compact.webp`，两个入口均按 32 像素展示。
+功能图形同时导出到两个应用的 `public/brand/`；个人中心入口均按 32 像素展示。
 
 导出脚本使用 Next.js 已安装的 sharp，从原图和小尺寸矢量标志生成各类资源；功能模块素材采用无损 WebP，保留透明通道，无额外依赖。

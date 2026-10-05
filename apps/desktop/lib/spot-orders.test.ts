@@ -123,6 +123,27 @@ describe("desktop spot orders", () => {
     ).toBe("paid");
   });
 
+  it("keeps a newer bill when an old snapshot has the same millisecond timestamp", () => {
+    const newer = {
+      ...submittedOrder,
+      bill: {
+        ...submittedOrder.bill!,
+        updatedAt: "2026-07-18T00:01:00.123456789Z",
+      },
+    };
+    const older = {
+      ...submittedOrder,
+      bill: {
+        ...submittedOrder.bill!,
+        status: "unpaid" as const,
+        updatedAt: "2026-07-18T00:01:00.123123456Z",
+      },
+    };
+
+    expect(reconcileSpotOrderUpdate(newer, older)).toBe(newer);
+    expect(reconcileSpotOrderUpdate(older, newer)).toBe(newer);
+  });
+
   it("uses perspective-aware labels for pending and paid orders", () => {
     expect(getSpotOrderStatusLabel("buyer", "pending_payment")).toBe("待支付");
     expect(

@@ -3,15 +3,10 @@ import {
   listErrandTasks,
   listStores,
   type ErrandTaskBrief,
+  type ErrandTaskStatusFilter,
   type Store,
 } from "@sast-shop/api";
-import {
-  RiAddLine,
-  RiArrowRightSLine,
-  RiBarcodeLine,
-  RiRunLine,
-  RiStore2Line,
-} from "@remixicon/react";
+import { RiArrowRightSLine, RiRunLine, RiStore2Line } from "@remixicon/react";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
@@ -26,6 +21,7 @@ import {
 } from "@workspace/ui/components/item";
 
 import { ManagedImage } from "@/components/managed-image";
+import { BrandIllustration } from "@/components/brand-illustration";
 import { StoreCreateDialog } from "@/components/store-create-dialog";
 import { desktopAppConfig } from "@/lib/app-config";
 import { getActiveErrandTasks } from "@/lib/errand-task-route";
@@ -35,14 +31,27 @@ import { getServerServiceOptions } from "@/lib/server-service-options";
 
 export default async function GroupPage() {
   const options = await getServerServiceOptions();
+  const activeStatuses: ErrandTaskStatusFilter[] = [
+    "shopping",
+    "pending_distributing",
+    "distributing",
+    "collecting_payment",
+  ];
   const [storesResult, tasksResult] = await Promise.allSettled([
     listStores(options),
-    listErrandTasks({ ...options, page: 1, pageSize: 4 }),
+    Promise.all(
+      activeStatuses.map((status) =>
+        listErrandTasks({ ...options, status, page: 1, pageSize: 4 }),
+      ),
+    ).then((pages) => pages.flat()),
   ]);
   const stores = storesResult.status === "fulfilled" ? storesResult.value : [];
   const tasks =
     tasksResult.status === "fulfilled"
-      ? getActiveErrandTasks(tasksResult.value)
+      ? getActiveErrandTasks(tasksResult.value).filter(
+          (task, index, sorted) =>
+            sorted.findIndex((candidate) => candidate.id === task.id) === index,
+        )
       : [];
 
   return (
@@ -60,7 +69,7 @@ export default async function GroupPage() {
       <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <section className="min-w-0 space-y-4">
           <div className="flex items-end justify-between gap-4">
-            <h2 className="text-xl font-semibold">选择店铺</h2>
+            <h2 className="text-xl font-semibold">店铺拼单</h2>
             <StoreCreateDialog
               dataSource={desktopAppConfig.dataSource}
               connectBaseUrl={desktopAppConfig.connectBaseUrl}
@@ -81,7 +90,7 @@ export default async function GroupPage() {
             />
           ) : stores.length === 0 ? (
             <Empty
-              icon={<RiStore2Line className="size-5" />}
+              icon={<BrandIllustration name="store" size={96} />}
               title="还没有店铺"
               action={
                 <StoreCreateDialog
@@ -105,7 +114,7 @@ export default async function GroupPage() {
         <aside className="min-w-0 space-y-4">
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="font-semibold">正在采购</h2>
+              <h2 className="font-semibold">进行中的任务</h2>
               <Button asChild variant="ghost" size="sm">
                 <Link href="/orders?type=errand&view=captain">查看全部</Link>
               </Button>
@@ -130,15 +139,13 @@ export default async function GroupPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="font-semibold">补货</h2>
+            <h2 className="font-semibold">团长工具</h2>
             <div className="grid gap-2">
               <Link
                 href="/publish/spot"
                 className="group flex min-h-20 items-center gap-3 rounded-lg border bg-card px-4 transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <RiAddLine className="size-5" />
-                </span>
+                <BrandIllustration name="manual" size={40} />
                 <span className="min-w-0 flex-1 font-medium">上架现货</span>
                 <RiArrowRightSLine className="size-5 text-muted-foreground transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none" />
               </Link>
@@ -146,9 +153,7 @@ export default async function GroupPage() {
                 href="/group/templates"
                 className="group flex min-h-20 items-center gap-3 rounded-lg border bg-card px-4 transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
-                  <RiBarcodeLine className="size-5" />
-                </span>
+                <BrandIllustration name="template" size={40} />
                 <span className="min-w-0 flex-1 font-medium">商品模板</span>
                 <RiArrowRightSLine className="size-5 text-muted-foreground transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none" />
               </Link>

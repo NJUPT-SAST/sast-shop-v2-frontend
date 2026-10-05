@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { RiArrowLeftLine, RiCheckboxCircleLine } from "@remixicon/react";
@@ -42,6 +42,11 @@ import {
 import { Separator } from "@workspace/ui/components/separator";
 import { Spinner } from "@workspace/ui/components/spinner";
 import { toast } from "sonner";
+import {
+  compareUpdatedAt,
+  latestUpdatedAt,
+  mergeCollectingPaymentBills,
+} from "@/lib/errand-recovery";
 import { useTransactionAgreement } from "../transaction-agreement-provider";
 
 export function CollectingPaymentView({
@@ -63,10 +68,44 @@ export function CollectingPaymentView({
   const { ensureAgreement } = useTransactionAgreement();
   const confirmingRef = useRef(false);
   const completingRef = useRef(false);
-  const [bills, setBills] = useState(detail.bills);
+  const [bills, setBills] = useState<CollectingPaymentBill[]>(detail.bills);
+  const [taskVersion, setTaskVersion] = useState(
+    latestUpdatedAt(taskUpdatedAt, detail.taskUpdatedAt),
+  );
+  const [unverifiedTaskVersion, setUnverifiedTaskVersion] = useState<
+    string | null | undefined
+  >();
+  const [unverifiedBillVersions, setUnverifiedBillVersions] = useState<
+    Record<string, string | null>
+  >({});
+  const taskNeedsVerification =
+    unverifiedTaskVersion !== undefined &&
+    compareUpdatedAt(taskVersion, unverifiedTaskVersion) <= 0;
+  const billNeedsVerification = (bill: CollectingPaymentBill) => {
+    const baseline = unverifiedBillVersions[bill.requesterId];
+    return (
+      Object.hasOwn(unverifiedBillVersions, bill.requesterId) &&
+      compareUpdatedAt(bill.billUpdatedAt, baseline) <= 0
+    );
+  };
+  useEffect(() => {
+    const incomingVersion = latestUpdatedAt(
+      taskUpdatedAt,
+      detail.taskUpdatedAt,
+    );
+    if (compareUpdatedAt(incomingVersion, taskVersion) >= 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setBills((current) => mergeCollectingPaymentBills(current, detail.bills));
+    }
+    setTaskVersion((current) => latestUpdatedAt(current, incomingVersion));
+  }, [detail.bills, detail.taskUpdatedAt, taskUpdatedAt, taskVersion]);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [billToConfirm, setBillToConfirm] =
     useState<CollectingPaymentBill | null>(null);
+  const currentBillToConfirm = billToConfirm
+    ? (bills.find((bill) => bill.requesterId === billToConfirm.requesterId) ??
+      null)
+    : null;
   const [completeOpen, setCompleteOpen] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [expandedBillKey, setExpandedBillKey] = useState<string | null>(null);
@@ -75,7 +114,11 @@ export function CollectingPaymentView({
   ).length;
   const totalCount = bills.length;
   const allConfirmed =
-    totalCount > 0 && bills.every((bill) => bill.paymentStatus === "confirmed");
+    totalCount > 0 &&
+    bills.every(
+      (bill) =>
+        bill.paymentStatus === "confirmed" && !billNeedsVerification(bill),
+    );
   const totalAmount = bills.reduce(
     (total, bill) => total + bill.totalAmountCents,
     0,
@@ -109,24 +152,44 @@ export function CollectingPaymentView({
   ];
 
   async function confirmPayment(bill: CollectingPaymentBill) {
+    if (
+      bill.paymentStatus !== "pending_confirmation" ||
+      billNeedsVerification(bill) ||
+      taskNeedsVerification ||
+      completingRef.current
+    )
+      return;
     if (!bill.billId || !bill.billUpdatedAt || confirmingRef.current) {
       if (!bill.billId || !bill.billUpdatedAt)
         toast.error("账单版本信息缺失，请刷新任务");
       return;
     }
     if (!(await ensureAgreement(() => setBillToConfirm(null)))) return;
-    if (confirmingRef.current || completingRef.current) return;
+    if (
+      confirmingRef.current ||
+      completingRef.current ||
+      taskNeedsVerification ||
+      billNeedsVerification(bill)
+    )
+      return;
     confirmingRef.current = true;
     setConfirmingId(bill.requesterId);
     try {
-      await confirmBill(
+      const updatedBill = await confirmBill(
         { billId: bill.billId, updatedAt: bill.billUpdatedAt },
         serviceOptions,
       );
       setBills((current) =>
         current.map((candidate) =>
           candidate.requesterId === bill.requesterId
-            ? { ...candidate, paymentStatus: "confirmed" }
+            ? {
+                ...candidate,
+                paymentStatus: "confirmed",
+                billUpdatedAt: latestUpdatedAt(
+                  candidate.billUpdatedAt,
+                  updatedBill.updatedAt,
+                ),
+              }
             : candidate,
         ),
       );
@@ -138,6 +201,12 @@ export function CollectingPaymentView({
           ? error.message
           : "确认收款失败，请刷新账单后重试",
       );
+      setUnverifiedBillVersions((current) => ({
+        ...current,
+        [bill.requesterId]: bill.billUpdatedAt,
+      }));
+      setBillToConfirm(null);
+      router.refresh();
     } finally {
       confirmingRef.current = false;
       setConfirmingId(null);
@@ -145,13 +214,25 @@ export function CollectingPaymentView({
   }
 
   async function completeTask() {
-    if (!allConfirmed || completingRef.current) return;
+    if (
+      !allConfirmed ||
+      completingRef.current ||
+      confirmingRef.current ||
+      taskNeedsVerification
+    )
+      return;
     if (!(await ensureAgreement(() => setCompleteOpen(false)))) return;
-    if (completingRef.current || confirmingRef.current) return;
+    if (completingRef.current || confirmingRef.current || taskNeedsVerification)
+      return;
     completingRef.current = true;
     setCompleting(true);
+    let attemptedTransition = false;
+    let attemptedVersion = taskVersion;
     try {
       const latestTask = await getErrandTaskBrief(taskId, serviceOptions);
+      setTaskVersion((current) =>
+        latestUpdatedAt(current, latestTask?.updatedAt ?? null),
+      );
       if (latestTask?.status === "completed") {
         toast.success("订单已完成");
         setCompleteOpen(false);
@@ -159,11 +240,9 @@ export function CollectingPaymentView({
         return;
       }
       if (latestTask?.status === "collecting_payment") {
-        await transitionToCompleted(
-          taskId,
-          latestTask.updatedAt ?? taskUpdatedAt,
-          serviceOptions,
-        );
+        attemptedVersion = latestTask.updatedAt ?? taskVersion;
+        attemptedTransition = true;
+        await transitionToCompleted(taskId, attemptedVersion, serviceOptions);
         toast.success("订单已完成");
         setCompleteOpen(false);
         router.replace("/orders?type=errand&view=captain");
@@ -178,6 +257,9 @@ export function CollectingPaymentView({
           ? error.message
           : "订单完成失败，请刷新账单后重试",
       );
+      if (attemptedTransition) setUnverifiedTaskVersion(attemptedVersion);
+      setCompleteOpen(false);
+      router.refresh();
     } finally {
       completingRef.current = false;
       setCompleting(false);
@@ -204,6 +286,15 @@ export function CollectingPaymentView({
         <Alert>
           <AlertTitle>账单生成异常</AlertTitle>
           <AlertDescription>请刷新或联系处理。</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {taskNeedsVerification || bills.some(billNeedsVerification) ? (
+        <Alert>
+          <AlertTitle>收款状态待核实</AlertTitle>
+          <AlertDescription>
+            请重新进入任务，核对最新账单状态后再操作。
+          </AlertDescription>
         </Alert>
       ) : null}
 
@@ -242,6 +333,12 @@ export function CollectingPaymentView({
                     bill={bill}
                     expanded={expandedBillKey === billKey}
                     confirming={confirmingId === bill.requesterId}
+                    confirmDisabled={
+                      taskNeedsVerification ||
+                      billNeedsVerification(bill) ||
+                      completing ||
+                      confirmingId !== null
+                    }
                     onToggle={() =>
                       setExpandedBillKey((current) =>
                         current === billKey ? null : billKey,
@@ -286,7 +383,9 @@ export function CollectingPaymentView({
               </p>
             </div>
             <Button
-              disabled={!allConfirmed}
+              disabled={
+                !allConfirmed || taskNeedsVerification || confirmingId !== null
+              }
               onClick={() => setCompleteOpen(true)}
             >
               <RiCheckboxCircleLine data-icon="inline-start" />
@@ -316,7 +415,7 @@ export function CollectingPaymentView({
               返回检查
             </Button>
             <Button
-              disabled={completing || !allConfirmed}
+              disabled={completing || !allConfirmed || taskNeedsVerification}
               onClick={completeTask}
             >
               {completing ? <Spinner /> : null}订单完成
@@ -325,7 +424,7 @@ export function CollectingPaymentView({
         </DialogContent>
       </Dialog>
       <Dialog
-        open={billToConfirm !== null}
+        open={currentBillToConfirm !== null}
         onOpenChange={(open) =>
           !open && !confirmingRef.current && setBillToConfirm(null)
         }
@@ -337,45 +436,45 @@ export function CollectingPaymentView({
               这是不可逆的财务确认，请与实际收款记录逐项核对。
             </DialogDescription>
           </DialogHeader>
-          {billToConfirm ? (
+          {currentBillToConfirm ? (
             <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 rounded-lg border bg-muted/30 p-4 text-sm">
               <dt className="text-muted-foreground">付款人</dt>
               <dd className="truncate text-right font-medium">
-                {billToConfirm.requesterName}
+                {currentBillToConfirm.requesterName}
               </dd>
               <dt className="text-muted-foreground">金额</dt>
               <dd className="text-right font-semibold text-primary">
-                {formatPrice(billToConfirm.totalAmountCents)}
+                {formatPrice(currentBillToConfirm.totalAmountCents)}
               </dd>
-              {billToConfirm.billNo ? (
+              {currentBillToConfirm.billNo ? (
                 <>
                   <dt className="text-muted-foreground">账单号</dt>
                   <dd className="truncate text-right font-mono text-xs">
-                    {billToConfirm.billNo}
+                    {currentBillToConfirm.billNo}
                   </dd>
                 </>
               ) : null}
-              {billToConfirm.paymentChannel ? (
+              {currentBillToConfirm.paymentChannel ? (
                 <>
                   <dt className="text-muted-foreground">支付渠道</dt>
                   <dd className="text-right">
-                    {formatPaymentChannel(billToConfirm.paymentChannel)}
+                    {formatPaymentChannel(currentBillToConfirm.paymentChannel)}
                   </dd>
                 </>
               ) : null}
-              {billToConfirm.serialNumber ? (
+              {currentBillToConfirm.serialNumber ? (
                 <>
                   <dt className="text-muted-foreground">支付流水号</dt>
                   <dd className="break-all text-right">
-                    {billToConfirm.serialNumber}
+                    {currentBillToConfirm.serialNumber}
                   </dd>
                 </>
               ) : null}
-              {billToConfirm.verifyCode ? (
+              {currentBillToConfirm.verifyCode ? (
                 <>
                   <dt className="text-muted-foreground">付款标识码</dt>
                   <dd className="text-right font-mono font-semibold tracking-widest">
-                    {billToConfirm.verifyCode}
+                    {currentBillToConfirm.verifyCode}
                   </dd>
                 </>
               ) : null}
@@ -390,9 +489,16 @@ export function CollectingPaymentView({
               返回检查
             </Button>
             <Button
-              disabled={!billToConfirm || confirmingId !== null}
+              disabled={
+                !currentBillToConfirm ||
+                confirmingId !== null ||
+                taskNeedsVerification ||
+                (currentBillToConfirm &&
+                  billNeedsVerification(currentBillToConfirm))
+              }
               onClick={() =>
-                billToConfirm && void confirmPayment(billToConfirm)
+                currentBillToConfirm &&
+                void confirmPayment(currentBillToConfirm)
               }
             >
               {confirmingId !== null ? <Spinner /> : null}确认收款
@@ -474,12 +580,14 @@ function BillCard({
   bill,
   expanded,
   confirming,
+  confirmDisabled,
   onToggle,
   onConfirm,
 }: {
   bill: CollectingPaymentBill;
   expanded: boolean;
   confirming: boolean;
+  confirmDisabled: boolean;
   onToggle: () => void;
   onConfirm: () => void;
 }) {
@@ -550,7 +658,12 @@ function BillCard({
         {bill.paymentStatus === "pending_confirmation" ? (
           <Button
             className="mt-1"
-            disabled={confirming || !bill.billId || !bill.billUpdatedAt}
+            disabled={
+              confirmDisabled ||
+              confirming ||
+              !bill.billId ||
+              !bill.billUpdatedAt
+            }
             onClick={onConfirm}
           >
             {confirming ? <Spinner /> : null}确认收款

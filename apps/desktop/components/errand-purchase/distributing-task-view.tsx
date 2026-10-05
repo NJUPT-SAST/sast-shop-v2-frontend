@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   RiArrowLeftLine,
   RiCheckboxCircleLine,
-  RiPriceTag3Line,
+  RiEditLine,
 } from "@remixicon/react";
 import {
   cancelTask,
@@ -29,6 +29,11 @@ import {
 } from "@workspace/ui/components/avatar";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@workspace/ui/components/collapsible";
 import {
   Card,
   CardContent,
@@ -55,6 +60,17 @@ import { Spinner } from "@workspace/ui/components/spinner";
 import { toast } from "sonner";
 
 import { buildErrandTaskPaymentHref } from "@/lib/errand-task-route";
+import {
+  getDistributionQuantityAvailable,
+  isDistributionItemComplete,
+  isDistributionTaskComplete,
+} from "@/lib/distribution-progress";
+import {
+  compareUpdatedAt,
+  latestUpdatedAt,
+  mergeDistributingTaskItems,
+} from "@/lib/errand-recovery";
+import { getStatusBadgeVariant, getStatusLabel } from "@/lib/order-filters";
 
 import { ManagedImage } from "@/components/managed-image";
 import { useTransactionAgreement } from "../transaction-agreement-provider";
@@ -76,12 +92,38 @@ export function DistributingTaskView({
   const router = useRouter();
   const { ensureAgreement } = useTransactionAgreement();
   const pendingRef = useRef(false);
-  const [items, setItems] = useState(detail.items);
+  const [items, setItems] = useState<DistributingTaskItem[]>(detail.items);
+  const itemsRef = useRef(detail.items);
   const [taskUpdatedAt, setTaskUpdatedAt] = useState(detail.taskUpdatedAt);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTaskUpdatedAt((current) => detail.taskUpdatedAt ?? current);
-  }, [detail.taskUpdatedAt]);
+  const [unverifiedTaskVersion, setUnverifiedTaskVersion] = useState<
+    string | null | undefined
+  >();
+  const [unverifiedMutation, setUnverifiedMutation] = useState<{
+    kind: "price" | "assignment";
+    id: string;
+    updatedAt: string | null;
+    items: DistributingTaskItem[];
+    requireNewVersion: boolean;
+  } | null>(null);
+  const taskNeedsVerification =
+    unverifiedTaskVersion !== undefined &&
+    compareUpdatedAt(taskUpdatedAt, unverifiedTaskVersion) <= 0;
+  const mutationNeedsVerification =
+    unverifiedMutation !== null &&
+    (detail.items === unverifiedMutation.items ||
+      compareUpdatedAt(
+        unverifiedMutation.kind === "price"
+          ? detail.items.find(
+              (item) => item.errandTaskItemId === unverifiedMutation.id,
+            )?.itemUpdatedAt
+          : detail.items
+              .flatMap((item) => item.requesters)
+              .find(
+                (requester) =>
+                  requester.errandTaskAssignmentId === unverifiedMutation.id,
+              )?.assignmentUpdatedAt,
+        unverifiedMutation.updatedAt,
+      ) < (unverifiedMutation.requireNewVersion ? 1 : 0));
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       detail.items.map((item) => [
@@ -106,6 +148,51 @@ export function DistributingTaskView({
       ),
     ),
   );
+  useEffect(() => {
+    if (compareUpdatedAt(detail.taskUpdatedAt, taskUpdatedAt) >= 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setItems((current) =>
+        mergeDistributingTaskItems(
+          current,
+          detail.items,
+          compareUpdatedAt(detail.taskUpdatedAt, taskUpdatedAt) > 0,
+        ),
+      );
+      setAssignmentDrafts((current) => {
+        const next = { ...current };
+        for (const incomingItem of detail.items) {
+          const priorItem = itemsRef.current.find(
+            (item) => item.errandTaskItemId === incomingItem.errandTaskItemId,
+          );
+          for (const requester of incomingItem.requesters) {
+            const prior = priorItem?.requesters.find(
+              (candidate) =>
+                candidate.errandTaskAssignmentId ===
+                requester.errandTaskAssignmentId,
+            );
+            if (
+              compareUpdatedAt(
+                requester.assignmentUpdatedAt,
+                prior?.assignmentUpdatedAt,
+              ) > 0
+            ) {
+              next[requester.errandTaskAssignmentId] =
+                requester.distributedQuantity === null
+                  ? ""
+                  : String(requester.distributedQuantity);
+            }
+          }
+        }
+        return next;
+      });
+    }
+    setTaskUpdatedAt((current) =>
+      latestUpdatedAt(current, detail.taskUpdatedAt),
+    );
+  }, [detail.items, detail.taskUpdatedAt, taskUpdatedAt]);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
   const [packagingFee, setPackagingFee] = useState(
     formatYuan(detail.packagingFeeCents),
   );
@@ -113,24 +200,20 @@ export function DistributingTaskView({
   const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState(false);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [priceItemId, setPriceItemId] = useState<string | null>(null);
+  const priceItem = items.find((item) => item.errandTaskItemId === priceItemId);
+  const actionsDisabled =
+    pending ||
+    pendingKeys.size > 0 ||
+    taskNeedsVerification ||
+    mutationNeedsVerification;
   const serviceOptions = { dataSource, connectBaseUrl };
   const requesters = useMemo(
     () => items.flatMap((item) => item.requesters),
     [items],
   );
   const processedCount = requesters.filter(isRequesterProcessed).length;
-  const allProcessed =
-    items.length > 0 &&
-    items.every((item) => {
-      if (item.purchasedQuantity == null || item.purchasedQuantity === 0) {
-        return true; // 未采购，无需分发
-      }
-      const totalDistributed = item.requesters.reduce(
-        (s, r) => s + (r.distributedQuantity ?? 0),
-        0,
-      );
-      return totalDistributed >= item.purchasedQuantity;
-    });
+  const allProcessed = isDistributionTaskComplete(items);
   const distributionGroups =
     mode === "pending_distributing"
       ? [
@@ -146,24 +229,18 @@ export function DistributingTaskView({
             key: "pending",
             title: "待分发",
             description: "仍有参与者尚未记录分发结果。",
-            items: items.filter(
-              (item) => !item.requesters.every(isRequesterProcessed),
-            ),
+            items: items.filter((item) => !isDistributionItemComplete(item)),
           },
           {
             key: "completed",
             title: "已分发",
             description: "所有参与者的分发结果均已记录。",
-            items: items.filter((item) =>
-              item.requesters.every(isRequesterProcessed),
-            ),
+            items: items.filter(isDistributionItemComplete),
           },
         ];
-  const allPricesSaved = items.every((item) => {
-    const draftCents = parseCents(priceDrafts[item.errandTaskItemId] ?? "");
-    if (draftCents == null) return false; // 空输入框直接判为未填
-    return draftCents === item.actualUnitPriceCents;
-  });
+  const allPricesSaved = items
+    .filter((item) => (item.purchasedQuantity ?? 0) > 0)
+    .every((item) => item.actualUnitPriceCents !== null);
 
   function updateRequesterAssignment(
     itemId: string,
@@ -171,94 +248,134 @@ export function DistributingTaskView({
     distributedQuantity: number,
     assignmentUpdatedAt: string | null,
   ) {
-    setItems((current) =>
-      current.map((item) =>
-        item.errandTaskItemId !== itemId
-          ? item
-          : {
-              ...item,
-              requesters: item.requesters.map((requester) =>
-                requester.errandTaskAssignmentId !== assignmentId
-                  ? requester
-                  : {
-                      ...requester,
-                      distributedQuantity:
-                        distributedQuantity === -1 ? null : distributedQuantity,
-                      assignmentUpdatedAt,
-                    },
-              ),
-            },
-      ),
+    const updated = itemsRef.current.map((item) =>
+      item.errandTaskItemId !== itemId
+        ? item
+        : {
+            ...item,
+            requesters: item.requesters.map((requester) =>
+              requester.errandTaskAssignmentId !== assignmentId
+                ? requester
+                : {
+                    ...requester,
+                    distributedQuantity:
+                      distributedQuantity === -1 ? null : distributedQuantity,
+                    assignmentUpdatedAt,
+                  },
+            ),
+          },
     );
+    itemsRef.current = updated;
+    setItems(updated);
     setAssignmentDrafts((current) => ({
       ...current,
       [assignmentId]:
-        distributedQuantity != null && distributedQuantity > 0
-          ? String(distributedQuantity)
-          : "",
+        distributedQuantity !== -1 ? String(distributedQuantity) : "",
     }));
   }
 
   function applyRefreshedDetail(refreshed: DistributingTaskDetail) {
-    setTaskUpdatedAt((current) => refreshed.taskUpdatedAt ?? current);
-    setItems((current) => {
-      const currentItemUpdatedAtById = new Map(
-        current.map((item) => [item.errandTaskItemId, item.itemUpdatedAt]),
-      );
-
-      return refreshed.items.map((item) => ({
-        ...item,
-        itemUpdatedAt:
-          item.itemUpdatedAt ??
-          currentItemUpdatedAtById.get(item.errandTaskItemId) ??
-          null,
-      }));
-    });
+    if (compareUpdatedAt(refreshed.taskUpdatedAt, taskUpdatedAt) < 0) return;
+    const updated = mergeDistributingTaskItems(
+      itemsRef.current,
+      refreshed.items,
+      compareUpdatedAt(refreshed.taskUpdatedAt, taskUpdatedAt) > 0,
+    );
+    itemsRef.current = updated;
+    setItems(updated);
+    setTaskUpdatedAt((current) =>
+      latestUpdatedAt(current, refreshed.taskUpdatedAt),
+    );
   }
 
   async function savePrice(item: DistributingTaskItem) {
+    if (
+      pendingRef.current ||
+      taskNeedsVerification ||
+      mutationNeedsVerification
+    )
+      return;
+    const currentItem = itemsRef.current.find(
+      (candidate) => candidate.errandTaskItemId === item.errandTaskItemId,
+    );
+    if (!currentItem || (currentItem.purchasedQuantity ?? 0) <= 0) return;
     const cents = parseCents(priceDrafts[item.errandTaskItemId] ?? "");
-    const key = `price-${item.errandTaskItemId}`;
-    if (pendingKeys.has(key)) return;
     if (cents === null) {
       toast.error("请输入不超过两位小数的有效实际单价");
       return;
     }
+    const key = `price-${item.errandTaskItemId}`;
+    pendingRef.current = true;
     setPendingKeys((current) => new Set(current).add(key));
     try {
       await updateActualPrice(
         {
           errandTaskId: detail.taskId,
-          errandTaskItemId: item.errandTaskItemId,
+          errandTaskItemId: currentItem.errandTaskItemId,
           actualUnitPriceCents: cents,
-          itemUpdatedAt: item.itemUpdatedAt,
+          itemUpdatedAt: currentItem.itemUpdatedAt,
         },
         serviceOptions,
       );
-      const refreshed = await getDistributingTaskDetail(
-        detail.taskId,
-        serviceOptions,
+      const updated = itemsRef.current.map((candidate) =>
+        candidate.errandTaskItemId === currentItem.errandTaskItemId
+          ? { ...candidate, actualUnitPriceCents: cents }
+          : candidate,
       );
-      applyRefreshedDetail(refreshed);
-      setPriceDrafts((current) => {
-        const updated = { ...current };
-        for (const entry of refreshed.items) {
-          if (entry.actualUnitPriceCents != null) {
-            updated[entry.errandTaskItemId] = formatYuan(
-              entry.actualUnitPriceCents,
-            );
-          }
+      itemsRef.current = updated;
+      setItems(updated);
+      try {
+        const refreshed = await getDistributingTaskDetail(
+          detail.taskId,
+          serviceOptions,
+        );
+        const refreshedItem = refreshed.items.find(
+          (candidate) =>
+            candidate.errandTaskItemId === currentItem.errandTaskItemId,
+        );
+        if (
+          compareUpdatedAt(refreshed.taskUpdatedAt, taskUpdatedAt) < 0 ||
+          compareUpdatedAt(
+            refreshedItem?.itemUpdatedAt,
+            currentItem.itemUpdatedAt,
+          ) <= 0
+        ) {
+          throw new Error("商品单价版本未更新");
         }
-        return updated;
-      });
-      toast.success("实际价格已保存");
+        applyRefreshedDetail(refreshed);
+        setPriceDrafts((current) => ({
+          ...current,
+          [currentItem.errandTaskItemId]: formatYuan(cents),
+        }));
+      } catch {
+        setUnverifiedMutation({
+          kind: "price",
+          id: currentItem.errandTaskItemId,
+          updatedAt: currentItem.itemUpdatedAt,
+          items: detail.items,
+          requireNewVersion: true,
+        });
+        toast.warning("价格已保存，但状态刷新失败，请重新进入任务");
+        router.refresh();
+      }
+      setPriceItemId(null);
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
           : "价格保存失败，请刷新任务后重试",
       );
+      setUnverifiedMutation({
+        kind: "price",
+        id: currentItem.errandTaskItemId,
+        updatedAt: currentItem.itemUpdatedAt,
+        items: detail.items,
+        requireNewVersion: false,
+      });
+      setPriceItemId(null);
+      router.refresh();
     } finally {
+      pendingRef.current = false;
       setPendingKeys((current) => {
         const next = new Set(current);
         next.delete(key);
@@ -272,53 +389,102 @@ export function DistributingTaskView({
     requester: DistributingRequester,
     quantity: number,
   ) {
-    const key = requester.errandTaskAssignmentId;
-    if (pendingKeys.has(key)) return;
-    const remaining =
-      (item.purchasedQuantity ?? 0) -
-      item.requesters
-        .filter(
-          (r) => r.errandTaskAssignmentId !== requester.errandTaskAssignmentId,
-        )
-        .reduce((sum, r) => sum + (r.distributedQuantity ?? 0), 0);
+    if (
+      pendingRef.current ||
+      taskNeedsVerification ||
+      mutationNeedsVerification
+    )
+      return;
+    const currentItem = itemsRef.current.find(
+      (candidate) => candidate.errandTaskItemId === item.errandTaskItemId,
+    );
+    const currentRequester = currentItem?.requesters.find(
+      (candidate) =>
+        candidate.errandTaskAssignmentId === requester.errandTaskAssignmentId,
+    );
+    if (!currentItem || !currentRequester) return;
+    const available = getDistributionQuantityAvailable(
+      currentItem,
+      currentRequester.errandTaskAssignmentId,
+    );
     if (
       quantity !== -1 &&
-      (!Number.isInteger(quantity) || quantity < 0 || quantity > remaining)
+      (!Number.isInteger(quantity) || quantity < 0 || quantity > available)
     ) {
-      toast.error(`分发数量应为 0 到 ${Math.max(0, remaining)}`);
+      toast.error(`分发数量应为 0 到 ${available}`);
       return;
     }
+    const key = currentRequester.errandTaskAssignmentId;
+    pendingRef.current = true;
     setPendingKeys((current) => new Set(current).add(key));
     try {
       const saved = await saveDistributingAssignment(
         {
-          errandTaskItemId: item.errandTaskItemId,
-          errandTaskAssignmentId: requester.errandTaskAssignmentId,
+          errandTaskItemId: currentItem.errandTaskItemId,
+          errandTaskAssignmentId: currentRequester.errandTaskAssignmentId,
           distributedQuantity: quantity,
-          assignmentUpdatedAt: requester.assignmentUpdatedAt,
+          assignmentUpdatedAt: currentRequester.assignmentUpdatedAt,
         },
         serviceOptions,
       );
       updateRequesterAssignment(
-        item.errandTaskItemId,
-        requester.errandTaskAssignmentId,
+        currentItem.errandTaskItemId,
+        currentRequester.errandTaskAssignmentId,
         quantity,
-        saved.assignmentUpdatedAt ?? requester.assignmentUpdatedAt,
+        saved.assignmentUpdatedAt ?? currentRequester.assignmentUpdatedAt,
       );
-      toast.success(
-        quantity === -1
-          ? "已撤销分发结果"
-          : quantity === 0
-            ? "已标记不分发"
-            : "分发结果已保存",
-      );
+      try {
+        const refreshed = await getDistributingTaskDetail(
+          detail.taskId,
+          serviceOptions,
+        );
+        const refreshedRequester = refreshed.items
+          .flatMap((candidate) => candidate.requesters)
+          .find(
+            (candidate) =>
+              candidate.errandTaskAssignmentId ===
+              currentRequester.errandTaskAssignmentId,
+          );
+        const expectedVersion =
+          saved.assignmentUpdatedAt ?? currentRequester.assignmentUpdatedAt;
+        if (
+          compareUpdatedAt(refreshed.taskUpdatedAt, taskUpdatedAt) < 0 ||
+          compareUpdatedAt(
+            refreshedRequester?.assignmentUpdatedAt,
+            expectedVersion,
+          ) < (saved.assignmentUpdatedAt ? 0 : 1)
+        ) {
+          throw new Error("分发结果版本未更新");
+        }
+        applyRefreshedDetail(refreshed);
+      } catch {
+        toast.warning("结果已保存，但状态刷新失败，请重新进入任务");
+        setUnverifiedMutation({
+          kind: "assignment",
+          id: currentRequester.errandTaskAssignmentId,
+          updatedAt:
+            saved.assignmentUpdatedAt ?? currentRequester.assignmentUpdatedAt,
+          items: detail.items,
+          requireNewVersion: !saved.assignmentUpdatedAt,
+        });
+        router.refresh();
+      }
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
           : "分发结果保存失败，请刷新后重试",
       );
+      setUnverifiedMutation({
+        kind: "assignment",
+        id: currentRequester.errandTaskAssignmentId,
+        updatedAt: currentRequester.assignmentUpdatedAt,
+        items: detail.items,
+        requireNewVersion: false,
+      });
+      router.refresh();
     } finally {
+      pendingRef.current = false;
       setPendingKeys((current) => {
         const next = new Set(current);
         next.delete(key);
@@ -328,11 +494,11 @@ export function DistributingTaskView({
   }
 
   async function transition(action: Exclude<Confirmation, null>) {
-    if (pendingRef.current) return;
+    if (pendingRef.current || actionsDisabled) return;
     const packagingFeeCents =
       action === "start" ? parseCents(packagingFee) : null;
     if (action === "start") {
-      if (!allPricesSaved || pendingKeys.size > 0) {
+      if (!allPricesSaved) {
         toast.error("请先保存全部实际单价");
         return;
       }
@@ -341,9 +507,15 @@ export function DistributingTaskView({
         return;
       }
     }
+    if (action === "finish" && !allProcessed) return;
     const attemptedVersion = taskUpdatedAt;
     if (!(await ensureAgreement(() => setConfirmation(null)))) return;
-    if (pendingRef.current) return;
+    if (
+      pendingRef.current ||
+      taskNeedsVerification ||
+      mutationNeedsVerification
+    )
+      return;
     pendingRef.current = true;
     setPending(true);
     try {
@@ -355,6 +527,7 @@ export function DistributingTaskView({
           serviceOptions,
         );
         toast.success("已进入分发阶段");
+        setUnverifiedTaskVersion(attemptedVersion);
         router.refresh();
       } else if (action === "finish") {
         await transitionToCollectingPayment(
@@ -371,6 +544,8 @@ export function DistributingTaskView({
       }
       setConfirmation(null);
     } catch (error) {
+      setUnverifiedTaskVersion(attemptedVersion);
+      setConfirmation(null);
       if (action === "finish") {
         try {
           const task = await getErrandTaskBrief(detail.taskId, serviceOptions);
@@ -384,13 +559,13 @@ export function DistributingTaskView({
         } catch {
           // Keep the original transition error as the user-facing result.
         }
-        router.refresh();
       }
       toast.error(
         error instanceof Error
           ? error.message
           : "状态更新失败，请刷新任务后重试",
       );
+      router.refresh();
     } finally {
       pendingRef.current = false;
       setPending(false);
@@ -411,26 +586,36 @@ export function DistributingTaskView({
             <h1 className="text-3xl font-semibold tracking-tight">
               {detail.storeName}
             </h1>
-            <Badge variant="info">
-              {mode === "pending_distributing" ? "待分发" : "分发中"}
+            <Badge variant={getStatusBadgeVariant(mode)}>
+              {getStatusLabel(mode)}
             </Badge>
           </div>
         </div>
         <Button
           variant="outline"
           className="text-destructive"
+          disabled={actionsDisabled}
           onClick={() => setConfirmation("cancel")}
         >
           取消采购任务
         </Button>
       </section>
 
+      {taskNeedsVerification || mutationNeedsVerification ? (
+        <p
+          role="status"
+          className="rounded-lg border px-4 py-3 text-sm text-muted-foreground"
+        >
+          任务状态待核实，请重新进入任务查看最新结果后再操作。
+        </p>
+      ) : null}
+
       {mode === "pending_distributing" ? (
         <Card>
-          <CardContent className="flex flex-wrap items-end justify-between gap-4 p-4">
-            <Field className="w-64">
-              <FieldLabel htmlFor="packaging-fee">包装费总额</FieldLabel>
-              <InputGroup>
+          <CardContent className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 p-4">
+            <Field className="min-w-0 flex-1 basis-[28rem]">
+              <FieldLabel htmlFor="packaging-fee">包装费</FieldLabel>
+              <InputGroup className="max-w-64">
                 <InputGroupAddon>
                   <InputGroupText>¥</InputGroupText>
                 </InputGroupAddon>
@@ -443,12 +628,14 @@ export function DistributingTaskView({
                   }
                 />
               </InputGroup>
+              <p className="text-xs text-muted-foreground">
+                由实际分到商品的买家均摊（不含团长），按分向上取整
+              </p>
             </Field>
             <Button
               onClick={() => setConfirmation("start")}
               disabled={
-                pending ||
-                pendingKeys.size > 0 ||
+                actionsDisabled ||
                 !allPricesSaved ||
                 parseCents(packagingFee) === null
               }
@@ -468,7 +655,7 @@ export function DistributingTaskView({
               </p>
             </div>
             <Button
-              disabled={!allProcessed || pending || pendingKeys.size > 0}
+              disabled={!allProcessed || actionsDisabled}
               onClick={() => setConfirmation("finish")}
             >
               <RiCheckboxCircleLine data-icon="inline-start" />
@@ -489,152 +676,135 @@ export function DistributingTaskView({
             </div>
             <Badge variant="neutral">{group.items.length} 种</Badge>
           </div>
-          {group.items.map((item) => (
-            <Card
-              key={item.errandTaskItemId}
-              className="min-w-0 overflow-hidden"
-            >
-              <CardHeader className="flex-row items-start gap-4">
-                <ManagedImage
-                  src={item.imageUrl}
-                  alt={item.title}
-                  className="size-20 shrink-0 rounded-lg border"
-                />
-                <div className="min-w-0 flex-1">
-                  <CardTitle className="truncate text-base">
-                    {item.title}
-                  </CardTitle>
-                  {item.description ? (
-                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                      {item.description}
-                    </p>
-                  ) : null}
-                  <p className="mt-2 text-sm">
-                    参考价 {formatPrice(item.originUnitPriceCents)} · 实购{" "}
-                    {item.purchasedQuantity ?? 0} 件
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-end gap-2">
-                  {mode === "pending_distributing" ? (
-                    item.purchasedQuantity == null ||
-                    item.purchasedQuantity === 0 ? (
-                      <Badge variant="neutral">未采购</Badge>
-                    ) : (
-                      <div className="flex w-64 items-end gap-2">
-                        <Field>
-                          <FieldLabel
-                            htmlFor={`actual-price-${item.errandTaskItemId}`}
-                          >
-                            实际单价
-                          </FieldLabel>
-                          <InputGroup>
-                            <InputGroupAddon>
-                              <InputGroupText>¥</InputGroupText>
-                            </InputGroupAddon>
-                            <InputGroupInput
-                              id={`actual-price-${item.errandTaskItemId}`}
-                              value={priceDrafts[item.errandTaskItemId] ?? ""}
-                              onChange={(event) =>
-                                moneyPattern.test(event.target.value) &&
-                                setPriceDrafts((current) => ({
-                                  ...current,
-                                  [item.errandTaskItemId]: event.target.value,
-                                }))
-                              }
-                            />
-                          </InputGroup>
-                        </Field>
-                        <Button
-                          variant="outline"
-                          disabled={
-                            pendingKeys.has(`price-${item.errandTaskItemId}`) ||
-                            parseCents(
-                              priceDrafts[item.errandTaskItemId] ?? "",
-                            ) === null
-                          }
-                          onClick={() => void savePrice(item)}
-                        >
-                          {pendingKeys.has(`price-${item.errandTaskItemId}`) ? (
-                            <Spinner />
-                          ) : (
-                            <RiPriceTag3Line />
-                          )}
-                          保存
-                        </Button>
-                      </div>
-                    )
-                  ) : (
-                    <Badge
-                      variant={
-                        item.requesters.every(isRequesterProcessed)
-                          ? "success"
-                          : "neutral"
-                      }
-                    >
-                      {item.requesters.filter(isRequesterProcessed).length}/
-                      {item.requesters.length} 已处理
-                    </Badge>
-                  )}
-                  {mode === "distributing" ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        setExpandedItemId((current) =>
-                          current === item.errandTaskItemId
-                            ? null
-                            : item.errandTaskItemId,
-                        )
-                      }
-                      aria-expanded={expandedItemId === item.errandTaskItemId}
-                    >
-                      {expandedItemId === item.errandTaskItemId
-                        ? "收起"
-                        : "展开"}
-                    </Button>
-                  ) : null}
-                </div>
-              </CardHeader>
-              {mode === "distributing" &&
-              expandedItemId === item.errandTaskItemId ? (
-                <CardContent className="grid gap-2 border-t pt-4">
-                  {item.requesters.map((requester) => (
-                    <RequesterRow
-                      key={requester.errandTaskAssignmentId}
-                      requester={requester}
-                      maxQuantity={Math.max(
-                        0,
-                        (item.purchasedQuantity ?? 0) -
-                          item.requesters
-                            .filter(
-                              (r) =>
-                                r.errandTaskAssignmentId !==
-                                requester.errandTaskAssignmentId,
-                            )
-                            .reduce(
-                              (sum, r) => sum + (r.distributedQuantity ?? 0),
-                              0,
-                            ),
-                      )}
-                      draft={
-                        assignmentDrafts[requester.errandTaskAssignmentId] ?? ""
-                      }
-                      busy={pendingKeys.has(requester.errandTaskAssignmentId)}
-                      onDraftChange={(value) =>
-                        setAssignmentDrafts((current) => ({
-                          ...current,
-                          [requester.errandTaskAssignmentId]: value,
-                        }))
-                      }
-                      onSave={(quantity) =>
-                        void saveAssignment(item, requester, quantity)
-                      }
+          <div className="grid min-w-0 gap-4 2xl:grid-cols-2">
+            {group.items.map((item) => (
+              <Collapsible
+                key={item.errandTaskItemId}
+                open={expandedItemId === item.errandTaskItemId}
+                onOpenChange={(open) =>
+                  setExpandedItemId(open ? item.errandTaskItemId : null)
+                }
+              >
+                <Card className="min-w-0 overflow-hidden">
+                  <CardHeader className="flex-row items-start gap-4">
+                    <ManagedImage
+                      src={item.imageUrl}
+                      alt={item.title}
+                      className="size-20 shrink-0 rounded-lg border"
                     />
-                  ))}
-                </CardContent>
-              ) : null}
-            </Card>
-          ))}
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="truncate text-base">
+                        {item.title}
+                      </CardTitle>
+                      {item.description ? (
+                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                          {item.description}
+                        </p>
+                      ) : null}
+                      <p className="mt-2 text-sm">
+                        {mode === "pending_distributing"
+                          ? `参考价 ${formatPrice(item.originUnitPriceCents)}`
+                          : `实际 ${item.actualUnitPriceCents === null ? "待确认" : `${formatPrice(item.actualUnitPriceCents)}/件`}`}{" "}
+                        {"·"} 实购 {item.purchasedQuantity ?? 0} 件
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-end gap-2">
+                      {mode === "pending_distributing" ? (
+                        item.purchasedQuantity == null ||
+                        item.purchasedQuantity === 0 ? (
+                          <Badge variant="neutral">未采购</Badge>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="plain"
+                            size="sm"
+                            className="tabular-nums"
+                            aria-label={`修改${item.title}的单价`}
+                            disabled={actionsDisabled}
+                            onClick={() => {
+                              setPriceDrafts((current) => ({
+                                ...current,
+                                [item.errandTaskItemId]:
+                                  item.actualUnitPriceCents === null
+                                    ? ""
+                                    : formatYuan(item.actualUnitPriceCents),
+                              }));
+                              setPriceItemId(item.errandTaskItemId);
+                            }}
+                          >
+                            {item.actualUnitPriceCents === null
+                              ? "填写单价"
+                              : `实际 ${formatPrice(item.actualUnitPriceCents)}/件`}
+                            <RiEditLine data-icon="inline-end" />
+                          </Button>
+                        )
+                      ) : (
+                        <Badge
+                          variant={
+                            item.requesters.every(isRequesterProcessed)
+                              ? "success"
+                              : "neutral"
+                          }
+                        >
+                          {item.requesters.filter(isRequesterProcessed).length}/
+                          {item.requesters.length} 已处理
+                        </Badge>
+                      )}
+                      {mode === "distributing" ? (
+                        <CollapsibleTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-controls={`distributing-item-${item.errandTaskItemId}`}
+                            aria-expanded={
+                              expandedItemId === item.errandTaskItemId
+                            }
+                          >
+                            {expandedItemId === item.errandTaskItemId
+                              ? "收起"
+                              : "展开"}
+                          </Button>
+                        </CollapsibleTrigger>
+                      ) : null}
+                    </div>
+                  </CardHeader>
+                  {mode === "distributing" ? (
+                    <CollapsibleContent
+                      id={`distributing-item-${item.errandTaskItemId}`}
+                    >
+                      <CardContent className="grid gap-2 border-t pt-4">
+                        {item.requesters.map((requester) => (
+                          <RequesterRow
+                            key={requester.errandTaskAssignmentId}
+                            requester={requester}
+                            maxQuantity={getDistributionQuantityAvailable(
+                              item,
+                              requester.errandTaskAssignmentId,
+                            )}
+                            draft={
+                              assignmentDrafts[
+                                requester.errandTaskAssignmentId
+                              ] ?? ""
+                            }
+                            busy={actionsDisabled}
+                            onDraftChange={(value) =>
+                              setAssignmentDrafts((current) => ({
+                                ...current,
+                                [requester.errandTaskAssignmentId]: value,
+                              }))
+                            }
+                            onSave={(quantity) =>
+                              void saveAssignment(item, requester, quantity)
+                            }
+                          />
+                        ))}
+                      </CardContent>
+                    </CollapsibleContent>
+                  ) : null}
+                </Card>
+              </Collapsible>
+            ))}
+          </div>
           {group.items.length === 0 ? (
             <Card>
               <CardContent className="p-4 text-sm text-muted-foreground">
@@ -644,6 +814,68 @@ export function DistributingTaskView({
           ) : null}
         </section>
       ))}
+
+      <Dialog
+        open={priceItem !== undefined}
+        onOpenChange={(open) =>
+          !open && !pendingRef.current && setPriceItemId(null)
+        }
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>修改单价</DialogTitle>
+            <DialogDescription>
+              {priceItem?.title} · 开始分发后无法修改
+            </DialogDescription>
+          </DialogHeader>
+          <Field>
+            <FieldLabel htmlFor="actual-price">实际单价</FieldLabel>
+            <InputGroup>
+              <InputGroupAddon>
+                <InputGroupText>¥</InputGroupText>
+              </InputGroupAddon>
+              <InputGroupInput
+                id="actual-price"
+                autoFocus
+                inputMode="decimal"
+                value={
+                  priceItem
+                    ? (priceDrafts[priceItem.errandTaskItemId] ?? "")
+                    : ""
+                }
+                onChange={(event) => {
+                  if (priceItem && moneyPattern.test(event.target.value)) {
+                    setPriceDrafts((current) => ({
+                      ...current,
+                      [priceItem.errandTaskItemId]: event.target.value,
+                    }));
+                  }
+                }}
+              />
+            </InputGroup>
+          </Field>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={pendingKeys.size > 0}
+              onClick={() => setPriceItemId(null)}
+            >
+              取消
+            </Button>
+            <Button
+              disabled={
+                !priceItem ||
+                actionsDisabled ||
+                parseCents(priceDrafts[priceItem.errandTaskItemId] ?? "") ===
+                  null
+              }
+              onClick={() => priceItem && void savePrice(priceItem)}
+            >
+              {pendingKeys.size > 0 ? <Spinner /> : null}保存单价
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmationDialog
         open={confirmation !== null}
@@ -717,6 +949,37 @@ function RequesterRow({
             : "待处理"}
         </p>
       </div>
+      <form
+        className="flex shrink-0 items-center gap-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (draft.trim() !== "") onSave(Number(draft));
+        }}
+      >
+        <Input
+          className="w-24"
+          type="number"
+          min={0}
+          max={maxQuantity}
+          value={draft}
+          disabled={busy}
+          onChange={(event) => onDraftChange(event.target.value)}
+          aria-label={`${requester.purchaserName}分发数量`}
+        />
+        <Button
+          size="sm"
+          type="submit"
+          disabled={
+            busy ||
+            draft.trim() === "" ||
+            !Number.isInteger(Number(draft)) ||
+            Number(draft) < 0 ||
+            Number(draft) > maxQuantity
+          }
+        >
+          {busy ? <Spinner /> : null}保存
+        </Button>
+      </form>
       {processed ? (
         <Button
           variant="outline"
@@ -726,31 +989,7 @@ function RequesterRow({
         >
           撤销
         </Button>
-      ) : (
-        <>
-          <Input
-            className="w-24"
-            type="number"
-            min={0}
-            max={maxQuantity}
-            value={draft}
-            onChange={(event) => onDraftChange(event.target.value)}
-            aria-label={`${requester.purchaserName}分发数量`}
-          />
-          <Button
-            size="sm"
-            disabled={
-              busy ||
-              !Number.isInteger(Number(draft)) ||
-              Number(draft) < 0 ||
-              Number(draft) > maxQuantity
-            }
-            onClick={() => onSave(Number(draft))}
-          >
-            {busy ? <Spinner /> : null}保存
-          </Button>
-        </>
-      )}
+      ) : null}
     </div>
   );
 }

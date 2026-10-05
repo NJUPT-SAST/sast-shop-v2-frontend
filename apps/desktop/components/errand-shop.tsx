@@ -140,6 +140,7 @@ export function ErrandShop({
   const minimumDeadlineValue = toDateTimeLocalValue(getMinimumErrandDeadline());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   const cartById = useMemo(
     () => new Map(items.map((item) => [item.template.id, item])),
@@ -172,10 +173,13 @@ export function ErrandShop({
     (total, item) => total + item.template.priceCents * item.quantity,
     0,
   );
-  const serviceFee = normalizedItems.reduce(
-    (total, item) => total + item.serviceFeePerUnitCents * item.quantity,
-    0,
-  );
+  const serviceFee = hasInvalidServiceFee
+    ? null
+    : normalizedItems.reduce(
+        (total, item) => total + item.serviceFeePerUnitCents * item.quantity,
+        0,
+      );
+  const estimatedTotal = serviceFee === null ? null : goodsAmount + serviceFee;
 
   if (error) {
     return (
@@ -262,6 +266,10 @@ export function ErrandShop({
 
   async function submitDemand() {
     if (submittingRef.current || normalizedItems.length === 0) return;
+    if (hasInvalidServiceFee) {
+      toast.error("跑腿费应为不超过 21474836.47 元的两位小数");
+      return;
+    }
     const deadline = new Date(deadlineValue);
     if (Number.isNaN(deadline.getTime()) || !isValidErrandDeadline(deadline)) {
       toast.error("期望送达时间至少需要在 2 小时后");
@@ -275,17 +283,17 @@ export function ErrandShop({
       serviceFeePerUnitCents: item.serviceFeePerUnitCents,
       updatedAt: item.template.updatedAt,
     }));
+    if (editDemandId != null && !editUpdatedAt) {
+      toast.error("该需求数据已过期，请回到订单列表重新进入修改");
+      setConfirmOpen(false);
+      return;
+    }
     if (!(await ensureAgreement(() => setConfirmOpen(false)))) return;
     if (submittingRef.current) return;
     submittingRef.current = true;
     setSubmitting(true);
     try {
       if (editDemandId != null) {
-        if (!editUpdatedAt) {
-          toast.error("该需求数据已过期，请回到订单列表重新进入修改");
-          setConfirmOpen(false);
-          return;
-        }
         await updateErrandDemand(
           {
             errandDemandId: editDemandId,
@@ -311,17 +319,30 @@ export function ErrandShop({
       setConfirmOpen(false);
       router.push("/orders?type=errand&view=participant");
     } catch (error) {
+      setNeedsVerification(true);
+      setConfirmOpen(false);
       toast.error(
-        error instanceof Error ? error.message : "跑腿需求提交失败，请稍后再试",
+        error instanceof Error ? error.message : "需求结果待核实，请查看订单",
       );
-    } finally {
-      submittingRef.current = false;
       setSubmitting(false);
     }
   }
 
   return (
     <div className="space-y-6">
+      {needsVerification ? (
+        <div
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4 text-sm"
+        >
+          <span>需求结果待核实。请查看跑腿订单后重新进入此页面。</span>
+          <Button asChild variant="outline">
+            <Link href="/orders?type=errand&view=participant">
+              查看跑腿订单
+            </Link>
+          </Button>
+        </div>
+      ) : null}
       <section className="flex min-w-0 flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-4">
           <ManagedImage
@@ -518,11 +539,7 @@ export function ErrandShop({
               <div className="grid gap-2 rounded-lg bg-muted/50 p-3 text-sm">
                 <TotalRow label="商品标价" value={goodsAmount} />
                 <TotalRow label="跑腿费" value={serviceFee} />
-                <TotalRow
-                  label="预估合计"
-                  value={goodsAmount + serviceFee}
-                  strong
-                />
+                <TotalRow label="预估合计" value={estimatedTotal} strong />
                 <p className="border-t pt-2 text-xs text-muted-foreground">
                   实际金额以团长采购结果为准
                 </p>
@@ -532,7 +549,10 @@ export function ErrandShop({
                 type="button"
                 className="w-full"
                 disabled={
-                  items.length === 0 || hasInvalidServiceFee || submitting
+                  items.length === 0 ||
+                  hasInvalidServiceFee ||
+                  submitting ||
+                  needsVerification
                 }
                 onClick={openConfirmation}
               >
@@ -561,11 +581,7 @@ export function ErrandShop({
           <div className="grid gap-2 rounded-lg border bg-muted/30 p-4 text-sm">
             <TotalRow label="商品标价" value={goodsAmount} />
             <TotalRow label="跑腿费" value={serviceFee} />
-            <TotalRow
-              label="预估合计"
-              value={goodsAmount + serviceFee}
-              strong
-            />
+            <TotalRow label="预估合计" value={estimatedTotal} strong />
           </div>
           <DialogFooter>
             <Button
@@ -576,7 +592,11 @@ export function ErrandShop({
             >
               返回修改
             </Button>
-            <Button type="button" disabled={submitting} onClick={submitDemand}>
+            <Button
+              type="button"
+              disabled={submitting || needsVerification}
+              onClick={submitDemand}
+            >
               {submitting
                 ? "正在提交…"
                 : editDemandId != null
@@ -648,14 +668,14 @@ function TotalRow({
   strong = false,
 }: {
   label: string;
-  value: number;
+  value: number | null;
   strong?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between gap-4">
       <span className="text-muted-foreground">{label}</span>
       <span className={strong ? "font-semibold text-primary" : "font-medium"}>
-        {formatPrice(value)}
+        {value === null ? "金额待确认" : formatPrice(value)}
       </span>
     </div>
   );

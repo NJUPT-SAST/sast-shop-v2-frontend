@@ -41,6 +41,7 @@ import {
   DialogTitle,
 } from "@workspace/ui/components/dialog";
 import { Empty } from "@workspace/ui/components/empty";
+import { Field, FieldLabel } from "@workspace/ui/components/field";
 import { LoadFailure } from "@workspace/ui/components/load-failure";
 import { cn } from "@workspace/ui/lib/utils";
 import { toast } from "sonner";
@@ -69,6 +70,7 @@ export function ErrandDemandDetail({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
   const groups = useMemo<ErrandSelectionGroup[]>(
     () =>
       details.map((group) => ({
@@ -122,14 +124,14 @@ export function ErrandDemandDetail({
       setConfirmOpen(false);
       router.push(`/group/purchase/${result.errandTaskId}`);
     } catch (error) {
+      setNeedsVerification(true);
+      setConfirmOpen(false);
       toast.error(
         error instanceof Error
           ? error.message
-          : "部分需求可能已被接单，请刷新后重试",
+          : "接单结果待核实，请到采购任务确认",
       );
       router.refresh();
-    } finally {
-      submittingRef.current = false;
       setSubmitting(false);
     }
   }
@@ -194,6 +196,18 @@ export function ErrandDemandDetail({
         ))}
       </section>
 
+      {needsVerification ? (
+        <div
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4 text-sm"
+        >
+          <span>接单结果待核实。请查看采购任务后重新进入此页面。</span>
+          <Button asChild variant="outline">
+            <Link href="/group">查看进行中的任务</Link>
+          </Button>
+        </div>
+      ) : null}
+
       <Card className="sticky bottom-4 z-10 border-primary/20 bg-card/95 shadow-lg backdrop-blur-xl">
         <CardContent className="flex min-w-0 flex-wrap items-center justify-between gap-4 p-4">
           <div className="min-w-0">
@@ -213,7 +227,9 @@ export function ErrandDemandDetail({
           </div>
           <Button
             type="button"
-            disabled={demandItems.length === 0 || submitting}
+            disabled={
+              demandItems.length === 0 || submitting || needsVerification
+            }
             onClick={() => setConfirmOpen(true)}
           >
             <RiCheckboxCircleLine data-icon="inline-start" />
@@ -253,7 +269,9 @@ export function ErrandDemandDetail({
             </Button>
             <Button
               type="button"
-              disabled={submitting || demandItems.length === 0}
+              disabled={
+                submitting || needsVerification || demandItems.length === 0
+              }
               onClick={submitTask}
             >
               {submitting ? "接单中…" : "确认接单"}
@@ -282,8 +300,11 @@ function DemandGroupCard({
   const allSelected =
     selectableIds.length > 0 &&
     selectableIds.every((id) => selectedIds.has(id));
+  const partiallySelected =
+    !allSelected && selectableIds.some((id) => selectedIds.has(id));
   const product = group.productTemplate;
   const title = product.title;
+  const productCheckboxId = `errand-product-${group.errandDemandId}-${product.id}`;
 
   return (
     <Card className="min-w-0 overflow-hidden">
@@ -298,9 +319,14 @@ function DemandGroupCard({
             <CardTitle className="min-w-0 truncate text-base">
               {title}
             </CardTitle>
-            <label className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
+            <label
+              htmlFor={productCheckboxId}
+              className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground"
+            >
               <Checkbox
-                checked={allSelected}
+                id={productCheckboxId}
+                aria-label={`全选${title}的需求`}
+                checked={partiallySelected ? "indeterminate" : allSelected}
                 disabled={selectableIds.length === 0}
                 onCheckedChange={() =>
                   onSelectedIdsChange(
@@ -322,8 +348,9 @@ function DemandGroupCard({
         </div>
       </CardHeader>
       <CardContent className="grid gap-2 border-t pt-4">
-        {group.requesters.map((requester) => {
+        {group.requesters.map((requester, index) => {
           const id = requester.errandDemandItemId;
+          const checkboxId = `errand-requester-${group.errandDemandId}-${product.id}-${index}`;
           const disabled = !id || !requester.updatedAt;
           const selected = selectedIds.has(id);
           const toggle = () => {
@@ -333,65 +360,60 @@ function DemandGroupCard({
           };
 
           return (
-            <div
+            <Field
               key={id || requester.requesterId}
-              role="button"
-              tabIndex={disabled ? -1 : 0}
-              aria-disabled={disabled}
-              aria-pressed={selected}
-              onClick={toggle}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  toggle();
-                }
-              }}
-              className={cn(
-                "flex min-w-0 items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors",
-                selected && "border-primary bg-primary/5",
-                disabled
-                  ? "cursor-not-allowed bg-muted/40 text-muted-foreground"
-                  : "cursor-pointer hover:bg-muted/30",
-              )}
+              orientation="horizontal"
+              data-disabled={disabled}
             >
-              <Checkbox
-                checked={selected}
-                disabled={disabled}
-                onClick={(event) => event.stopPropagation()}
-                onCheckedChange={toggle}
-                aria-label={
-                  requester.requesterName
-                    ? `选择${requester.requesterName}的需求`
-                    : "选择该商品需求"
-                }
-              />
-              <Avatar className="size-9">
-                <AvatarFallback>
-                  {requester.requesterName.trim() ? (
-                    nameInitial(requester.requesterName)
-                  ) : (
-                    <RiUser3Line className="size-4" />
-                  )}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1">
-                {requester.requesterName ? (
-                  <p className="truncate text-sm font-medium">
-                    {requester.requesterName}
-                  </p>
-                ) : null}
-                <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                  {formatErrandDisplayCount(requester.quantity)} 件 · 截止{" "}
-                  {formatDeadline(requester.deadline)}
-                </p>
-              </div>
-              <span className="shrink-0 text-sm font-medium">
-                跑腿费{" "}
-                {formatPrice(
-                  requester.serviceFeePerUnitCents * requester.quantity,
+              <FieldLabel
+                htmlFor={checkboxId}
+                className={cn(
+                  "flex min-w-0 items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
+                  selected && "border-primary bg-primary/5",
+                  disabled
+                    ? "cursor-not-allowed bg-muted/40 text-muted-foreground"
+                    : "cursor-pointer hover:bg-muted/30",
                 )}
-              </span>
-            </div>
+              >
+                <Checkbox
+                  id={checkboxId}
+                  checked={selected}
+                  disabled={disabled}
+                  onCheckedChange={toggle}
+                  aria-label={
+                    requester.requesterName
+                      ? `选择${requester.requesterName}的需求`
+                      : "选择该商品需求"
+                  }
+                />
+                <Avatar className="size-9">
+                  <AvatarFallback>
+                    {requester.requesterName.trim() ? (
+                      nameInitial(requester.requesterName)
+                    ) : (
+                      <RiUser3Line className="size-4" />
+                    )}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="min-w-0 flex-1 font-normal">
+                  {requester.requesterName ? (
+                    <span className="block truncate text-sm font-medium">
+                      {requester.requesterName}
+                    </span>
+                  ) : null}
+                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                    {formatErrandDisplayCount(requester.quantity)} 件 · 截止{" "}
+                    {formatDeadline(requester.deadline)}
+                  </span>
+                </span>
+                <span className="shrink-0 text-sm font-medium">
+                  跑腿费{" "}
+                  {formatPrice(
+                    requester.serviceFeePerUnitCents * requester.quantity,
+                  )}
+                </span>
+              </FieldLabel>
+            </Field>
           );
         })}
       </CardContent>

@@ -9,7 +9,10 @@ import {
 const ready = {
   purchasedQuantity: 2,
   actualUnitPriceCents: 300,
-  requesters: [{ distributedQuantity: 1 }, { distributedQuantity: 1 }],
+  requesters: [
+    { quantity: 1, distributedQuantity: 1 },
+    { quantity: 2, distributedQuantity: 1 },
+  ],
 };
 
 describe("distribution progress", () => {
@@ -30,7 +33,10 @@ describe("distribution progress", () => {
     expect(
       isDistributionItemComplete({
         ...ready,
-        requesters: [{ distributedQuantity: 2 }, { distributedQuantity: null }],
+        requesters: [
+          { quantity: 2, distributedQuantity: 2 },
+          { quantity: 1, distributedQuantity: null },
+        ],
       }),
     ).toBe(false);
   });
@@ -39,7 +45,7 @@ describe("distribution progress", () => {
     expect(
       isDistributionItemComplete({
         ...ready,
-        requesters: [{ distributedQuantity: 3 }],
+        requesters: [{ quantity: 3, distributedQuantity: 3 }],
       }),
     ).toBe(false);
   });
@@ -61,7 +67,7 @@ describe("distribution progress", () => {
           ...ready,
           purchasedQuantity: 0,
           actualUnitPriceCents: null,
-          requesters: [{ distributedQuantity: 0 }],
+          requesters: [{ quantity: 2, distributedQuantity: 0 }],
         },
       ]),
     ).toBe(true);
@@ -71,7 +77,43 @@ describe("distribution progress", () => {
         ...ready,
         purchasedQuantity: 0,
         actualUnitPriceCents: null,
-        requesters: [{ distributedQuantity: null }],
+        requesters: [{ quantity: 2, distributedQuantity: null }],
+      }),
+    ).toBe(false);
+  });
+
+  it("rejects an over-allocation even when the total matches the purchase", () => {
+    expect(
+      isDistributionItemComplete({
+        ...ready,
+        requesters: [
+          { quantity: 1, distributedQuantity: 2 },
+          { quantity: 2, distributedQuantity: 0 },
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it("rejects negative offsets even when the total matches", () => {
+    expect(
+      isDistributionItemComplete({
+        ...ready,
+        requesters: [
+          { quantity: 1, distributedQuantity: -1 },
+          { quantity: 3, distributedQuantity: 3 },
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it("rejects fractional distribution quantities", () => {
+    expect(
+      isDistributionItemComplete({
+        ...ready,
+        requesters: [
+          { quantity: 1, distributedQuantity: 0.5 },
+          { quantity: 2, distributedQuantity: 1.5 },
+        ],
       }),
     ).toBe(false);
   });

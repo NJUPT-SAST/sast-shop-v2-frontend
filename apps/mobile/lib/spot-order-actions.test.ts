@@ -156,6 +156,24 @@ describe("spot order lifecycle safeguards", () => {
 
     expect(reconcileSpotOrderUpdate(current, stale)).toBe(current);
   });
+
+  it("keeps a newer bill when a stale refresh differs only within one millisecond", () => {
+    const newer = makeOrder({
+      bill: makeBill({
+        status: "submitted",
+        updatedAt: "2026-07-18T02:12:00.123456789Z",
+      }),
+    });
+    const older = makeOrder({
+      bill: makeBill({
+        status: "unpaid",
+        updatedAt: "2026-07-18T02:12:00.123123456Z",
+      }),
+    });
+
+    expect(reconcileSpotOrderUpdate(newer, older)).toBe(newer);
+    expect(reconcileSpotOrderUpdate(older, newer)).toBe(newer);
+  });
 });
 
 function makeOrder(overrides: Partial<SpotOrder> = {}): SpotOrder {

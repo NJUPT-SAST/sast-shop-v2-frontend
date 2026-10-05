@@ -3,6 +3,7 @@ import type {
   SpotOrder,
   SpotOrderStatusValue,
 } from "@sast-shop/api";
+import { compareUpdatedAt } from "./errand-recovery";
 
 export type SpotOrderView = "buyer" | "seller";
 export type SpotOrderFilterStatus = "all" | "processing" | SpotOrderStatusValue;
@@ -112,16 +113,10 @@ export function reconcileSpotOrderUpdate(
   const incomingRank = ORDER_STATUS_RANK[incoming.status];
   if (incomingRank > currentRank) return incoming;
   if (incomingRank < currentRank) return current;
-  return parseTimestamp(incoming.bill?.updatedAt) >=
-    parseTimestamp(current.bill?.updatedAt)
+  return compareUpdatedAt(incoming.bill?.updatedAt, current.bill?.updatedAt) >=
+    0
     ? incoming
     : current;
-}
-
-function parseTimestamp(value?: string | null) {
-  if (!value) return -1;
-  const parsed = Date.parse(value);
-  return Number.isNaN(parsed) ? -1 : parsed;
 }
 
 export function getSpotOrderStatusLabel(

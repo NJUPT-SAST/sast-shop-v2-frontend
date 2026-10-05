@@ -6,6 +6,7 @@ import type {
 } from "@sast-shop/api";
 
 import type { SpotOrderView } from "./order-filters";
+import { compareUpdatedAt } from "./errand-recovery";
 
 export type SpotOrderActions = {
   canCancel: boolean;
@@ -76,16 +77,8 @@ export function reconcileSpotOrderUpdate(
   if (incomingRank > currentRank) return incoming;
   if (incomingRank < currentRank) return current;
 
-  const currentBillUpdatedAt = parseTimestamp(current.bill?.updatedAt);
-  const incomingBillUpdatedAt = parseTimestamp(incoming.bill?.updatedAt);
-
-  return incomingBillUpdatedAt >= currentBillUpdatedAt ? incoming : current;
-}
-
-function parseTimestamp(value?: string | null): number {
-  if (!value) return -1;
-
-  const parsed = Date.parse(value);
-
-  return Number.isNaN(parsed) ? -1 : parsed;
+  return compareUpdatedAt(incoming.bill?.updatedAt, current.bill?.updatedAt) >=
+    0
+    ? incoming
+    : current;
 }

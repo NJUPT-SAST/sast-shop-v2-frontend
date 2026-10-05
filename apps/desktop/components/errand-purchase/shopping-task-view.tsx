@@ -1,14 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  RiArrowLeftLine,
-  RiCheckboxCircleLine,
-  RiCloseCircleLine,
-  RiIndeterminateCircleLine,
-} from "@remixicon/react";
+import { RiArrowLeftLine, RiCheckboxCircleLine } from "@remixicon/react";
 import {
   cancelTask,
   getShoppingTaskDetail,
@@ -20,12 +15,8 @@ import {
 } from "@sast-shop/api";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card";
+import { Checkbox } from "@workspace/ui/components/checkbox";
+import { Card, CardContent, CardHeader } from "@workspace/ui/components/card";
 import {
   Dialog,
   DialogContent,
@@ -35,17 +26,28 @@ import {
   DialogTitle,
 } from "@workspace/ui/components/dialog";
 import { Input } from "@workspace/ui/components/input";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@workspace/ui/components/field";
 import { Spinner } from "@workspace/ui/components/spinner";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { toast } from "sonner";
 
 import { ManagedImage } from "@/components/managed-image";
+import {
+  compareUpdatedAt,
+  latestUpdatedAt,
+  mergeShoppingTaskItems,
+} from "@/lib/errand-recovery";
+import { getStatusBadgeVariant, getStatusLabel } from "@/lib/order-filters";
 import { useTransactionAgreement } from "../transaction-agreement-provider";
 
 type DialogState =
   | { type: "none" }
-  | { type: "partial"; item: ShoppingTaskItem }
-  | { type: "skip"; item: ShoppingTaskItem }
+  | { type: "edit"; item: ShoppingTaskItem }
   | { type: "complete" }
   | { type: "cancel" };
 
@@ -70,11 +72,60 @@ export function ShoppingTaskView({
   const router = useRouter();
   const { ensureAgreement } = useTransactionAgreement();
   const pendingRef = useRef(false);
-  const [items, setItems] = useState(detail.taskItems);
+  const [items, setItems] = useState<ShoppingTaskItem[]>(detail.taskItems);
+  const [taskVersion, setTaskVersion] = useState(
+    latestUpdatedAt(taskUpdatedAt, detail.taskUpdatedAt),
+  );
+  const [unverifiedTaskVersion, setUnverifiedTaskVersion] = useState<
+    string | null | undefined
+  >();
+  const [unverifiedItem, setUnverifiedItem] = useState<{
+    id: string;
+    updatedAt: string;
+    taskItems: ShoppingTaskItem[];
+    requireNewVersion: boolean;
+  } | null>(null);
   const [dialog, setDialog] = useState<DialogState>({ type: "none" });
-  const [partialQuantity, setPartialQuantity] = useState("");
-  const [skipReason, setSkipReason] = useState("");
   const [pending, setPending] = useState(false);
+  const refreshedUnverifiedItem = unverifiedItem
+    ? detail.taskItems.find((item) => item.id === unverifiedItem.id)
+    : undefined;
+  const currentUnverifiedItem = unverifiedItem
+    ? items.find((item) => item.id === unverifiedItem.id)
+    : undefined;
+  const itemNeedsVerification =
+    unverifiedItem !== null &&
+    (unverifiedItem.taskItems === detail.taskItems ||
+      !refreshedUnverifiedItem?.updatedAt ||
+      !currentUnverifiedItem?.updatedAt ||
+      compareUpdatedAt(
+        refreshedUnverifiedItem.updatedAt,
+        unverifiedItem.updatedAt,
+      ) < (unverifiedItem.requireNewVersion ? 1 : 0) ||
+      compareUpdatedAt(
+        currentUnverifiedItem.updatedAt,
+        refreshedUnverifiedItem.updatedAt,
+      ) < 0);
+  const taskNeedsVerification =
+    unverifiedTaskVersion !== undefined &&
+    compareUpdatedAt(taskVersion, unverifiedTaskVersion) <= 0;
+  useEffect(() => {
+    const incomingVersion = latestUpdatedAt(
+      taskUpdatedAt,
+      detail.taskUpdatedAt,
+    );
+    if (compareUpdatedAt(incomingVersion, taskVersion) >= 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setItems((current) =>
+        mergeShoppingTaskItems(
+          current,
+          detail.taskItems,
+          compareUpdatedAt(incomingVersion, taskVersion) > 0,
+        ),
+      );
+    }
+    setTaskVersion((current) => latestUpdatedAt(current, incomingVersion));
+  }, [detail.taskItems, detail.taskUpdatedAt, taskUpdatedAt, taskVersion]);
   const serviceOptions = { dataSource, connectBaseUrl };
   const processedCount = items.filter(
     (item) => item.purchasedQuantity !== null,
@@ -91,31 +142,89 @@ export function ShoppingTaskView({
     0,
   );
   const allProcessed = processedCount === items.length && items.length > 0;
+  const actionsDisabled =
+    pending || taskNeedsVerification || itemNeedsVerification;
 
   async function saveItem(
     item: ShoppingTaskItem,
     purchasedQuantity: number,
-    nonPurchaseReason: string | null = null,
+    nonPurchaseReason?: string,
   ) {
-    if (pendingRef.current) return;
+    if (pendingRef.current || taskNeedsVerification || itemNeedsVerification)
+      return;
+    if (!item.updatedAt) {
+      toast.error("商品状态待核实，请重新进入任务后再操作");
+      return;
+    }
     pendingRef.current = true;
     setPending(true);
     try {
-      await saveShoppingTaskItem(
+      const result = await saveShoppingTaskItem(
         {
           errandTaskId: detail.taskId,
           errandTaskItemId: item.id,
           purchasedQuantity,
-          nonPurchaseReason,
+          nonPurchaseReason:
+            purchasedQuantity === 0 ? nonPurchaseReason?.trim() || null : null,
           itemUpdatedAt: item.updatedAt,
         },
         serviceOptions,
       );
-      const refreshed = await getShoppingTaskDetail(
-        detail.taskId,
-        serviceOptions,
+      setItems((current) =>
+        current.map((candidate) =>
+          candidate.id === item.id
+            ? {
+                ...candidate,
+                purchasedQuantity:
+                  purchasedQuantity === -1 ? null : purchasedQuantity,
+                nonPurchaseReason:
+                  purchasedQuantity === 0
+                    ? nonPurchaseReason?.trim() || null
+                    : null,
+                updatedAt: result.itemUpdatedAt,
+              }
+            : candidate,
+        ),
       );
-      setItems(refreshed.taskItems);
+      try {
+        const refreshed = await getShoppingTaskDetail(
+          detail.taskId,
+          serviceOptions,
+        );
+        const refreshedItem = refreshed.taskItems.find(
+          (candidate) => candidate.id === item.id,
+        );
+        const expectedVersion = result.itemUpdatedAt ?? item.updatedAt;
+        const versionDifference = compareUpdatedAt(
+          refreshedItem?.updatedAt,
+          expectedVersion,
+        );
+        if (
+          compareUpdatedAt(refreshed.taskUpdatedAt, taskVersion) < 0 ||
+          versionDifference < (result.itemUpdatedAt ? 0 : 1)
+        ) {
+          throw new Error("采购结果版本未更新");
+        }
+        setItems((current) =>
+          mergeShoppingTaskItems(
+            current,
+            refreshed.taskItems,
+            compareUpdatedAt(refreshed.taskUpdatedAt, taskVersion) > 0,
+          ),
+        );
+        setTaskVersion((current) =>
+          latestUpdatedAt(current, refreshed.taskUpdatedAt),
+        );
+      } catch {
+        toast.warning("结果已保存，但状态刷新失败，请重新进入任务");
+        setUnverifiedItem({
+          id: item.id,
+          updatedAt: result.itemUpdatedAt ?? item.updatedAt,
+          taskItems: detail.taskItems,
+          requireNewVersion: !result.itemUpdatedAt,
+        });
+        router.refresh();
+      }
       setDialog({ type: "none" });
       toast.success(
         purchasedQuantity === -1 ? "已撤销采购结果" : "采购结果已保存",
@@ -124,6 +233,14 @@ export function ShoppingTaskView({
       toast.error(
         error instanceof Error ? error.message : "保存失败，请稍后再试",
       );
+      setUnverifiedItem({
+        id: item.id,
+        updatedAt: item.updatedAt,
+        taskItems: detail.taskItems,
+        requireNewVersion: false,
+      });
+      setDialog({ type: "none" });
+      router.refresh();
     } finally {
       pendingRef.current = false;
       setPending(false);
@@ -131,18 +248,21 @@ export function ShoppingTaskView({
   }
 
   async function completeShopping() {
-    if (!allProcessed || pendingRef.current) return;
+    if (!allProcessed || pendingRef.current || actionsDisabled) return;
+    const attemptedVersion = taskVersion;
     if (!(await ensureAgreement(() => setDialog({ type: "none" })))) return;
-    if (pendingRef.current) return;
+    if (pendingRef.current || taskNeedsVerification || itemNeedsVerification)
+      return;
     pendingRef.current = true;
     setPending(true);
     try {
       await transitionToPendingDistributing(
         detail.taskId,
-        taskUpdatedAt,
+        attemptedVersion,
         serviceOptions,
       );
       setDialog({ type: "none" });
+      setUnverifiedTaskVersion(attemptedVersion);
       toast.success("采购阶段已完成");
       router.refresh();
     } catch (error) {
@@ -151,6 +271,9 @@ export function ShoppingTaskView({
           ? error.message
           : "状态更新失败，请刷新任务后重试",
       );
+      setUnverifiedTaskVersion(attemptedVersion);
+      setDialog({ type: "none" });
+      router.refresh();
     } finally {
       pendingRef.current = false;
       setPending(false);
@@ -158,19 +281,24 @@ export function ShoppingTaskView({
   }
 
   async function cancelShopping() {
-    if (pendingRef.current) return;
+    if (pendingRef.current || actionsDisabled) return;
+    const attemptedVersion = taskVersion;
     if (!(await ensureAgreement(() => setDialog({ type: "none" })))) return;
-    if (pendingRef.current) return;
+    if (pendingRef.current || taskNeedsVerification || itemNeedsVerification)
+      return;
     pendingRef.current = true;
     setPending(true);
     try {
-      await cancelTask(detail.taskId, taskUpdatedAt, serviceOptions);
+      await cancelTask(detail.taskId, attemptedVersion, serviceOptions);
       toast.success("采购任务已取消，需求已回到待接单");
       router.push("/orders?type=errand&view=captain");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "取消失败，请刷新任务后重试",
       );
+      setUnverifiedTaskVersion(attemptedVersion);
+      setDialog({ type: "none" });
+      router.refresh();
     } finally {
       pendingRef.current = false;
       setPending(false);
@@ -197,17 +325,16 @@ export function ShoppingTaskView({
               <ShoppingItemCard
                 key={item.id}
                 item={item}
-                disabled={pending}
-                onBuyAll={() => void saveItem(item, item.requiredQuantity)}
-                onBuyPartial={() => {
-                  setPartialQuantity("");
-                  setDialog({ type: "partial", item });
-                }}
-                onSkip={() => {
-                  setSkipReason("");
-                  setDialog({ type: "skip", item });
-                }}
-                onRevoke={() => void saveItem(item, -1)}
+                disabled={actionsDisabled}
+                onToggle={() =>
+                  void saveItem(
+                    item,
+                    item.purchasedQuantity === null
+                      ? item.requiredQuantity
+                      : -1,
+                  )
+                }
+                onEdit={() => setDialog({ type: "edit", item })}
               />
             ))}
           </div>
@@ -236,17 +363,29 @@ export function ShoppingTaskView({
             <h1 className="text-3xl font-semibold tracking-tight">
               {detail.storeName}
             </h1>
-            <Badge variant="warning">采购中</Badge>
+            <Badge variant={getStatusBadgeVariant("shopping")}>
+              {getStatusLabel("shopping")}
+            </Badge>
           </div>
         </div>
         <Button
           variant="outline"
           className="text-destructive"
+          disabled={actionsDisabled}
           onClick={() => setDialog({ type: "cancel" })}
         >
           取消采购任务
         </Button>
       </section>
+
+      {taskNeedsVerification || itemNeedsVerification ? (
+        <p
+          role="status"
+          className="rounded-lg border px-4 py-3 text-sm text-muted-foreground"
+        >
+          任务状态待核实，请重新进入任务查看最新结果后再操作。
+        </p>
+      ) : null}
 
       <Card>
         <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4">
@@ -257,7 +396,7 @@ export function ShoppingTaskView({
             </p>
           </div>
           <Button
-            disabled={!allProcessed || pending}
+            disabled={!allProcessed || actionsDisabled}
             onClick={() => setDialog({ type: "complete" })}
           >
             <RiCheckboxCircleLine data-icon="inline-start" />
@@ -268,106 +407,40 @@ export function ShoppingTaskView({
 
       {renderItemGroup(
         "待处理",
-        "请记录全部购买、部分购买或不购买。",
+        "勾选即按需求量全部购买，也可点击商品记录其他数量。",
         pendingItems,
       )}
       {renderItemGroup(
         "已处理",
-        "已保存的采购结果将在下一阶段用于核对价格和分发。",
+        "点击商品可直接修改实购数量。",
         processedItems,
       )}
 
       <Dialog
-        open={dialog.type === "partial"}
+        open={dialog.type === "edit"}
         onOpenChange={(open) =>
           !open && !pending && setDialog({ type: "none" })
         }
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>记录部分购买</DialogTitle>
+            <DialogTitle>记录采购</DialogTitle>
             <DialogDescription>
-              {dialog.type === "partial"
-                ? `请输入 1 到 ${Math.max(1, dialog.item.requiredQuantity - 1)} 之间的实际数量。`
+              {dialog.type === "edit"
+                ? `${dialog.item.productTitle} · 需求 ${dialog.item.requiredQuantity} 件`
                 : ""}
             </DialogDescription>
           </DialogHeader>
-          <Input
-            aria-label="实际购买数量"
-            type="number"
-            min={1}
-            max={
-              dialog.type === "partial" ? dialog.item.requiredQuantity - 1 : 1
-            }
-            value={partialQuantity}
-            onChange={(event) => setPartialQuantity(event.target.value)}
-          />
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDialog({ type: "none" })}
-              disabled={pending}
-            >
-              取消
-            </Button>
-            <Button
-              disabled={
-                pending ||
-                dialog.type !== "partial" ||
-                !isValidPartialQuantity(
-                  partialQuantity,
-                  dialog.type === "partial" ? dialog.item.requiredQuantity : 0,
-                )
-              }
-              onClick={() =>
-                dialog.type === "partial" &&
-                void saveItem(dialog.item, Number(partialQuantity))
-              }
-            >
-              {pending ? <Spinner /> : null}保存
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={dialog.type === "skip"}
-        onOpenChange={(open) =>
-          !open && !pending && setDialog({ type: "none" })
-        }
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>记录未购买</DialogTitle>
-            <DialogDescription>
-              可选填不购买原因（最多 15 字），参与者会在订单明细中看到。
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            aria-label="不购买原因"
-            value={skipReason}
-            onChange={(event) => setSkipReason(event.target.value)}
-            maxLength={15}
-            placeholder="例如：门店缺货"
-          />
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDialog({ type: "none" })}
-              disabled={pending}
-            >
-              取消
-            </Button>
-            <Button
-              disabled={pending || dialog.type !== "skip"}
-              onClick={() =>
-                dialog.type === "skip" &&
-                void saveItem(dialog.item, 0, skipReason.trim() || null)
-              }
-            >
-              {pending ? <Spinner /> : null}保存
-            </Button>
-          </DialogFooter>
+          {dialog.type === "edit" ? (
+            <PurchaseQuantityForm
+              key={`${dialog.item.id}-${dialog.item.updatedAt}`}
+              item={dialog.item}
+              saving={pending}
+              disabled={actionsDisabled}
+              onClose={() => setDialog({ type: "none" })}
+              onSave={saveItem}
+            />
+          ) : null}
         </DialogContent>
       </Dialog>
 
@@ -397,117 +470,164 @@ export function ShoppingTaskView({
 function ShoppingItemCard({
   item,
   disabled,
-  onBuyAll,
-  onBuyPartial,
-  onSkip,
-  onRevoke,
+  onToggle,
+  onEdit,
 }: {
   item: ShoppingTaskItem;
   disabled: boolean;
-  onBuyAll: () => void;
-  onBuyPartial: () => void;
-  onSkip: () => void;
-  onRevoke: () => void;
+  onToggle: () => void;
+  onEdit: () => void;
 }) {
-  const processed = item.purchasedQuantity !== null;
-  const status =
-    item.purchasedQuantity === null
-      ? "待处理"
-      : item.purchasedQuantity === 0
-        ? "未购买"
-        : item.purchasedQuantity < item.requiredQuantity
-          ? "部分购买"
-          : "已购买";
-  const Icon =
-    item.purchasedQuantity === 0
-      ? RiCloseCircleLine
-      : item.purchasedQuantity !== null &&
-          item.purchasedQuantity < item.requiredQuantity
-        ? RiIndeterminateCircleLine
-        : RiCheckboxCircleLine;
+  const checkboxId = useId();
+  const recorded = item.purchasedQuantity !== null;
+  const status = !recorded
+    ? "待处理"
+    : item.purchasedQuantity === 0
+      ? "未购买"
+      : item.purchasedQuantity === item.requiredQuantity
+        ? "全部购买"
+        : "部分购买";
+
   return (
     <Card className="min-w-0">
-      <CardHeader className="flex-row items-start gap-4">
-        <ManagedImage
-          src={item.productImageUrl}
-          alt={item.productTitle}
-          className="size-20 shrink-0 rounded-lg border"
-        />
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-start justify-between gap-3">
-            <CardTitle className="truncate text-base">
-              {item.productTitle}
-            </CardTitle>
-            <Badge
-              variant={
-                processed
-                  ? item.purchasedQuantity === 0
-                    ? "danger"
-                    : "success"
-                  : "neutral"
-              }
-              className="shrink-0"
-            >
-              {processed ? <Icon className="size-3.5" /> : null}
-              {status}
-            </Badge>
-          </div>
-          {item.productDescription ? (
-            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-              {item.productDescription}
-            </p>
-          ) : null}
-          <p className="mt-3 text-sm">
-            需求 {item.requiredQuantity} 件
+      <CardHeader className="flex-row items-center gap-3">
+        <FieldLabel htmlFor={checkboxId} className="shrink-0 cursor-pointer">
+          <Checkbox
+            id={checkboxId}
+            checked={recorded}
+            disabled={disabled}
+            onCheckedChange={onToggle}
+            aria-label={`将${item.productTitle}${recorded ? "恢复为待采购" : "记为全部购买"}`}
+          />
+        </FieldLabel>
+        <button
+          type="button"
+          className="flex min-w-0 flex-1 items-center gap-4 rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label={`${recorded ? "修改" : "记录"}${item.productTitle}的采购结果`}
+          disabled={disabled}
+          onClick={onEdit}
+        >
+          <ManagedImage
+            src={item.productImageUrl}
+            alt={item.productTitle}
+            className="size-16 shrink-0 rounded-lg border"
+          />
+          <span className="min-w-0 flex-1">
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="truncate text-base font-semibold">
+                {item.productTitle}
+              </span>
+              <Badge
+                variant={
+                  recorded
+                    ? item.purchasedQuantity === 0
+                      ? "danger"
+                      : "success"
+                    : "neutral"
+                }
+                className="shrink-0"
+              >
+                {status}
+              </Badge>
+            </span>
+            <span className="mt-1 block text-sm text-muted-foreground">
+              {recorded
+                ? `实购 ${item.purchasedQuantity}/${item.requiredQuantity} 件`
+                : `需求 ${item.requiredQuantity} 件`}
+            </span>
             {item.deadline ? (
-              <span className="ml-2">
-                截止时间 {formatDeadline(item.deadline)}
+              <span className="block text-xs text-muted-foreground">
+                截止 {formatDeadline(item.deadline)}
               </span>
             ) : null}
-          </p>
-          {item.nonPurchaseReason ? (
-            <p className="mt-2 text-sm text-destructive">
-              原因：{item.nonPurchaseReason}
-            </p>
-          ) : null}
-        </div>
+            {item.nonPurchaseReason ? (
+              <span className="block text-sm text-destructive">
+                原因：{item.nonPurchaseReason}
+              </span>
+            ) : null}
+          </span>
+        </button>
       </CardHeader>
-      {processed ? (
-        <CardContent className="flex justify-end border-t pt-4">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={disabled}
-            onClick={onRevoke}
-          >
-            撤销处理结果
-          </Button>
-        </CardContent>
-      ) : (
-        <CardContent className="flex flex-wrap justify-end gap-2 border-t pt-4">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={disabled || item.requiredQuantity <= 1}
-            onClick={onBuyPartial}
-          >
-            部分购买
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={disabled}
-            className="text-destructive"
-            onClick={onSkip}
-          >
-            不购买
-          </Button>
-          <Button size="sm" disabled={disabled} onClick={onBuyAll}>
-            全部购买
-          </Button>
-        </CardContent>
-      )}
     </Card>
+  );
+}
+
+function PurchaseQuantityForm({
+  item,
+  saving,
+  disabled,
+  onClose,
+  onSave,
+}: {
+  item: ShoppingTaskItem;
+  saving: boolean;
+  disabled: boolean;
+  onClose: () => void;
+  onSave: (item: ShoppingTaskItem, quantity: number, reason?: string) => void;
+}) {
+  const [quantity, setQuantity] = useState(
+    String(item.purchasedQuantity ?? item.requiredQuantity),
+  );
+  const [reason, setReason] = useState(item.nonPurchaseReason ?? "");
+  const parsed = Number(quantity);
+  const valid =
+    /^\d+$/.test(quantity.trim()) &&
+    Number.isSafeInteger(parsed) &&
+    parsed >= 0 &&
+    parsed <= item.requiredQuantity;
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (disabled || !valid || !item.updatedAt) return;
+    onSave(item, parsed, parsed === 0 ? reason.trim() : undefined);
+  };
+
+  return (
+    <form onSubmit={submit} className="grid gap-4">
+      <Field data-invalid={!valid}>
+        <FieldLabel htmlFor="purchase-quantity">实购数量</FieldLabel>
+        <Input
+          id="purchase-quantity"
+          autoFocus
+          inputMode="numeric"
+          autoComplete="off"
+          value={quantity}
+          onChange={(event) => setQuantity(event.target.value)}
+          aria-invalid={!valid}
+          disabled={disabled}
+        />
+        {valid ? (
+          <FieldDescription>填 0 表示不购买</FieldDescription>
+        ) : (
+          <FieldError>请输入0至{item.requiredQuantity}之间的整数</FieldError>
+        )}
+      </Field>
+      {valid && parsed === 0 ? (
+        <Field>
+          <FieldLabel htmlFor="purchase-reason">不购买原因（可选）</FieldLabel>
+          <Textarea
+            id="purchase-reason"
+            maxLength={15}
+            rows={2}
+            value={reason}
+            onChange={(event) => setReason(event.target.value.slice(0, 15))}
+            disabled={disabled}
+          />
+        </Field>
+      ) : null}
+      <DialogFooter>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={saving}
+          onClick={onClose}
+        >
+          取消
+        </Button>
+        <Button type="submit" disabled={disabled || !valid || !item.updatedAt}>
+          {saving ? "保存中" : "保存采购结果"}
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }
 
@@ -556,9 +676,4 @@ function ConfirmationDialog({
       </DialogContent>
     </Dialog>
   );
-}
-
-function isValidPartialQuantity(value: string, required: number): boolean {
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 && parsed < required;
 }

@@ -1,33 +1,22 @@
-import { getProfileOverview, type ProfileOverview } from "@sast-shop/api";
-
 import { ProfileManagement } from "@/components/profile-management";
 import { desktopAppConfig } from "@/lib/app-config";
-import { formatProfileOverviewError } from "@/lib/profile-view";
+import { loadDesktopProfileOverview } from "@/lib/profile-overview";
 import { getServerServiceOptions } from "@/lib/server-service-options";
 
 export default async function ProfilePage() {
-  const result = await loadProfileOverview();
+  const result = await loadDesktopProfileOverview(
+    await getServerServiceOptions(),
+  );
   return (
     <ProfileManagement
+      key={JSON.stringify(result)}
       initialOverview={result.overview}
       error={result.error}
+      initialAddressError={result.addressError}
+      initialQrError={result.qrError}
       dataSource={desktopAppConfig.dataSource}
       connectBaseUrl={desktopAppConfig.connectBaseUrl}
       feedbackFormUrl={desktopAppConfig.feedbackFormUrl}
     />
   );
-}
-
-async function loadProfileOverview(): Promise<{
-  overview: ProfileOverview | null;
-  error: string | null;
-}> {
-  try {
-    return {
-      overview: await getProfileOverview(await getServerServiceOptions()),
-      error: null,
-    };
-  } catch {
-    return { overview: null, error: formatProfileOverviewError() };
-  }
 }

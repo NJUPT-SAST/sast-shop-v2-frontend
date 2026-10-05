@@ -138,6 +138,28 @@ describe("buyer errand order detail", () => {
     expect(reconcileBuyerErrandOrderUpdate(current, base)).toBe(current);
   });
 
+  it("keeps a newer bill when a stale refresh differs only within one millisecond", () => {
+    const newer = {
+      id: "9001",
+      status: "pending_payment" as const,
+      bill: {
+        status: "submitted" as const,
+        updatedAt: "2026-07-18T02:05:00.123456789Z",
+      },
+    };
+    const older = {
+      id: "9001",
+      status: "pending_payment" as const,
+      bill: {
+        status: "unpaid" as const,
+        updatedAt: "2026-07-18T02:05:00.123123456Z",
+      },
+    };
+
+    expect(reconcileBuyerErrandOrderUpdate(newer, older)).toBe(newer);
+    expect(reconcileBuyerErrandOrderUpdate(older, newer)).toBe(newer);
+  });
+
   it("accepts a server-side order status advance", () => {
     const current = {
       id: "9001",
