@@ -2,9 +2,11 @@ import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import {
   createConnectProxyAbort,
+  hasTrustedRequestOrigin,
   sessionCookieName,
 } from "@sast-shop/api/server";
 
+import { mobileAppConfig } from "@/lib/app-config";
 import { getServerAuthMode } from "@/lib/auth-mode";
 import { getServerConnectBaseUrl } from "@/lib/server-service-options";
 
@@ -58,22 +60,6 @@ type ConnectRouteContext = {
     path?: string[];
   }>;
 };
-
-function isSameOriginRequest(request: NextRequest): boolean {
-  const requestOrigin = request.nextUrl.origin;
-  const origin = request.headers.get("origin");
-
-  if (origin) return origin === requestOrigin;
-
-  const referer = request.headers.get("referer");
-  if (!referer) return false;
-
-  try {
-    return new URL(referer).origin === requestOrigin;
-  } catch {
-    return false;
-  }
-}
 
 function normalizeBaseUrl(baseUrl: string): URL {
   const url = new URL(baseUrl);
@@ -213,7 +199,7 @@ async function proxyConnectRequest(
     authMode === "required" &&
     request.method !== "GET" &&
     request.method !== "HEAD" &&
-    !isSameOriginRequest(request)
+    !hasTrustedRequestOrigin(request.headers, mobileAppConfig.appOrigin)
   ) {
     return NextResponse.json(
       { error: "Invalid request origin" },

@@ -3,6 +3,7 @@ import {
   PayloadTooLargeError,
 } from "../packages/api/src/server/limited-form-data";
 import { ConcurrencyGuard } from "../packages/api/src/server/concurrency-guard";
+import { hasTrustedRequestOrigin } from "../packages/api/src/server/request-origin";
 import { readJsonResponseWithLimit } from "../packages/api/src/server/limited-json-response";
 
 import {
@@ -18,6 +19,7 @@ const acceptedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const uploadConcurrency = new ConcurrencyGuard(8, 2);
 
 type ProductImageUploadOptions = {
+  appOrigin: string;
   backendBaseUrl: string;
   isAuthenticationRequired: boolean;
   sessionToken?: string;
@@ -27,15 +29,11 @@ type BackendUploadResponse = {
   url?: unknown;
 };
 
-type SameOriginRequest = Request & {
-  nextUrl: URL;
-};
-
 export async function proxyProductImageUpload(
-  request: SameOriginRequest,
+  request: Request,
   options: ProductImageUploadOptions,
 ) {
-  if (!isSameOrigin(request)) {
+  if (!hasTrustedRequestOrigin(request.headers, options.appOrigin)) {
     return Response.json({ error: "请求来源不正确" }, { status: 403 });
   }
 
@@ -60,7 +58,7 @@ export async function proxyProductImageUpload(
 }
 
 async function handleProductImageUpload(
-  request: SameOriginRequest,
+  request: Request,
   options: ProductImageUploadOptions,
 ) {
   let formData: FormData;
@@ -134,18 +132,6 @@ async function handleProductImageUpload(
   }
 
   return Response.json({ url }, { headers: { "cache-control": "no-store" } });
-}
-
-function isSameOrigin(request: SameOriginRequest) {
-  const source =
-    request.headers.get("origin") ?? request.headers.get("referer");
-  if (!source) return false;
-
-  try {
-    return new URL(source).origin === request.nextUrl.origin;
-  } catch {
-    return false;
-  }
 }
 
 function sanitizeFileName(fileName: string) {

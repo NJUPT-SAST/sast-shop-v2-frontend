@@ -2,6 +2,7 @@ import { loginWithLarkCode } from "@sast-shop/api";
 import {
   createSessionUserCookie,
   getSessionCookieSecret,
+  hasTrustedRequestOrigin,
   loginExchangeGuard,
   readSessionUserCookie,
   sessionCookieName,
@@ -38,18 +39,6 @@ export async function GET() {
   );
 }
 
-function isSameOrigin(request: NextRequest) {
-  const source =
-    request.headers.get("origin") ?? request.headers.get("referer");
-  if (!source) return false;
-
-  try {
-    return new URL(source).origin === request.nextUrl.origin;
-  } catch {
-    return false;
-  }
-}
-
 async function readBoundedJson(request: NextRequest) {
   const declaredLength = Number(request.headers.get("content-length"));
   if (Number.isFinite(declaredLength) && declaredLength > maxBodyBytes) {
@@ -79,7 +68,7 @@ async function readBoundedJson(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isSameOrigin(request)) {
+  if (!hasTrustedRequestOrigin(request.headers, mobileAppConfig.appOrigin)) {
     return NextResponse.json(
       { error: "Invalid request origin" },
       { status: 403 },
@@ -187,7 +176,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!isSameOrigin(request)) {
+  if (!hasTrustedRequestOrigin(request.headers, mobileAppConfig.appOrigin)) {
     return NextResponse.json(
       { error: "Invalid request origin" },
       { status: 403 },

@@ -2,9 +2,11 @@ import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import {
   createConnectProxyAbort,
+  hasTrustedRequestOrigin,
   sessionCookieName,
 } from "@sast-shop/api/server";
 
+import { desktopAppConfig } from "@/lib/app-config";
 import { getServerAuthMode } from "@/lib/auth-mode";
 import { getServerConnectBaseUrl } from "@/lib/server-service-options";
 
@@ -51,17 +53,6 @@ const blockedResponseHeaders = new Set([
 ]);
 
 type Context = { params: Promise<{ path?: string[] }> };
-
-function isSameOrigin(request: NextRequest) {
-  const source =
-    request.headers.get("origin") ?? request.headers.get("referer");
-  if (!source) return false;
-  try {
-    return new URL(source).origin === request.nextUrl.origin;
-  } catch {
-    return false;
-  }
-}
 
 async function readBody(request: NextRequest, signal: AbortSignal) {
   const length = Number(request.headers.get("content-length"));
@@ -123,7 +114,7 @@ async function proxy(request: NextRequest, context: Context) {
   if (
     request.method !== "GET" &&
     request.method !== "HEAD" &&
-    !isSameOrigin(request)
+    !hasTrustedRequestOrigin(request.headers, desktopAppConfig.appOrigin)
   ) {
     return NextResponse.json(
       { error: "Invalid request origin" },

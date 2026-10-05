@@ -151,6 +151,18 @@ jobs:
                 "http://127.0.0.1:${HOST_PORT}/brand/feishu-required.webp" >/dev/null
               curl --fail --silent --show-error \
                 "http://127.0.0.1:${HOST_PORT}/brand/help.webp" >/dev/null
+              session_url="http://127.0.0.1:${HOST_PORT}/api/auth/session"
+              trusted_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+                --header "Origin: https://${APP_NAME}.ci.example.invalid" \
+                --header 'Content-Type: application/json' --data '{}' "$session_url")"
+              test "$trusted_status" = 400
+              untrusted_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+                --header 'Origin: https://attacker.example.invalid' \
+                --header "Referer: https://${APP_NAME}.ci.example.invalid/" \
+                --header "X-Forwarded-Host: ${APP_NAME}.ci.example.invalid" \
+                --header 'X-Forwarded-Proto: https' \
+                --header 'Content-Type: application/json' --data '{}' "$session_url")"
+              test "$untrusted_status" = 403
               exit 0
             fi
             sleep 1

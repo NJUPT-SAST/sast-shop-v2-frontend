@@ -1,5 +1,6 @@
 import {
   getSessionCookieSecret,
+  hasTrustedRequestOrigin,
   readSessionUserCookie,
   sessionCookieName,
   sessionUserCookieName,
@@ -14,6 +15,7 @@ import {
   LoginRateLimitedError,
   setDesktopAuthSessionCookies,
 } from "@/lib/auth-session";
+import { desktopAppConfig } from "@/lib/app-config";
 import { getServerAuthMode } from "@/lib/auth-mode";
 
 const maxCodeLength = 4096;
@@ -37,17 +39,6 @@ export async function GET() {
     { authenticated: Boolean(sessionToken && user), user },
     { headers: { "cache-control": "no-store" } },
   );
-}
-
-function isSameOrigin(request: NextRequest) {
-  const source =
-    request.headers.get("origin") ?? request.headers.get("referer");
-  if (!source) return false;
-  try {
-    return new URL(source).origin === request.nextUrl.origin;
-  } catch {
-    return false;
-  }
 }
 
 async function readBoundedJson(request: NextRequest) {
@@ -75,7 +66,7 @@ async function readBoundedJson(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isSameOrigin(request)) {
+  if (!hasTrustedRequestOrigin(request.headers, desktopAppConfig.appOrigin)) {
     return NextResponse.json(
       { error: "Invalid request origin" },
       { status: 403 },
@@ -151,7 +142,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!isSameOrigin(request)) {
+  if (!hasTrustedRequestOrigin(request.headers, desktopAppConfig.appOrigin)) {
     return NextResponse.json(
       { error: "Invalid request origin" },
       { status: 403 },
