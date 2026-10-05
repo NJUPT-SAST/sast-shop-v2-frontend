@@ -25,7 +25,8 @@ import {
 import {
   createAddress,
   deleteAddress as deleteSavedAddress,
-  getProfileOverview,
+  listAddresses,
+  listPaymentQrCodes,
   updateAddress,
   updatePaymentQrCode,
   type DataSource,
@@ -134,10 +135,14 @@ export function ProfileDialogsProvider({
   const [qrCodes, setQrCodes] = useState<PaymentQrCode[]>(
     () => overview?.paymentQrCodes ?? [],
   );
-  const [profileLoadState, setProfileLoadState] = useState<
+  const [addressLoadState, setAddressLoadState] = useState<
     "idle" | "ready" | "error"
   >(() => (overview ? "ready" : error ? "error" : "idle"));
-  const [profileError, setProfileError] = useState(error);
+  const [qrLoadState, setQrLoadState] = useState<
+    "idle" | "ready" | "error"
+  >(() => (overview ? "ready" : error ? "error" : "idle"));
+  const [addressError, setAddressError] = useState(error);
+  const [qrError, setQrError] = useState(error);
   const [addressOpen, setAddressOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const [paymentPreferenceOpen, setPaymentPreferenceOpen] = useState(false);
@@ -157,9 +162,13 @@ export function ProfileDialogsProvider({
   const router = useRouter();
   const pathname = usePathname();
   const serviceOptions: ServiceOptions = { dataSource, connectBaseUrl };
-  const retryProfileLoad = () => {
-    setProfileError(null);
-    setProfileLoadState("idle");
+  const retryAddressLoad = () => {
+    setAddressError(null);
+    setAddressLoadState("idle");
+  };
+  const retryQrLoad = () => {
+    setQrError(null);
+    setQrLoadState("idle");
   };
 
   useEffect(() => {
@@ -171,29 +180,53 @@ export function ProfileDialogsProvider({
   }, []);
 
   useEffect(() => {
-    if (profileLoadState !== "idle" || (!addressOpen && !qrOpen)) {
+    if (addressLoadState !== "idle" || !addressOpen) {
       return;
     }
 
     let cancelled = false;
-    void getProfileOverview({ dataSource, connectBaseUrl })
-      .then((nextOverview) => {
+    void listAddresses({ dataSource, connectBaseUrl })
+      .then((nextAddresses) => {
         if (cancelled) return;
-        setAddresses(nextOverview.addresses);
-        setQrCodes(nextOverview.paymentQrCodes);
-        setProfileError(null);
-        setProfileLoadState("ready");
+        setAddresses(nextAddresses);
+        setAddressError(null);
+        setAddressLoadState("ready");
       })
       .catch(() => {
         if (cancelled) return;
-        setProfileError("资料管理暂不可用，请稍后再试");
-        setProfileLoadState("error");
+        setAddressError("地址簿暂不可用，请稍后再试");
+        setAddressLoadState("error");
       });
 
     return () => {
       cancelled = true;
     };
-  }, [addressOpen, connectBaseUrl, dataSource, profileLoadState, qrOpen]);
+  }, [addressOpen, connectBaseUrl, dataSource, addressLoadState]);
+
+  useEffect(() => {
+    if (qrLoadState !== "idle" || !qrOpen) {
+      return;
+    }
+
+    let cancelled = false;
+    // The backend resolves the owner from the session; no profile lookup is needed.
+    void listPaymentQrCodes({ dataSource, connectBaseUrl })
+      .then((nextQrCodes) => {
+        if (cancelled) return;
+        setQrCodes(nextQrCodes);
+        setQrError(null);
+        setQrLoadState("ready");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setQrError("收款码暂不可用，请稍后再试");
+        setQrLoadState("error");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [connectBaseUrl, dataSource, qrLoadState, qrOpen]);
 
   useEffect(() => {
     let timeoutId: number | null = null;
@@ -433,12 +466,13 @@ export function ProfileDialogsProvider({
             ) : null}
 
             <div className="app-scrollbar -mx-4 min-h-0 flex-1 overflow-y-auto px-4">
-              {profileLoadState === "idle" ? (
+              {addressLoadState === "idle" ? (
                 <ProfileDrawerLoading />
-              ) : profileLoadState === "error" ? (
+              ) : addressLoadState === "error" ? (
                 <ProfileLoadError
-                  message={profileError}
-                  onRetry={retryProfileLoad}
+                  title="地址簿加载失败"
+                  message={addressError}
+                  onRetry={retryAddressLoad}
                 />
               ) : (
                 <AddressList
@@ -455,7 +489,7 @@ export function ProfileDialogsProvider({
                 type="button"
                 className="min-h-11 flex-1"
                 disabled={
-                  profileLoadState !== "ready" ||
+                  addressLoadState !== "ready" ||
                   pendingAction === "address-add"
                 }
                 onClick={() => openAddressForm("add")}
@@ -564,12 +598,13 @@ export function ProfileDialogsProvider({
               </p>
             ) : null}
 
-            {profileLoadState === "idle" ? (
+            {qrLoadState === "idle" ? (
               <ProfileDrawerLoading />
-            ) : profileLoadState === "error" ? (
+            ) : qrLoadState === "error" ? (
               <ProfileLoadError
-                message={profileError}
-                onRetry={retryProfileLoad}
+                title="收款码加载失败"
+                message={qrError}
+                onRetry={retryQrLoad}
               />
             ) : (
               <QrCodeList
@@ -612,17 +647,19 @@ export function ProfileDialogsProvider({
 }
 
 function ProfileLoadError({
+  title,
   message,
   onRetry,
 }: {
+  title: string;
   message: string | null;
   onRetry: () => void;
 }) {
   return (
     <LoadFailure
       variant="compact"
-      title="资料加载失败"
-      description={message ?? "资料管理暂不可用，请稍后再试"}
+      title={title}
+      description={message ?? "暂时无法加载，请稍后再试"}
       onRetry={onRetry}
     />
   );

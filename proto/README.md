@@ -1,15 +1,10 @@
 # Protocol source snapshot
 
-The backend repository `sast-shop-v2/proto` is authoritative. This reviewed
-snapshot lets the frontend generate the same interfaces before the backend
-module is published to the Buf registry, and makes clean builds reproducible.
-
-From the frontend repository, run:
+在前端仓库中，运行：
 
 ```sh
 node scripts/sync-proto.mjs ../sast-shop-v2
 pnpm proto:generate
 ```
 
-Commit source snapshots and generated TypeScript together. Never edit generated
-TypeScript to introduce an RPC or field. Update the backend protocol first.
+把proto和生成的 TypeScript 一起提交。不用编辑生成的 TypeScript 来添加 RPC 或字段。先更新后端协议。
