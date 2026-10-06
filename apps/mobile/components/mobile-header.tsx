@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { RiArrowLeftLine } from "@remixicon/react";
+import { RiArrowLeftLine, RiHomeLine } from "@remixicon/react";
 import { Button } from "@workspace/ui/components/button";
 import { useSecondaryScrollTitle } from "@/hooks/use-secondary-scroll-title";
 import { MobileHeaderActionSlot } from "./mobile-header-actions";
@@ -24,23 +24,38 @@ export function MobileHeader() {
       ref={headerRef}
       className="sticky top-0 z-20 border-b border-border/80 bg-background/90 backdrop-blur-xl"
     >
-      <div className="grid min-h-13 w-full grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-center gap-2 px-2 sm:px-4 md:px-6 has-[[data-slot=mobile-header-action]]:grid-cols-[6.5rem_minmax(0,1fr)_6.5rem]">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-touch"
-          className="justify-self-start border-0 bg-transparent shadow-none"
-          aria-label="返回上一页"
-          onClick={() => {
-            if (pathname.startsWith("/pocket/") && window.history.length <= 1) {
-              router.replace("/orders?tab=pocket");
-              return;
-            }
-            router.back();
-          }}
-        >
-          <RiArrowLeftLine />
-        </Button>
+      <div className="grid min-h-13 w-full grid-cols-[5.5rem_minmax(0,1fr)_5.5rem] items-center gap-2 px-2 sm:px-4 md:px-6 has-[[data-slot=mobile-header-action]]:grid-cols-[6.5rem_minmax(0,1fr)_6.5rem]">
+        <div className="flex items-center justify-self-start">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-touch"
+            className="border-0 bg-transparent shadow-none"
+            aria-label="返回上一页"
+            onClick={() => {
+              if (
+                pathname.startsWith("/pocket/") &&
+                window.history.length <= 1
+              ) {
+                router.replace("/orders?tab=pocket");
+                return;
+              }
+              router.back();
+            }}
+          >
+            <RiArrowLeftLine />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-touch"
+            className="border-0 bg-transparent shadow-none"
+            aria-label="返回首页"
+            onClick={() => router.replace("/shop")}
+          >
+            <RiHomeLine />
+          </Button>
+        </div>
 
         <div className="min-w-0 text-center">
           {showScrollTitle ? (

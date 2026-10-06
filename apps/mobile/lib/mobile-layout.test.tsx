@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MobileFixedFooter } from "../components/mobile-fixed-footer";
+import { MobileHeader } from "../components/mobile-header";
 import {
   MobileHeaderActions,
   MobileHeaderActionsProvider,
@@ -14,11 +15,16 @@ import { MobileScrollArea } from "../components/mobile-scroll-area";
 import { MobileScrollProvider } from "../components/mobile-scroll-context";
 import { useSecondaryScrollTitle } from "../hooks/use-secondary-scroll-title";
 
-const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
+const { refresh, back, replace, navigation } = vi.hoisted(() => ({
+  refresh: vi.fn(),
+  back: vi.fn(),
+  replace: vi.fn(),
+  navigation: { pathname: "/orders/spot/5001" },
+}));
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/orders/spot/5001",
-  useRouter: () => ({ refresh }),
+  usePathname: () => navigation.pathname,
+  useRouter: () => ({ refresh, back, replace }),
 }));
 
 let root: Root;
@@ -32,6 +38,9 @@ beforeEach(() => {
   vi.stubGlobal("React", React);
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   refresh.mockClear();
+  back.mockClear();
+  replace.mockClear();
+  navigation.pathname = "/orders/spot/5001";
   footerHeight = 80;
   frames = [];
   resizeCallbacks = [];
@@ -133,6 +142,57 @@ async function touch(target: Element, type: string, y: number) {
 }
 
 describe("mobile layout", () => {
+  it("returns home without adding history and keeps back and page actions independent", async () => {
+    const cancel = vi.fn();
+    await act(async () =>
+      root.render(
+        <MobileHeaderActionsProvider>
+          <MobileHeader />
+          <main>
+            <h1>订单详情</h1>
+            <MobileHeaderActions>
+              <button type="button" onClick={cancel}>
+                取消订单
+              </button>
+            </MobileHeaderActions>
+          </main>
+        </MobileHeaderActionsProvider>,
+      ),
+    );
+    const header = container.querySelector("header")!;
+    await act(async () =>
+      header
+        .querySelector<HTMLButtonElement>('[aria-label="返回首页"]')!
+        .click(),
+    );
+    expect(replace).toHaveBeenCalledExactlyOnceWith("/shop");
+    expect(back).not.toHaveBeenCalled();
+    expect(cancel).not.toHaveBeenCalled();
+
+    await act(async () =>
+      header
+        .querySelector<HTMLButtonElement>('[aria-label="返回上一页"]')!
+        .click(),
+    );
+    expect(back).toHaveBeenCalledTimes(1);
+    await act(async () =>
+      Array.from(header.querySelectorAll("button"))
+        .find((button) => button.textContent === "取消订单")!
+        .click(),
+    );
+    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(replace).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["/shop", "/group", "/orders", "/profile"])(
+    "keeps the secondary header hidden on %s",
+    async (pathname) => {
+      navigation.pathname = pathname;
+      await act(async () => root.render(<MobileHeader />));
+      expect(container.querySelector("header")).toBeNull();
+    },
+  );
+
   it("clears an existing page pull when a portal gesture starts", async () => {
     await act(async () => root.render(<TouchPage />));
     const viewport = container.querySelector("main")!;
