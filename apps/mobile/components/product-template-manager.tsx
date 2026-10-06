@@ -537,7 +537,7 @@ export function ProductTemplateManager({
 
           <form
             id="product-template-form"
-            className="app-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-2"
+            className="app-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-4"
             noValidate
             onSubmit={(event) => void form.handleSubmit(saveTemplate)(event)}
           >
@@ -554,12 +554,12 @@ export function ProductTemplateManager({
           </form>
 
           {saveError ? (
-            <p role="alert" className="px-4 text-sm text-destructive">
+            <p role="alert" className="px-4 pb-4 text-sm text-destructive">
               {saveError}
             </p>
           ) : null}
 
-          <DrawerFooter>
+          <DrawerFooter className="border-t">
             {editingTemplate ? (
               <Button
                 type="button"

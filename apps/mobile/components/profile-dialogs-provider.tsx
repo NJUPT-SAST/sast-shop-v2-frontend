@@ -499,7 +499,7 @@ export function ProfileDialogsProvider({
               )}
             </div>
 
-            <ResponsiveDialogFooter>
+            <ResponsiveDialogFooter className="border-t">
               <Button
                 type="button"
                 disabled={
@@ -1205,7 +1205,7 @@ function AddressForm({
           {error}
         </p>
       ) : null}
-      <ResponsiveDialogFooter>
+      <ResponsiveDialogFooter className="border-t">
         <Button type="button" variant="outline" onClick={onCancel}>
           取消
         </Button>

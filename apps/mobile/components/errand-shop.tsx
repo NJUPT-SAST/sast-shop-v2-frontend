@@ -642,7 +642,7 @@ export function ErrandShop({
             )}
           </div>
 
-          <ResponsiveDialogFooter>
+          <ResponsiveDialogFooter className="mt-4 border-t">
             <Button
               type="button"
               disabled={

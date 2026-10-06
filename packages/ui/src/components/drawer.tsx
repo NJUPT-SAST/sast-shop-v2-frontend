@@ -121,7 +121,7 @@ function DrawerFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="drawer-footer"
       className={cn(
-        "mt-auto flex shrink-0 items-center gap-2 border-t bg-card p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] [&>[data-slot=button]]:min-h-11 [&>[data-slot=button]]:min-w-0 [&>[data-slot=button]]:flex-1 [&>[data-slot=button]]:whitespace-normal",
+        "mt-auto flex shrink-0 items-center gap-2 bg-card p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] [&>[data-slot=button]]:min-h-11 [&>[data-slot=button]]:min-w-0 [&>[data-slot=button]]:flex-1 [&>[data-slot=button]]:whitespace-normal",
         className,
       )}
       {...props}

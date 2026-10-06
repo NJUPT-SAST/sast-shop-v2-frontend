@@ -212,7 +212,7 @@ export function StoreCreateDialog({
 
         <form
           id="mobile-store-create-dialog-form"
-          className="app-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-2"
+          className="app-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-4"
           noValidate
           onSubmit={handleSubmit}
         >
@@ -311,7 +311,7 @@ export function StoreCreateDialog({
           </FieldGroup>
         </form>
 
-        <DrawerFooter>
+        <DrawerFooter className="border-t">
           <Button
             type="submit"
             form="mobile-store-create-dialog-form"
