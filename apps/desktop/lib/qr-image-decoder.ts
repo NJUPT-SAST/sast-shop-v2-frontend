@@ -1,5 +1,3 @@
-import jsQR from "jsqr";
-
 const maxQrImageBytes = 5 * 1024 * 1024;
 
 export async function decodePaymentQrImage(file: File): Promise<string> {
@@ -26,6 +24,7 @@ export async function decodePaymentQrImage(file: File): Promise<string> {
   }
   context.drawImage(image, 0, 0, width, height);
   const imageData = context.getImageData(0, 0, width, height);
+  const { default: jsQR } = await import("jsqr");
   const content = jsQR(
     imageData.data,
     imageData.width,

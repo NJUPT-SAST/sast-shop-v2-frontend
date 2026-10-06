@@ -2,13 +2,11 @@
 
 import {
   useCallback,
-  useEffect,
   useRef,
   useState,
   type ReactNode,
   type TouchEvent,
 } from "react";
-import { usePathname } from "next/navigation";
 import { Spinner } from "@workspace/ui/components/spinner";
 import { cn } from "@workspace/ui/lib/utils";
 import {
@@ -19,13 +17,6 @@ import {
 } from "../lib/pull-gesture";
 import { useMobileScroll } from "./mobile-scroll-context";
 
-interface ScrollbarState {
-  visible: boolean;
-  thumbHeight: number;
-  thumbTop: number;
-}
-
-const SCROLLBAR_TRACK_INSET = 8;
 const MAX_PULL_DISTANCE = 72;
 
 export function MobileScrollArea({
@@ -35,18 +26,12 @@ export function MobileScrollArea({
   children: ReactNode;
   hasBottomNav: boolean;
 }) {
-  const pathname = usePathname();
   const viewportRef = useRef<HTMLElement>(null);
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
   const gestureAxisRef = useRef<PullGestureAxis>("undetermined");
   const activePullDistanceRef = useRef(0);
   const [isPulling, setIsPulling] = useState(false);
-  const [scrollbar, setScrollbar] = useState<ScrollbarState>({
-    visible: false,
-    thumbHeight: 0,
-    thumbTop: 0,
-  });
   const {
     footerHeight,
     isRefreshing,
@@ -57,31 +42,6 @@ export function MobileScrollArea({
     refresh,
   } = useMobileScroll();
 
-  const updateScrollbar = useCallback(() => {
-    const viewport = viewportRef.current;
-
-    if (!viewport) {
-      return;
-    }
-
-    const { clientHeight, scrollHeight, scrollTop } = viewport;
-    const maxScrollTop = scrollHeight - clientHeight;
-
-    if (maxScrollTop <= 1) {
-      setScrollbar({ visible: false, thumbHeight: 0, thumbTop: 0 });
-      return;
-    }
-
-    const trackHeight = Math.max(clientHeight - SCROLLBAR_TRACK_INSET * 2, 0);
-    const thumbHeight = Math.max(
-      (clientHeight / scrollHeight) * trackHeight,
-      32,
-    );
-    const thumbTop = (scrollTop / maxScrollTop) * (trackHeight - thumbHeight);
-
-    setScrollbar({ visible: true, thumbHeight, thumbTop });
-  }, []);
-
   const handleViewportRef = useCallback(
     (viewport: HTMLElement | null) => {
       viewportRef.current = viewport;
@@ -89,11 +49,6 @@ export function MobileScrollArea({
     },
     [registerViewport],
   );
-
-  const handleScroll = useCallback(() => {
-    updateScrollbar();
-    syncScrollState();
-  }, [syncScrollState, updateScrollbar]);
 
   const updatePullDistance = useCallback(
     (distance: number) => {
@@ -186,28 +141,6 @@ export function MobileScrollArea({
     finishPullGesture(true);
   }, [finishPullGesture]);
 
-  useEffect(() => {
-    const viewport = viewportRef.current;
-
-    if (!viewport) {
-      return;
-    }
-
-    const rafId = requestAnimationFrame(updateScrollbar);
-
-    const resizeObserver = new ResizeObserver(updateScrollbar);
-    resizeObserver.observe(viewport);
-
-    if (viewport.firstElementChild) {
-      resizeObserver.observe(viewport.firstElementChild);
-    }
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      resizeObserver.disconnect();
-    };
-  }, [pathname, updateScrollbar]);
-
   const visualPullDistance = Math.max(isRefreshing ? 48 : 0, pullDistance);
   const showRefreshIndicator = isRefreshing || pullDistance > 0;
 
@@ -239,13 +172,12 @@ export function MobileScrollArea({
       <main
         ref={handleViewportRef}
         className={cn(
-          "app-scrollbar flex min-h-0 w-full flex-1 flex-col overflow-y-auto px-4 md:px-6",
-          scrollbar.visible ? "pb-2" : "pb-6",
+          "app-scrollbar flex min-h-0 w-full flex-1 flex-col overflow-y-auto px-4 pb-6 md:px-6",
           !isPulling &&
             "transition-transform duration-200 motion-reduce:transition-none",
         )}
         style={{ transform: `translateY(${visualPullDistance}px)` }}
-        onScroll={handleScroll}
+        onScroll={syncScrollState}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -253,21 +185,6 @@ export function MobileScrollArea({
       >
         {children}
       </main>
-      {scrollbar.visible ? (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute right-1 top-2 z-30 w-1.5"
-          style={{ bottom: SCROLLBAR_TRACK_INSET }}
-        >
-          <div
-            className="absolute right-0 w-1.5 rounded-full bg-foreground/25"
-            style={{
-              height: scrollbar.thumbHeight,
-              transform: `translateY(${scrollbar.thumbTop}px)`,
-            }}
-          />
-        </div>
-      ) : null}
     </div>
   );
 }

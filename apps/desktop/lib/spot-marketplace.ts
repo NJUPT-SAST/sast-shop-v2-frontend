@@ -62,20 +62,6 @@ export function mapSpotProductDetail(
   };
 }
 
-export function filterSpotProducts(
-  products: SpotProductBrief[],
-  query: string,
-): SpotProductBrief[] {
-  const keyword = query.trim().toLocaleLowerCase("zh-CN");
-  if (!keyword) return products;
-
-  return products.filter((item) =>
-    [item.title, item.description, item.storeName, item.barcode].some((value) =>
-      value?.toLocaleLowerCase("zh-CN").includes(keyword),
-    ),
-  );
-}
-
 export function clampPurchaseQuantity(value: number, stock: number): number {
   const upperBound = Math.max(1, stock);
   return Math.min(upperBound, Math.max(1, Math.trunc(value) || 1));

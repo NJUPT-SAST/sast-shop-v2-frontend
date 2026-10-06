@@ -1,12 +1,12 @@
-import type {
-  PaymentBill,
-  PaymentBillStatus,
-  SpotOrder,
-  SpotOrderStatusValue,
+import {
+  compareUpdatedAt,
+  type PaymentBill,
+  type PaymentBillStatus,
+  type SpotOrder,
+  type SpotOrderStatusValue,
 } from "@sast-shop/api";
 
 import type { SpotOrderView } from "./order-filters";
-import { compareUpdatedAt } from "./errand-recovery";
 
 export type SpotOrderActions = {
   canCancel: boolean;

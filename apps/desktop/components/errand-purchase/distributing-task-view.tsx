@@ -9,6 +9,9 @@ import {
   RiEditLine,
 } from "@remixicon/react";
 import {
+  compareUpdatedAt,
+  latestUpdatedAt,
+  mergeDistributingTaskItems,
   cancelTask,
   getDistributingTaskDetail,
   getErrandTaskBrief,
@@ -65,11 +68,7 @@ import {
   isDistributionItemComplete,
   isDistributionTaskComplete,
 } from "@/lib/distribution-progress";
-import {
-  compareUpdatedAt,
-  latestUpdatedAt,
-  mergeDistributingTaskItems,
-} from "@/lib/errand-recovery";
+
 import { getStatusBadgeVariant, getStatusLabel } from "@/lib/order-filters";
 
 import { ManagedImage } from "@/components/managed-image";

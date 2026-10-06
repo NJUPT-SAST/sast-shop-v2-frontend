@@ -60,6 +60,7 @@ import { Skeleton } from "@workspace/ui/components/skeleton";
 import { QuantityStepper } from "@workspace/ui/components/quantity-stepper";
 import { toast } from "sonner";
 import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
+import { useCachedResource } from "@workspace/ui/hooks/use-cached-resource";
 
 import {
   readDefaultPaymentPlatform,
@@ -112,21 +113,67 @@ export function SpotMarketplace({
   const router = useRouter();
   const { ensureAgreement } = useTransactionAgreement();
   const serviceOptions: ServiceOptions = { dataSource, connectBaseUrl };
+  const [query, setQuery] = useState("");
+  const [keyword, setKeyword] = useState("");
+  const normalizedQuery = query.trim();
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setKeyword(query.trim()), 250);
+    return () => window.clearTimeout(timeout);
+  }, [query]);
+  const search = useCachedResource({
+    cacheKey: JSON.stringify([
+      "mobile:shop:search",
+      dataSource,
+      connectBaseUrl,
+      initialPage.pageSize,
+      keyword,
+    ]),
+    staleTime: 60_000,
+    refreshKey: initialPage,
+    load: () =>
+      keyword
+        ? listSpotGoods({
+            dataSource,
+            connectBaseUrl,
+            keyword,
+            page: 1,
+            pageSize: initialPage.pageSize,
+          })
+        : Promise.resolve(initialPage),
+  });
+  const searching =
+    normalizedQuery !== keyword ||
+    Boolean(keyword && !search.data && !search.error);
+  const pageError =
+    normalizedQuery !== keyword
+      ? null
+      : keyword
+        ? search.error
+          ? "现货商品暂不可用，请稍后再试"
+          : null
+        : error;
+  const page =
+    normalizedQuery !== keyword
+      ? undefined
+      : keyword
+        ? search.data
+        : initialPage;
   const firstPage = useMemo(
     () => ({
-      items: initialPage.goods,
-      currentPage: initialPage.currentPage,
-      pageSize: initialPage.pageSize,
-      totalCount: initialPage.totalCount,
-      hasMore: hasMoreSpotGoods(initialPage),
+      items: page?.goods ?? [],
+      currentPage: page?.currentPage ?? 1,
+      pageSize: page?.pageSize ?? initialPage.pageSize,
+      totalCount: page?.totalCount ?? 0,
+      hasMore: page ? hasMoreSpotGoods(page) : false,
     }),
-    [initialPage],
+    [page, initialPage.pageSize],
   );
   const loadPage = useCallback(
     async (page: number) => {
       const result = await listSpotGoods({
         dataSource,
         connectBaseUrl,
+        keyword,
         page,
         pageSize: initialPage.pageSize,
       });
@@ -138,7 +185,7 @@ export function SpotMarketplace({
         hasMore: hasMoreSpotGoods(result),
       };
     },
-    [connectBaseUrl, dataSource, initialPage.pageSize],
+    [connectBaseUrl, dataSource, initialPage.pageSize, keyword],
   );
   const {
     items: loadedGoods,
@@ -151,7 +198,12 @@ export function SpotMarketplace({
     initialPage: firstPage,
     loadPage,
     getKey: getSpotGoodsKey,
-    identity: `${dataSource}:${connectBaseUrl}`,
+    identity: JSON.stringify([
+      dataSource,
+      connectBaseUrl,
+      normalizedQuery,
+      keyword,
+    ]),
   });
 
   const spotGoods = useMemo(
@@ -183,7 +235,6 @@ export function SpotMarketplace({
     null,
   );
   const [quantity, setQuantity] = useState(1);
-  const [query, setQuery] = useState("");
   const [defaultPlatform, setDefaultPlatform] =
     useState<PaymentPlatform>("wechat");
   const [paymentQrCodes, setPaymentQrCodes] = useState<
@@ -195,30 +246,6 @@ export function SpotMarketplace({
   const checkoutRef = useRef(false);
   const checkoutGenerationRef = useRef(0);
   const detailRequestRef = useRef(0);
-  const filteredProducts = useMemo(() => {
-    const keyword = query.trim().toLocaleLowerCase();
-
-    if (!keyword) {
-      return spotGoods;
-    }
-
-    return spotGoods.filter((product) =>
-      [
-        product.title,
-        product.description,
-        product.storeName,
-        product.barcode,
-      ].some((value) => value.toLocaleLowerCase().includes(keyword)),
-    );
-  }, [spotGoods, query]);
-  useEffect(() => {
-    if (!query.trim() || !hasMore || loadMoreError) return;
-    const timeout = window.setTimeout(() => {
-      void loadMore();
-    }, 250);
-    return () => window.clearTimeout(timeout);
-  }, [hasMore, loadMore, loadMoreError, query]);
-
   const maxQuantity = selectedProduct?.stock ?? 1;
   const isOutOfStock = selectedProduct?.stock === 0;
 
@@ -552,22 +579,24 @@ export function SpotMarketplace({
         <InputGroupInput
           aria-label="搜索现货商品"
           value={query}
+          maxLength={200}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="搜索商品、规格、店铺或条码"
         />
       </InputGroup>
 
-      {error ? (
+      {searching ? <SpotGoodsLoadingSkeletons /> : null}
+      {pageError ? (
         <LoadFailure
           title="现货加载失败"
-          description={error}
-          onRetry={() => router.refresh()}
+          description={pageError}
+          onRetry={() => (keyword ? void search.refresh() : router.refresh())}
         />
       ) : null}
 
-      {!error && filteredProducts.length > 0 ? (
+      {!pageError && !searching && spotGoods.length > 0 ? (
         <section className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-          {filteredProducts.map((product) => (
+          {spotGoods.map((product) => (
             <button
               key={product.id}
               type="button"
@@ -614,18 +643,22 @@ export function SpotMarketplace({
         </section>
       ) : null}
 
-      {!error && filteredProducts.length === 0 && !loadingMore && !hasMore ? (
+      {!pageError &&
+      !searching &&
+      spotGoods.length === 0 &&
+      !loadingMore &&
+      !hasMore ? (
         <Empty
           illustration={
             <BrandIllustration
-              name={query ? "search-empty" : "spot-empty"}
+              name={keyword ? "search-empty" : "spot-empty"}
               size={112}
             />
           }
           className="flex-1"
-          title={query ? "没有匹配的现货" : "暂无在售现货"}
+          title={keyword ? "没有匹配的现货" : "暂无在售现货"}
           action={
-            query ? (
+            keyword ? (
               <Button
                 type="button"
                 variant="outline"
@@ -638,7 +671,7 @@ export function SpotMarketplace({
         />
       ) : null}
 
-      {!error ? (
+      {!pageError && !searching ? (
         <InfiniteListStatus
           hasMore={hasMore}
           loading={loadingMore}
@@ -648,8 +681,8 @@ export function SpotMarketplace({
           loadingFallback={<SpotGoodsLoadingSkeletons />}
           endMessageClassName="pt-6"
           endMessage={
-            query.trim()
-              ? `搜索完成，共找到 ${filteredProducts.length} 件商品`
+            keyword
+              ? `搜索完成，共找到 ${totalCount} 件商品`
               : `已经到底，共 ${loadedGoods.length} 件商品`
           }
         />

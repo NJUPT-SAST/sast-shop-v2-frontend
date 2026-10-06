@@ -61,7 +61,8 @@ vi.mock("next/navigation", () => ({
 vi.mock("@workspace/ui/lib/drawer-history", () => ({
   waitForDrawerHistoryCleanup,
 }));
-vi.mock("@sast-shop/api", () => ({
+vi.mock("@sast-shop/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@sast-shop/api")>()),
   cancelTask,
   confirmBill,
   getDistributingTaskDetail,

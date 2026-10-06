@@ -5,6 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { RiArrowLeftLine, RiCheckboxCircleLine } from "@remixicon/react";
 import {
+  compareUpdatedAt,
+  latestUpdatedAt,
+  mergeShoppingTaskItems,
   cancelTask,
   getShoppingTaskDetail,
   saveShoppingTaskItem,
@@ -37,11 +40,7 @@ import { Textarea } from "@workspace/ui/components/textarea";
 import { toast } from "sonner";
 
 import { ManagedImage } from "@/components/managed-image";
-import {
-  compareUpdatedAt,
-  latestUpdatedAt,
-  mergeShoppingTaskItems,
-} from "@/lib/errand-recovery";
+
 import { getStatusBadgeVariant, getStatusLabel } from "@/lib/order-filters";
 import { useTransactionAgreement } from "../transaction-agreement-provider";
 

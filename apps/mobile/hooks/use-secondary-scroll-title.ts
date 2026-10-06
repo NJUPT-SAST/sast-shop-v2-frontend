@@ -24,6 +24,17 @@ export function useSecondaryScrollTitle() {
     let intersectionObserver: IntersectionObserver | null = null;
     let visible = false;
 
+    const publishTitle = () => {
+      const text = heading?.textContent ?? "";
+      setTitle((current) =>
+        current.pathname === pathname &&
+        current.text === text &&
+        current.visible === visible
+          ? current
+          : { pathname, text, visible },
+      );
+    };
+
     const updateTitle = () => {
       const nextHeading = main.querySelector("h1");
       if (nextHeading !== heading) {
@@ -34,14 +45,14 @@ export function useSecondaryScrollTitle() {
           intersectionObserver = new IntersectionObserver(
             ([entry]) => {
               visible = entry.intersectionRatio <= 0.5;
-              setTitle({ pathname, text: heading?.textContent ?? "", visible });
+              publishTitle();
             },
             { root: main, threshold: [0, 0.5, 1] },
           );
           intersectionObserver.observe(heading);
         }
       }
-      setTitle({ pathname, text: heading?.textContent ?? "", visible });
+      publishTitle();
     };
 
     const mutationObserver = new MutationObserver(updateTitle);

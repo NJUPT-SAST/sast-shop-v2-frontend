@@ -11,6 +11,9 @@ import {
   RiWechatPayLine,
 } from "@remixicon/react";
 import {
+  compareUpdatedAt,
+  latestUpdatedAt,
+  mergeCollectingPaymentBills,
   confirmBill,
   getErrandTaskBrief,
   transitionToCompleted,
@@ -46,11 +49,6 @@ import { toast } from "sonner";
 
 import { MobileFixedFooter } from "@/components/mobile-fixed-footer";
 import { useTransactionAgreement } from "@/components/transaction-agreement-provider";
-import {
-  compareUpdatedAt,
-  latestUpdatedAt,
-  mergeCollectingPaymentBills,
-} from "@/lib/errand-recovery";
 
 export type CollectingPaymentViewProps = {
   dataSource: DataSource;

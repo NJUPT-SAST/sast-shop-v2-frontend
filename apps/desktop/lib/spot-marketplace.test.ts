@@ -3,7 +3,6 @@ import type { SpotGoods, SpotGoodsBrief } from "@sast-shop/api";
 
 import {
   clampPurchaseQuantity,
-  filterSpotProducts,
   mapSpotProductBriefs,
   mapSpotProductDetail,
   resolveAvailablePaymentPlatform,
@@ -85,20 +84,6 @@ describe("desktop spot marketplace", () => {
     expect(products.map((item) => item.id)).toEqual(["5001", "5002", "5003"]);
     expect(products[0]).not.toHaveProperty("stock");
     expect(products[0]).not.toHaveProperty("sellerName");
-  });
-
-  it("searches title, description, store, and barcode case-insensitively", () => {
-    const products = mapSpotProductBriefs(goods);
-
-    expect(
-      filterSpotProducts(products, "矿泉水").map((item) => item.id),
-    ).toEqual(["5001"]);
-    expect(filterSpotProducts(products, "sast").map((item) => item.id)).toEqual(
-      ["5001", "5002", "5003"],
-    );
-    expect(
-      filterSpotProducts(products, "690000000003").map((item) => item.id),
-    ).toEqual(["5003"]);
   });
 
   it("combines a selected brief with its fetched detail", () => {

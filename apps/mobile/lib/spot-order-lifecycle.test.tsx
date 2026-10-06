@@ -28,7 +28,8 @@ const {
 }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
-vi.mock("@sast-shop/api", () => ({
+vi.mock("@sast-shop/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@sast-shop/api")>()),
   cancelSpotOrder,
   completeSpotOrder,
   confirmBill,

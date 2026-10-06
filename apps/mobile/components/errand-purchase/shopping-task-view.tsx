@@ -6,6 +6,9 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RiEditLine } from "@remixicon/react";
 import {
+  compareUpdatedAt,
+  latestUpdatedAt,
+  mergeShoppingTaskItems,
   cancelTask,
   getShoppingTaskDetail,
   saveShoppingTaskItem,
@@ -41,11 +44,7 @@ import { MobileFixedFooter } from "@/components/mobile-fixed-footer";
 import { MobileHeaderActions } from "@/components/mobile-header-actions";
 import { useTransactionAgreement } from "@/components/transaction-agreement-provider";
 import { ShoppingTaskItemEditor } from "./shopping-task-item-editor";
-import {
-  compareUpdatedAt,
-  latestUpdatedAt,
-  mergeShoppingTaskItems,
-} from "@/lib/errand-recovery";
+
 import { getShoppingProductTotalCents } from "@/lib/shopping-task-summary";
 import { getStatusBadgeVariant, getStatusLabel } from "@/lib/order-filters";
 

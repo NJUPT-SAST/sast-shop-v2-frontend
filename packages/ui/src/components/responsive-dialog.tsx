@@ -47,9 +47,10 @@ function useMediaQuery(query: string): boolean {
 
 function useResponsiveDialogMode(): ResponsiveDialogMode {
   const mode = React.useContext(ResponsiveDialogModeContext);
-  const isDesktop = useMediaQuery("(min-width: 768px)");
-
-  return mode ?? (isDesktop ? "dialog" : "drawer");
+  if (!mode) {
+    throw new Error("ResponsiveDialog components require ResponsiveDialog");
+  }
+  return mode;
 }
 
 function ResponsiveDialog({

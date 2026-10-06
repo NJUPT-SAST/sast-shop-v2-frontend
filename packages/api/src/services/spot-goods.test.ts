@@ -102,7 +102,7 @@ describe("spot goods service", () => {
     expect(result).toMatchObject({
       currentPage: 1,
       totalCount: 2,
-      pageSize: 50,
+      pageSize: 30,
     });
     expect(result.goods.map((item) => item.id)).toEqual(["6001", "6002"]);
     expect(result.goods[0]?.store).toMatchObject({
@@ -111,8 +111,48 @@ describe("spot goods service", () => {
     });
     expect(result.goods[0]).not.toHaveProperty("stock");
     expect(result.goods[0]).not.toHaveProperty("sellerId");
-    expect(listRequestBodies).toEqual([{ page: 1, pageSize: 50 }]);
+    expect(listRequestBodies).toEqual([{ page: 1, pageSize: 30 }]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("searches server-side and preserves matching pagination", async () => {
+    const requests: unknown[] = [];
+    const fetchMock = vi.fn(
+      async (input: string | Request, init?: RequestInit) => {
+        const pathname = new URL(typeof input === "string" ? input : input.url)
+          .pathname;
+        if (pathname.includes("GetStoreList"))
+          return stubJsonResponse({ stores: [] });
+        requests.push(await readRequestBody(input, init));
+        return stubJsonResponse({
+          spotGoodsList: [],
+          currentPage: 2,
+          totalCount: 60,
+        });
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const page = await listSpotGoods({
+      ...localOptions,
+      keyword: "  ABC_%  ",
+      page: 2,
+    });
+    expect(page).toMatchObject({
+      currentPage: 2,
+      totalCount: 60,
+      pageSize: 30,
+    });
+    expect(requests).toEqual([{ page: 2, pageSize: 30, keyword: "ABC_%" }]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects an oversized keyword before requesting", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      listSpotGoods({ ...localOptions, keyword: "水".repeat(201) }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("supports an explicit positive store filter and requested page size", async () => {
@@ -202,9 +242,9 @@ describe("spot goods service", () => {
       goods: [],
       currentPage: 1,
       totalCount: 0,
-      pageSize: 50,
+      pageSize: 30,
     });
-    expect(listRequestBodies).toEqual([{ page: 1, pageSize: 50 }]);
+    expect(listRequestBodies).toEqual([{ page: 1, pageSize: 30 }]);
   });
 
   it.each([

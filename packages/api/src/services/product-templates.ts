@@ -8,7 +8,7 @@ import { FeatureUnavailableError, ValidationError } from "../errors";
 import { createPageResult, type PageResult } from "../pagination";
 import { createLocalTransport, requestLocal } from "../local-connect";
 import { formatProtoTimestamp, parseProtoTimestamp } from "../proto-timestamp";
-import { listStores, type Store } from "./catalog";
+import type { Store } from "./catalog";
 
 const MAX_SIGNED_INT64 = 9223372036854775807n;
 const MAX_SIGNED_INT32 = 2147483647;
@@ -66,6 +66,7 @@ export async function listProductTemplates(
     storeId?: string;
     page?: number;
     pageSize?: number;
+    keyword?: string;
   } = {},
 ): Promise<ProductTemplate[]> {
   const result = await listProductTemplatesPage(options);
@@ -77,6 +78,7 @@ export async function listProductTemplatesPage(
     storeId?: string;
     page?: number;
     pageSize?: number;
+    keyword?: string;
   } = {},
 ): Promise<PageResult<ProductTemplate>> {
   const dataSource = resolveDataSource(options);
@@ -87,31 +89,35 @@ export async function listProductTemplatesPage(
   );
 
   if (dataSource === "mock" || dataSource === "local") {
-    if (options.storeId !== undefined) {
-      return listTemplatesByStorePage(options.storeId, {
-        ...options,
+    const parsedStoreId =
+      options.storeId === undefined || options.storeId === "0"
+        ? 0n
+        : parseInt64(options.storeId, "店铺 ID 不正确");
+    const keyword = (options.keyword ?? "").trim();
+    if ([...keyword].length > 200) {
+      throw new ValidationError("搜索关键词不能超过 200 个字符");
+    }
+    const client = createClient(
+      ProductTemplateService,
+      createLocalTransport(options),
+    );
+    const response = await requestLocal("listProductTemplates", () =>
+      client.getProductTemplateList({
+        storeId: parsedStoreId,
         page,
         pageSize,
-      });
-    }
-
-    const stores = await listStores(options);
-    const pages = await Promise.all(
-      stores.map((store) =>
-        listTemplatesByStorePage(store.id, { ...options, page, pageSize }),
-      ),
+        keyword,
+      }),
     );
+    const items = response.productTemplates.map(mapTemplate);
 
     return createPageResult({
-      items: pages.flatMap((result) => result.items),
-      currentPage: page,
+      items,
+      currentPage: response.currentPage,
       pageSize,
-      totalCount: pages.reduce((total, result) => total + result.totalCount, 0),
+      totalCount: response.totalCount,
       expectedPage: page,
       feature: "listProductTemplates",
-      hasMore: pages.some((result) => result.hasMore),
-      maxItems: pageSize * stores.length,
-      validateOffset: false,
     });
   }
 
@@ -235,39 +241,6 @@ export async function deleteProductTemplate(
   }
 
   throw new FeatureUnavailableError("deleteProductTemplate");
-}
-
-async function listTemplatesByStorePage(
-  storeId: string,
-  options: ServiceOptions & { page?: number; pageSize?: number },
-): Promise<PageResult<ProductTemplate>> {
-  const parsedStoreId = parseInt64(storeId, "店铺 ID 不正确");
-  const page = parsePositiveInteger(options.page ?? 1, "页码不正确");
-  const pageSize = parsePositiveInteger(
-    options.pageSize ?? 50,
-    "每页数量不正确",
-  );
-  const client = createClient(
-    ProductTemplateService,
-    createLocalTransport(options),
-  );
-  const response = await requestLocal("listProductTemplates", () =>
-    client.getProductTemplateList({
-      storeId: parsedStoreId,
-      page,
-      pageSize,
-    }),
-  );
-  const items = response.productTemplates.map(mapTemplate);
-
-  return createPageResult({
-    items,
-    currentPage: response.currentPage,
-    pageSize,
-    totalCount: response.totalCount,
-    expectedPage: page,
-    feature: "listProductTemplates",
-  });
 }
 
 function validateCreateProductTemplateInput(input: CreateProductTemplateInput) {

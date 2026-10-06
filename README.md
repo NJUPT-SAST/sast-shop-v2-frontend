@@ -48,6 +48,8 @@ pnpm mock:generate:user
 
 `proto:generate` 会按 Connect Web 官方推荐的本地生成方式，使用 `@bufbuild/buf` 与 `@bufbuild/protoc-gen-es` 从 `buf.build/sast/sast-shop-v2` 生成 Protobuf-ES v2 TypeScript 产物到 `packages/api/src/gen`。生成物提交到仓库，CI 会重新运行该命令并检查生成物是否漂移。
 
+联调尚未发布的后端 proto 时，可从本地后端仓库生成：`pnpm exec buf generate ../backend --template buf.gen.yaml`。现货与商品模板列表通过 `keyword` 在后端筛选后分页；空关键词列出原列表，商品模板的 `store_id=0` 查询全部店铺。发布时须先将对应后端 proto 同步到 Buf Registry，再运行 `pnpm proto:generate` 核对生成物；否则 CI 使用旧 schema 会检测到漂移。前端搜索依赖同版本的后端服务。
+
 `mock:schema` 会从 `buf.build/sast/sast-shop-v2` 拉取 proto schema 并生成本地 binpb；`mock:fauxrpc` 会在 `127.0.0.1:6660` 启动 fauxrpc mock backend 和 dashboard。
 
 ## 交易协议

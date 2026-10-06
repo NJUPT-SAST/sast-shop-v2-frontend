@@ -46,8 +46,5 @@ export { resolveFeedbackFormUrl } from "./navigation/feedback-form-url";
 export { getQuantityMismatchLabel } from "./errand/quantity-mismatch";
 export {
   hasMoreSpotGoods,
-  mergeSpotGoodsPages,
-  resolveNextSpotGoodsPage,
-  type SpotGoodsLoadTrigger,
   type SpotGoodsPageMeta,
 } from "./marketplace/spot-goods-pagination";

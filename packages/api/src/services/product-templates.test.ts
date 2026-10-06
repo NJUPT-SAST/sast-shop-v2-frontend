@@ -98,82 +98,62 @@ describe("product template service", () => {
     });
   });
 
-  it("continues an aggregate page when only one store has more templates", async () => {
-    const fetchMock = vi.fn(async (input: string | Request) => {
-      const url = typeof input === "string" ? input : input.url;
-      const pathname = new URL(url).pathname;
-
-      if (pathname.includes("GetStoreList")) {
-        return stubJsonResponse({
-          stores: [
-            { id: "3001", name: "SAST 小卖部" },
-            { id: "3002", name: "南邮校园超市" },
-          ],
-        });
-      }
-
-      const storeRequestIndex = fetchMock.mock.calls.length - 1;
-      const hasTemplates = storeRequestIndex === 2;
-      return stubJsonResponse({
-        productTemplates: hasTemplates
-          ? [
-              {
-                id: "4051",
-                title: "矿泉水",
-                priceCents: 200,
-                storeId: "3002",
-                barcode: "690000000051",
-              },
-            ]
-          : [],
+  it("searches across stores using one globally paginated request", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        productTemplates: [{ id: "4051", title: "矿泉水", storeId: "3002" }],
         currentPage: 2,
-        totalCount: hasTemplates ? 101 : 1,
-      });
-    });
+        totalCount: 102,
+      }),
+    );
     vi.stubGlobal("fetch", fetchMock);
-
     const page = await listProductTemplatesPage({
       ...localOptions,
       page: 2,
       pageSize: 50,
+      keyword: "  矿泉水  ",
     });
-
-    expect(page.items.map((template) => template.id)).toEqual(["4051"]);
+    expect(page.items.map((item) => item.id)).toEqual(["4051"]);
     expect(page).toMatchObject({
       currentPage: 2,
       totalCount: 102,
       hasMore: true,
     });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateList",
+      body: { page: 2, pageSize: 50, keyword: "矿泉水" },
+    });
   });
 
-  it("rejects a non-empty aggregate store page past its declared total", async () => {
-    const fetchMock = vi.fn(async (input: string | Request) => {
-      const pathname = new URL(typeof input === "string" ? input : input.url)
-        .pathname;
-      if (pathname.includes("GetStoreList")) {
-        return stubJsonResponse({
-          stores: [{ id: "3001", name: "SAST 小卖部" }],
-        });
-      }
-      return stubJsonResponse({
-        productTemplates: [
-          {
-            id: "4051",
-            title: "矿泉水",
-            priceCents: 200,
-            storeId: "3001",
-            barcode: "690000000051",
-          },
-        ],
-        currentPage: 2,
-        totalCount: 1,
-      });
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
+  it("rejects a page inconsistent with the matching total", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        stubJsonResponse({
+          productTemplates: [{ id: "4051", title: "矿泉水", storeId: "3001" }],
+          currentPage: 2,
+          totalCount: 1,
+        }),
+      ),
+    );
     await expect(
-      listProductTemplatesPage({ ...localOptions, page: 2, pageSize: 50 }),
+      listProductTemplatesPage({
+        ...localOptions,
+        page: 2,
+        pageSize: 50,
+        keyword: "水",
+      }),
     ).rejects.toThrow("listProductTemplates.pagination");
+  });
+
+  it("rejects an oversized keyword before requesting", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      listProductTemplatesPage({ ...localOptions, keyword: "水".repeat(201) }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("creates a normalized product template and maps the complete response", async () => {

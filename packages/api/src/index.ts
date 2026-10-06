@@ -174,3 +174,10 @@ export {
   type UpdateProductTemplateInput,
   type UpdateProductTemplatePatch,
 } from "./services/product-templates";
+export {
+  compareUpdatedAt,
+  latestUpdatedAt,
+  mergeCollectingPaymentBills,
+  mergeDistributingTaskItems,
+  mergeShoppingTaskItems,
+} from "./errand-recovery";

@@ -64,15 +64,20 @@ export async function listSpotGoods(
     storeId?: string;
     page?: number;
     pageSize?: number;
+    keyword?: string;
   } = {},
 ): Promise<ListSpotGoodsResult> {
   const dataSource = resolveDataSource(options);
 
   if (dataSource === "mock" || dataSource === "local") {
     const storeId = parseStoreFilter(options.storeId);
+    const keyword = (options.keyword ?? "").trim();
+    if ([...keyword].length > 200) {
+      throw new ValidationError("搜索关键词不能超过 200 个字符");
+    }
     const page = parsePositiveInt32(options.page ?? 1, "页码不正确");
     const pageSize = parsePositiveInt32(
-      options.pageSize ?? 50,
+      options.pageSize ?? 30,
       "每页数量不正确",
     );
     const client = createClient(
@@ -82,7 +87,7 @@ export async function listSpotGoods(
     const [stores, response] = await Promise.all([
       listStores(options),
       requestLocal("listSpotGoods", () =>
-        client.listSpotGoods({ storeId, page, pageSize }),
+        client.listSpotGoods({ storeId, page, pageSize, keyword }),
       ),
     ]);
     const storesById = new Map(stores.map((store) => [store.id, store]));

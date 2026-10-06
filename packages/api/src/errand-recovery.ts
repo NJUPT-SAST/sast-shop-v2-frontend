@@ -3,7 +3,7 @@ import type {
   DistributingRequester,
   DistributingTaskItem,
   ShoppingTaskItem,
-} from "@sast-shop/api";
+} from "./services/errand-tasks";
 
 const UTC_TIMESTAMP =
   /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,9}))?Z$/;

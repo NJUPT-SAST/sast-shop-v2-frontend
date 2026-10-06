@@ -2,12 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { SpotOrder } from "@sast-shop/api";
 
 import {
-  filterSpotOrders,
-  getSpotOrderFilters,
   getSpotOrderStatusLabel,
   reconcileSpotOrderUpdate,
   resolveSpotOrderActions,
-  updateSpotOrderFilterParams,
 } from "./spot-orders";
 
 const pendingOrder: SpotOrder = {
@@ -35,14 +32,6 @@ const pendingOrder: SpotOrder = {
   cancelledAt: null,
 };
 
-const completedOrder: SpotOrder = {
-  ...pendingOrder,
-  id: "7002",
-  orderNo: "SPOT-20260718-0002",
-  productTitle: "活动贴纸包",
-  status: "completed",
-};
-
 const submittedOrder: SpotOrder = {
   ...pendingOrder,
   bill: {
@@ -66,48 +55,6 @@ const submittedOrder: SpotOrder = {
 };
 
 describe("desktop spot orders", () => {
-  it("parses only supported URL filter values", () => {
-    expect(
-      getSpotOrderFilters(
-        new URLSearchParams("view=seller&status=processing&q=SAST"),
-      ),
-    ).toEqual({ view: "seller", status: "processing", query: "SAST" });
-
-    expect(
-      getSpotOrderFilters(new URLSearchParams("view=nope&status=nope")),
-    ).toEqual({ view: "buyer", status: "all", query: "" });
-  });
-
-  it("resets incompatible status and query when the perspective changes", () => {
-    const params = updateSpotOrderFilterParams(
-      new URLSearchParams("status=pending_payment&q=water"),
-      { view: "seller" },
-    );
-
-    expect(params.toString()).toBe("view=seller");
-  });
-
-  it("filters by perspective status semantics and keyword", () => {
-    expect(
-      filterSpotOrders(
-        [{ ...submittedOrder, status: "paid" }, completedOrder],
-        {
-          view: "seller",
-          status: "processing",
-          query: "小卖部",
-        },
-      ).map((order) => order.id),
-    ).toEqual(["7001"]);
-
-    expect(
-      filterSpotOrders([pendingOrder, completedOrder], {
-        view: "buyer",
-        status: "completed",
-        query: "0002",
-      }).map((order) => order.id),
-    ).toEqual(["7002"]);
-  });
-
   it("keeps the newest order state when a router refresh arrives", () => {
     expect(
       reconcileSpotOrderUpdate(

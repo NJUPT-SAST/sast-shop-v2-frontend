@@ -63,6 +63,7 @@ import { Spinner } from "@workspace/ui/components/spinner";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
+import { useCachedResource } from "@workspace/ui/hooks/use-cached-resource";
 
 import { ManagedImage } from "@/components/managed-image";
 import { StoreCreateDialog } from "@/components/store-create-dialog";
@@ -102,6 +103,57 @@ export function ProductTemplateManager({
     [connectBaseUrl, dataSource],
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [keyword, setKeyword] = useState("");
+  const query = keyword.trim();
+  const [debouncedKeyword, setDebouncedKeyword] = useState("");
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedKeyword(query), 250);
+    return () => window.clearTimeout(timeout);
+  }, [query]);
+  const search = useCachedResource({
+    cacheKey: JSON.stringify([
+      "desktop:template-search",
+      dataSource,
+      connectBaseUrl,
+      selectedStoreId,
+      initialPage.pageSize,
+      debouncedKeyword,
+    ]),
+    staleTime: 30_000,
+    refreshKey: initialPage,
+    load: () =>
+      debouncedKeyword && selectedStoreId
+        ? listProductTemplatesPage({
+            dataSource,
+            connectBaseUrl,
+            storeId: selectedStoreId,
+            page: 1,
+            pageSize: initialPage.pageSize,
+            keyword: debouncedKeyword,
+          })
+        : Promise.resolve(initialPage),
+  });
+  const searching =
+    query !== debouncedKeyword || Boolean(query && !search.data);
+  const searchError =
+    query === debouncedKeyword && query && search.error
+      ? "搜索暂不可用，请稍后重试"
+      : null;
+  const firstPage = useMemo(
+    () =>
+      searching
+        ? {
+            items: [],
+            currentPage: 1,
+            pageSize: initialPage.pageSize,
+            totalCount: 0,
+            hasMore: false,
+          }
+        : query
+          ? (search.data ?? initialPage)
+          : initialPage,
+    [initialPage, query, search.data, searching],
+  );
   const loadPage = useCallback(
     (page: number) => {
       if (!selectedStoreId) return Promise.resolve(initialPage);
@@ -111,9 +163,16 @@ export function ProductTemplateManager({
         storeId: selectedStoreId,
         page,
         pageSize: initialPage.pageSize,
+        keyword: debouncedKeyword,
       });
     },
-    [connectBaseUrl, dataSource, initialPage, selectedStoreId],
+    [
+      connectBaseUrl,
+      dataSource,
+      initialPage,
+      selectedStoreId,
+      debouncedKeyword,
+    ],
   );
   const {
     items: templates,
@@ -124,12 +183,16 @@ export function ProductTemplateManager({
     totalCount,
     loadMore,
   } = useInfinitePage({
-    initialPage,
+    initialPage: firstPage,
     loadPage,
     getKey: getTemplateKey,
-    identity: `${dataSource}:${connectBaseUrl}:${selectedStoreId ?? "none"}`,
+    identity: JSON.stringify([
+      dataSource,
+      connectBaseUrl,
+      selectedStoreId,
+      query,
+    ]),
   });
-  const [keyword, setKeyword] = useState("");
   const [editing, setEditing] = useState<ProductTemplate | null>(null);
   const [deletingTemplate, setDeletingTemplate] =
     useState<ProductTemplate | null>(null);
@@ -147,22 +210,6 @@ export function ProductTemplateManager({
     prefillBarcode,
     startCreating,
   );
-
-  const visibleTemplates = useMemo(() => {
-    const query = keyword.trim().toLowerCase();
-    if (!query) return templates;
-    return templates.filter((template) =>
-      [template.title, template.description, template.barcode].some((value) =>
-        value.toLowerCase().includes(query),
-      ),
-    );
-  }, [keyword, templates]);
-
-  useEffect(() => {
-    if (!keyword.trim() || !hasMore || loadMoreError) return;
-    const timeout = window.setTimeout(() => void loadMore(), 250);
-    return () => window.clearTimeout(timeout);
-  }, [hasMore, keyword, loadMore, loadMoreError]);
 
   function openCreate() {
     setEditing(null);
@@ -231,7 +278,8 @@ export function ProductTemplateManager({
           )
         : await createProductTemplate(payload, serviceOptions);
 
-      setTemplates((current) => upsertTemplate(current, saved));
+      if (query) void search.refresh();
+      else setTemplates((current) => upsertTemplate(current, saved));
       setDialogOpen(false);
       setEditing(null);
       toast.success(editing ? "商品模板已更新" : "商品模板已创建");
@@ -247,10 +295,7 @@ export function ProductTemplateManager({
     if (!deletingTemplate || deleting) return;
     setDeleting(true);
     try {
-      await deleteProductTemplate(
-        { id: deletingTemplate.id },
-        serviceOptions,
-      );
+      await deleteProductTemplate({ id: deletingTemplate.id }, serviceOptions);
       setTemplates((current) =>
         current.filter((template) => template.id !== deletingTemplate.id),
       );
@@ -340,6 +385,7 @@ export function ProductTemplateManager({
                   <InputGroupInput
                     id="desktop-template-search"
                     value={keyword}
+                    maxLength={200}
                     placeholder="商品名称、规格或条码"
                     onChange={(event) => setKeyword(event.target.value)}
                   />
@@ -348,9 +394,15 @@ export function ProductTemplateManager({
             </div>
           ) : null}
 
-          {selectedStoreId && visibleTemplates.length > 0 ? (
+          {searchError ? (
+            <LoadFailure
+              title="商品模板搜索失败"
+              description={searchError}
+              onRetry={() => void search.refresh()}
+            />
+          ) : selectedStoreId && templates.length > 0 ? (
             <section className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-              {visibleTemplates.map((template) => (
+              {templates.map((template) => (
                 <Card key={template.id} className="overflow-hidden">
                   <CardContent className="flex min-w-0 gap-4 p-4">
                     <ManagedImage
@@ -402,7 +454,7 @@ export function ProductTemplateManager({
                 </Card>
               ))}
             </section>
-          ) : !loadingMore && !hasMore ? (
+          ) : !searching && !loadingMore && !hasMore ? (
             <Empty
               icon={
                 selectedStoreId ? (
@@ -440,10 +492,10 @@ export function ProductTemplateManager({
             />
           ) : null}
 
-          {selectedStoreId ? (
+          {selectedStoreId && !searchError ? (
             <InfiniteListStatus
               hasMore={hasMore}
-              loading={loadingMore}
+              loading={searching || loadingMore}
               error={loadMoreError}
               hasItems={totalCount > 0}
               onLoadMore={() => void loadMore()}

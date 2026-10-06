@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vitest";
-import type { DistributingTaskItem, ShoppingTaskItem } from "@sast-shop/api";
-import {
-  getDistributionQuantityAvailable,
-  isDistributionTaskComplete,
-} from "./distribution-progress";
 import {
   compareUpdatedAt,
   mergeDistributingTaskItems,
   mergeShoppingTaskItems,
-} from "./errand-recovery";
+  type DistributingTaskItem,
+  type ShoppingTaskItem,
+} from "@sast-shop/api";
+import {
+  getDistributionQuantityAvailable,
+  isDistributionTaskComplete,
+} from "./distribution-progress";
 
 const oldVersion = "2026-10-05T08:00:00.000000001Z";
 const newVersion = "2026-10-05T08:00:00.000000002Z";

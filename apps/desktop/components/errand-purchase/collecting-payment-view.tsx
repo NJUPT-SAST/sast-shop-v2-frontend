@@ -10,6 +10,9 @@ import {
   RiWechatPayLine,
 } from "@remixicon/react";
 import {
+  compareUpdatedAt,
+  latestUpdatedAt,
+  mergeCollectingPaymentBills,
   confirmBill,
   getErrandTaskBrief,
   transitionToCompleted,
@@ -47,11 +50,7 @@ import {
 } from "@workspace/ui/components/dialog";
 import { Spinner } from "@workspace/ui/components/spinner";
 import { toast } from "sonner";
-import {
-  compareUpdatedAt,
-  latestUpdatedAt,
-  mergeCollectingPaymentBills,
-} from "@/lib/errand-recovery";
+
 import { useTransactionAgreement } from "../transaction-agreement-provider";
 
 export function CollectingPaymentView({

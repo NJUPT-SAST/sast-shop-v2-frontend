@@ -1,18 +1,11 @@
-import type {
-  PaymentBillStatus,
-  SpotOrder,
-  SpotOrderStatusValue,
+import {
+  compareUpdatedAt,
+  type PaymentBillStatus,
+  type SpotOrder,
+  type SpotOrderStatusValue,
 } from "@sast-shop/api";
-import { compareUpdatedAt } from "./errand-recovery";
 
 export type SpotOrderView = "buyer" | "seller";
-export type SpotOrderFilterStatus = "all" | "processing" | SpotOrderStatusValue;
-
-export interface SpotOrderFilters {
-  view: SpotOrderView;
-  status: SpotOrderFilterStatus;
-  query: string;
-}
 
 export interface SpotOrderActions {
   canCancel: boolean;
@@ -30,15 +23,6 @@ const NO_ACTIONS: SpotOrderActions = {
   canComplete: false,
 };
 
-const SUPPORTED_STATUSES = new Set<SpotOrderFilterStatus>([
-  "all",
-  "processing",
-  "pending_payment",
-  "paid",
-  "completed",
-  "cancelled",
-]);
-
 const ORDER_STATUS_RANK: Record<SpotOrderStatusValue, number> = {
   unknown: -1,
   pending_payment: 0,
@@ -46,63 +30,6 @@ const ORDER_STATUS_RANK: Record<SpotOrderStatusValue, number> = {
   completed: 2,
   cancelled: 2,
 };
-
-export function getSpotOrderFilters(params: URLSearchParams): SpotOrderFilters {
-  const view = params.get("view") === "seller" ? "seller" : "buyer";
-  const rawStatus = params.get("status") ?? "all";
-  const status = SUPPORTED_STATUSES.has(rawStatus as SpotOrderFilterStatus)
-    ? (rawStatus as SpotOrderFilterStatus)
-    : "all";
-  return { view, status, query: params.get("q")?.trim() ?? "" };
-}
-
-export function updateSpotOrderFilterParams(
-  current: URLSearchParams,
-  updates: Partial<{
-    view: SpotOrderView;
-    status: SpotOrderFilterStatus;
-    query: string;
-  }>,
-): URLSearchParams {
-  const params = new URLSearchParams(current);
-  if (updates.view) {
-    params.set("view", updates.view);
-    params.delete("status");
-    params.delete("q");
-  }
-  if (updates.status !== undefined) {
-    if (updates.status === "all") params.delete("status");
-    else params.set("status", updates.status);
-  }
-  if (updates.query !== undefined) {
-    if (updates.query.trim()) params.set("q", updates.query.trim());
-    else params.delete("q");
-  }
-  return params;
-}
-
-export function filterSpotOrders(
-  orders: SpotOrder[],
-  filters: SpotOrderFilters,
-): SpotOrder[] {
-  const keyword = filters.query.toLocaleLowerCase("zh-CN");
-  return orders.filter((order) => {
-    const statusMatches =
-      filters.status === "all" ||
-      (filters.status === "processing"
-        ? order.status === "paid"
-        : order.status === filters.status);
-    if (!statusMatches) return false;
-    if (!keyword) return true;
-    return [
-      order.orderNo,
-      order.productTitle,
-      order.productDescription,
-      order.store?.name,
-      order.seller?.name,
-    ].some((value) => value?.toLocaleLowerCase("zh-CN").includes(keyword));
-  });
-}
 
 export function reconcileSpotOrderUpdate(
   current: SpotOrder,

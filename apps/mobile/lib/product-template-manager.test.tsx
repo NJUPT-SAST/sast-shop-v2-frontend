@@ -8,13 +8,16 @@ import {
   createProductTemplate,
   deleteProductTemplate,
   LarkClientError,
+  listProductTemplatesPage,
   scanLarkBarcode,
+  updateProductTemplate,
   type PageResult,
   type ProductTemplate,
 } from "@sast-shop/api";
 import { ProductTemplateManager } from "../components/product-template-manager";
 import { uploadProductImage } from "./product-image-upload";
 import { toast } from "sonner";
+import { clearResourceCache } from "@workspace/ui/lib/resource-cache";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), replace: vi.fn() }),
@@ -36,21 +39,6 @@ vi.mock("./product-image-upload", () => ({
 }));
 vi.mock("../components/store-create-dialog", () => ({
   StoreCreateDialog: ({ children }: { children?: React.ReactNode }) => children,
-}));
-vi.mock("@workspace/ui/hooks/use-infinite-page", () => ({
-  useInfinitePage: ({
-    initialPage,
-  }: {
-    initialPage: PageResult<ProductTemplate>;
-  }) => ({
-    items: initialPage.items,
-    setItems: vi.fn(),
-    loadingMore: false,
-    loadMoreError: null,
-    hasMore: false,
-    totalCount: initialPage.totalCount,
-    loadMore: vi.fn(),
-  }),
 }));
 vi.mock("@workspace/ui/components/drawer", () => {
   const Content = ({ children }: { children: React.ReactNode }) => (
@@ -87,6 +75,8 @@ let container: HTMLDivElement;
 let root: Root;
 
 beforeEach(() => {
+  clearResourceCache();
+  vi.mocked(listProductTemplatesPage).mockReset();
   vi.stubGlobal("React", React);
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.stubGlobal("h5sdk", undefined);
@@ -110,6 +100,7 @@ afterEach(async () => {
   vi.clearAllMocks();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 async function renderManager(items: ProductTemplate[], startCreating = false) {
@@ -170,6 +161,154 @@ function submitTemplate() {
 }
 
 describe("product template drawer failures", () => {
+  it("searches the selected store on the server and loads only its matching next page", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    let enterViewport!: (entries: { isIntersecting: boolean }[]) => void;
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(callback: typeof enterViewport) {
+          enterViewport = callback;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    const match = { ...template, id: "4002", title: "苹果" };
+    vi.mocked(listProductTemplatesPage).mockResolvedValueOnce({
+      items: [match],
+      currentPage: 1,
+      pageSize: 10,
+      totalCount: 11,
+      hasMore: true,
+    });
+    vi.mocked(listProductTemplatesPage).mockResolvedValueOnce({
+      items: [{ ...match, id: "4003", title: "苹果汁" }],
+      currentPage: 2,
+      pageSize: 10,
+      totalCount: 11,
+      hasMore: false,
+    });
+    await renderManager([template]);
+    const input =
+      container.querySelector<HTMLInputElement>("#template-search")!;
+    const setValue = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )!.set!;
+    await act(async () => {
+      setValue.call(input, "苹果");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(container.textContent).not.toContain("矿泉水");
+    await act(async () => vi.advanceTimersByTimeAsync(249));
+    expect(listProductTemplatesPage).not.toHaveBeenCalled();
+    await act(async () => vi.advanceTimersByTimeAsync(1));
+    expect(listProductTemplatesPage).toHaveBeenCalledTimes(1);
+    expect(listProductTemplatesPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ keyword: "苹果", storeId: "3001", page: 1 }),
+    );
+    expect(container.textContent).toContain("苹果");
+    expect(container.textContent).not.toContain("矿泉水");
+    await act(async () => vi.advanceTimersByTimeAsync(1_000));
+    expect(listProductTemplatesPage).toHaveBeenCalledTimes(1);
+    await act(async () => enterViewport([{ isIntersecting: true }]));
+    expect(listProductTemplatesPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ keyword: "苹果", storeId: "3001", page: 2 }),
+    );
+    expect(container.textContent).toContain("苹果汁");
+    await act(async () => {
+      setValue.call(input, "");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => vi.advanceTimersByTimeAsync(250));
+    expect(container.textContent).toContain("矿泉水");
+    expect(listProductTemplatesPage).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the current search when an older keyword request resolves later", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    let resolveOld!: (page: PageResult<ProductTemplate>) => void;
+    vi.mocked(listProductTemplatesPage).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveOld = resolve;
+      }),
+    );
+    const result = {
+      items: [{ ...template, title: "苹果" }],
+      currentPage: 1,
+      pageSize: 10,
+      totalCount: 1,
+      hasMore: false,
+    };
+    vi.mocked(listProductTemplatesPage).mockResolvedValueOnce(result);
+    await renderManager([template]);
+    const input =
+      container.querySelector<HTMLInputElement>("#template-search")!;
+    const setValue = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )!.set!;
+    for (const keyword of ["矿泉水", "苹果"]) {
+      await act(async () => {
+        setValue.call(input, keyword);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await act(async () => vi.advanceTimersByTimeAsync(250));
+    }
+    expect(container.textContent).toContain("苹果");
+    await act(async () => resolveOld({ ...result, items: [template] }));
+    expect(container.textContent).toContain("苹果");
+    expect(container.textContent).not.toContain("矿泉水");
+  });
+
+  it("revalidates search results when an edited template no longer matches", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const matchedTemplate = { ...template, title: "苹果" };
+    vi.mocked(listProductTemplatesPage).mockResolvedValueOnce({
+      items: [matchedTemplate],
+      currentPage: 1,
+      pageSize: 10,
+      totalCount: 1,
+      hasMore: false,
+    });
+    vi.mocked(listProductTemplatesPage).mockResolvedValueOnce({
+      items: [],
+      currentPage: 1,
+      pageSize: 10,
+      totalCount: 0,
+      hasMore: false,
+    });
+    vi.mocked(updateProductTemplate).mockResolvedValueOnce({
+      ...matchedTemplate,
+      title: "梨",
+    });
+    await renderManager([template]);
+    const input =
+      container.querySelector<HTMLInputElement>("#template-search")!;
+    const setValue = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )!.set!;
+    await act(async () => {
+      setValue.call(input, "苹果");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => vi.advanceTimersByTimeAsync(250));
+    const item = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("苹果"),
+    )!;
+    await act(async () => item.click());
+    await enterTemplateTitle("梨");
+    await act(async () => submitTemplate());
+    expect(updateProductTemplate).toHaveBeenCalledTimes(1);
+    expect(listProductTemplatesPage).toHaveBeenCalledTimes(2);
+    expect(listProductTemplatesPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ keyword: "苹果", page: 1, storeId: "3001" }),
+    );
+    expect(container.textContent).toContain("没有匹配的商品模板");
+    expect(container.textContent).not.toContain("梨");
+  });
   it("shows a save error in the drawer and keeps the entered title", async () => {
     vi.mocked(createProductTemplate).mockRejectedValue(
       new Error("服务暂不可用"),

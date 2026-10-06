@@ -6,6 +6,9 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RiArrowDownSLine, RiEditLine, RiForbidLine } from "@remixicon/react";
 import {
+  compareUpdatedAt,
+  latestUpdatedAt,
+  mergeDistributingTaskItems,
   cancelTask,
   getDistributingTaskDetail,
   getErrandTaskBrief,
@@ -58,11 +61,7 @@ import { MobileHeaderActions } from "@/components/mobile-header-actions";
 import { useTransactionAgreement } from "@/components/transaction-agreement-provider";
 import { getStatusBadgeVariant, getStatusLabel } from "@/lib/order-filters";
 import { buildErrandTaskPaymentHref } from "@/lib/errand-task-route";
-import {
-  compareUpdatedAt,
-  latestUpdatedAt,
-  mergeDistributingTaskItems,
-} from "@/lib/errand-recovery";
+
 import {
   getDistributionQuantityAvailable,
   isDistributionItemComplete,

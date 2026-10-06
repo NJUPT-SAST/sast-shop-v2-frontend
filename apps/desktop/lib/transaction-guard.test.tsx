@@ -57,7 +57,8 @@ vi.mock("next/link", () => ({
     href: string;
   }) => <a href={href}>{children}</a>,
 }));
-vi.mock("@sast-shop/api", () => ({
+vi.mock("@sast-shop/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@sast-shop/api")>()),
   createSpotOrders,
   getSpotGoods,
   getBill,

@@ -1,10 +1,10 @@
-import type {
-  BuyerErrandOrderDetail,
-  BuyerErrandOrderProductItem,
-  BuyerErrandOrderStatus,
-  PaymentBill,
+import {
+  compareUpdatedAt,
+  type BuyerErrandOrderDetail,
+  type BuyerErrandOrderProductItem,
+  type BuyerErrandOrderStatus,
+  type PaymentBill,
 } from "@sast-shop/api";
-import { compareUpdatedAt } from "./errand-recovery";
 
 export type BuyerErrandPaymentState =
   | "payable"

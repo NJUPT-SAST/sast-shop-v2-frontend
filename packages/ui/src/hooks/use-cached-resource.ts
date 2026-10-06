@@ -18,7 +18,7 @@ export function useCachedResource<T>({
   cacheKey: string;
   load: () => Promise<T>;
   staleTime: number;
-  refreshKey?: string;
+  refreshKey?: string | object;
   invalidateOnWrite?: boolean;
 }) {
   const loader = useRef(load);

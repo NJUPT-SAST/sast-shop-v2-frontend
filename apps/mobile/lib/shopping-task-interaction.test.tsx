@@ -19,7 +19,8 @@ vi.mock("../components/transaction-agreement-provider", () => ({
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh, push: vi.fn() }),
 }));
-vi.mock("@sast-shop/api", () => ({
+vi.mock("@sast-shop/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@sast-shop/api")>()),
   cancelTask: vi.fn(),
   getShoppingTaskDetail: vi.fn(),
   saveShoppingTaskItem,

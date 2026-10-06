@@ -85,6 +85,7 @@ import { Spinner } from "@workspace/ui/components/spinner";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
+import { useCachedResource } from "@workspace/ui/hooks/use-cached-resource";
 
 import { BrandIllustration } from "@/components/brand-illustration";
 import { ManagedImage } from "@/components/managed-image";
@@ -142,6 +143,64 @@ export function ProductTemplateManager({
 }: ProductTemplateManagerProps) {
   const router = useRouter();
   const serviceOptions: ServiceOptions = { dataSource, connectBaseUrl };
+  const [query, setQuery] = useState("");
+  const [keyword, setKeyword] = useState("");
+  const normalizedQuery = query.trim();
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setKeyword(query.trim()), 250);
+    return () => window.clearTimeout(timeout);
+  }, [query]);
+  const search = useCachedResource({
+    cacheKey: JSON.stringify([
+      "mobile:templates:search",
+      dataSource,
+      connectBaseUrl,
+      selectedStoreId,
+      initialPage.pageSize,
+      keyword,
+    ]),
+    staleTime: 60_000,
+    refreshKey: initialPage,
+    load: () =>
+      keyword && selectedStoreId
+        ? listProductTemplatesPage({
+            dataSource,
+            connectBaseUrl,
+            storeId: selectedStoreId,
+            keyword,
+            page: 1,
+            pageSize: initialPage.pageSize,
+          })
+        : Promise.resolve(initialPage),
+  });
+  const searching =
+    normalizedQuery !== keyword ||
+    Boolean(keyword && selectedStoreId && !search.data && !search.error);
+  const pageError =
+    normalizedQuery !== keyword
+      ? null
+      : keyword
+        ? search.error
+          ? "商品模板暂不可用，请稍后再试"
+          : null
+        : error;
+  const page =
+    normalizedQuery !== keyword
+      ? undefined
+      : keyword && selectedStoreId
+        ? search.data
+        : initialPage;
+  const firstPage = useMemo(
+    () =>
+      page ?? {
+        items: [],
+        currentPage: 1,
+        pageSize: initialPage.pageSize,
+        totalCount: 0,
+        hasMore: false,
+      },
+    [page, initialPage.pageSize],
+  );
   const loadPage = useCallback(
     (page: number) => {
       if (!selectedStoreId) return Promise.resolve(initialPage);
@@ -149,11 +208,12 @@ export function ProductTemplateManager({
         dataSource,
         connectBaseUrl,
         storeId: selectedStoreId,
+        keyword,
         page,
         pageSize: initialPage.pageSize,
       });
     },
-    [connectBaseUrl, dataSource, initialPage, selectedStoreId],
+    [connectBaseUrl, dataSource, initialPage, selectedStoreId, keyword],
   );
   const {
     items: templates,
@@ -164,12 +224,17 @@ export function ProductTemplateManager({
     totalCount,
     loadMore,
   } = useInfinitePage({
-    initialPage,
+    initialPage: firstPage,
     loadPage,
     getKey: getTemplateKey,
-    identity: `${dataSource}:${connectBaseUrl}:${selectedStoreId ?? "none"}`,
+    identity: JSON.stringify([
+      dataSource,
+      connectBaseUrl,
+      selectedStoreId,
+      normalizedQuery,
+      keyword,
+    ]),
   });
-  const [keyword, setKeyword] = useState("");
   const [editingTemplate, setEditingTemplate] =
     useState<ProductTemplate | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(
@@ -198,23 +263,6 @@ export function ProductTemplateManager({
     imageUploadingRef.current = uploading;
     setImageUploading(uploading);
   }, []);
-
-  const visibleTemplates = useMemo(() => {
-    const value = keyword.trim().toLowerCase();
-    if (!value) return templates;
-
-    return templates.filter((template) =>
-      [template.title, template.description, template.barcode].some((field) =>
-        field.toLowerCase().includes(value),
-      ),
-    );
-  }, [keyword, templates]);
-
-  useEffect(() => {
-    if (!keyword.trim() || !hasMore || loadMoreError) return;
-    const timeout = window.setTimeout(() => void loadMore(), 250);
-    return () => window.clearTimeout(timeout);
-  }, [hasMore, keyword, loadMore, loadMoreError]);
 
   function openCreateDrawer() {
     setSaveError(null);
@@ -307,7 +355,9 @@ export function ProductTemplateManager({
         ? await updateExistingTemplate(editingTemplate, payload, serviceOptions)
         : await createProductTemplate(payload, serviceOptions);
 
-      if (saved.storeId === selectedStoreId) {
+      if (keyword) {
+        void search.refresh();
+      } else if (saved.storeId === selectedStoreId) {
         setTemplates((current) => upsertTemplate(current, saved));
       } else {
         setTemplates((current) =>
@@ -386,12 +436,13 @@ export function ProductTemplateManager({
         ) : null}
       </section>
 
-      {error ? (
+      {searching ? <TemplateLoadingSkeletons /> : null}
+      {pageError ? (
         <LoadFailure
           variant="compact"
           title="商品模板加载失败"
-          description={error}
-          onRetry={() => router.refresh()}
+          description={pageError}
+          onRetry={() => (keyword ? void search.refresh() : router.refresh())}
         />
       ) : null}
 
@@ -402,7 +453,6 @@ export function ProductTemplateManager({
             <Select
               value={selectedStoreId ?? undefined}
               onValueChange={(value) => {
-                setKeyword("");
                 router.replace(
                   `/group/templates?store=${encodeURIComponent(value)}`,
                 );
@@ -434,21 +484,22 @@ export function ProductTemplateManager({
               </InputGroupAddon>
               <InputGroupInput
                 id="template-search"
-                value={keyword}
+                value={query}
+                maxLength={200}
                 placeholder="搜索商品名称、规格或条码"
-                onChange={(event) => setKeyword(event.target.value)}
+                onChange={(event) => setQuery(event.target.value)}
               />
             </InputGroup>
           </Field>
         </FieldGroup>
       ) : null}
 
-      {visibleTemplates.length > 0 ? (
+      {!searching && !pageError && templates.length > 0 ? (
         <section
           className="flex min-w-0 flex-col gap-3"
           aria-label="商品模板列表"
         >
-          {visibleTemplates.map((template) => (
+          {templates.map((template) => (
             <TemplateItem
               key={template.id}
               template={template}
@@ -456,7 +507,7 @@ export function ProductTemplateManager({
             />
           ))}
         </section>
-      ) : !error && !loadingMore && !hasMore ? (
+      ) : !pageError && !searching && !loadingMore && !hasMore ? (
         <Empty
           className="flex-1"
           illustration={
@@ -492,7 +543,7 @@ export function ProductTemplateManager({
         />
       ) : null}
 
-      {!error && selectedStoreId ? (
+      {!pageError && !searching && selectedStoreId ? (
         <InfiniteListStatus
           hasMore={hasMore}
           loading={loadingMore}
@@ -500,7 +551,11 @@ export function ProductTemplateManager({
           hasItems={totalCount > 0}
           onLoadMore={() => void loadMore()}
           loadingFallback={<TemplateLoadingSkeletons />}
-          endMessage={`已经到底，共 ${templates.length} 个商品模板`}
+          endMessage={
+            keyword
+              ? `搜索完成，共找到 ${totalCount} 个商品模板`
+              : `已经到底，共 ${templates.length} 个商品模板`
+          }
           endMessageClassName="pt-6"
         />
       ) : null}
