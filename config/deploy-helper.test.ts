@@ -39,7 +39,7 @@ afterEach(() => {
     rmSync(root, { recursive: true, force: true });
 });
 
-function run(overrides: Record<string, string> = {}) {
+function run(overrides: Record<string, string> = {}, automatic = false) {
   const root = mkdtempSync(join(tmpdir(), "sast-deploy-helper-test-"));
   roots.push(root);
   const bin = join(root, "bin");
@@ -48,7 +48,10 @@ function run(overrides: Record<string, string> = {}) {
   mkdirSync(temporary);
   const argsPath = join(root, "ssh-args.json");
   const stdinPath = join(root, "ssh-stdin");
+  const outputPath = join(root, "github-output");
+  const summaryPath = join(root, "github-summary");
   const mocks = {
+    gh: "process.stdout.write(process.env.LATEST_REVISION+'\\n');process.exit(Number(process.env.GH_STATUS));",
     "ssh-keyscan":
       "process.stdout.write('fixture.invalid ssh-ed25519 fixture\\n');",
     "ssh-keygen":
@@ -64,7 +67,23 @@ function run(overrides: Record<string, string> = {}) {
   }
   const result = spawnSync(
     "bash",
-    ["-e", "-o", "pipefail", "-c", scripts.join("\n")],
+    [
+      "-e",
+      "-o",
+      "pipefail",
+      "-c",
+      [
+        scripts[0],
+        ...(automatic
+          ? [
+              scripts[1],
+              'if [ "$(cat "$GITHUB_OUTPUT")" = current=true ]; then',
+            ]
+          : []),
+        scripts[2],
+        ...(automatic ? ["fi"] : []),
+      ].join("\n"),
+    ],
     {
       encoding: "utf8",
       env: {
@@ -73,6 +92,11 @@ function run(overrides: Record<string, string> = {}) {
         TMPDIR: temporary,
         ARGS_PATH: argsPath,
         STDIN_PATH: stdinPath,
+        GITHUB_OUTPUT: outputPath,
+        GITHUB_STEP_SUMMARY: summaryPath,
+        GITHUB_REPOSITORY: "NJUPT-SAST/sast-shop-v2-frontend",
+        LATEST_REVISION: revision,
+        GH_STATUS: "0",
         SSH_STATUS: "0",
         SCANNED_FINGERPRINT: fingerprint,
         DEPLOY_MODE: "deploy",
@@ -97,10 +121,35 @@ function run(overrides: Record<string, string> = {}) {
       ? (JSON.parse(readFileSync(argsPath, "utf8")) as string[])
       : undefined,
     input: existsSync(stdinPath) ? readFileSync(stdinPath, "utf8") : undefined,
+    summary: existsSync(summaryPath)
+      ? readFileSync(summaryPath, "utf8")
+      : undefined,
   };
 }
 
 describe("restricted deployment helper integration", () => {
+  it("automatically deploys the current main revision", () => {
+    const { result, args } = run({}, true);
+    expect(result.status).toBe(0);
+    expect(args?.at(-1)).toContain(`mobile ${revision}`);
+  });
+
+  it("skips superseded automatic deployments before connecting to the server", () => {
+    const { result, args, summary } = run(
+      { LATEST_REVISION: "b".repeat(40) },
+      true,
+    );
+    expect(result.status).toBe(0);
+    expect(args).toBeUndefined();
+    expect(summary).toContain("Skip superseded automatic deployment");
+  });
+
+  it("does not deploy when checking the current main revision fails", () => {
+    const { result, args } = run({ GH_STATUS: "1" }, true);
+    expect(result.status).not.toBe(0);
+    expect(args).toBeUndefined();
+  });
+
   it.each(["mobile", "desktop"])(
     "deploys %s with exact arguments and stdin JSON",
     (app) => {

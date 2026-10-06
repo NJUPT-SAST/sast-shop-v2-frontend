@@ -1,6 +1,17 @@
 name: Deploy
 
 on:
+  workflow_call:
+    inputs:
+      mode:
+        required: true
+        type: string
+      service:
+        required: true
+        type: string
+      image_tag:
+        required: false
+        type: string
   workflow_dispatch:
     inputs:
       mode:
@@ -85,7 +96,23 @@ jobs:
             exit 1
           fi
 
+      - name: Check automatic deployment revision
+        id: revision
+        if: github.event_name == 'workflow_run' && inputs.mode == 'deploy'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          latest_revision="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
+          if [ "$latest_revision" = "${IMAGE_TAG#sha-}" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "Skip superseded automatic deployment: $IMAGE_TAG (main is $latest_revision)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Run server diagnostics or deploy immutable image
+        if: steps.revision.outputs.current != 'false'
         env:
           APP_NAME: ${{ inputs.service }}
           IMAGE_TAG: ${{ inputs.image_tag }}

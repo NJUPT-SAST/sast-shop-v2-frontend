@@ -123,7 +123,11 @@ Next App Router 默认使用 Server Components。若 proto message 只在服务�
 
 1. `CI` 在 PR、合并队列与 `main` push 上执行 Proto drift、依赖审计、Lint、类型检查、测试、构建和两套容器冒烟测试。
 2. `Publish Images` 只消费通过 CI 的 `main` commit，使用生产域名向 GHCR 发布 mobile/desktop 的 `linux/amd64` 镜像、SBOM 和 provenance，与当前 AMD64 服务器架构一致。不可变标签格式为 `sha-<完整提交 SHA>`。
-3. `Deploy` 仅允许从 `main` 手动运行，并固定使用 `production` Environment。默认 `diagnostic` 模式只检查服务器状态；正式发布选择 `mode=deploy`、目标服务和 `sha-<完整提交 SHA>` 镜像标签。两端串行执行，通过服务器受限 helper 完成发布。
+3. `main` 每次 push 通过 CI 且两端镜像均发布成功后，`Publish Images` 自动调用 `Deploy`，使用同一次 CI 提交的 `sha-<完整提交 SHA>` 镜像依次部署 mobile、desktop。部署固定使用 `production` Environment，通过服务器受限 helper 完成发布。CI 或镜像发布失败时不部署。
+
+`Deploy` 保留从 `main` 手动运行的入口。默认 `diagnostic` 模式只检查服务器状态；手动发布或回滚时选择 `mode=deploy`、目标服务和已发布的 `sha-<完整提交 SHA>` 镜像标签。手动运行 `Publish Images` 只发布镜像，不自动部署。
+
+自动部署在连接服务器前核对当前 `main` 提交；若已被后续 push 取代则跳过，避免旧流水线较晚完成时覆盖新版本。手动回滚仍可部署历史镜像。
 
 镜像地址：
 
@@ -153,7 +157,7 @@ GHCR_READ_TOKEN
 
 服务器允许部署账号免密执行 `/usr/local/lib/sast-shop/deploy-image`。工作流调用 `sudo -n /usr/local/lib/sast-shop/deploy-image TARGET REVISION IMAGE_REF --registry-stdin`，其中 `TARGET` 为 `mobile` 或 `desktop`，`REVISION` 为完整 40 位 SHA；服务器入口负责仓库白名单、镜像版本校验、部署锁、容器更新及失败恢复。部署账号通过该入口操作，保持现有目录和 Docker socket 权限。
 
-仓库级 Secret `NEXT_PUBLIC_FEISHU_APP_ID` 在镜像发布阶段注入双端公开应用 ID。修改后必须重新构建并手动部署新镜像；运行时修改服务器 `.env` 不会替换客户端 bundle 中的值。该 ID 必须与后端飞书应用配置及 `GetJSAPIAuthConfig` 返回的 `appId` 一致；应用密钥只配置在后端。桌面端服务器 `.env` 的 `FEISHU_APP_ID` 也使用同一应用 ID，`FEISHU_REDIRECT_URI` 使用对应域名的回调地址。
+仓库级 Secret `NEXT_PUBLIC_FEISHU_APP_ID` 在镜像发布阶段注入双端公开应用 ID。修改后必须重新构建部署新镜像，可通过下一次 `main` push 自动完成；运行时修改服务器 `.env` 不会替换客户端 bundle 中的值。该 ID 必须与后端飞书应用配置及 `GetJSAPIAuthConfig` 返回的 `appId` 一致；应用密钥只配置在后端。桌面端服务器 `.env` 的 `FEISHU_APP_ID` 也使用同一应用 ID，`FEISHU_REDIRECT_URI` 使用对应域名的回调地址。
 
 飞书 `requestAccess` 调用所在页面的完整路径须配置在同一应用的「安全设置 → 重定向 URL」中，`/shop` 或 `/auth/callback` 不覆盖域名根路径。部署验收应使用真实飞书客户端或官方 H5 模拟器，分别确认授权码获取、后端换码、会话 Cookie 写入和读取；来源校验或 mock 换码通过不能代替真实登录验收。
 
