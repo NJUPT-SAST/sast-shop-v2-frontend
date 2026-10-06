@@ -112,6 +112,9 @@ const moduleNames = [
   "help",
   "orders",
   "store",
+  "spot-empty",
+  "search-empty",
+  "cart-empty",
 ];
 
 if (selectedModule && !moduleNames.includes(selectedModule)) {

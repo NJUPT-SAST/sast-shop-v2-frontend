@@ -189,18 +189,6 @@ export function GroupOverviewClient({
           <Empty
             illustration={<BrandIllustration name="store" size={96} />}
             title="暂无店铺"
-            description="可以先创建店铺。"
-            action={
-              <StoreCreateDialog
-                dataSource={dataSource}
-                connectBaseUrl={connectBaseUrl}
-                returnTo="/group"
-              >
-                <Button type="button" size="touch">
-                  创建店铺
-                </Button>
-              </StoreCreateDialog>
-            }
           />
         )}
       </section>

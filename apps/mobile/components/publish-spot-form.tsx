@@ -410,6 +410,7 @@ export function PublishSpotForm({
       <div className="flex min-w-0 flex-1 flex-col gap-6 py-6 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300">
         <h1 className="text-xl font-semibold md:text-2xl">上架现货</h1>
         <Empty
+          className="flex-1"
           icon={<RiCheckboxCircleLine className="size-5 text-primary" />}
           title={`已上架${selectedMatch?.productTemplate.title ?? "商品"}`}
           action={
@@ -882,9 +883,9 @@ function TemplateActionItem({
   href: string;
 }) {
   return (
-    <Item variant="outline" asChild>
+    <Item asChild>
       <Link href={href}>
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-primary">
+        <span className="flex size-9 shrink-0 items-center justify-center text-primary">
           {icon}
         </span>
         <ItemContent>

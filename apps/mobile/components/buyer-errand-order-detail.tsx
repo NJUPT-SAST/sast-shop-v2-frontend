@@ -610,10 +610,10 @@ function OrderTimelinePanel({
         <div className="min-h-0 overflow-hidden">
           <div className="border-t px-3 pt-2">
             {timeline.length === 0 ? (
-              <Alert className="mb-3">
-                <RiFileList3Line />
-                <AlertTitle>暂无订单节点</AlertTitle>
-              </Alert>
+              <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
+                <RiFileList3Line className="size-4" aria-hidden="true" />
+                <p>暂无订单节点</p>
+              </div>
             ) : (
               timeline.map((item, index) => (
                 <div

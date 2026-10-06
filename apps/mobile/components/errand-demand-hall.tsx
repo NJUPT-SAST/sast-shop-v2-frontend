@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { BrandIllustration } from "@/components/brand-illustration";
 import { useRouter } from "next/navigation";
 import {
   RiArrowRightSLine,
@@ -151,7 +152,7 @@ export function ErrandDemandHall({
         </section>
       ) : !loadingMore && !hasMore ? (
         <Empty
-          icon={hasKeyword ? <RiStore2Line className="size-5" /> : undefined}
+          className="flex-1"
           illustration={
             !hasKeyword ? (
               <Image
@@ -163,7 +164,9 @@ export function ErrandDemandHall({
                 unoptimized
                 className="size-32 object-contain"
               />
-            ) : undefined
+            ) : (
+              <BrandIllustration name="search-empty" size={112} />
+            )
           }
           title={hasKeyword ? "没有匹配的店铺需求" : "暂无待接单需求"}
           description={hasKeyword ? "请尝试其他店铺名称。" : undefined}

@@ -21,7 +21,7 @@ function Empty({
     <div
       data-slot="empty"
       className={cn(
-        "flex min-h-36 flex-col items-center justify-center gap-3 rounded-lg border border-dashed bg-muted/30 px-4 py-8 text-center",
+        "flex min-h-36 w-full flex-col items-center justify-center gap-4 px-4 py-8 text-center",
         className,
       )}
       {...props}
@@ -29,11 +29,11 @@ function Empty({
       {illustration ? (
         <div data-slot="empty-illustration">{illustration}</div>
       ) : icon ? (
-        <div className="flex size-11 items-center justify-center rounded-full bg-background text-muted-foreground">
+        <div className="flex size-10 items-center justify-center text-muted-foreground">
           {icon}
         </div>
       ) : null}
-      <div className="space-y-1">
+      <div className="flex flex-col gap-1">
         <p className="text-sm font-medium text-foreground">{title}</p>
         {description ? (
           <p className="mx-auto max-w-[36ch] text-sm leading-6 text-muted-foreground">

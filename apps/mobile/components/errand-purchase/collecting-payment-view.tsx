@@ -8,7 +8,6 @@ import {
   RiAlipayLine,
   RiArrowDownSLine,
   RiArrowUpSLine,
-  RiBillLine,
   RiWechatPayLine,
 } from "@remixicon/react";
 import {
@@ -33,6 +32,7 @@ import {
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Empty } from "@workspace/ui/components/empty";
+import { BrandIllustration } from "@/components/brand-illustration";
 import { PaymentCodeHelp } from "@workspace/ui/components/payment-code-help";
 import {
   ResponsiveDialog,
@@ -595,18 +595,20 @@ export function CollectingPaymentView({
       {bills.length === 0 && (
         <Empty
           className="my-auto"
-          icon={<RiBillLine className="size-5" />}
+          illustration={<BrandIllustration name="orders" size={112} />}
           title="暂无账单"
           description="账单尚未生成，可以刷新后重试。"
           action={
-            <Button
-              type="button"
-              size="touch"
-              variant="outline"
-              onClick={() => router.refresh()}
-            >
-              刷新账单
-            </Button>
+            !billingNotice && (
+              <Button
+                type="button"
+                size="touch"
+                variant="outline"
+                onClick={() => router.refresh()}
+              >
+                刷新账单
+              </Button>
+            )
           }
         />
       )}

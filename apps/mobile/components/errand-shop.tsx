@@ -4,7 +4,6 @@ import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { RiAddLine, RiShoppingCartLine, RiStore2Line } from "@remixicon/react";
 import {
   createErrandDemand,
@@ -328,19 +327,14 @@ export function ErrandShop({
         </div>
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-1 flex-col gap-3">
         <h2 className="text-base font-semibold">选择商品</h2>
 
         {templates.length === 0 && !loadingMore && !hasMore ? (
           <Empty
+            className="flex-1"
             illustration={<BrandIllustration name="template" size={96} />}
             title="此店铺暂无可用商品模板"
-            description="可以返回团购页选择其他店铺。"
-            action={
-              <Button asChild size="touch" variant="outline">
-                <Link href="/group">返回团购</Link>
-              </Button>
-            }
           />
         ) : templates.length > 0 ? (
           <div className="columns-1 gap-3 md:columns-2">
@@ -429,28 +423,30 @@ export function ErrandShop({
         />
       </section>
 
-      <MobileFixedFooter>
-        <Button
-          type="button"
-          disabled={totalCount === 0}
-          className="h-12 w-full justify-between px-3"
-          onClick={() => setCartOpen(true)}
-        >
-          <span className="flex min-w-0 items-center gap-2">
-            <RiShoppingCartLine className="size-5 shrink-0" />
-            <span className="truncate">
-              {totalCount > 0 ? `${totalCount} 件商品` : "跑腿清单"}
+      {templates.length > 0 || totalCount > 0 ? (
+        <MobileFixedFooter>
+          <Button
+            type="button"
+            disabled={totalCount === 0}
+            className="h-12 w-full justify-between px-3"
+            onClick={() => setCartOpen(true)}
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <RiShoppingCartLine className="size-5 shrink-0" />
+              <span className="truncate">
+                {totalCount > 0 ? `${totalCount} 件商品` : "跑腿清单"}
+              </span>
             </span>
-          </span>
-          <span className="shrink-0 text-right text-sm font-semibold tabular-nums">
-            {estimatedTotalCents === null
-              ? "金额待确认"
-              : totalCount > 0
-                ? formatPrice(estimatedTotalCents)
-                : "请选择商品"}
-          </span>
-        </Button>
-      </MobileFixedFooter>
+            <span className="shrink-0 text-right text-sm font-semibold tabular-nums">
+              {estimatedTotalCents === null
+                ? "金额待确认"
+                : totalCount > 0
+                  ? formatPrice(estimatedTotalCents)
+                  : "请选择商品"}
+            </span>
+          </Button>
+        </MobileFixedFooter>
+      ) : null}
 
       <ResponsiveDialog
         open={selectedTemplate !== null}
@@ -524,8 +520,8 @@ export function ErrandShop({
           <div className="min-h-0 flex-1 overflow-y-auto">
             {items.length === 0 ? (
               <Empty
-                icon={<RiShoppingCartLine className="size-5" />}
-                title="跑腿清单不能为空"
+                illustration={<BrandIllustration name="cart-empty" size={96} />}
+                title="跑腿清单还没有商品"
                 description="先选择要采购的商品。"
               />
             ) : (

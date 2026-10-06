@@ -8,8 +8,6 @@ import {
   RiCloseCircleLine,
   RiFileList3Line,
 } from "@remixicon/react";
-import Link from "next/link";
-import { Button } from "@workspace/ui/components/button";
 import { Empty } from "@workspace/ui/components/empty";
 import { notFound, redirect } from "next/navigation";
 
@@ -97,7 +95,7 @@ export default async function PurchaseTaskPage({
     <TaskStatus
       icon={<RiFileList3Line className="size-5" />}
       title="任务状态暂不可用"
-      description="当前任务状态无法识别，请返回任务列表刷新后重试。"
+      description="当前任务状态无法识别，请刷新后重试。"
     />
   );
 }
@@ -113,16 +111,7 @@ function TaskStatus({
 }) {
   return (
     <div className="flex flex-1 items-center justify-center py-6">
-      <Empty
-        icon={icon}
-        title={title}
-        description={description}
-        action={
-          <Button asChild size="touch">
-            <Link href="/orders?type=errand&view=captain">返回任务列表</Link>
-          </Button>
-        }
-      />
+      <Empty icon={icon} title={title} description={description} />
     </div>
   );
 }

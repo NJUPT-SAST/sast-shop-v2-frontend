@@ -9,7 +9,7 @@ import {
   type MouseEvent,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { RiFileList3Line, RiSearchLine } from "@remixicon/react";
+import { RiSearchLine } from "@remixicon/react";
 import { BrandIllustration } from "./brand-illustration";
 import {
   listBuyerErrandOrdersPage,
@@ -539,7 +539,7 @@ export function OrdersView({
       </section>
 
       <div
-        className="min-w-0"
+        className="flex min-w-0 flex-1 flex-col"
         onClickCapture={(event) => {
           if (
             event.target instanceof Element &&
@@ -603,17 +603,14 @@ function OrderList({
   if (orders.length === 0 && showEmpty) {
     return (
       <Empty
-        icon={
-          filters.query.trim() ? (
-            <RiFileList3Line className="size-5" />
-          ) : undefined
-        }
+        className="flex-1"
         illustration={
-          !filters.query.trim() ? (
-            <BrandIllustration name="orders" size={96} />
-          ) : undefined
+          <BrandIllustration
+            name={filters.query.trim() ? "search-empty" : "orders"}
+            size={112}
+          />
         }
-        title={getEmptyTitle(filters)}
+        title={filters.query.trim() ? "没有匹配的订单" : getEmptyTitle(filters)}
       />
     );
   }

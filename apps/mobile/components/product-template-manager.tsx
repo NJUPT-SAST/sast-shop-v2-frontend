@@ -15,7 +15,6 @@ import {
   RiBarcodeLine,
   RiDeleteBinLine,
   RiEditLine,
-  RiFileList3Line,
   RiImageAddLine,
   RiImageLine,
   RiQrScan2Line,
@@ -459,17 +458,15 @@ export function ProductTemplateManager({
         </section>
       ) : !error && !loadingMore && !hasMore ? (
         <Empty
-          icon={
-            keyword && stores.length > 0 ? (
-              <RiFileList3Line className="size-5" />
-            ) : undefined
-          }
+          className="flex-1"
           illustration={
             stores.length === 0 ? (
               <BrandIllustration name="store" size={96} />
             ) : !keyword ? (
               <BrandIllustration name="template" size={96} />
-            ) : undefined
+            ) : (
+              <BrandIllustration name="search-empty" size={112} />
+            )
           }
           title={
             stores.length === 0

@@ -1,11 +1,11 @@
 "use client";
 
 import { useRef, useState, type TouchEvent } from "react";
+import { BrandIllustration } from "@/components/brand-illustration";
 import {
   RiAlipayLine,
   RiCheckboxCircleLine,
   RiDownload2Line,
-  RiQrCodeLine,
   RiQrScan2Line,
   RiUser3Line,
   RiWechatPayLine,
@@ -331,7 +331,12 @@ function PaymentDialogBody({
                           touchStartRef.current = null;
                         }}
                       >
-                        <div className="flex flex-col items-center gap-3 rounded-lg bg-muted p-3">
+                        <div
+                          className={cn(
+                            "flex flex-col items-center gap-3",
+                            panelHasQrCode && "rounded-lg bg-muted p-3",
+                          )}
+                        >
                           {panelQrCodeContent ? (
                             <PaymentQrCode
                               content={panelQrCodeContent}
@@ -342,10 +347,14 @@ function PaymentDialogBody({
                             />
                           ) : (
                             <Empty
-                              icon={<RiQrCodeLine className="size-5" />}
+                              illustration={
+                                <BrandIllustration
+                                  name="collection"
+                                  size={80}
+                                />
+                              }
                               title="暂无收款码"
                               description={`收款人还没有配置${label}收款码。`}
-                              className="w-full border-0 bg-transparent"
                             />
                           )}
                         </div>

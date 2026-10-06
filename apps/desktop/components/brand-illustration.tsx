@@ -26,8 +26,17 @@ import orders from "../public/brand/orders.webp";
 import ordersCompact from "../public/brand/orders-compact.webp";
 import store from "../public/brand/store.webp";
 import storeCompact from "../public/brand/store-compact.webp";
+import spotEmpty from "../public/brand/spot-empty.webp";
+import spotEmptyCompact from "../public/brand/spot-empty-compact.webp";
+import searchEmpty from "../public/brand/search-empty.webp";
+import searchEmptyCompact from "../public/brand/search-empty-compact.webp";
+import cartEmpty from "../public/brand/cart-empty.webp";
+import cartEmptyCompact from "../public/brand/cart-empty-compact.webp";
 
 const illustrations = {
+  "spot-empty": { regular: spotEmpty, compact: spotEmptyCompact },
+  "search-empty": { regular: searchEmpty, compact: searchEmptyCompact },
+  "cart-empty": { regular: cartEmpty, compact: cartEmptyCompact },
   errand: { regular: errand, compact: errandCompact },
   template: { regular: template, compact: templateCompact },
   "transaction-agreement": {

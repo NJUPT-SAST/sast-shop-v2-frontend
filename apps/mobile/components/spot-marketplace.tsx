@@ -1,13 +1,13 @@
 "use client";
 
 import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
+import { BrandIllustration } from "@/components/brand-illustration";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   RiCheckboxCircleLine,
   RiSearchLine,
-  RiShoppingBag3Line,
   RiStore2Line,
 } from "@remixicon/react";
 import {
@@ -616,7 +616,13 @@ export function SpotMarketplace({
 
       {!error && filteredProducts.length === 0 && !loadingMore && !hasMore ? (
         <Empty
-          icon={<RiShoppingBag3Line className="size-5" />}
+          illustration={
+            <BrandIllustration
+              name={query ? "search-empty" : "spot-empty"}
+              size={112}
+            />
+          }
+          className="flex-1"
           title={query ? "没有匹配的现货" : "暂无在售现货"}
           action={
             query ? (

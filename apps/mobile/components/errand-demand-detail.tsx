@@ -1,15 +1,11 @@
 "use client";
 
 import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
+import { BrandIllustration } from "@/components/brand-illustration";
 
 import { useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import {
-  RiCheckboxCircleLine,
-  RiStore2Line,
-  RiUser3Line,
-} from "@remixicon/react";
+import { RiCheckboxCircleLine, RiUser3Line } from "@remixicon/react";
 import {
   createErrandTask,
   type DataSource,
@@ -167,14 +163,8 @@ export function ErrandDemandDetail({
     return (
       <div className="flex flex-1 items-center justify-center py-6">
         <Empty
-          icon={<RiStore2Line className="size-5" />}
+          illustration={<BrandIllustration name="errand" size={112} />}
           title="这个店铺暂无可接单需求"
-          description="可以返回跑腿采购大厅查看其他店铺。"
-          action={
-            <Button asChild size="touch">
-              <Link href="/group/errand">查看其他店铺</Link>
-            </Button>
-          }
         />
       </div>
     );

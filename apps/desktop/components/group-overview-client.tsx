@@ -125,7 +125,7 @@ export function GroupOverviewClient({
             />
           ) : stores.length === 0 ? (
             <Empty
-              icon={<BrandIllustration name="store" size={96} />}
+              illustration={<BrandIllustration name="store" size={96} />}
               title="还没有店铺"
               action={
                 <StoreCreateDialog
