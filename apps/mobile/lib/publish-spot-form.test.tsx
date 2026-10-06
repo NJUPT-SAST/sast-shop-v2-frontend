@@ -150,6 +150,23 @@ describe("publish spot scan recovery", () => {
     expect(scanLarkBarcode).not.toHaveBeenCalled();
   });
 
+  it("uses an already scanned barcode without opening the scanner again", async () => {
+    vi.mocked(getProductTemplatesByBarcode).mockResolvedValue([match]);
+    await renderForm("scan", "690000000001");
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 350));
+    });
+    expect(scanLarkBarcode).not.toHaveBeenCalled();
+    expect(container.querySelector<HTMLInputElement>("#barcode")?.value).toBe(
+      "690000000001",
+    );
+    expect(getProductTemplatesByBarcode).toHaveBeenCalledWith(
+      "690000000001",
+      expect.objectContaining({ dataSource: "mock" }),
+    );
+    expect(container.textContent).toContain("矿泉水");
+  });
+
   it("offers retry and manual entry after an SDK scan cancellation", async () => {
     vi.mocked(scanLarkBarcode).mockRejectedValue(new Error("cancelled"));
     await renderForm("scan");

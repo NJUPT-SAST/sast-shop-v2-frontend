@@ -91,6 +91,8 @@ import { BrandIllustration } from "@/components/brand-illustration";
 import { ManagedImage } from "@/components/managed-image";
 import { StoreCreateDialog } from "@/components/store-create-dialog";
 import { useFeishuUiEnvironment } from "@/hooks/use-feishu-ui-environment";
+import { useMobileKeyboard } from "@/hooks/use-mobile-keyboard";
+import { MobileFixedFooter } from "./mobile-fixed-footer";
 import { isJsapiAuthConfig } from "@/lib/jsapi-config";
 import { uploadProductImage } from "@/lib/product-image-upload";
 
@@ -142,6 +144,8 @@ export function ProductTemplateManager({
   error,
 }: ProductTemplateManagerProps) {
   const router = useRouter();
+  const isKeyboardOpen = useMobileKeyboard();
+  const [storeCreateOpen, setStoreCreateOpen] = useState(false);
   const serviceOptions: ServiceOptions = { dataSource, connectBaseUrl };
   const [query, setQuery] = useState("");
   const [keyword, setKeyword] = useState("");
@@ -401,40 +405,9 @@ export function ProductTemplateManager({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-5 pb-4 pt-6">
-      <section className="flex items-center justify-between gap-3">
-        <h1 className="min-w-0 text-xl font-semibold leading-7 md:text-2xl">
-          商品模板
-        </h1>
-        {stores.length > 0 ? (
-          <div className="flex shrink-0 items-center gap-2">
-            <StoreCreateDialog
-              dataSource={dataSource}
-              connectBaseUrl={connectBaseUrl}
-              returnTo={createStoreReturnTo}
-            >
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="min-h-11"
-              >
-                创建店铺
-              </Button>
-            </StoreCreateDialog>
-            {selectedStoreId ? (
-              <Button
-                type="button"
-                size="sm"
-                className="min-h-11"
-                onClick={openCreateDrawer}
-              >
-                <RiAddLine data-icon="inline-start" />
-                新建模板
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
-      </section>
+      <h1 className="min-w-0 text-xl font-semibold leading-7 md:text-2xl">
+        商品模板
+      </h1>
 
       {searching ? <TemplateLoadingSkeletons /> : null}
       {pageError ? (
@@ -474,6 +447,25 @@ export function ProductTemplateManager({
                 </SelectGroup>
               </SelectContent>
             </Select>
+            <FieldDescription>
+              没找到想要的店铺？{" "}
+              <StoreCreateDialog
+                open={storeCreateOpen}
+                onOpenChange={setStoreCreateOpen}
+                dataSource={dataSource}
+                connectBaseUrl={connectBaseUrl}
+                returnTo={createStoreReturnTo}
+              >
+                <Button
+                  type="button"
+                  variant="plain"
+                  size="touch"
+                  className="-my-2 px-0"
+                >
+                  添加店铺
+                </Button>
+              </StoreCreateDialog>
+            </FieldDescription>
           </Field>
 
           <Field>
@@ -529,6 +521,8 @@ export function ProductTemplateManager({
           action={
             stores.length === 0 ? (
               <StoreCreateDialog
+                open={storeCreateOpen}
+                onOpenChange={setStoreCreateOpen}
                 dataSource={dataSource}
                 connectBaseUrl={connectBaseUrl}
                 returnTo={createStoreReturnTo}
@@ -558,6 +552,20 @@ export function ProductTemplateManager({
           }
           endMessageClassName="pt-6"
         />
+      ) : null}
+
+      {selectedStoreId && !drawerOpen && !storeCreateOpen && !isKeyboardOpen ? (
+        <MobileFixedFooter className="pointer-events-none border-0 bg-transparent px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur-none md:border-0 [&>div]:justify-end">
+          <Button
+            type="button"
+            size="icon-touch"
+            className="pointer-events-auto size-14 rounded-full shadow-lg [&_svg:not([class*='size-'])]:size-6"
+            aria-label="新建模板"
+            onClick={openCreateDrawer}
+          >
+            <RiAddLine aria-hidden="true" />
+          </Button>
+        </MobileFixedFooter>
       ) : null}
 
       <Drawer

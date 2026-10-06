@@ -1,8 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useRef, useState, type FormEvent } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { RiAddLine } from "@remixicon/react";
+import { toast } from "sonner";
+import {
+  configureLarkPageJsapi,
+  isLarkScanCancelledError,
+  scanLarkBarcode,
+} from "@sast-shop/api";
 import { Button } from "@workspace/ui/components/button";
 import {
   Drawer,
@@ -23,19 +29,87 @@ import { Input } from "@workspace/ui/components/input";
 import { cn } from "@workspace/ui/lib/utils";
 import { useFeishuUiEnvironment } from "@/hooks/use-feishu-ui-environment";
 import { normalizeBarcodeQuery } from "@/lib/product-template-flow";
+import { isJsapiAuthConfig } from "@/lib/jsapi-config";
 import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
 import { BrandIllustration } from "./brand-illustration";
 
 export function MobilePublishEntry() {
   const router = useRouter();
+  const pathname = usePathname();
   const showFeishuEntry = useFeishuUiEnvironment();
   const [publishStep, setPublishStep] = useState<"entry" | "barcode" | null>(
     null,
   );
   const [barcode, setBarcode] = useState("");
   const [barcodeError, setBarcodeError] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const pendingScanRef = useRef<symbol | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const barcodeRef = useRef<HTMLInputElement>(null);
+
+  useEffect(
+    () => () => {
+      pendingScanRef.current = null;
+    },
+    [pathname],
+  );
+
+  async function handleScan() {
+    if (pendingScanRef.current) return;
+    const sdk = window.h5sdk;
+    const client = window.tt;
+    if (!sdk || !client?.scanCode) {
+      toast.message("飞书扫码组件尚未就绪，请稍后重试或手动输入");
+      return;
+    }
+
+    const request = Symbol();
+    pendingScanRef.current = request;
+    setScanning(true);
+    try {
+      await configureLarkPageJsapi(sdk, async (signingUrl) => {
+        const response = await fetch(
+          `/api/auth/jsapi-config?url=${encodeURIComponent(signingUrl)}`,
+          { cache: "no-store" },
+        );
+        const body: unknown = await response.json().catch(() => null);
+        if (!response.ok || !isJsapiAuthConfig(body)) {
+          throw new Error(
+            response.status === 401
+              ? "登录已失效，请重新打开应用"
+              : "扫码鉴权暂不可用，请稍后再试",
+          );
+        }
+        return body;
+      });
+      if (pendingScanRef.current !== request) return;
+      const scannedBarcode = await scanLarkBarcode(client);
+      if (pendingScanRef.current !== request) return;
+      setPublishStep(null);
+      await waitForDrawerHistoryCleanup();
+      if (pendingScanRef.current !== request) return;
+      router.push(
+        `/publish/spot?entry=scan&barcode=${encodeURIComponent(scannedBarcode)}`,
+      );
+    } catch (reason) {
+      if (
+        pendingScanRef.current !== request ||
+        isLarkScanCancelledError(reason)
+      ) {
+        return;
+      }
+      toast.error(
+        reason instanceof Error
+          ? reason.message
+          : "扫码失败，请重试或手动输入条码",
+      );
+    } finally {
+      if (pendingScanRef.current === request) {
+        pendingScanRef.current = null;
+        setScanning(false);
+      }
+    }
+  }
 
   function openBarcodeEntry() {
     setBarcode("");
@@ -65,6 +139,8 @@ export function MobilePublishEntry() {
         open={publishStep === "entry"}
         autoFocus
         onOpenChange={(open) => {
+          pendingScanRef.current = null;
+          setScanning(false);
           setPublishStep((step) =>
             open ? "entry" : step === "entry" ? null : step,
           );
@@ -103,6 +179,7 @@ export function MobilePublishEntry() {
               variant="outline"
               size="lg"
               className="h-24 flex-col gap-2 rounded-xl bg-card shadow-sm"
+              disabled={scanning}
               onClick={openBarcodeEntry}
             >
               <BrandIllustration name="manual" size={48} />
@@ -114,14 +191,11 @@ export function MobilePublishEntry() {
                 variant="secondary"
                 size="lg"
                 className="h-24 flex-col gap-2 rounded-xl border border-primary/20 bg-primary/10 text-primary shadow-sm hover:bg-primary/15"
-                onClick={async () => {
-                  setPublishStep(null);
-                  await waitForDrawerHistoryCleanup();
-                  router.push("/publish/spot?entry=scan");
-                }}
+                disabled={scanning}
+                onClick={() => void handleScan()}
               >
                 <BrandIllustration name="scan" size={48} />
-                扫码录入
+                {scanning ? "正在扫码" : "扫码录入"}
               </Button>
             ) : null}
           </div>

@@ -328,10 +328,15 @@ export function PublishSpotForm({
   });
 
   useEffect(() => {
-    if (entry !== "scan" || scanEntryStartedRef.current) return;
+    if (
+      entry !== "scan" ||
+      normalizeBarcodeQuery(initialBarcode).ok ||
+      scanEntryStartedRef.current
+    )
+      return;
     scanEntryStartedRef.current = true;
     startEntryScan();
-  }, [entry]);
+  }, [entry, initialBarcode]);
 
   async function submitSpotGoods(values: FormValues) {
     if (submittingRef.current) return;
