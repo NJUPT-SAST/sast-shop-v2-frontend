@@ -5,7 +5,7 @@ import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { RiAddLine, RiShoppingCartLine, RiStore2Line } from "@remixicon/react";
+import { RiAddLine, RiMapPinLine, RiShoppingCartLine } from "@remixicon/react";
 import {
   createErrandDemand,
   listProductTemplatesPage,
@@ -322,7 +322,7 @@ export function ErrandShop({
             {store.name}
           </h1>
           <p className="mt-0.5 flex items-start gap-1.5 text-sm leading-5 text-muted-foreground">
-            <RiStore2Line className="mt-0.5 size-4 shrink-0" />
+            <RiMapPinLine className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
             <span className="line-clamp-2">{store.address}</span>
           </p>
         </div>
