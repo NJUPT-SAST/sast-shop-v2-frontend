@@ -12,7 +12,7 @@ import {
 } from "@sast-shop/api";
 import { useCachedResource } from "@workspace/ui/hooks/use-cached-resource";
 import { ProfileManagement } from "@/components/profile-management";
-import ProfileLoading from "@/app/profile/loading";
+import ProfileLoading from "@/components/profile-page-skeleton";
 
 async function loadProfileUser(
   options: ServiceOptions,

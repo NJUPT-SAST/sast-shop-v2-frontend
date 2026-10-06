@@ -121,6 +121,7 @@ type OrdersViewProps = {
   spotSellerPage: PageResult<SpotOrder>;
   buyerErrandPage: PageResult<BuyerErrandOrder>;
   errandTaskPage: PageResult<ErrandTaskBrief>;
+  initialLoading?: Partial<OrdersViewProps["errors"]>;
   errors: {
     spotBuyer: boolean;
     spotSeller: boolean;
@@ -138,6 +139,7 @@ export function OrdersView({
   buyerErrandPage,
   errandTaskPage,
   errors,
+  initialLoading,
 }: OrdersViewProps) {
   const router = useRouter();
   const { ensureAgreement } = useTransactionAgreement();
@@ -244,6 +246,13 @@ export function OrdersView({
     [filters, orders],
   );
   const hasError = getCurrentError(filters, errors);
+  const currentLoading = getCurrentError(filters, {
+    spotBuyer: false,
+    spotSeller: false,
+    errandParticipant: false,
+    errandCaptain: false,
+    ...initialLoading,
+  });
   const currentFeed =
     filters.type === "spot"
       ? filters.view === "seller"
@@ -576,7 +585,9 @@ export function OrdersView({
         </Alert>
       ) : null}
 
-      {hasError ? (
+      {currentLoading ? (
+        <OrderLoadingSkeletons label="正在加载该视角订单" />
+      ) : hasError ? (
         <LoadFailure
           title="该视角订单加载失败"
           description="请稍后重新加载。"
@@ -610,7 +621,7 @@ export function OrdersView({
         </section>
       ) : null}
 
-      {!hasError ? (
+      {!hasError && !currentLoading ? (
         <InfiniteListStatus
           hasMore={currentFeed.hasMore}
           loading={currentFeed.loadingMore}
@@ -659,9 +670,13 @@ export function OrdersView({
   );
 }
 
-function OrderLoadingSkeletons() {
+function OrderLoadingSkeletons({
+  label = "正在加载更多订单",
+}: {
+  label?: string;
+}) {
   return (
-    <div className="grid min-w-0 gap-3" aria-label="正在加载更多订单">
+    <div className="grid min-w-0 gap-3" role="status" aria-label={label}>
       {Array.from({ length: 3 }, (_, index) => (
         <Item key={index} variant="outline" aria-hidden="true">
           <Skeleton className="size-14 shrink-0 rounded-lg" />

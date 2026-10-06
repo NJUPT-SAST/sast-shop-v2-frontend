@@ -47,6 +47,7 @@ export function DesktopNav() {
           >
             <Link
               href={item.href}
+              prefetch
               aria-label={item.label}
               title={item.label}
               aria-current={isActive ? "page" : undefined}

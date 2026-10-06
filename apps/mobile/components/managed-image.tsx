@@ -4,6 +4,11 @@ import { useState } from "react";
 import Image from "next/image";
 import { RiFileDamageLine, RiImageLine } from "@remixicon/react";
 import { Skeleton } from "@workspace/ui/components/skeleton";
+import {
+  forgetLoadedImage,
+  hasLoadedImage,
+  rememberLoadedImage,
+} from "@workspace/ui/lib/loaded-images";
 import { cn } from "@workspace/ui/lib/utils";
 
 type ImageState = "empty" | "loading" | "loaded" | "error";
@@ -23,20 +28,26 @@ export function ManagedImage({
   const [imageState, setImageState] = useState<{
     src: string | null;
     state: ImageState;
-  }>({
+  }>(() => ({
     src: currentSrc,
-    state: currentSrc ? "loading" : "empty",
-  });
+    state: initialImageState(currentSrc),
+  }));
   const state =
     imageState.src === currentSrc
       ? imageState.state
-      : currentSrc
-        ? "loading"
-        : "empty";
+      : initialImageState(currentSrc);
+
+  if (imageState.src !== currentSrc) {
+    setImageState({ src: currentSrc, state });
+  }
 
   const Icon = state === "error" ? RiFileDamageLine : RiImageLine;
   const imageSrc = currentSrc && state !== "error" ? currentSrc : null;
   const updateState = (nextState: ImageState) => {
+    if (currentSrc) {
+      if (nextState === "loaded") rememberLoadedImage(currentSrc);
+      if (nextState === "error") forgetLoadedImage(currentSrc);
+    }
     setImageState({ src: currentSrc, state: nextState });
   };
 
@@ -73,4 +84,9 @@ export function ManagedImage({
       ) : null}
     </div>
   );
+}
+
+function initialImageState(src: string | null): ImageState {
+  if (!src) return "empty";
+  return hasLoadedImage(src) ? "loaded" : "loading";
 }

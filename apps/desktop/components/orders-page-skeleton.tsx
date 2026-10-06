@@ -1,6 +1,6 @@
 import { Skeleton } from "@workspace/ui/components/skeleton";
 
-export default function OrdersLoading() {
+export function OrdersPageSkeleton() {
   return (
     <div className="space-y-6 pb-8" role="status" aria-label="正在加载订单">
       <div className="flex items-center justify-between" aria-hidden="true">

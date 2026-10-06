@@ -115,6 +115,7 @@ type OrdersViewProps = {
   spotSellerPage: PageResult<SpotOrder>;
   buyerErrandPage: PageResult<BuyerErrandOrder>;
   errandTaskPage: PageResult<ErrandTaskBrief>;
+  initialLoading?: Partial<OrdersViewProps["errors"]>;
   errors: {
     spotBuyer: boolean;
     spotSeller: boolean;
@@ -132,6 +133,7 @@ export function OrdersView({
   buyerErrandPage,
   errandTaskPage,
   errors,
+  initialLoading,
 }: OrdersViewProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -238,6 +240,13 @@ export function OrdersView({
     [filters, orders],
   );
   const currentError = getCurrentError(filters, errors);
+  const currentLoading = getCurrentError(filters, {
+    spotBuyer: false,
+    spotSeller: false,
+    errandParticipant: false,
+    errandCaptain: false,
+    ...initialLoading,
+  });
   const currentFeed =
     filters.type === "spot"
       ? filters.view === "seller"
@@ -540,14 +549,18 @@ export function OrdersView({
           }
         }}
       >
-        <OrderList
-          filters={filters}
-          orders={filteredOrders}
-          hasError={currentError}
-          showEmpty={!currentFeed.loadingMore && !currentFeed.hasMore}
-          onRetry={() => router.refresh()}
-        />
-        {!currentError ? (
+        {currentLoading ? (
+          <OrderLoadingSkeletons label="正在加载该视角订单" />
+        ) : (
+          <OrderList
+            filters={filters}
+            orders={filteredOrders}
+            hasError={currentError}
+            showEmpty={!currentFeed.loadingMore && !currentFeed.hasMore}
+            onRetry={() => router.refresh()}
+          />
+        )}
+        {!currentError && !currentLoading ? (
           <InfiniteListStatus
             hasMore={currentFeed.hasMore}
             loading={currentFeed.loadingMore}
@@ -619,12 +632,16 @@ function OrderList({
   );
 }
 
-function OrderLoadingSkeletons() {
+function OrderLoadingSkeletons({
+  label = "正在加载更多订单",
+}: {
+  label?: string;
+}) {
   return (
     <div
       className="grid min-w-0 gap-3 md:grid-cols-2"
       role="status"
-      aria-label="正在加载更多订单"
+      aria-label={label}
     >
       {Array.from({ length: 2 }, (_, index) => (
         <Card key={index} aria-hidden="true">

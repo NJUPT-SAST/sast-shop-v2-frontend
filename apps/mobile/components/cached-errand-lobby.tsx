@@ -4,7 +4,7 @@ import { listErrandDemandStoresPage, type DataSource } from "@sast-shop/api";
 import { LoadFailure } from "@workspace/ui/components/load-failure";
 import { useCachedResource } from "@workspace/ui/hooks/use-cached-resource";
 
-import ErrandDemandHallLoading from "@/app/group/errand/loading";
+import ErrandDemandHallLoading from "@/components/errand-lobby-skeleton";
 import { ErrandDemandHall } from "@/components/errand-demand-hall";
 
 const emptyPage = {

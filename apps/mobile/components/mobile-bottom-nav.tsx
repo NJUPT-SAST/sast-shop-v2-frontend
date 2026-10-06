@@ -92,6 +92,7 @@ function NavLink({
   return (
     <Link
       href={item.href}
+      prefetch
       replace
       aria-current={isActive ? "page" : undefined}
       onClick={(event) => onNavClick(event, isActive)}

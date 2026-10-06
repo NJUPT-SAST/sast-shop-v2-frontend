@@ -1,5 +1,5 @@
 import { MobilePageSkeleton } from "@/components/mobile-page-skeleton";
 
-export default function OrdersLoading() {
+export function OrdersPageSkeleton() {
   return <MobilePageSkeleton variant="orders" />;
 }
