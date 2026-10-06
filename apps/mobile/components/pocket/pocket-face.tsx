@@ -15,7 +15,14 @@ import {
   revokePocketFace,
 } from "@sast-shop/api";
 import { Button } from "@workspace/ui/components/button";
+import { Badge, type BadgeProps } from "@workspace/ui/components/badge";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+} from "@workspace/ui/components/field";
 import { Spinner } from "@workspace/ui/components/spinner";
+import { TextHighlight } from "@workspace/ui/components/text-highlight";
 import {
   Drawer,
   DrawerContent,
@@ -33,6 +40,7 @@ import {
   PocketError,
   PocketHeading,
   PocketJobProgress,
+  PocketNotice,
   usePocketAction,
   usePocketOptions,
   usePocketPolling,
@@ -81,6 +89,14 @@ export function PocketFacePage() {
     expired: "face-inactive",
     failed: "load-error",
   };
+  const statusVariants: Record<string, BadgeProps["variant"]> = {
+    pending: "review",
+    active: "success",
+    revoking: "attention",
+    revoked: "muted",
+    failed: "danger",
+    expired: "muted",
+  };
   const processing =
     profile?.status === "pending" ||
     profile?.status === "revoking" ||
@@ -93,11 +109,13 @@ export function PocketFacePage() {
   );
   const visibleJobId = jobId ?? profile?.jobId;
   return (
-    <div className="space-y-4 py-4">
-      <PocketHeading
-        title="人脸录入"
-        description="用于 Pocket 合照选人，可随时撤回授权"
-      />
+    <div className="flex flex-col gap-4 py-6">
+      <PocketHeading title="人脸录入" />
+      {!available && (caps || capabilities.error) ? (
+        <PocketNotice>
+          {capabilities.error || "人脸录入暂未开放，可通过姓名选人"}
+        </PocketNotice>
+      ) : null}
       {result.error || action.error ? (
         <div className="flex items-center gap-3">
           {result.error ? (
@@ -114,7 +132,7 @@ export function PocketFacePage() {
       {!result.data && !result.error ? (
         <section
           role="status"
-          className="flex items-center gap-3 rounded-xl border bg-card p-3"
+          className="flex items-center gap-3 rounded-lg border bg-card p-3"
         >
           <BrandIllustration name="face" size={56} />
           <p className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
@@ -125,7 +143,7 @@ export function PocketFacePage() {
       ) : null}
       {result.data ? (
         <>
-          <section className="flex items-center gap-3 rounded-xl border bg-card p-3">
+          <section className="flex items-center gap-3 rounded-lg border bg-card p-3">
             <BrandIllustration
               name={
                 profile
@@ -134,21 +152,29 @@ export function PocketFacePage() {
               }
               size={56}
             />
-            <div className="min-w-0 flex-1 space-y-1">
-              <p className="flex items-center gap-2 font-semibold">
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <div className="flex items-center gap-2">
                 {profile?.status === "pending" ||
                 profile?.status === "revoking" ? (
                   <Spinner className="size-4 shrink-0" aria-hidden="true" />
                 ) : null}
-                {profile
-                  ? (statusLabels[profile.status] ?? "状态待更新")
-                  : "尚未录入"}
-              </p>
+                <Badge
+                  variant={
+                    profile
+                      ? (statusVariants[profile.status] ?? "muted")
+                      : "muted"
+                  }
+                >
+                  {profile
+                    ? (statusLabels[profile.status] ?? "状态待更新")
+                    : "尚未录入"}
+                </Badge>
+              </div>
               {profile?.status === "active" ? (
                 <p className="text-sm leading-6 text-muted-foreground">
-                  已保存 {profile.sampleCount} 张有效样本。
+                  有效样本 {profile.sampleCount} 张
                   {profile.consentExpiresAt
-                    ? `授权至 ${new Date(profile.consentExpiresAt).toLocaleDateString("zh-CN")}。`
+                    ? `，授权至 ${new Date(profile.consentExpiresAt).toLocaleDateString("zh-CN")}`
                     : ""}
                 </p>
               ) : null}
@@ -167,30 +193,41 @@ export function PocketFacePage() {
               onPending={setJobPending}
             />
           ) : null}
-          {!available ? (
-            <p className="rounded-lg bg-muted p-3 text-sm leading-6">
-              {capabilities.error || "人脸录入暂未开放，可通过姓名选人"}
-            </p>
-          ) : !processing ? (
+          {available && !processing ? (
             <>
-              <div className="space-y-3 text-sm leading-6">
-                <h2 className="font-semibold">
-                  {profile?.status === "active"
-                    ? "重新录入本人照片"
-                    : "录入本人照片"}
-                </h2>
-                <p className="text-muted-foreground">
-                  选择 1–3
-                  张仅有本人、正脸清晰的照片。腾讯云将处理并保存人脸特征，绑定到你的登录账户；原始照片处理后删除。授权有效期为一年，你可以随时撤回并删除；不录入不影响使用姓名搜索和付款。
-                </p>
-                <PocketConsent
-                  checked={consented}
-                  onChange={setConsented}
-                  disabled={action.busy}
-                >
-                  我已阅读并单独同意上述人脸信息处理，仅上传本人的照片。
-                </PocketConsent>
-              </div>
+              <FieldGroup className="gap-3">
+                <Field data-disabled={action.busy}>
+                  <h2 className="text-base font-semibold">
+                    {profile?.status === "active"
+                      ? "重新录入本人照片"
+                      : "录入本人照片"}
+                  </h2>
+                  <div className="flex flex-col gap-2">
+                    <FieldDescription className="leading-6">
+                      选择 1–3 张
+                      <TextHighlight>仅有本人、正脸清晰</TextHighlight>
+                      的照片。
+                    </FieldDescription>
+                    <FieldDescription className="leading-6">
+                      腾讯云将<TextHighlight>处理并保存人脸特征</TextHighlight>
+                      ，绑定到你的登录账户；
+                      <TextHighlight>原始照片处理后删除</TextHighlight>。
+                    </FieldDescription>
+                    <FieldDescription className="leading-6">
+                      授权有效期为<TextHighlight>一年</TextHighlight>，你可以
+                      <TextHighlight>随时撤回并删除</TextHighlight>
+                      ；不录入不影响使用姓名搜索和付款。
+                    </FieldDescription>
+                  </div>
+                  <PocketConsent
+                    checked={consented}
+                    onChange={setConsented}
+                    disabled={action.busy}
+                  >
+                    我已阅读并单独同意上述人脸信息处理，仅上传本人的照片。
+                  </PocketConsent>
+                </Field>
+              </FieldGroup>
               <PocketPhotoPicker
                 face
                 photos={photos}
@@ -200,7 +237,7 @@ export function PocketFacePage() {
               />
               <Button
                 className="w-full"
-                size="lg"
+                size="touch"
                 disabled={action.busy || !consented || !photos.length}
                 onClick={() =>
                   void action.run(
@@ -257,8 +294,8 @@ export function PocketFacePage() {
                   )
                 }
               >
-                {action.busy ? <Spinner /> : null}
-                {profile?.status === "active" ? "提交重新录入" : "同意并录入"}
+                {action.busy ? <Spinner data-icon="inline-start" /> : null}
+                {profile?.status === "active" ? "重新录入" : "同意并录入"}
               </Button>
               {progress ? (
                 <p role="status" className="text-sm text-muted-foreground">
@@ -270,6 +307,7 @@ export function PocketFacePage() {
           {profile && !["revoking", "revoked"].includes(profile.status) ? (
             <Button
               variant="outline"
+              size="touch"
               className="w-full"
               disabled={action.busy}
               onClick={() => setRevokeOpen(true)}
@@ -285,18 +323,19 @@ export function PocketFacePage() {
         dismissible={!action.busy}
       >
         <DrawerContent className="overflow-clip">
-          <DrawerHeader>
+          <DrawerHeader className="shrink-0 text-center">
             <DrawerTitle>撤回人脸授权</DrawerTitle>
-            <DrawerDescription>
+            <DrawerDescription className="sr-only">
               停止人脸匹配，并删除已保存的人脸信息
             </DrawerDescription>
           </DrawerHeader>
-          <div className="app-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto px-4">
-            <div className="flex items-center gap-3 rounded-xl border bg-card p-3">
+          <div className="app-scrollbar flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-2">
+            <div className="flex items-start gap-3">
               <BrandIllustration name="face-inactive" size={48} />
               <p className="text-sm leading-6 text-muted-foreground">
-                你的账户将退出识别候选，并删除腾讯云人脸与临时照片；正在进行的
-                Pocket 和付款不受影响
+                你的账户将退出识别候选，并
+                <TextHighlight>删除腾讯云人脸与临时照片</TextHighlight>；
+                <TextHighlight>正在进行的 Pocket 和付款不受影响</TextHighlight>
               </p>
             </div>
             <PocketError
@@ -304,8 +343,17 @@ export function PocketFacePage() {
               retry={action.pending ? action.recover : undefined}
             />
           </div>
-          <DrawerFooter className="pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <DrawerFooter className="shrink-0 pb-[calc(1rem+env(safe-area-inset-bottom))]">
             <Button
+              size="touch"
+              variant="outline"
+              disabled={action.busy}
+              onClick={() => setRevokeOpen(false)}
+            >
+              继续保留
+            </Button>
+            <Button
+              size="touch"
               variant="destructive"
               disabled={action.busy}
               onClick={() =>
@@ -332,13 +380,6 @@ export function PocketFacePage() {
               }
             >
               确认撤回并删除
-            </Button>
-            <Button
-              variant="outline"
-              disabled={action.busy}
-              onClick={() => setRevokeOpen(false)}
-            >
-              继续保留
             </Button>
           </DrawerFooter>
         </DrawerContent>
@@ -379,7 +420,7 @@ function FaceJob({
     return () => window.clearTimeout(timer);
   }, [result.data, onFinished, onPending]);
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-2">
       <PocketError
         message={result.error || action.error}
         retry={action.pending ? action.recover : result.refresh}

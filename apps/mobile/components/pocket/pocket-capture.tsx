@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { RiDeleteBinLine, RiSearchLine, RiUploadLine } from "@remixicon/react";
 import {
   addPocketPhotos,
   getPocket,
@@ -11,6 +12,18 @@ import {
   type PocketJob,
 } from "@sast-shop/api";
 import { Button } from "@workspace/ui/components/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@workspace/ui/components/card";
+import {
+  FieldDescription,
+  FieldGroup,
+  FieldLegend,
+  FieldSet,
+} from "@workspace/ui/components/field";
 import { Spinner } from "@workspace/ui/components/spinner";
 import {
   pocketJobFinished,
@@ -28,6 +41,7 @@ import {
   PocketHeading,
   PocketJobProgress,
   PocketLoading,
+  PocketNotice,
   usePocketAction,
   usePocketOptions,
   usePocketPolling,
@@ -61,8 +75,8 @@ export function PocketCapture({ pocketId }: { pocketId: string }) {
   const current = detail.data?.pocket.id === pocketId ? detail.data : null;
   if (!current)
     return (
-      <div className="space-y-4 py-6">
-        <PocketHeading title="合照选人" />
+      <div className="flex min-w-0 flex-1 flex-col gap-4 py-4">
+        <PocketHeading title="选择分摊人" />
         <PocketError
           message={detail.error}
           retry={action.pending ? action.recover : detail.refresh}
@@ -72,14 +86,14 @@ export function PocketCapture({ pocketId }: { pocketId: string }) {
     );
   if (!current.isOwner || current.pocket.status !== "draft")
     return (
-      <div className="space-y-4 py-6">
-        <PocketHeading title="合照选人" />
-        <p className="text-sm text-muted-foreground">
+      <div className="flex min-w-0 flex-1 flex-col gap-4 py-4">
+        <PocketHeading title="选择分摊人" />
+        <p className="text-sm leading-6 text-muted-foreground">
           {current.isOwner
-            ? `活动${pocketStatusLabel(current.pocket.status)}，名单已固定。`
-            : "只有发起人可以上传合照和编辑名单。"}
+            ? `活动${pocketStatusLabel(current.pocket.status)}，无法修改名单`
+            : "仅发起人可修改名单和上传合照"}
         </p>
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" size="touch">
           <Link href={`/pocket/${pocketId}`}>查看活动</Link>
         </Button>
       </div>
@@ -128,7 +142,7 @@ export function PocketCapture({ pocketId }: { pocketId: string }) {
           options,
         );
         setPhotos([]);
-        setProgress("照片已上传");
+        setProgress("");
         detail.setData(await getPocket(pocketId, options));
         if (caps.faceRecognitionAvailable) {
           const recognition = await startPocketRecognition(
@@ -152,63 +166,70 @@ export function PocketCapture({ pocketId }: { pocketId: string }) {
     );
   }
   return (
-    <div className="space-y-4 py-4">
+    <div className="flex min-w-0 flex-1 flex-col gap-4 py-4">
       <PocketHeading title="选择分摊人" />
-      <section
-        className="flex items-center justify-between gap-3 rounded-xl border bg-card p-3 text-sm"
-        aria-label="聚餐信息"
-      >
-        <p className="min-w-0 break-words font-medium">
-          {current.pocket.title || "Pocket"}
-        </p>
-        <p className="shrink-0 font-semibold tabular-nums text-primary">
-          <span className="mr-2 font-normal text-muted-foreground">总金额</span>
-          {pocketMoney(current.pocket.totalCents)}
-        </p>
-      </section>
+      {!canUpload ? (
+        <PocketNotice>
+          {capabilities.error ||
+            (caps ? "合照功能暂未开放" : "正在检查合照服务")}
+        </PocketNotice>
+      ) : null}
+      <Card aria-label="聚餐信息">
+        <CardHeader className="gap-1 px-3 py-3">
+          <CardTitle className="break-words text-base leading-6">
+            {current.pocket.title || "Pocket"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-between gap-3 px-3 pb-3 text-sm">
+          <span className="text-muted-foreground">总金额</span>
+          <span className="shrink-0 font-semibold tabular-nums text-primary">
+            {pocketMoney(current.pocket.totalCents)}
+          </span>
+        </CardContent>
+      </Card>
       <PocketError
         message={detail.error || action.error}
         retry={action.pending ? action.recover : detail.refresh}
       />
       <Button
         variant={canUpload ? "outline" : "default"}
-        size="lg"
+        size="touch"
         className="w-full"
         disabled={action.busy || Boolean(detail.error)}
         onClick={() => setMembersOpen(true)}
       >
+        <RiSearchLine data-icon="inline-start" />
         搜索姓名选人
       </Button>
-      {!canUpload ? (
-        <p className="rounded-lg bg-muted p-3 text-sm leading-6">
-          {capabilities.error ||
-            (caps ? "合照功能暂未开放" : "正在检查合照服务")}
-        </p>
-      ) : (
+      {canUpload ? (
         <>
-          <div className="space-y-2 border-t pt-4 text-sm leading-6">
-            <h2 className="font-semibold">合照选人</h2>
-            <p className="text-muted-foreground">
-              合照存入私有存储，由腾讯云匹配已授权人脸，仅提供候选名单。上传前请征得入镜者同意，并裁剪或遮挡旁人
-            </p>
-            <PocketConsent
-              checked={consented}
-              onChange={setConsented}
-              disabled={action.busy}
-            >
-              所有入镜者已知情同意，可用此合照识别选人
-            </PocketConsent>
-            <PocketConsent
-              checked={album}
-              onChange={setAlbum}
-              disabled={action.busy}
-            >
-              另行保留为聚餐合照，仅向同意相册访问的成员开放
-            </PocketConsent>
+          <FieldSet className="gap-3 border-t pt-4">
+            <FieldLegend variant="label" className="mb-0">
+              合照选人
+            </FieldLegend>
+            <FieldDescription className="leading-6">
+              合照私密保存，腾讯云仅匹配已授权人脸，结果需核对。请先征得入镜者同意，并裁剪或遮挡旁人
+            </FieldDescription>
+            <FieldGroup className="gap-0">
+              <PocketConsent
+                checked={consented}
+                onChange={setConsented}
+                disabled={action.busy}
+              >
+                入镜者均已知情同意用合照识别选人
+              </PocketConsent>
+              <PocketConsent
+                checked={album}
+                onChange={setAlbum}
+                disabled={action.busy}
+              >
+                保留为聚餐合照，仅同意访问的成员可查看
+              </PocketConsent>
+            </FieldGroup>
             <p className="text-xs text-muted-foreground">
-              临时合照保留 24 小时，留念合照保留 30 天，到期自动清理
+              临时合照 24 小时后删除，留念合照 30 天后删除
             </p>
-          </div>
+          </FieldSet>
           <PocketPhotoPicker
             photos={photos}
             onChange={setPhotos}
@@ -219,12 +240,17 @@ export function PocketCapture({ pocketId }: { pocketId: string }) {
             )}
           />
           <Button
+            size="touch"
             className="w-full"
             disabled={action.busy || !consented || !photos.length}
             onClick={() => void upload()}
           >
-            {action.busy ? <Spinner /> : null}上传并
-            {caps?.faceRecognitionAvailable ? "识别" : "手动选人"}
+            {action.busy ? (
+              <Spinner data-icon="inline-start" />
+            ) : (
+              <RiUploadLine data-icon="inline-start" />
+            )}
+            {caps?.faceRecognitionAvailable ? "上传并识别" : "上传合照"}
           </Button>
           {progress ? (
             <p
@@ -235,7 +261,7 @@ export function PocketCapture({ pocketId }: { pocketId: string }) {
             </p>
           ) : null}
         </>
-      )}
+      ) : null}
       {activeJob ? (
         <RecognitionProgress
           jobId={activeJob.id}
@@ -244,39 +270,43 @@ export function PocketCapture({ pocketId }: { pocketId: string }) {
         />
       ) : null}
       {current.photos.length ? (
-        <section className="space-y-3">
+        <section className="flex min-w-0 flex-col gap-3">
           <h2 className="text-sm font-semibold">
             已上传 {current.photos.length} 张
           </h2>
           <div className="grid grid-cols-2 gap-3">
             {current.photos.map((photo, index) => (
-              <div key={photo.id} className="space-y-2">
-                <ManagedImage
-                  src={photo.previewUrl}
-                  alt={`聚餐合照 ${index + 1}`}
-                  className="aspect-[4/3] rounded-lg"
-                />
-                <p className="text-xs text-muted-foreground">
+              <div key={photo.id} className="flex min-w-0 flex-col gap-2">
+                <div className="relative">
+                  <ManagedImage
+                    src={photo.previewUrl}
+                    alt={`聚餐合照 ${index + 1}`}
+                    className="aspect-[4/3] rounded-lg"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon-xs"
+                    className="absolute right-2 top-2 bg-card text-destructive"
+                    aria-label={`删除合照 ${index + 1}`}
+                    disabled={action.busy}
+                    onClick={() => setDeletingPhoto(photo.id)}
+                  >
+                    <RiDeleteBinLine />
+                  </Button>
+                </div>
+                <p className="text-xs leading-5 text-muted-foreground">
                   {photo.detectedFaceCount > 0
                     ? `检测到 ${photo.detectedFaceCount} 张人脸`
                     : "等待识别"}
-                  {photo.errorCode ? " · 识别未完成，可补拍或手选" : ""}
+                  {photo.errorCode ? " · 请补拍或手选" : ""}
                 </p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full"
-                  disabled={action.busy}
-                  onClick={() => setDeletingPhoto(photo.id)}
-                >
-                  删除照片
-                </Button>
               </div>
             ))}
           </div>
           {caps?.faceRecognitionAvailable ? (
             <Button
               variant="outline"
+              size="touch"
               className="w-full"
               disabled={
                 action.busy ||
@@ -300,7 +330,7 @@ export function PocketCapture({ pocketId }: { pocketId: string }) {
                 )
               }
             >
-              重新识别已上传合照
+              重新识别
             </Button>
           ) : null}
         </section>
@@ -361,7 +391,7 @@ function RecognitionProgress({
     return () => window.clearTimeout(timer);
   }, [result.data, onCompleted, onUpdate]);
   return (
-    <div className="space-y-3">
+    <div className="flex min-w-0 flex-col gap-3">
       <PocketError
         message={result.error || action.error}
         retry={action.pending ? action.recover : result.refresh}
@@ -378,9 +408,15 @@ function RecognitionProgress({
             })
           }
         />
-      ) : (
-        <PocketLoading />
-      )}
+      ) : !result.error ? (
+        <div
+          role="status"
+          className="flex items-center gap-2 text-sm text-muted-foreground"
+        >
+          <Spinner />
+          正在加载识别进度
+        </div>
+      ) : null}
     </div>
   );
 }

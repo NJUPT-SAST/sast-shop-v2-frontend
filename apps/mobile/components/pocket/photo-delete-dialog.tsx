@@ -48,23 +48,32 @@ export function PocketPhotoDeleteDialog({
       }}
     >
       <DrawerContent className="max-h-[88dvh] overflow-clip">
-        <DrawerHeader>
+        <DrawerHeader className="shrink-0 pb-3 text-center">
           <DrawerTitle>删除这张合照？</DrawerTitle>
-          <DrawerDescription>
-            删除后不能再查看这张照片，已有分摊名单与账单不受影响
+          <DrawerDescription className="leading-6">
+            照片删除后无法查看，分摊名单和账单不受影响
           </DrawerDescription>
         </DrawerHeader>
-        <div className="app-scrollbar min-h-0 flex-1 overflow-y-auto px-4">
+        <div
+          className="app-scrollbar min-h-0 flex-1 overflow-y-auto px-4"
+          aria-busy={action.busy}
+        >
           <PocketError
             message={action.error}
             retry={action.pending ? action.recover : undefined}
           />
         </div>
         <DrawerFooter>
-          <Button variant="outline" disabled={action.busy} onClick={onClose}>
+          <Button
+            size="touch"
+            variant="outline"
+            disabled={action.busy}
+            onClick={onClose}
+          >
             保留照片
           </Button>
           <Button
+            size="touch"
             variant="destructive"
             disabled={action.busy}
             onClick={() => {
@@ -78,7 +87,7 @@ export function PocketPhotoDeleteDialog({
               });
             }}
           >
-            {action.busy ? <Spinner /> : null}
+            {action.busy ? <Spinner data-icon="inline-start" /> : null}
             确认删除
           </Button>
         </DrawerFooter>

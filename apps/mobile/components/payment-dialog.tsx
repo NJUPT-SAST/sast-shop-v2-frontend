@@ -58,6 +58,8 @@ export type PaymentDialogProps = {
   status: PaymentDialogStatus;
   errorMessage?: string;
   submitting?: boolean;
+  allowedPlatforms?: readonly PaymentPlatform[];
+  dismissible?: boolean;
   onPay: (platform: PaymentPlatform) => void | Promise<void>;
   onCancelPayment: () => void;
   onRetry?: () => void;
@@ -83,15 +85,26 @@ const PAYMENT_PLATFORMS: Array<{
   },
 ];
 
+const DEFAULT_ALLOWED_PLATFORMS = ["wechat", "alipay"] as const;
+
 export function PaymentDialog({
   open,
   onOpenChange,
+  dismissible = true,
   ...props
 }: PaymentDialogProps) {
   return (
-    <ResponsiveDialog forceDrawer open={open} onOpenChange={onOpenChange}>
+    <ResponsiveDialog
+      forceDrawer
+      open={open}
+      onOpenChange={onOpenChange}
+      dismissible={dismissible}
+    >
       {open ? (
-        <PaymentDialogBody key={props.defaultPlatform} {...props} />
+        <PaymentDialogBody
+          key={`${props.defaultPlatform}:${(props.allowedPlatforms ?? DEFAULT_ALLOWED_PLATFORMS).join(",")}`}
+          {...props}
+        />
       ) : null}
     </ResponsiveDialog>
   );
@@ -107,11 +120,19 @@ function PaymentDialogBody({
   status,
   errorMessage,
   submitting = false,
+  allowedPlatforms = DEFAULT_ALLOWED_PLATFORMS,
   onPay,
   onCancelPayment,
   onRetry,
 }: Omit<PaymentDialogProps, "open" | "onOpenChange">) {
-  const [platform, setPlatform] = useState<PaymentPlatform>(defaultPlatform);
+  const platforms = PAYMENT_PLATFORMS.filter((item) =>
+    allowedPlatforms.includes(item.platform),
+  );
+  const [platform, setPlatform] = useState<PaymentPlatform>(
+    allowedPlatforms.includes(defaultPlatform)
+      ? defaultPlatform
+      : (platforms[0]?.platform ?? defaultPlatform),
+  );
   const [savedPlatforms, setSavedPlatforms] = useState<
     Partial<Record<PaymentPlatform, boolean>>
   >({});
@@ -126,7 +147,8 @@ function PaymentDialogBody({
     Partial<Record<PaymentPlatform, HTMLCanvasElement | null>>
   >({});
   const qrCodeContent = qrCodes[platform];
-  const hasQrCode = Boolean(qrCodeContent);
+  const hasQrCode =
+    allowedPlatforms.includes(platform) && Boolean(qrCodeContent);
 
   function openScanner() {
     if (!qrCodeContent) {
@@ -163,7 +185,7 @@ function PaymentDialogBody({
   }
 
   function handlePay() {
-    if (!qrCodeContent || submitting || status !== "ready") {
+    if (!hasQrCode || submitting || status !== "ready") {
       return;
     }
 
@@ -181,11 +203,11 @@ function PaymentDialogBody({
   }
 
   function switchPlatform(direction: 1 | -1) {
-    const currentIndex = PAYMENT_PLATFORMS.findIndex(
+    const currentIndex = platforms.findIndex(
       (item) => item.platform === platform,
     );
     const nextIndex = currentIndex + direction;
-    const nextPlatform = PAYMENT_PLATFORMS[nextIndex]?.platform;
+    const nextPlatform = platforms[nextIndex]?.platform;
 
     if (nextPlatform) {
       selectPlatform(nextPlatform);
@@ -193,11 +215,12 @@ function PaymentDialogBody({
   }
 
   function selectPlatform(nextPlatform: PaymentPlatform) {
-    if (nextPlatform === platform) return;
-    const currentIndex = PAYMENT_PLATFORMS.findIndex(
+    if (nextPlatform === platform || !allowedPlatforms.includes(nextPlatform))
+      return;
+    const currentIndex = platforms.findIndex(
       (item) => item.platform === platform,
     );
-    const nextIndex = PAYMENT_PLATFORMS.findIndex(
+    const nextIndex = platforms.findIndex(
       (item) => item.platform === nextPlatform,
     );
     setTransitionDirection(nextIndex > currentIndex ? "next" : "previous");
@@ -267,7 +290,7 @@ function PaymentDialogBody({
           <Empty
             icon={<RiCheckboxCircleLine className="size-5 text-primary" />}
             title="已提交支付确认"
-            description="订单已进入待确认收款状态，请等待收款人核验。"
+            description="账单已进入待确认收款状态，请等待收款人核验。"
           />
         ) : null}
         {status === "ready" ? (
@@ -285,117 +308,113 @@ function PaymentDialogBody({
               }
               className="min-h-0 flex-col"
             >
-              <TabsList className="grid w-full grid-cols-2">
-                {PAYMENT_PLATFORMS.map(
-                  ({ platform: value, label, icon: Icon }) => (
-                    <TabsTrigger key={value} value={value}>
-                      <Icon
-                        data-icon="inline-start"
-                        aria-hidden="true"
-                        className={
-                          value === "wechat"
-                            ? "text-[#07c160]"
-                            : "text-[#1677ff]"
-                        }
-                      />
-                      {label}
-                    </TabsTrigger>
-                  ),
+              <TabsList
+                className={cn(
+                  "grid w-full",
+                  platforms.length === 1 ? "grid-cols-1" : "grid-cols-2",
                 )}
+              >
+                {platforms.map(({ platform: value, label, icon: Icon }) => (
+                  <TabsTrigger key={value} value={value}>
+                    <Icon
+                      data-icon="inline-start"
+                      aria-hidden="true"
+                      className={
+                        value === "wechat" ? "text-[#07c160]" : "text-[#1677ff]"
+                      }
+                    />
+                    {label}
+                  </TabsTrigger>
+                ))}
               </TabsList>
-              {PAYMENT_PLATFORMS.map(
-                ({ platform: value, label, scannerLabel }) => {
-                  const panelQrCodeContent = qrCodes[value];
-                  const panelHasQrCode = Boolean(panelQrCodeContent);
-                  const panelQrSaved = Boolean(savedPlatforms[value]);
-                  const panelScannerAttempted = Boolean(
-                    attemptedPlatforms[value],
-                  );
+              {platforms.map(({ platform: value, label, scannerLabel }) => {
+                const panelQrCodeContent = qrCodes[value];
+                const panelHasQrCode = Boolean(panelQrCodeContent);
+                const panelQrSaved = Boolean(savedPlatforms[value]);
+                const panelScannerAttempted = Boolean(
+                  attemptedPlatforms[value],
+                );
 
-                  return (
-                    <TabsContent
-                      key={value}
-                      value={value}
-                      className={cn(
-                        "mt-2 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200",
-                        transitionDirection === "next"
-                          ? "motion-safe:slide-in-from-right-3"
-                          : "motion-safe:slide-in-from-left-3",
-                      )}
+                return (
+                  <TabsContent
+                    key={value}
+                    value={value}
+                    className={cn(
+                      "mt-2 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200",
+                      transitionDirection === "next"
+                        ? "motion-safe:slide-in-from-right-3"
+                        : "motion-safe:slide-in-from-left-3",
+                    )}
+                  >
+                    <div
+                      className="flex flex-col gap-4"
+                      onTouchStart={handleTouchStart}
+                      onTouchEnd={handleTouchEnd}
+                      onTouchCancel={() => {
+                        touchStartRef.current = null;
+                      }}
                     >
                       <div
-                        className="flex flex-col gap-4"
-                        onTouchStart={handleTouchStart}
-                        onTouchEnd={handleTouchEnd}
-                        onTouchCancel={() => {
-                          touchStartRef.current = null;
-                        }}
+                        className={cn(
+                          "flex flex-col items-center gap-3",
+                          panelHasQrCode && "rounded-lg bg-muted p-3",
+                        )}
                       >
-                        <div
-                          className={cn(
-                            "flex flex-col items-center gap-3",
-                            panelHasQrCode && "rounded-lg bg-muted p-3",
-                          )}
-                        >
-                          {panelQrCodeContent ? (
-                            <PaymentQrCode
-                              content={panelQrCodeContent}
-                              channel={value}
-                              canvasRef={(canvas) => {
-                                qrCanvasRefs.current[value] = canvas;
-                              }}
-                            />
-                          ) : (
-                            <Empty
-                              illustration={
-                                <BrandIllustration
-                                  name="collection"
-                                  size={80}
-                                />
-                              }
-                              title="暂无收款码"
-                              description={`收款人还没有配置${label}收款码。`}
-                            />
-                          )}
-                        </div>
-
-                        <Separator />
-
-                        <div className="grid gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            disabled={!panelHasQrCode}
-                            onClick={saveQrCode}
-                          >
-                            {panelQrSaved ? (
-                              <RiCheckboxCircleLine data-icon="inline-start" />
-                            ) : (
-                              <RiDownload2Line data-icon="inline-start" />
-                            )}
-                            {panelQrSaved ? "收款码已保存" : "保存收款码"}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant={panelQrSaved ? "secondary" : "outline"}
-                            disabled={!panelHasQrCode || !panelQrSaved}
-                            onClick={openScanner}
-                          >
-                            {panelScannerAttempted ? (
-                              <RiCheckboxCircleLine data-icon="inline-start" />
-                            ) : (
-                              <RiQrScan2Line data-icon="inline-start" />
-                            )}
-                            {panelScannerAttempted
-                              ? `已尝试打开${scannerLabel}`
-                              : `打开${scannerLabel}扫一扫`}
-                          </Button>
-                        </div>
+                        {panelQrCodeContent ? (
+                          <PaymentQrCode
+                            content={panelQrCodeContent}
+                            channel={value}
+                            canvasRef={(canvas) => {
+                              qrCanvasRefs.current[value] = canvas;
+                            }}
+                          />
+                        ) : (
+                          <Empty
+                            illustration={
+                              <BrandIllustration name="collection" size={80} />
+                            }
+                            title="暂无收款码"
+                            description={`收款人还没有配置${label}收款码。`}
+                          />
+                        )}
                       </div>
-                    </TabsContent>
-                  );
-                },
-              )}
+
+                      <Separator />
+
+                      <div className="grid gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={!panelHasQrCode}
+                          onClick={saveQrCode}
+                        >
+                          {panelQrSaved ? (
+                            <RiCheckboxCircleLine data-icon="inline-start" />
+                          ) : (
+                            <RiDownload2Line data-icon="inline-start" />
+                          )}
+                          {panelQrSaved ? "收款码已保存" : "保存收款码"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={panelQrSaved ? "secondary" : "outline"}
+                          disabled={!panelHasQrCode || !panelQrSaved}
+                          onClick={openScanner}
+                        >
+                          {panelScannerAttempted ? (
+                            <RiCheckboxCircleLine data-icon="inline-start" />
+                          ) : (
+                            <RiQrScan2Line data-icon="inline-start" />
+                          )}
+                          {panelScannerAttempted
+                            ? `已尝试打开${scannerLabel}`
+                            : `打开${scannerLabel}扫一扫`}
+                        </Button>
+                      </div>
+                    </div>
+                  </TabsContent>
+                );
+              })}
             </Tabs>
           </div>
         ) : null}
@@ -403,7 +422,12 @@ function PaymentDialogBody({
 
       {status === "ready" ? (
         <ResponsiveDialogFooter>
-          <Button type="button" variant="outline" onClick={onCancelPayment}>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={submitting}
+            onClick={onCancelPayment}
+          >
             稍后支付
           </Button>
           <Button
@@ -417,13 +441,18 @@ function PaymentDialogBody({
         </ResponsiveDialogFooter>
       ) : status === "submitted" ? (
         <ResponsiveDialogFooter>
-          <Button type="button" onClick={onCancelPayment}>
+          <Button type="button" disabled={submitting} onClick={onCancelPayment}>
             完成
           </Button>
         </ResponsiveDialogFooter>
       ) : status === "error" ? (
         <ResponsiveDialogFooter>
-          <Button type="button" variant="outline" onClick={onCancelPayment}>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={submitting}
+            onClick={onCancelPayment}
+          >
             关闭
           </Button>
         </ResponsiveDialogFooter>

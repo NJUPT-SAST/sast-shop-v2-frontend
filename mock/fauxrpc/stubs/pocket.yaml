@@ -81,6 +81,90 @@ stubs:
           billStatus: unpaid
           billUpdatedAt: "2026-10-06T08:00:00.123456789Z"
           albumAccess: pending
+  # Stateless fixtures echo selections on save but do not persist them across RPCs.
+  # Preview/publish demonstrate a fixed 12000-cent split between the owner and user 42.
+  - id: pocket-replace-members
+    target: sast.sastshopv2.westpocket.v1.WestPocketService/ReplaceMembers
+    active_if: req.pocket_id == 7101
+    priority: 100
+    cel_content: |
+      {
+        'pocket': {
+          'id': 7101,
+          'owner_id': 10001,
+          'title': '周五晚饭',
+          'total_cents': 12000,
+          'status': 'draft',
+          'revision': req.expected_revision + 1,
+          'participant_count': size(req.members),
+          'is_owner': true,
+          'owner': {'id': 10001, 'name': '阮小妍'}
+        },
+        'members': req.members.map(member, {
+          'id': member.user_id == 10001 ? 7201 : member.user_id,
+          'user_id': member.user_id,
+          'user': {
+            'id': member.user_id,
+            'name': member.user_id == 10001 ? '阮小妍' : member.user_id == 42 ? '张同学' : '李同学'
+          },
+          'selection_source': member.selection_source,
+          'face_match_id': member.face_match_id,
+          'is_owner': member.user_id == 10001,
+          'album_access': 'pending'
+        })
+      }
+  - id: pocket-preview-split
+    target: sast.sastshopv2.westpocket.v1.WestPocketService/PreviewSplit
+    active_if: req.pocket_id == 7101
+    priority: 100
+    cel_content: |
+      {
+        'pocket_id': 7101,
+        'revision': req.expected_revision,
+        'total_cents': 12000,
+        'participant_count': 2,
+        'owner_share_cents': 6000,
+        'receivable_cents': 6000,
+        'members': [
+          {
+            'id': 7201,
+            'user_id': 10001,
+            'user': {'id': 10001, 'name': '阮小妍'},
+            'selection_source': 'owner',
+            'share_cents': 6000,
+            'is_owner': true,
+            'album_access': 'pending'
+          },
+          {
+            'id': 42,
+            'user_id': 42,
+            'user': {'id': 42, 'name': '张同学'},
+            'selection_source': 'search',
+            'share_cents': 6000,
+            'album_access': 'pending'
+          }
+        ]
+      }
+  - id: pocket-publish
+    target: sast.sastshopv2.westpocket.v1.WestPocketService/PublishPocket
+    active_if: req.pocket_id == 7101
+    priority: 100
+    cel_content: |
+      {
+        'pocket': {
+          'id': 7101,
+          'owner_id': 10001,
+          'title': '周五晚饭',
+          'total_cents': 12000,
+          'status': 'collecting',
+          'revision': req.expected_revision + 1,
+          'participant_count': 2,
+          'owner_share_cents': 6000,
+          'receivable_cents': 6000,
+          'is_owner': true,
+          'owner': {'id': 10001, 'name': '阮小妍'}
+        }
+      }
   - id: pocket-payment
     target: sast.sastshopv2.westpocket.v1.WestPocketService/GetMyPayment
     content:
@@ -102,6 +186,14 @@ stubs:
   - id: pocket-face-profile
     target: sast.sastshopv2.westpocket.v1.FaceProfileService/GetMyFaceProfile
     content: {}
+  # These stateless sample pockets have no uploaded album photos or additional pages.
+  - id: pocket-album-empty
+    target: sast.sastshopv2.westpocket.v1.WestPocketService/ListAlbumPhotos
+    active_if: req.pocket_id == 7101 || req.pocket_id == 7102
+    priority: 100
+    content:
+      photos: []
+      nextPageToken: ""
   - id: pocket-recognition
     target: sast.sastshopv2.westpocket.v1.WestPocketService/GetRecognitionResults
     content: {}

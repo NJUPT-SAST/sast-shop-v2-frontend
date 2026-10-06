@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { RiSearchLine } from "@remixicon/react";
 import {
   getPocket,
   getPocketRecognition,
@@ -27,7 +28,12 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card";
 import { Field, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
-import { Input } from "@workspace/ui/components/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@workspace/ui/components/input-group";
+import { Empty } from "@workspace/ui/components/empty";
 import { Spinner } from "@workspace/ui/components/spinner";
 import {
   Drawer,
@@ -98,6 +104,8 @@ export function PocketMembersDrawer({
   );
   const [preview, setPreview] = useState<PocketSplit | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  const hasRoundingRemainder =
+    new Set(preview?.members.map((member) => member.shareCents)).size > 1;
   const matches = usePocketResource(
     useCallback(
       () => getPocketRecognition(detail.pocket.id, undefined, options),
@@ -152,6 +160,7 @@ export function PocketMembersDrawer({
     for (const candidate of match.candidates)
       allUsers.set(candidate.user.id, candidate.user);
   const currentResults = results?.query === query.trim() ? results : null;
+  const currentSearchError = query.trim() && currentResults ? searchError : "";
   for (const user of currentResults?.users ?? []) allUsers.set(user.id, user);
   const visibleUsers = query.trim()
     ? (currentResults?.users ?? [])
@@ -250,16 +259,20 @@ export function PocketMembersDrawer({
       }}
       dismissible={!action.busy}
     >
-      <DrawerContent className="max-h-[88dvh] overflow-clip">
+      <DrawerContent className="max-h-[88dvh] overflow-clip sm:mx-auto sm:max-w-lg">
         <DrawerHeader className="shrink-0">
           <DrawerTitle>{preview ? "核对分摊金额" : "选择分摊人"}</DrawerTitle>
           <DrawerDescription
             className={
-              !preview && !matches.data?.length ? "sr-only" : undefined
+              (preview ? hasRoundingRemainder : matches.data?.length)
+                ? "text-center"
+                : "sr-only"
             }
           >
             {preview
-              ? "尾差由部分成员多承担 0.01 元，请核对每人金额"
+              ? hasRoundingRemainder
+                ? "部分成员多分摊 0.01 元"
+                : "核对名单和每人金额后发起收款"
               : "识别结果仅供参考，请选择实际分摊的人"}
           </DrawerDescription>
         </DrawerHeader>
@@ -269,22 +282,27 @@ export function PocketMembersDrawer({
               <FieldLabel className="sr-only" htmlFor="pocket-member-search">
                 搜索姓名
               </FieldLabel>
-              <Input
-                id="pocket-member-search"
-                placeholder={
-                  resolving ? "输入姓名，关联这位未识别的人" : "搜索姓名"
-                }
-                value={query}
-                maxLength={100}
-                disabled={action.busy}
-                onChange={(event) => setQuery(event.target.value)}
-              />
+              <InputGroup>
+                <InputGroupAddon>
+                  <RiSearchLine />
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="pocket-member-search"
+                  placeholder={
+                    resolving ? "输入姓名，关联这位未识别的人" : "搜索姓名"
+                  }
+                  value={query}
+                  maxLength={100}
+                  disabled={action.busy}
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+              </InputGroup>
             </Field>
             {resolving ? (
               <div className="flex items-center justify-between gap-2 text-xs">
                 <span>正在确认第 {resolving.faceIndex + 1} 张人脸</span>
                 <Button
-                  size="sm"
+                  size="touch"
                   variant="ghost"
                   onClick={() => setResolving(null)}
                 >
@@ -296,12 +314,12 @@ export function PocketMembersDrawer({
         ) : null}
         <div className="app-scrollbar flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
           <PocketError
-            message={action.error || searchError}
+            message={action.error || currentSearchError}
             retry={action.pending ? action.recover : undefined}
           />
           <PocketError
             message={
-              matches.error ? "合照候选暂不可用，你可以继续搜索姓名选人。" : ""
+              matches.error ? "合照候选暂不可用，你可以继续搜索姓名选人" : ""
             }
             retry={matches.error ? matches.refresh : undefined}
           />
@@ -333,12 +351,12 @@ export function PocketMembersDrawer({
                   </dd>
                 </div>
               </dl>
-              <div className="divide-y">
+              <div className="divide-y divide-border/70">
                 {preview.members.map((member) => (
                   <PocketPerson
                     key={member.userId}
                     user={member.user}
-                    detail={member.isOwner ? "自身份额，无需付款" : undefined}
+                    detail={member.isOwner ? "自身份额" : undefined}
                     action={
                       <span className="shrink-0 font-semibold tabular-nums">
                         {pocketMoney(member.shareCents)}
@@ -352,7 +370,7 @@ export function PocketMembersDrawer({
                 onChange={setConfirmed}
                 disabled={action.busy}
               >
-                已核对人数、名单和金额，发起后金额与名单将固定
+                已核对名单和金额，发起后不可修改
               </PocketConsent>
             </div>
           ) : (
@@ -363,7 +381,7 @@ export function PocketMembersDrawer({
                     <CardTitle className="text-sm">
                       {unknownMatches.length} 张人脸待确认
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="leading-5">
                       搜索姓名关联，或跳过后手动添加
                     </CardDescription>
                   </CardHeader>
@@ -376,11 +394,11 @@ export function PocketMembersDrawer({
                             (photo) => photo.id === face.photoId,
                           )}
                         />
-                        <span className="min-w-0 flex-1 text-xs">
+                        <span className="min-w-0 flex-1 text-sm">
                           第 {face.faceIndex + 1} 张人脸
                         </span>
                         <Button
-                          size="sm"
+                          size="touch"
                           variant="outline"
                           disabled={action.busy}
                           onClick={() => {
@@ -391,7 +409,7 @@ export function PocketMembersDrawer({
                           搜索
                         </Button>
                         <Button
-                          size="sm"
+                          size="touch"
                           variant="ghost"
                           disabled={action.busy}
                           onClick={() => void resolve(face)}
@@ -406,23 +424,20 @@ export function PocketMembersDrawer({
               {query.trim() && !currentResults ? (
                 <div
                   role="status"
-                  className="flex justify-center gap-2 py-6 text-sm"
+                  className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground"
                 >
                   <Spinner />
-                  搜索中
+                  正在搜索姓名
                 </div>
               ) : null}
-              {currentResults?.users.length === 0 ? (
-                <p className="py-6 text-center text-sm text-muted-foreground">
-                  没有找到该姓名，对方需先登录商城
-                </p>
+              {currentResults?.users.length === 0 && !currentSearchError ? (
+                <Empty
+                  className="min-h-0 py-6"
+                  title="没有找到该姓名"
+                  description="对方需先登录商城"
+                />
               ) : null}
-              {!query.trim() && visibleUsers.length === 0 ? (
-                <p className="py-6 text-sm text-muted-foreground">
-                  输入姓名添加分摊人
-                </p>
-              ) : null}
-              <div className="divide-y">
+              <div className="divide-y divide-border/70">
                 {visibleUsers.map((user) => {
                   return (
                     <PocketPerson
@@ -434,21 +449,23 @@ export function PocketMembersDrawer({
                       action={
                         resolving ? (
                           <Button
-                            size="sm"
+                            size="touch"
                             disabled={action.busy}
                             onClick={() => void resolve(resolving, user)}
                           >
                             关联并选中
                           </Button>
                         ) : (
-                          <Checkbox
-                            aria-label={`选择 ${user.name}`}
-                            checked={selected.has(user.id)}
-                            disabled={action.busy}
-                            onCheckedChange={(value) =>
-                              select(user, value === true)
-                            }
-                          />
+                          <label className="flex size-11 shrink-0 items-center justify-center">
+                            <Checkbox
+                              aria-label={`选择 ${user.name}`}
+                              checked={selected.has(user.id)}
+                              disabled={action.busy}
+                              onCheckedChange={(value) =>
+                                select(user, value === true)
+                              }
+                            />
+                          </label>
                         )
                       }
                     />
@@ -458,6 +475,7 @@ export function PocketMembersDrawer({
               {currentResults?.nextPageToken ? (
                 <Button
                   variant="ghost"
+                  size="touch"
                   className="w-full"
                   disabled={action.busy}
                   onClick={() =>
@@ -492,10 +510,25 @@ export function PocketMembersDrawer({
             </>
           )}
         </div>
-        <DrawerFooter className="flex-col items-stretch border-t [&>[data-slot=button]]:flex-none">
+        <DrawerFooter
+          className={
+            preview
+              ? "border-t"
+              : "flex-col items-stretch gap-3 border-t [&>[data-slot=button]]:flex-none"
+          }
+        >
           {preview ? (
             <>
               <Button
+                variant="outline"
+                size="touch"
+                disabled={action.busy}
+                onClick={() => setPreview(null)}
+              >
+                调整名单
+              </Button>
+              <Button
+                size="touch"
                 disabled={
                   action.busy || !confirmed || current.status !== "draft"
                 }
@@ -521,31 +554,44 @@ export function PocketMembersDrawer({
               >
                 {action.busy ? <Spinner /> : null}发起收款
               </Button>
-              <Button
-                variant="ghost"
-                disabled={action.busy}
-                onClick={() => setPreview(null)}
-              >
-                返回调整名单
-              </Button>
             </>
           ) : (
             <>
-              <div className="flex justify-between gap-3 text-sm">
-                <span>已选 {selected.size} 人</span>
-                <span>合计 {pocketMoney(current.totalCents)}</span>
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-muted-foreground">
+                  已选{" "}
+                  <span className="font-medium tabular-nums text-foreground">
+                    {selected.size}
+                  </span>{" "}
+                  人
+                </span>
+                <span className="font-medium tabular-nums">
+                  合计 {pocketMoney(current.totalCents)}
+                </span>
               </div>
-              <Button
-                disabled={
-                  action.busy || selected.size < 2 || current.status !== "draft"
-                }
-                onClick={previewSelection}
-              >
-                {action.busy ? <Spinner /> : null}保存名单并预览分摊
-              </Button>
-              <p className="text-center text-xs text-muted-foreground">
-                至少选择 2 人，下一步核对每人金额
-              </p>
+              <div className="flex items-stretch gap-2">
+                <Button
+                  variant="outline"
+                  size="touch"
+                  className="min-w-0 flex-1"
+                  disabled={action.busy}
+                  onClick={onClose}
+                >
+                  取消
+                </Button>
+                <Button
+                  size="touch"
+                  className="h-auto min-h-11 min-w-0 flex-1 whitespace-normal py-2"
+                  disabled={
+                    action.busy ||
+                    selected.size < 2 ||
+                    current.status !== "draft"
+                  }
+                  onClick={previewSelection}
+                >
+                  {action.busy ? <Spinner /> : null}核对分摊金额
+                </Button>
+              </div>
             </>
           )}
         </DrawerFooter>

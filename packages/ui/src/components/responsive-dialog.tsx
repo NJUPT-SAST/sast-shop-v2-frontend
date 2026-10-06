@@ -58,19 +58,24 @@ function ResponsiveDialog({
   onOpenChange,
   children,
   forceDrawer = false,
+  dismissible = true,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
   forceDrawer?: boolean;
+  dismissible?: boolean;
 }) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const mode = forceDrawer || !isDesktop ? "drawer" : "dialog";
+  const changeOpen = (nextOpen: boolean) => {
+    if (nextOpen || dismissible) onOpenChange(nextOpen);
+  };
 
   if (mode === "dialog") {
     return (
       <ResponsiveDialogModeContext.Provider value={mode}>
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={changeOpen}>
           {children}
         </Dialog>
       </ResponsiveDialogModeContext.Provider>
@@ -79,7 +84,7 @@ function ResponsiveDialog({
 
   return (
     <ResponsiveDialogModeContext.Provider value={mode}>
-      <Drawer open={open} onOpenChange={onOpenChange}>
+      <Drawer open={open} onOpenChange={changeOpen} dismissible={dismissible}>
         {children}
       </Drawer>
     </ResponsiveDialogModeContext.Provider>

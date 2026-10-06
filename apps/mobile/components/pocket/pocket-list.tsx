@@ -3,6 +3,12 @@ import { useCallback } from "react";
 import Link from "next/link";
 import { listMyPockets } from "@sast-shop/api";
 import { Badge } from "@workspace/ui/components/badge";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar";
+import { RiUser3Line } from "@remixicon/react";
 import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
 import { Empty } from "@workspace/ui/components/empty";
 import { BrandIllustration } from "../brand-illustration";
@@ -52,7 +58,7 @@ function PocketListContent({
   const action = usePocketAction();
   return (
     <>
-      <PocketError message={error || action.error} retry={refresh} />
+      <PocketError message={error} retry={refresh} />
       {!data && !error ? <PocketLoading /> : null}
       {data?.pockets.length === 0 ? (
         <Empty
@@ -60,8 +66,8 @@ function PocketListContent({
           title="还没有 Pocket"
           description={
             perspective === "owner"
-              ? "发起一次 Pocket，记录分摊与收款"
-              : "加入分摊后，可在这里查看账单和活动"
+              ? "发起 Pocket，记录分摊与收款"
+              : "参与的分摊会显示在这里"
           }
         />
       ) : null}
@@ -70,10 +76,10 @@ function PocketListContent({
           <Link
             key={pocket.id}
             href={`/pocket/${pocket.id}`}
-            className="group block min-w-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="group block min-w-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Card className="min-w-0 overflow-hidden rounded-lg transition-colors group-hover:border-primary/40">
-              <CardHeader className="gap-2 pb-3">
+            <Card className="min-w-0 overflow-hidden rounded-lg transition-colors group-hover:border-primary/40 group-active:border-primary/40 motion-reduce:transition-none">
+              <CardHeader className="gap-2 p-3">
                 <div className="flex items-start justify-between gap-3">
                   <CardTitle className="line-clamp-2 min-w-0 flex-1 text-base leading-6">
                     {pocket.title || "Pocket"}
@@ -95,8 +101,22 @@ function PocketListContent({
                     {pocketStatusLabel(pocket.status)}
                   </Badge>
                 </div>
+                <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+                  <Avatar className="size-6 shrink-0">
+                    <AvatarImage src={pocket.owner.avatarUrl} alt="" />
+                    <AvatarFallback>
+                      {Array.from(pocket.owner.name)[0] || (
+                        <RiUser3Line className="size-4" />
+                      )}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="min-w-0 truncate">
+                    {pocket.owner.name || "收款人"}
+                  </span>
+                  <span className="shrink-0 text-xs">发起</span>
+                </div>
               </CardHeader>
-              <CardFooter className="min-w-0 justify-between gap-3 border-t bg-muted/30 px-4 py-3">
+              <CardFooter className="min-w-0 justify-between gap-3 border-t bg-muted/30 px-3 py-2">
                 <span className="text-sm text-muted-foreground">
                   {pocket.participantCount} 人参与
                 </span>
@@ -139,7 +159,7 @@ function PocketListContent({
                 });
               });
             }}
-          />{" "}
+          />
         </div>
       ) : null}
     </>

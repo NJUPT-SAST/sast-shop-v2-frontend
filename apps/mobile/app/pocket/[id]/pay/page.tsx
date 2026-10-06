@@ -1,5 +1,4 @@
-import { notFound } from "next/navigation";
-import { PocketPaymentPage } from "@/components/pocket/pocket-payment";
+import { notFound, redirect } from "next/navigation";
 export default async function PayPage({
   params,
 }: {
@@ -7,5 +6,5 @@ export default async function PayPage({
 }) {
   const { id } = await params;
   if (!/^[1-9]\d{0,18}$/.test(id)) notFound();
-  return <PocketPaymentPage key={id} pocketId={id} />;
+  redirect(`/pocket/${id}?payment=1`);
 }

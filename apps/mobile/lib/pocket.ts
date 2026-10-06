@@ -24,12 +24,12 @@ export function pocketMoney(cents: number): string {
 export function pocketError(error: unknown): string {
   if (error instanceof AuthRequiredError) return "请登录后再试";
   if (error instanceof FeatureUnavailableError)
-    return "West Pocket 暂未开放，请稍后再试";
+    return "Pocket 暂未开放，请稍后再试";
   if (error instanceof ResourceNotFoundError)
     return "活动不存在，或你暂时没有访问权限";
   if (error instanceof Error && /[\u3400-\u9fff]/.test(error.message))
     return error.message;
-  return "操作未完成，请检查网络后重试。活动状态可能已更新，可先刷新核对。";
+  return "暂时无法确认结果，请刷新核实后重试";
 }
 
 export function pocketStatusLabel(status: string): string {
@@ -47,7 +47,7 @@ export function pocketStatusLabel(status: string): string {
 export function pocketPaymentLabel(status: string): string {
   const labels: Record<string, string> = {
     unpaid: "待付款",
-    submitted: "已标记付款，待确认",
+    submitted: "待确认到账",
     completed: "已确认到账",
     closed: "已关闭",
   };
@@ -69,14 +69,14 @@ export function pocketJobLabel(status: string): string {
 
 export function pocketJobError(code: string): string {
   const labels: Record<string, string> = {
-    NO_FACE: "没有检测到清晰人脸，请补拍或手动选人。",
-    LOW_QUALITY: "照片不够清晰，请在光线充足时重新拍摄。",
-    ONE_FACE_REQUIRED: "本人录入照片必须只包含一张人脸。",
-    FACE_LIMIT_REACHED: "照片中的人脸过多，请分组补拍。",
-    SAMPLE_REJECTED: "人脸样本未通过检查，请换一张正脸照片。",
-    PROVIDER_TIMEOUT: "识别服务响应超时，可稍后重试或手动选人。",
+    NO_FACE: "未识别到人脸，请补拍或手动选人",
+    LOW_QUALITY: "照片不清晰，请在光线充足时重拍",
+    ONE_FACE_REQUIRED: "照片中仅可有本人一张人脸",
+    FACE_LIMIT_REACHED: "人脸过多，请分组补拍",
+    SAMPLE_REJECTED: "照片未通过检查，请换一张清晰正脸照",
+    PROVIDER_TIMEOUT: "识别超时，请重试或手动选人",
   };
-  return labels[code] ?? "任务暂未完成，系统将继续尝试。也可以稍后刷新查看。";
+  return labels[code] ?? "处理未完成，请刷新查看";
 }
 
 export function pocketJobFinished(status: string): boolean {

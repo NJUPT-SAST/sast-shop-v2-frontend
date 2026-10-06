@@ -10,6 +10,8 @@ import {
   type ReactNode,
 } from "react";
 import type { ServiceOptions, PocketJob, PocketUser } from "@sast-shop/api";
+import { RiInformationLine, RiUser3Line } from "@remixicon/react";
+import { Alert, AlertDescription } from "@workspace/ui/components/alert";
 import {
   Avatar,
   AvatarFallback,
@@ -18,6 +20,7 @@ import {
 import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Skeleton } from "@workspace/ui/components/skeleton";
+import { LoadFailure } from "../load-failure";
 import { useTransactionAgreement } from "../transaction-agreement-provider";
 import { pocketError, pocketJobLabel, pocketJobError } from "@/lib/pocket";
 
@@ -179,6 +182,20 @@ export function usePocketPolling(refresh: () => void, active: boolean) {
   }, [refresh, active]);
 }
 
+export function PocketNotice({ children }: { children: ReactNode }) {
+  return (
+    <Alert
+      role="status"
+      className="border-[var(--badge-info-border)] bg-[var(--badge-info)] text-[var(--badge-info-foreground)]"
+    >
+      <RiInformationLine className="size-5" aria-hidden="true" />
+      <AlertDescription className="font-medium leading-6 text-current">
+        {children}
+      </AlertDescription>
+    </Alert>
+  );
+}
+
 export function PocketError({
   message,
   retry,
@@ -187,26 +204,18 @@ export function PocketError({
   retry?: () => void;
 }) {
   if (!message) return null;
-  return (
-    <div
-      role="alert"
-      className="space-y-2 rounded-lg border border-destructive/30 bg-card p-3 text-sm"
-    >
-      <p>{message}</p>
-      {retry ? (
-        <Button type="button" size="sm" variant="outline" onClick={retry}>
-          重新加载
-        </Button>
-      ) : null}
-    </div>
+  return retry ? (
+    <LoadFailure variant="compact" title={message} onRetry={retry} />
+  ) : (
+    <LoadFailure variant="compact" title={message} />
   );
 }
 export function PocketLoading() {
   return (
-    <div role="status" aria-label="正在加载" className="space-y-3 py-4">
-      <Skeleton className="h-24 w-full rounded-xl" />
-      <Skeleton className="h-14 w-full rounded-xl" />
-      <Skeleton className="h-14 w-full rounded-xl" />
+    <div role="status" aria-label="正在加载" className="flex flex-col gap-3">
+      <Skeleton className="h-24 w-full rounded-lg" />
+      <Skeleton className="h-14 w-full rounded-lg" />
+      <Skeleton className="h-14 w-full rounded-lg" />
     </div>
   );
 }
@@ -220,9 +229,9 @@ export function PocketHeading({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <div className="min-w-0 space-y-2">
-        <h1 className="break-words text-xl font-semibold">{title}</h1>
+    <div className="flex min-w-0 items-start justify-between gap-3">
+      <div className="flex min-w-0 flex-col gap-1">
+        <h1 className="break-words text-lg font-semibold">{title}</h1>
         {description ? (
           <p className="text-sm leading-6 text-muted-foreground">
             {description}
@@ -246,10 +255,12 @@ export function PocketPerson({
     <div className="flex min-w-0 items-center gap-3 py-3">
       <Avatar className="size-10 shrink-0">
         <AvatarImage src={user.avatarUrl} alt="" />
-        <AvatarFallback>{user.name.slice(0, 1)}</AvatarFallback>
+        <AvatarFallback>
+          {Array.from(user.name)[0] || <RiUser3Line className="size-5" />}
+        </AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1">
-        <p className="break-words font-medium">{user.name}</p>
+        <p className="break-words text-sm font-medium">{user.name}</p>
         {detail ? (
           <div className="mt-1 text-xs leading-5 text-muted-foreground">
             {detail}
@@ -272,7 +283,7 @@ export function PocketConsent({
   disabled?: boolean;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 py-2 text-sm leading-6">
+    <label className="flex min-h-11 cursor-pointer items-start gap-3 py-2 text-sm leading-6 has-[[data-disabled]]:cursor-not-allowed has-[[data-disabled]]:opacity-50">
       <Checkbox
         checked={checked}
         disabled={disabled}
@@ -301,31 +312,39 @@ export function PocketJobProgress({
     delete_photos: "删除照片",
   };
   return (
-    <div role="status" className="space-y-2 rounded-lg bg-muted/60 p-3 text-sm">
-      <div className="flex justify-between gap-3">
-        <span>
-          {kinds[job.kind] ?? "任务"} · {pocketJobLabel(job.status)}
-        </span>
-        <span className="tabular-nums">
-          {job.completedItems} / {job.totalItems}
-        </span>
-      </div>
-      {job.failedItems > 0 ? (
-        <p className="text-muted-foreground">
-          {job.failedItems} 项未完成
-          {job.kind === "recognize" ? "，可重试或搜索姓名补选" : "，请重试"}
-        </p>
-      ) : null}
-      {job.errorCode ? (
-        <p className="break-all text-xs text-muted-foreground">
-          {pocketJobError(job.errorCode)}
-        </p>
-      ) : null}
-      {job.retryable && job.status === "failed" && retry ? (
-        <Button size="sm" variant="outline" disabled={busy} onClick={retry}>
-          重试任务
-        </Button>
-      ) : null}
-    </div>
+    <Alert role="status">
+      <AlertDescription className="flex flex-col gap-2">
+        <div className="flex justify-between gap-3">
+          <span>
+            {kinds[job.kind] ?? "任务"} · {pocketJobLabel(job.status)}
+          </span>
+          <span className="tabular-nums">
+            {job.completedItems} / {job.totalItems}
+          </span>
+        </div>
+        {job.failedItems > 0 ? (
+          <p className="text-muted-foreground">
+            {job.failedItems} 项未完成
+            {job.kind === "recognize" ? "，可重试或搜索姓名补选" : "，请重试"}
+          </p>
+        ) : null}
+        {job.errorCode ? (
+          <p className="break-all text-xs text-muted-foreground">
+            {pocketJobError(job.errorCode)}
+          </p>
+        ) : null}
+        {job.retryable && job.status === "failed" && retry ? (
+          <Button
+            size="touch"
+            className="self-start"
+            variant="outline"
+            disabled={busy}
+            onClick={retry}
+          >
+            重试任务
+          </Button>
+        ) : null}
+      </AlertDescription>
+    </Alert>
   );
 }

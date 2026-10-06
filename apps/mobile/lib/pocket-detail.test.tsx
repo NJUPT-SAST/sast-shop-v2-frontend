@@ -5,7 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PaymentBill, PocketDetail, PocketPayment } from "@sast-shop/api";
 import { PocketDetailPage } from "../components/pocket/pocket-detail";
-import { PocketPaymentPage } from "../components/pocket/pocket-payment";
+import { PocketPaymentSection } from "../components/pocket/pocket-payment";
 
 const rpc = vi.hoisted(() => ({
   getPocket: vi.fn(),
@@ -57,6 +57,29 @@ vi.mock("../components/mobile-fixed-footer", () => ({
     <footer>{children}</footer>
   ),
 }));
+vi.mock("@workspace/ui/components/responsive-dialog", () => {
+  const Section = ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  );
+  return {
+    ResponsiveDialog: ({
+      open,
+      children,
+    }: {
+      open: boolean;
+      children: ReactNode;
+    }) => (open ? <section role="dialog">{children}</section> : null),
+    ResponsiveDialogContent: Section,
+    ResponsiveDialogDescription: Section,
+    ResponsiveDialogHeader: Section,
+    ResponsiveDialogTitle: ({ children }: { children: ReactNode }) => (
+      <h2>{children}</h2>
+    ),
+    ResponsiveDialogFooter: ({ children }: { children: ReactNode }) => (
+      <footer>{children}</footer>
+    ),
+  };
+});
 vi.mock("@workspace/ui/components/drawer", () => {
   const Section = ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
@@ -109,11 +132,11 @@ async function mount(perspective: "owner" | "payer") {
       perspective === "owner" ? (
         <PocketDetailPage pocketId="12" />
       ) : (
-        <PocketPaymentPage pocketId="12" />
+        <PocketPaymentSection pocketId="12" />
       ),
     ),
   );
-  await click(perspective === "owner" ? "核对到账" : "我已付款");
+  await click(perspective === "owner" ? "核对到账" : "去付款");
 }
 beforeEach(() => {
   vi.stubGlobal("React", React);
@@ -187,7 +210,10 @@ beforeEach(() => {
       isOwner: false,
     }));
   rpc.ensureAgreement.mockReset().mockResolvedValue(true);
-  rpc.payBill.mockReset().mockResolvedValue(undefined);
+  rpc.payBill.mockReset().mockImplementation(async () => {
+    bill = { ...bill, status: "submitted" };
+    return bill;
+  });
   rpc.confirmBill.mockReset().mockResolvedValue(undefined);
   rpc.rejectPocketPayment.mockReset().mockResolvedValue(undefined);
   rpc.updatePocket
@@ -560,19 +586,46 @@ describe("Pocket draft editing", () => {
 });
 
 describe("Pocket payment drawers", () => {
-  it("requires completed transfer consent and the agreement before reporting payment", async () => {
+  it("ignores a payment response after leaving the activity", async () => {
+    const onChanged = vi.fn();
+    let finish!: (value: typeof bill) => void;
+    rpc.payBill.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    bill.status = "unpaid";
+    await act(async () =>
+      root.render(<PocketPaymentSection pocketId="12" onChanged={onChanged} />),
+    );
+    await click("去付款");
+    await click("我已支付 · ¥33.33");
+    expect(rpc.payBill).toHaveBeenCalledOnce();
+    await act(async () => root.render(<div>离开活动</div>));
+    await act(async () => finish({ ...bill, status: "submitted" }));
+    expect(rpc.getPocketPayment).toHaveBeenCalledOnce();
+    expect(onChanged).not.toHaveBeenCalled();
+    expect(container.textContent).toBe("离开活动");
+  });
+
+  it("requires the agreement before reporting payment through the shared dialog", async () => {
     await mount("payer");
-    expect(dialog().textContent?.match(/¥33\.33/g)).toHaveLength(1);
-    expect(dialog().textContent?.match(/1234/g)).toHaveLength(1);
-    expect(dialog().textContent).toContain("提交不会自动扣款");
-    expect(button("确认已付款").disabled).toBe(true);
+    expect(
+      dialog()
+        .querySelector("dl")
+        ?.textContent?.match(/¥33\.33/g),
+    ).toHaveLength(1);
+    expect(
+      dialog().querySelector("dl")?.textContent?.match(/1234/g),
+    ).toHaveLength(1);
+    expect(button("我已支付 · ¥33.33").disabled).toBe(false);
     expect(rpc.payBill).not.toHaveBeenCalled();
-    await act(async () => consent().click());
     rpc.ensureAgreement.mockResolvedValue(false);
-    await click("确认已付款");
+    await click("我已支付 · ¥33.33");
     expect(rpc.ensureAgreement).toHaveBeenCalledOnce();
     expect(rpc.payBill).not.toHaveBeenCalled();
-    expect(button("确认已付款").disabled).toBe(false);
+    expect(button("我已支付 · ¥33.33").disabled).toBe(false);
   });
 
   it("locks duplicate reports and keeps the payment drawer blocked until a lost response is checked", async () => {
@@ -584,17 +637,22 @@ describe("Pocket payment drawers", () => {
         }),
     );
     await mount("payer");
-    await act(async () => consent().click());
     await act(async () => {
-      button("确认已付款").click();
-      button("确认已付款").click();
+      button("我已支付 · ¥33.33").click();
+      button("我已支付 · ¥33.33").click();
     });
     expect(rpc.payBill).toHaveBeenCalledOnce();
-    expect(consent().disabled).toBe(true);
+    expect(rpc.payBill).toHaveBeenCalledWith(
+      { billId: "20", updatedAt: bill.updatedAt, channel: "wechat" },
+      {},
+    );
+    expect(button("提交中", dialog()).disabled).toBe(true);
+    expect(button("稍后支付", dialog()).disabled).toBe(true);
     rpc.getPocketPayment.mockRejectedValue(new Error("unable to verify"));
     await act(async () => loseResponse());
-    expect(button("确认已付款").disabled).toBe(true);
-    expect(consent().disabled).toBe(true);
+    expect(dialog().textContent).toContain("支付账单加载失败");
+    expect(dialog().querySelector('[role="checkbox"]')).toBeNull();
+    expect(dialog().textContent).not.toContain("我已支付");
     bill.status = "submitted";
     rpc.getPocketPayment.mockImplementation(async () => ({
       pocket: { ...detail.pocket, isOwner: false },
@@ -604,7 +662,8 @@ describe("Pocket payment drawers", () => {
       isOwner: false,
     }));
     await click("重新加载", dialog());
-    expect(button("确认已付款").disabled).toBe(true);
+    expect(dialog().textContent).toContain("已提交支付确认");
+    expect(dialog().textContent).not.toContain("我已支付");
     expect(rpc.payBill).toHaveBeenCalledOnce();
   });
 

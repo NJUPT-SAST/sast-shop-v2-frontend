@@ -13,10 +13,17 @@ import { Button } from "@workspace/ui/components/button";
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from "@workspace/ui/components/input-group";
 import { Spinner } from "@workspace/ui/components/spinner";
 import { parsePocketAmount } from "@/lib/pocket";
 import {
@@ -37,6 +44,7 @@ export function PocketCreate() {
   const [title, setTitle] = useState("");
   const [created, setCreated] = useState(false);
   const [validationError, setValidationError] = useState("");
+  const checkingCapabilities = !capabilities.data && !capabilities.error;
   const mounted = useRef(true);
   const attempt = useRef<{
     title: string;
@@ -83,28 +91,41 @@ export function PocketCreate() {
     });
   }
   return (
-    <div className="flex flex-col gap-4 py-4">
+    <div className="flex min-w-0 flex-col gap-4 py-3">
       <PocketHeading title="发起 Pocket" />
       <PocketError message={capabilities.error} retry={capabilities.refresh} />
-      <form onSubmit={submit} className="flex flex-col gap-5">
-        <FieldGroup>
+      <form onSubmit={submit} className="flex flex-col gap-4">
+        <FieldGroup className="gap-4">
           <Field data-invalid={Boolean(validationError)}>
             <FieldLabel htmlFor="pocket-total">总金额（元）</FieldLabel>
-            <Input
-              id="pocket-total"
-              inputMode="decimal"
-              placeholder="0.00"
-              required
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              disabled={busy || created}
-              aria-invalid={Boolean(validationError)}
-              aria-describedby="pocket-amount-help"
-            />
+            <InputGroup>
+              <InputGroupAddon>
+                <InputGroupText aria-hidden="true">¥</InputGroupText>
+              </InputGroupAddon>
+              <InputGroupInput
+                id="pocket-total"
+                inputMode="decimal"
+                placeholder="0.00"
+                required
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+                disabled={busy || created}
+                aria-invalid={Boolean(validationError)}
+                aria-describedby={
+                  validationError
+                    ? "pocket-amount-help pocket-amount-error"
+                    : "pocket-amount-help"
+                }
+              />
+            </InputGroup>
             <FieldDescription id="pocket-amount-help">
               发起收款前可修改金额
             </FieldDescription>
-            <PocketError message={validationError} />
+            {validationError ? (
+              <FieldError id="pocket-amount-error">
+                {validationError}
+              </FieldError>
+            ) : null}
           </Field>
           <Field>
             <FieldLabel htmlFor="pocket-title">聚餐名称（选填）</FieldLabel>
@@ -121,15 +142,22 @@ export function PocketCreate() {
         <PocketError message={error} retry={pending ? recover : undefined} />
         <Button
           type="submit"
-          size="lg"
+          size="touch"
           disabled={
             busy || created || !capabilities.data || Boolean(capabilities.error)
           }
         >
-          {busy ? <Spinner data-icon="inline-start" /> : null}创建并选择分摊人
+          {busy || checkingCapabilities ? (
+            <Spinner data-icon="inline-start" />
+          ) : null}
+          {busy
+            ? "正在创建"
+            : checkingCapabilities
+              ? "正在加载"
+              : "创建并选择分摊人"}
         </Button>
       </form>
-      <p className="text-xs leading-6 text-muted-foreground">
+      <p className="text-sm leading-6 text-muted-foreground">
         使用微信个人收款码，到账后由你确认
       </p>
     </div>

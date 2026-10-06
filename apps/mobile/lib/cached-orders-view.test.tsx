@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { clearResourceCache } from "@workspace/ui/lib/resource-cache";
 import { CachedOrdersView } from "../components/cached-orders-view";
 import type { OrderFilters } from "./order-filters";
+import type { WestPocket } from "@sast-shop/api";
 
 const {
   listSpotOrdersPage,
@@ -116,7 +117,17 @@ beforeEach(() => {
         status: "collecting",
         participantCount: 3,
         totalCents: 9000,
-      },
+        ownerId: "42",
+        owner: { id: "42", name: "张同学", avatarUrl: "" },
+        revision: "1",
+        ownerShareCents: 3000,
+        receivableCents: 6000,
+        isOwner: true,
+        createdAt: null,
+        updatedAt: null,
+        publishedAt: null,
+        cancelReason: "",
+      } satisfies WestPocket,
     ],
     nextPageToken: "",
   });

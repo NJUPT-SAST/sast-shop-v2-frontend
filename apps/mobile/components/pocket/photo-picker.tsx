@@ -45,7 +45,7 @@ export function PocketPhotoPicker({
     }
   }, [photos]);
   function add(files: FileList | null) {
-    if (!files) return;
+    if (disabled || !files) return;
     try {
       const selected = Array.from(files);
       if (selected.length + photos.length > maxPhotos)
@@ -65,12 +65,13 @@ export function PocketPhotoPicker({
     }
   }
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-3">
       <div className="grid grid-cols-2 gap-2">
         <Button
           type="button"
           variant="outline"
-          className="min-h-11"
+          size="touch"
+          className="min-w-0 whitespace-normal"
           disabled={disabled || photos.length >= maxPhotos}
           onClick={() => camera.current?.click()}
         >
@@ -80,13 +81,20 @@ export function PocketPhotoPicker({
         <Button
           type="button"
           variant="outline"
-          className="min-h-11"
+          size="touch"
+          className="min-w-0 whitespace-normal"
           disabled={disabled || photos.length >= maxPhotos}
           onClick={() => album.current?.click()}
         >
           <RiImageLine data-icon="inline-start" />
           从相册选择
         </Button>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs leading-5 text-muted-foreground">
+        <span>JPEG、PNG，每张不超过 10 MB</span>
+        <span className="tabular-nums">
+          已选 {photos.length} / {maxPhotos} 张
+        </span>
       </div>
       <input
         ref={camera}
@@ -116,16 +124,18 @@ export function PocketPhotoPicker({
       {photos.length ? (
         <div className="grid grid-cols-3 gap-2">
           {photos.map((photo, index) => (
-            <div key={photo.id} className="relative">
+            <div key={photo.id} className="relative min-w-0">
               <ManagedImage
                 src={photo.previewUrl}
                 alt={`待上传照片 ${index + 1}`}
                 className="aspect-square rounded-lg"
+                imageClassName={face ? "object-contain" : undefined}
               />
               <Button
-                size="icon"
+                type="button"
+                size="icon-xs"
                 variant="secondary"
-                className="absolute right-1 top-1 size-11"
+                className="absolute right-1 top-1"
                 disabled={disabled}
                 aria-label={`移除第 ${index + 1} 张照片`}
                 onClick={() =>

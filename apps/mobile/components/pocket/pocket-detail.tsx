@@ -16,6 +16,8 @@ import {
 } from "@sast-shop/api";
 import { Button } from "@workspace/ui/components/button";
 import { Badge } from "@workspace/ui/components/badge";
+import { Empty } from "@workspace/ui/components/empty";
+import { Alert, AlertDescription } from "@workspace/ui/components/alert";
 import { Input } from "@workspace/ui/components/input";
 import {
   InputGroup,
@@ -39,6 +41,7 @@ import { PaymentCodeHelp } from "@workspace/ui/components/payment-code-help";
 import { RiWechatPayLine, RiAlipayLine, RiEditLine } from "@remixicon/react";
 import { cn } from "@workspace/ui/lib/utils";
 import { MobileHeaderActions } from "../mobile-header-actions";
+import { MobileFixedFooter } from "../mobile-fixed-footer";
 import { Textarea } from "@workspace/ui/components/textarea";
 import {
   Drawer,
@@ -56,6 +59,7 @@ import {
 } from "@/lib/pocket";
 import { PocketAlbum } from "./pocket-album";
 import { PocketMembersDrawer } from "./members-drawer";
+import { PocketPaymentSection } from "./pocket-payment";
 import {
   PocketConsent,
   PocketError,
@@ -72,9 +76,11 @@ import {
 export function PocketDetailPage({
   pocketId,
   refreshKey,
+  initialPaymentOpen = false,
 }: {
   pocketId: string;
   refreshKey?: string;
+  initialPaymentOpen?: boolean;
 }) {
   const activePocketId = useRef(pocketId);
   useEffect(() => {
@@ -122,7 +128,7 @@ export function PocketDetailPage({
   );
   if (!detail)
     return (
-      <div className="space-y-5 py-4">
+      <div className="flex min-w-0 flex-col gap-3 py-3">
         <PocketHeading title="Pocket" />
         <PocketError
           message={result.error}
@@ -133,6 +139,11 @@ export function PocketDetailPage({
     );
   const { pocket, isOwner, members, jobs, notifications } = detail;
   const draft = pocket.status === "draft";
+  const showPayment =
+    !isOwner &&
+    ["collecting", "settled", "cancelling", "cancelled"].includes(
+      pocket.status,
+    );
   const completed = members.filter(
     (member) => !member.isOwner && member.billStatus === "completed",
   );
@@ -150,22 +161,22 @@ export function PocketDetailPage({
     ["failed", "pending", "retrying"].includes(item.status),
   );
   return (
-    <div className="space-y-5 py-4">
+    <div className="flex min-w-0 flex-col gap-3 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-1">
-          <h1 className="min-w-0 break-words text-xl font-semibold">
+          <h1 className="min-w-0 break-words text-lg font-semibold">
             {pocket.title || "Pocket"}
           </h1>
           {draft && isOwner ? (
             <Button
               variant="ghost"
-              size="icon"
-              className="-my-2 size-11 shrink-0"
+              size="icon-xs"
+              className="shrink-0 text-muted-foreground"
               aria-label="修改聚餐名称"
               disabled={draftSaving || action.busy || Boolean(result.error)}
               onClick={() => setEditingTitleId(pocket.id)}
             >
-              <RiEditLine className="size-4 text-muted-foreground" />
+              <RiEditLine />
             </Button>
           ) : null}
         </div>
@@ -177,7 +188,9 @@ export function PocketDetailPage({
                 ? "payment"
                 : pocket.status === "draft"
                   ? "neutral"
-                  : "muted"
+                  : pocket.status === "cancelled"
+                    ? "danger"
+                    : "muted"
           }
           className="shrink-0"
         >
@@ -188,7 +201,7 @@ export function PocketDetailPage({
         message={result.error || action.error}
         retry={action.pending ? action.recover : result.refresh}
       />
-      <section aria-label="分摊汇总" className="rounded-xl border bg-card px-4">
+      <section aria-label="分摊汇总" className="rounded-lg border bg-card px-4">
         <dl className="divide-y divide-border/70">
           {!draft || !isOwner ? (
             <div className="flex min-h-10 items-center justify-between gap-4 py-1.5">
@@ -257,80 +270,92 @@ export function PocketDetailPage({
       </section>
       {draft && isOwner ? (
         <>
-          <div className="grid grid-cols-2 gap-3">
+          <MobileFixedFooter>
             {draftBlocked ? (
-              <Button variant="outline" disabled>
+              <Button
+                size="touch"
+                className="flex-1"
+                variant="outline"
+                disabled
+              >
                 拍照 / 补拍
               </Button>
             ) : (
-              <Button asChild variant="outline">
+              <Button asChild size="touch" className="flex-1" variant="outline">
                 <Link href={`/pocket/${pocketId}/capture`}>拍照 / 补拍</Link>
               </Button>
             )}
             <Button
+              size="touch"
+              className="flex-1"
               disabled={draftBlocked}
               onClick={() => setMembersOpen(true)}
             >
               选择分摊人
             </Button>
-          </div>
+          </MobileFixedFooter>
           <p className="text-xs leading-6 text-muted-foreground">
-            {draftBlocked
-              ? "请先完成当前修改，再选择分摊人或拍照"
-              : "草稿仅你可见，确认金额和名单后再发起收款"}
+            {draftBlocked ? "请先完成金额修改" : "草稿仅你可见"}
           </p>
         </>
       ) : null}
-      {!isOwner && ["collecting", "settled"].includes(pocket.status) ? (
-        <Button asChild className="w-full" size="lg">
-          <Link href={`/pocket/${pocketId}/pay`}>查看我的账单</Link>
-        </Button>
-      ) : null}
-      <section>
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="font-semibold">{isOwner ? "收款清单" : "我的分摊"}</h2>
-        </div>
-        <div className="divide-y rounded-xl border bg-card px-4">
-          {members.map((member) => (
-            <PocketPerson
-              key={member.userId}
-              user={member.user}
-              detail={
-                member.isOwner
-                  ? "收款人自身份额"
-                  : draft
-                    ? "名单待确认"
-                    : pocketPaymentLabel(member.billStatus)
-              }
-              action={
-                <div className="shrink-0 space-y-2 text-right">
-                  <p
-                    className={cn(
-                      "font-semibold tabular-nums",
-                      draft ? "text-muted-foreground" : "text-primary",
-                    )}
-                  >
-                    {draft ? "待分摊" : pocketMoney(member.shareCents)}
-                  </p>
-                  {isOwner &&
-                  pocket.status === "collecting" &&
-                  member.billStatus === "submitted" &&
-                  member.paymentBillId ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={action.busy}
-                      onClick={() => setConfirming(member)}
+      {showPayment ? (
+        <PocketPaymentSection
+          key={`${pocketId}:${initialPaymentOpen}`}
+          pocketId={pocketId}
+          initiallyOpen={initialPaymentOpen}
+          onChanged={result.refresh}
+        />
+      ) : (
+        <section>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-base font-semibold">
+              {draft ? "分摊名单" : isOwner ? "收款清单" : "我的分摊"}
+            </h2>
+          </div>
+          <div className="divide-y rounded-lg border bg-card px-4">
+            {!members.length ? <Empty title="还未选择分摊人" /> : null}
+            {members.map((member) => (
+              <PocketPerson
+                key={member.userId}
+                user={member.user}
+                detail={
+                  member.isOwner
+                    ? "自身份额"
+                    : draft
+                      ? undefined
+                      : pocketPaymentLabel(member.billStatus)
+                }
+                action={
+                  <div className="flex shrink-0 flex-col items-end gap-2 text-right">
+                    <p
+                      className={cn(
+                        "font-semibold tabular-nums",
+                        draft ? "text-muted-foreground" : "text-primary",
+                      )}
                     >
-                      核对到账
-                    </Button>
-                  ) : null}
-                </div>
-              }
-            />
-          ))}
-        </div>
-      </section>
+                      {draft ? "待分摊" : pocketMoney(member.shareCents)}
+                    </p>
+                    {isOwner &&
+                    pocket.status === "collecting" &&
+                    member.billStatus === "submitted" &&
+                    member.paymentBillId ? (
+                      <Button
+                        size="touch"
+                        variant="outline"
+                        disabled={action.busy}
+                        onClick={() => setConfirming(member)}
+                      >
+                        核对到账
+                      </Button>
+                    ) : null}
+                  </div>
+                }
+              />
+            ))}
+          </div>
+        </section>
+      )}
       {jobs
         .filter(
           (job) => job.status !== "succeeded" && job.status !== "completed",
@@ -349,46 +374,41 @@ export function PocketDetailPage({
           />
         ))}
       {isOwner && notifications.length > 0 ? (
-        <p className="rounded-lg bg-muted p-3 text-sm leading-6">
-          飞书通知：
-          {notifications.filter((item) => item.status === "sent").length} /{" "}
-          {notifications.length} 条已送达。
-          {failedMessages.length
-            ? "部分消息仍待发送，系统会继续尝试；也可提醒待付款成员。"
-            : "每位分摊人收到自己的账单，你收到收款汇总。"}
-        </p>
+        <Alert>
+          <AlertDescription className="leading-6">
+            飞书通知已送达
+            {
+              notifications.filter((item) => item.status === "sent").length
+            } / {notifications.length} 条
+            {failedMessages.length ? "，其余待重试" : ""}
+          </AlertDescription>
+        </Alert>
       ) : null}
-      {isOwner && pocket.status === "collecting" ? (
-        <>
-          <Button
-            variant="outline"
-            className="w-full"
-            disabled={action.busy || !unpaid.length}
-            onClick={() =>
-              void action.run(
-                `remind:${unpaid.map((member) => member.id).join(",")}`,
-                async (requestId) => {
-                  await remindPocketMembers(
-                    {
-                      pocketId,
-                      memberIds: unpaid.map((member) => member.id),
-                      requestId,
-                    },
-                    options,
-                  );
-                  result.refresh();
-                },
-              )
-            }
-          >
-            提醒 {unpaid.length} 位待付款成员
-          </Button>
-          {hasPayment ? (
-            <p className="text-xs text-muted-foreground">
-              已有成员付款或标记付款，活动不能直接取消。
-            </p>
-          ) : null}
-        </>
+      {isOwner && pocket.status === "collecting" && unpaid.length > 0 ? (
+        <Button
+          size="touch"
+          variant="outline"
+          className="w-full"
+          disabled={action.busy || !unpaid.length}
+          onClick={() =>
+            void action.run(
+              `remind:${unpaid.map((member) => member.id).join(",")}`,
+              async (requestId) => {
+                await remindPocketMembers(
+                  {
+                    pocketId,
+                    memberIds: unpaid.map((member) => member.id),
+                    requestId,
+                  },
+                  options,
+                );
+                result.refresh();
+              },
+            )
+          }
+        >
+          提醒 {unpaid.length} 位待付款成员
+        </Button>
       ) : null}
       {!draft && pocket.status !== "cancelled" ? (
         <PocketAlbum
@@ -415,10 +435,12 @@ export function PocketDetailPage({
         ) : null}
       </MobileHeaderActions>
       {pocket.status === "cancelled" ? (
-        <p className="rounded-lg bg-muted p-4 text-sm leading-6">
-          活动已取消，应用内账单已关闭。取消不会撤回已发生的线下转账。
-          {pocket.cancelReason ? `取消原因：${pocket.cancelReason}` : ""}
-        </p>
+        <Alert>
+          <AlertDescription className="leading-6">
+            活动已取消，账单已关闭；线下转账不会撤回
+            {pocket.cancelReason ? `；原因：${pocket.cancelReason}` : ""}
+          </AlertDescription>
+        </Alert>
       ) : null}
       {membersOpen ? (
         <PocketMembersDrawer
@@ -439,10 +461,12 @@ export function PocketDetailPage({
         onOpenChange={setCancelOpen}
         dismissible={!action.busy}
       >
-        <DrawerContent>
+        <DrawerContent className="overflow-clip">
           <DrawerHeader className="shrink-0">
             <DrawerTitle>取消本次 Pocket</DrawerTitle>
-            <DrawerDescription>取消后关闭收款请求和提醒</DrawerDescription>
+            <DrawerDescription className="text-center">
+              取消后关闭账单和提醒
+            </DrawerDescription>
           </DrawerHeader>
           <div className="app-scrollbar flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-2">
             <FieldGroup className="gap-3">
@@ -458,7 +482,7 @@ export function PocketDetailPage({
                   onChange={(event) => setCancelReason(event.target.value)}
                 />
                 <FieldDescription>
-                  取消不会撤回线下转账，请先核实没有同学已转账但尚未标记付款
+                  取消不会退款，请先确认无人已转账
                 </FieldDescription>
               </Field>
             </FieldGroup>
@@ -468,6 +492,13 @@ export function PocketDetailPage({
             />
           </div>
           <DrawerFooter className="pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            <Button
+              variant="outline"
+              disabled={action.busy}
+              onClick={() => setCancelOpen(false)}
+            >
+              继续保留
+            </Button>
             <Button
               variant="destructive"
               disabled={action.busy || !canCancel || Boolean(result.error)}
@@ -491,13 +522,6 @@ export function PocketDetailPage({
               }
             >
               确认取消
-            </Button>
-            <Button
-              variant="outline"
-              disabled={action.busy}
-              onClick={() => setCancelOpen(false)}
-            >
-              继续保留
             </Button>
           </DrawerFooter>
         </DrawerContent>
@@ -697,7 +721,7 @@ function DraftPocketForm({
           }
         }}
       >
-        <DrawerContent>
+        <DrawerContent className="overflow-clip">
           <DrawerHeader className="shrink-0">
             <DrawerTitle>修改聚餐名称</DrawerTitle>
             <DrawerDescription className="sr-only">
@@ -774,7 +798,7 @@ function ConfirmPocketPayment({
       }}
       dismissible={!action.busy}
     >
-      <DrawerContent>
+      <DrawerContent className="overflow-clip">
         <DrawerHeader className="shrink-0">
           <DrawerTitle>{returning ? "退回待付款" : "核对实际到账"}</DrawerTitle>
           <DrawerDescription className="sr-only">
@@ -884,6 +908,7 @@ function ConfirmPocketPayment({
               </FieldGroup>
               <Button
                 variant="ghost"
+                size="touch"
                 className="self-start"
                 disabled={
                   action.busy ||

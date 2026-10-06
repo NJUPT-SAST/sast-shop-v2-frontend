@@ -16,10 +16,17 @@ vi.mock("@workspace/ui/components/responsive-dialog", () => {
     ResponsiveDialog: ({
       open,
       children,
+      dismissible,
     }: {
       open: boolean;
       children: ReactNode;
-    }) => (open ? <div role="dialog">{children}</div> : null),
+      dismissible?: boolean;
+    }) =>
+      open ? (
+        <div role="dialog" data-dismissible={dismissible}>
+          {children}
+        </div>
+      ) : null,
     ResponsiveDialogContent: Content,
     ResponsiveDialogDescription: Content,
     ResponsiveDialogFooter: Content,
@@ -71,7 +78,103 @@ async function renderPayment(overrides: Partial<PaymentDialogProps> = {}) {
   );
 }
 
+function submitButton() {
+  return Array.from(container.querySelectorAll("button")).find(
+    (button) =>
+      button.textContent === "我已支付 · ¥4.50" ||
+      button.textContent === "提交中",
+  )!;
+}
+
+async function selectTab(label: string) {
+  const tab = Array.from(container.querySelectorAll('[role="tab"]')).find(
+    (item) => item.textContent === label,
+  )!;
+  expect(tab).toBeDefined();
+  await act(async () => {
+    tab.dispatchEvent(
+      new MouseEvent("mousedown", { bubbles: true, button: 0 }),
+    );
+    tab.dispatchEvent(
+      new KeyboardEvent("keydown", { bubbles: true, key: "Enter" }),
+    );
+  });
+}
+
 describe("payment information", () => {
+  it("keeps both default payment platforms usable", async () => {
+    const onPay = vi.fn();
+    await renderPayment({ onPay });
+    expect(container.querySelectorAll('[role="tab"]')).toHaveLength(2);
+    expect(container.querySelector('[role="checkbox"]')).toBeNull();
+    await act(async () => submitButton().click());
+    expect(onPay).toHaveBeenLastCalledWith("wechat");
+    await selectTab("支付宝");
+    await act(async () => submitButton().click());
+    expect(onPay).toHaveBeenLastCalledWith("alipay");
+  });
+
+  it("uses only WeChat even when an unsupported default and Alipay QR are supplied", async () => {
+    const onPay = vi.fn();
+    await renderPayment({
+      allowedPlatforms: ["wechat"],
+      defaultPlatform: "alipay",
+      onPay,
+    });
+    expect(container.querySelectorAll('[role="tab"]')).toHaveLength(1);
+    expect(container.querySelector('[role="tab"]')?.textContent).toBe(
+      "微信支付",
+    );
+    expect(
+      container.querySelector('[aria-label="wechat收款码"]'),
+    ).not.toBeNull();
+    expect(container.querySelector('[aria-label="alipay收款码"]')).toBeNull();
+    const panel = container.querySelector('[role="tabpanel"] > div')!;
+    await act(async () => {
+      const start = new Event("touchstart", { bubbles: true });
+      Object.defineProperty(start, "touches", {
+        value: [{ clientX: 200, clientY: 50 }],
+      });
+      panel.dispatchEvent(start);
+      const end = new Event("touchend", { bubbles: true });
+      Object.defineProperty(end, "changedTouches", {
+        value: [{ clientX: 50, clientY: 50 }],
+      });
+      panel.dispatchEvent(end);
+    });
+    await act(async () => submitButton().click());
+    expect(onPay).toHaveBeenCalledExactlyOnceWith("wechat");
+    expect(container.textContent).not.toContain("支付宝");
+  });
+
+  it("disables cancellation during submission and forwards drawer dismissal control", async () => {
+    const onCancelPayment = vi.fn();
+    await renderPayment({
+      submitting: true,
+      dismissible: false,
+      onCancelPayment,
+    });
+    const cancel = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "稍后支付",
+    )!;
+    expect(cancel.disabled).toBe(true);
+    await act(async () => cancel.click());
+    expect(onCancelPayment).not.toHaveBeenCalled();
+    expect(
+      container
+        .querySelector('[role="dialog"]')
+        ?.getAttribute("data-dismissible"),
+    ).toBe("false");
+    await renderPayment({ submitting: false, onCancelPayment });
+    expect(
+      container
+        .querySelector('[role="dialog"]')
+        ?.getAttribute("data-dismissible"),
+    ).toBe("true");
+    await act(async () => cancel.click());
+    expect(onCancelPayment).toHaveBeenCalledTimes(1);
+  });
+
   it("presents the amount, payee and verification code before either payment QR", async () => {
     await renderPayment();
     const summary = container.querySelector("dl")!;
