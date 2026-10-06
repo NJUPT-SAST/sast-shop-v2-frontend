@@ -58,17 +58,27 @@ export function MobileScrollArea({
     [setPullDistance],
   );
 
-  const handleTouchStart = useCallback((event: TouchEvent<HTMLElement>) => {
-    if (!viewportRef.current || viewportRef.current.scrollTop > 2) {
-      touchStartXRef.current = null;
-      touchStartYRef.current = null;
-      return;
-    }
+  const handleTouchStart = useCallback(
+    (event: TouchEvent<HTMLElement>) => {
+      if (
+        !event.currentTarget.contains(event.target as Node) ||
+        !viewportRef.current ||
+        viewportRef.current.scrollTop > 2
+      ) {
+        touchStartXRef.current = null;
+        touchStartYRef.current = null;
+        gestureAxisRef.current = "undetermined";
+        updatePullDistance(0);
+        setIsPulling(false);
+        return;
+      }
 
-    touchStartXRef.current = event.touches[0]?.clientX ?? null;
-    touchStartYRef.current = event.touches[0]?.clientY ?? null;
-    gestureAxisRef.current = "undetermined";
-  }, []);
+      touchStartXRef.current = event.touches[0]?.clientX ?? null;
+      touchStartYRef.current = event.touches[0]?.clientY ?? null;
+      gestureAxisRef.current = "undetermined";
+    },
+    [updatePullDistance],
+  );
 
   const handleTouchMove = useCallback(
     (event: TouchEvent<HTMLElement>) => {
