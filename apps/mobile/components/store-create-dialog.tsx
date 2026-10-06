@@ -3,6 +3,7 @@
 import {
   type ChangeEvent,
   type ReactNode,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -53,6 +54,7 @@ import {
 import { Input } from "@workspace/ui/components/input";
 import { Spinner } from "@workspace/ui/components/spinner";
 import { Textarea } from "@workspace/ui/components/textarea";
+import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
 
 import { uploadProductImage } from "@/lib/product-image-upload";
 
@@ -74,6 +76,13 @@ export function StoreCreateDialog({
   returnTo: string;
 }) {
   const router = useRouter();
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const addressInputRef = useRef<HTMLTextAreaElement>(null);
@@ -157,6 +166,7 @@ export function StoreCreateDialog({
         },
         serviceOptions,
       );
+      if (!mountedRef.current) return;
       toast.success("店铺已创建");
       closeAfterSuccess();
       const nextPath = resolveStoreCreateReturnPath(
@@ -164,25 +174,28 @@ export function StoreCreateDialog({
         store.id,
         window.location.origin,
       );
+      await waitForDrawerHistoryCleanup();
+      if (!mountedRef.current) return;
       const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
       if (nextPath === currentPath) {
-        window.setTimeout(() => router.refresh(), 240);
+        router.refresh();
       } else if (
         new URL(nextPath, window.location.origin).pathname ===
         window.location.pathname
       ) {
-        window.setTimeout(() => router.replace(nextPath), 240);
+        router.replace(nextPath);
       } else {
-        window.setTimeout(() => router.push(nextPath), 240);
+        router.push(nextPath);
       }
     } catch (caught) {
+      if (!mountedRef.current) return;
       setError(
         caught instanceof ValidationError
           ? caught.message
           : "创建失败，请稍后再试",
       );
     } finally {
-      setSubmitting(false);
+      if (mountedRef.current) setSubmitting(false);
     }
   }
 
@@ -298,7 +311,7 @@ export function StoreCreateDialog({
           </FieldGroup>
         </form>
 
-        <DrawerFooter className="shrink-0 border-t bg-card">
+        <DrawerFooter>
           <Button
             type="submit"
             form="mobile-store-create-dialog-form"

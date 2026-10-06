@@ -559,45 +559,42 @@ export function ProductTemplateManager({
             </p>
           ) : null}
 
-          <DrawerFooter className="shrink-0 border-t bg-card">
-            <div className="flex gap-3">
-              {editingTemplate ? (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="lg"
-                  className="min-h-11"
-                  aria-label="删除商品模板"
-                  disabled={submitting || imageUploading || scanningBarcode}
-                  onClick={() => {
-                    setDeleteError(null);
-                    setDeleteConfirmOpen(true);
-                  }}
-                >
-                  <RiDeleteBinLine />
-                </Button>
-              ) : null}
+          <DrawerFooter>
+            {editingTemplate ? (
               <Button
-                type="submit"
-                form="product-template-form"
+                type="button"
+                variant="destructive"
                 size="lg"
-                className="min-h-11 flex-1"
-                disabled={
-                  submitting ||
-                  imageUploading ||
-                  scanningBarcode ||
-                  (Boolean(editingTemplate) && !editingTemplate?.updatedAt)
-                }
+                aria-label="删除商品模板"
+                disabled={submitting || imageUploading || scanningBarcode}
+                onClick={() => {
+                  setDeleteError(null);
+                  setDeleteConfirmOpen(true);
+                }}
               >
-                {submitting
-                  ? "保存中"
-                  : imageUploading
-                    ? "图片上传中"
-                    : editingTemplate
-                      ? "保存修改"
-                      : "创建模板"}
+                <RiDeleteBinLine data-icon="inline-start" />
+                删除模板
               </Button>
-            </div>
+            ) : null}
+            <Button
+              type="submit"
+              form="product-template-form"
+              size="lg"
+              disabled={
+                submitting ||
+                imageUploading ||
+                scanningBarcode ||
+                (Boolean(editingTemplate) && !editingTemplate?.updatedAt)
+              }
+            >
+              {submitting
+                ? "保存中"
+                : imageUploading
+                  ? "图片上传中"
+                  : editingTemplate
+                    ? "保存修改"
+                    : "创建模板"}
+            </Button>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
@@ -621,12 +618,11 @@ export function ProductTemplateManager({
               {deleteError}
             </p>
           ) : null}
-          <DrawerFooter className="border-t bg-card">
+          <DrawerFooter>
             <Button
               type="button"
               variant="outline"
               size="lg"
-              className="min-h-11"
               onClick={() => setDeleteConfirmOpen(false)}
             >
               取消
@@ -635,7 +631,6 @@ export function ProductTemplateManager({
               type="button"
               variant="destructive"
               size="lg"
-              className="min-h-11"
               disabled={deleting}
               onClick={() => void deleteTemplate()}
             >

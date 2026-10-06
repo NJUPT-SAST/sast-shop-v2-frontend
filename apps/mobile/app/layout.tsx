@@ -8,6 +8,7 @@ import { ProfileDialogsProvider } from "@/components/profile-dialogs-provider";
 import { TransactionAgreementProvider } from "@/components/transaction-agreement-provider";
 import { mobileAppConfig } from "@/lib/app-config";
 import { getServerAuthMode } from "@/lib/auth-mode";
+import { mobileOrientationBeforeSdkScript } from "@/lib/mobile-orientation";
 import { resolveFeishuRedirectUri } from "../../../config/feishu-redirect-uri";
 import "./globals.css";
 
@@ -27,13 +28,24 @@ export default function RootLayout({
       <head>
         <meta name="showNavBar" content="false" lk-config="" />
         <meta name="showBottomNavBar" content="false" lk-config="" />
+        <meta
+          name="orientation"
+          content="portrait"
+          lk-config=""
+          suppressHydrationWarning
+        />
       </head>
       <body className="min-h-full">
         {authRequired ? (
-          <Script
-            src="https://lf-scm-cn.feishucdn.com/lark/op/h5-js-sdk-1.5.34.js"
-            strategy="beforeInteractive"
-          />
+          <>
+            <Script id="mobile-orientation" strategy="beforeInteractive">
+              {mobileOrientationBeforeSdkScript}
+            </Script>
+            <Script
+              src="https://lf-scm-cn.feishucdn.com/lark/op/h5-js-sdk-1.5.34.js"
+              strategy="beforeInteractive"
+            />
+          </>
         ) : null}
         <AuthBootstrap
           enabled={authRequired}

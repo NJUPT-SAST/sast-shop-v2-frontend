@@ -1,5 +1,7 @@
 "use client";
 
+import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
+
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -296,6 +298,7 @@ export function ErrandShop({
       setItems([]);
       setFeeDrafts({});
       setCartOpen(false);
+      await waitForDrawerHistoryCleanup();
       router.push("/orders?type=errand");
     } catch (error) {
       toast.error(
@@ -456,7 +459,7 @@ export function ErrandShop({
         }}
       >
         {selectedTemplate ? (
-          <ResponsiveDialogContent className="max-h-[88dvh] overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-md">
+          <ResponsiveDialogContent className="max-h-[88dvh] overflow-clip px-4 pb-0 md:pb-4 sm:mx-auto sm:max-w-md">
             <ResponsiveDialogHeader className="px-0 text-left">
               <ResponsiveDialogTitle>
                 {selectedTemplate.title}
@@ -510,7 +513,7 @@ export function ErrandShop({
           if (!submitting) setCartOpen(open);
         }}
       >
-        <ResponsiveDialogContent className="max-h-[88dvh] overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-lg">
+        <ResponsiveDialogContent className="max-h-[88dvh] overflow-clip px-4 pb-0 sm:mx-auto sm:max-w-lg">
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>跑腿清单</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
@@ -642,7 +645,6 @@ export function ErrandShop({
           <ResponsiveDialogFooter>
             <Button
               type="button"
-              className="w-full"
               disabled={
                 items.length === 0 || hasInvalidServiceFee || submitting
               }

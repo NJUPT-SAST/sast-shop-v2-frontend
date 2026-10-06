@@ -1,5 +1,7 @@
 "use client";
 
+import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -370,6 +372,7 @@ export function SpotMarketplace({
     ) {
       toast.error("下单结果暂不确定，请先到订单列表核对，避免重复下单");
       closeCheckout();
+      await waitForDrawerHistoryCleanup();
       router.push("/orders?type=spot&view=buyer");
       return;
     }
@@ -653,7 +656,7 @@ export function SpotMarketplace({
         }}
       >
         {selectedBrief ? (
-          <ResponsiveDialogContent className="max-h-[88dvh] overflow-hidden px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <ResponsiveDialogContent className="max-h-[88dvh] overflow-hidden px-4 pb-0 md:pb-4">
             <ResponsiveDialogHeader className="px-0 text-left">
               <ResponsiveDialogTitle>
                 {selectedBrief.title}
@@ -735,7 +738,6 @@ export function SpotMarketplace({
                 <ResponsiveDialogFooter>
                   <Button
                     type="button"
-                    className="min-h-11"
                     disabled={isOutOfStock || submitting}
                     onClick={() => {
                       void startCheckout();

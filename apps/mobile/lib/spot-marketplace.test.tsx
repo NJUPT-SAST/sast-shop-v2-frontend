@@ -18,6 +18,8 @@ const {
   payBill,
   ensureAgreement,
   refresh,
+  push,
+  waitForDrawerHistoryCleanup,
   toastError,
   toastInfo,
 } = vi.hoisted(() => ({
@@ -28,12 +30,17 @@ const {
   payBill: vi.fn(),
   ensureAgreement: vi.fn(),
   refresh: vi.fn(),
+  push: vi.fn(),
+  waitForDrawerHistoryCleanup: vi.fn(),
   toastError: vi.fn(),
   toastInfo: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh, push: vi.fn() }),
+  useRouter: () => ({ refresh, push }),
+}));
+vi.mock("@workspace/ui/lib/drawer-history", () => ({
+  waitForDrawerHistoryCleanup,
 }));
 vi.mock("@sast-shop/api", () => ({
   createSpotOrders,
@@ -182,6 +189,8 @@ let root: Root;
 let container: HTMLDivElement;
 
 beforeEach(() => {
+  push.mockReset();
+  waitForDrawerHistoryCleanup.mockReset().mockResolvedValue(undefined);
   vi.stubGlobal("React", React);
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   createSpotOrders.mockReset().mockResolvedValue([{ bill }]);
@@ -235,6 +244,33 @@ async function openPayment() {
 }
 
 describe("new spot order payment recovery", () => {
+  it("waits for drawer history before checking an ambiguous checkout in orders", async () => {
+    let finishCleanup!: () => void;
+    waitForDrawerHistoryCleanup.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishCleanup = resolve;
+      }),
+    );
+    createSpotOrders.mockResolvedValueOnce([]);
+    await act(async () => {
+      root.render(
+        <SpotMarketplace
+          dataSource="local"
+          connectBaseUrl="http://127.0.0.1:1323"
+          initialPage={initialPage}
+          error={null}
+        />,
+      );
+    });
+    await click("矿泉水");
+    await click("创建订单");
+    await click("重试收款码");
+    expect(waitForDrawerHistoryCleanup).toHaveBeenCalledTimes(1);
+    expect(push).not.toHaveBeenCalled();
+    expect(createSpotOrders).toHaveBeenCalledTimes(1);
+    await act(async () => finishCleanup());
+    expect(push).toHaveBeenCalledWith("/orders?type=spot&view=buyer");
+  });
   it("does not create an order when the transaction agreement is declined", async () => {
     ensureAgreement.mockResolvedValue(false);
     await act(async () => {

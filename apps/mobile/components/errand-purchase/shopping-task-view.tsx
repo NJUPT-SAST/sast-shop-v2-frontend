@@ -1,5 +1,7 @@
 "use client";
 
+import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
+
 import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RiEditLine } from "@remixicon/react";
@@ -293,6 +295,7 @@ export function ShoppingTaskView({
     try {
       await cancelTask(detail.taskId, attemptedVersion, serviceOptions);
       setDialog({ type: "none" });
+      await waitForDrawerHistoryCleanup();
       router.push("/group");
     } catch (error) {
       toast.error(
@@ -417,7 +420,7 @@ export function ShoppingTaskView({
           if (!open && !submitting) setDialog({ type: "none" });
         }}
       >
-        <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+        <ResponsiveDialogContent className="px-4 pb-0 md:pb-4 sm:mx-auto sm:max-w-sm">
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>确认完成采购</ResponsiveDialogTitle>
             <ResponsiveDialogDescription className="sr-only">
@@ -467,7 +470,7 @@ export function ShoppingTaskView({
           if (!open && !submitting) setDialog({ type: "none" });
         }}
       >
-        <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+        <ResponsiveDialogContent className="px-4 pb-0 md:pb-4 sm:mx-auto sm:max-w-sm">
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>取消采购</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>

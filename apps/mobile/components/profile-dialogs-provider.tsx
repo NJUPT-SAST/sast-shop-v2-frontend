@@ -11,7 +11,7 @@ import {
   type PointerEvent,
   type ReactNode,
 } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 import {
   RiAddLine,
@@ -78,6 +78,7 @@ import { Switch } from "@workspace/ui/components/switch";
 import { Spinner } from "@workspace/ui/components/spinner";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { cn } from "@workspace/ui/lib/utils";
+import { isDrawerHistoryPopState } from "@workspace/ui/lib/drawer-history";
 import {
   getCityOptions,
   getDistrictOptions,
@@ -161,7 +162,6 @@ export function ProfileDialogsProvider({
   }>({ open: false });
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
-  const router = useRouter();
   const pathname = usePathname();
   const serviceOptions: ServiceOptions = { dataSource, connectBaseUrl };
   const retryAddressLoad = () => {
@@ -232,10 +232,12 @@ export function ProfileDialogsProvider({
 
   useEffect(() => {
     let timeoutId: number | null = null;
-    const syncDialogFromLocation = () => {
-      const dialog = getDialogFromLocation();
+    const syncDialogFromLocation = (event?: PopStateEvent) => {
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      if (event && isDrawerHistoryPopState(event)) return;
 
       timeoutId = window.setTimeout(() => {
+        const dialog = getDialogFromLocation();
         setAddressOpen(dialog === "address");
         setPaymentPreferenceOpen(dialog === "payment-preference");
         setQrOpen(dialog === "qr-code");
@@ -263,9 +265,13 @@ export function ProfileDialogsProvider({
     }
 
     const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, {
-      scroll: false,
-    });
+    const state = { ...(window.history.state ?? {}) };
+    delete state.__NA;
+    window.history.replaceState(
+      state,
+      "",
+      query ? `${pathname}?${query}` : pathname,
+    );
   }
 
   function updateDialogOpen(
@@ -457,7 +463,7 @@ export function ProfileDialogsProvider({
           updateDialogOpen(open, "address", setAddressOpen)
         }
       >
-        <ResponsiveDialogContent className="max-h-[86dvh] overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-lg">
+        <ResponsiveDialogContent className="max-h-[86dvh] overflow-clip px-4 pb-0 sm:mx-auto sm:max-w-lg">
           <div className="mx-auto flex max-h-[calc(86dvh-2rem)] min-h-0 w-full max-w-md flex-col gap-4">
             <ResponsiveDialogHeader className="px-0 text-left">
               <ResponsiveDialogTitle className="text-lg">
@@ -496,7 +502,6 @@ export function ProfileDialogsProvider({
             <ResponsiveDialogFooter>
               <Button
                 type="button"
-                className="min-h-11 flex-1"
                 disabled={
                   addressLoadState !== "ready" ||
                   pendingAction === "address-add"
@@ -519,7 +524,7 @@ export function ProfileDialogsProvider({
         onOpenChange={(open) => {
           if (open) {
             setAddressForm((current) => ({ ...current, open: true }));
-          } else {
+          } else if (addressForm.open) {
             returnToAddressBook();
           }
         }}
@@ -544,12 +549,12 @@ export function ProfileDialogsProvider({
         onOpenChange={(open) => {
           if (open) {
             setDeleteConfirm((current) => ({ ...current, open: true }));
-          } else {
+          } else if (deleteConfirm.open) {
             returnToAddressBook();
           }
         }}
       >
-        <ResponsiveDialogContent className="overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+        <ResponsiveDialogContent className="overflow-clip px-4 pb-0 sm:mx-auto sm:max-w-sm">
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>删除地址</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
@@ -565,7 +570,6 @@ export function ProfileDialogsProvider({
             <Button
               type="button"
               variant="outline"
-              className="min-h-11 flex-1"
               onClick={returnToAddressBook}
             >
               取消
@@ -573,7 +577,6 @@ export function ProfileDialogsProvider({
             <Button
               type="button"
               variant="destructive"
-              className="min-h-11 flex-1"
               disabled={
                 deleteConfirm.id
                   ? pendingAction === `address-delete-${deleteConfirm.id}`
@@ -930,7 +933,7 @@ function AddressFormDialog({
 }) {
   return (
     <ResponsiveDialog forceDrawer open={open} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent className="max-h-[86dvh] overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-lg">
+      <ResponsiveDialogContent className="max-h-[86dvh] overflow-clip px-4 pb-0 sm:mx-auto sm:max-w-lg">
         <div className="mx-auto flex max-h-[calc(86dvh-2rem)] min-h-0 w-full max-w-md flex-col">
           <ResponsiveDialogHeader className="shrink-0 px-0 text-left">
             <ResponsiveDialogTitle className="text-xl">
@@ -1176,8 +1179,8 @@ function AddressForm({
             {onDelete ? (
               <Button
                 type="button"
-                variant="ghost"
-                className="min-h-11 px-0 text-destructive hover:bg-transparent hover:text-destructive/80"
+                variant="destructive-text"
+                className="min-h-11 px-0"
                 onClick={onDelete}
               >
                 <RiDeleteBinLine data-icon="inline-start" />
@@ -1202,18 +1205,12 @@ function AddressForm({
           {error}
         </p>
       ) : null}
-      <ResponsiveDialogFooter className="shrink-0 border-t bg-card pt-3">
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-11 flex-1"
-          onClick={onCancel}
-        >
+      <ResponsiveDialogFooter>
+        <Button type="button" variant="outline" onClick={onCancel}>
           取消
         </Button>
         <Button
           type="button"
-          className="min-h-11 flex-1"
           disabled={saving}
           onClick={() => void saveAddress()}
         >

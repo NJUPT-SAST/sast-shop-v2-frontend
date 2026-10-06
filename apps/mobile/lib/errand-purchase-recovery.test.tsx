@@ -30,6 +30,9 @@ const {
   updateActualPrice,
   refresh,
   ensureAgreement,
+  push,
+  replace,
+  waitForDrawerHistoryCleanup,
 } = vi.hoisted(() => ({
   cancelTask: vi.fn(),
   confirmBill: vi.fn(),
@@ -43,6 +46,9 @@ const {
   updateActualPrice: vi.fn(),
   refresh: vi.fn(),
   ensureAgreement: vi.fn(),
+  push: vi.fn(),
+  replace: vi.fn(),
+  waitForDrawerHistoryCleanup: vi.fn(),
 }));
 
 vi.mock("../components/transaction-agreement-provider", () => ({
@@ -50,7 +56,10 @@ vi.mock("../components/transaction-agreement-provider", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh, replace: vi.fn(), push: vi.fn() }),
+  useRouter: () => ({ refresh, replace, push }),
+}));
+vi.mock("@workspace/ui/lib/drawer-history", () => ({
+  waitForDrawerHistoryCleanup,
 }));
 vi.mock("@sast-shop/api", () => ({
   cancelTask,
@@ -176,6 +185,9 @@ let root: Root;
 let container: HTMLDivElement;
 
 beforeEach(() => {
+  push.mockReset();
+  replace.mockReset();
+  waitForDrawerHistoryCleanup.mockReset().mockResolvedValue(undefined);
   ensureAgreement.mockReset();
   ensureAgreement.mockResolvedValue(true);
   vi.stubGlobal("React", React);
@@ -246,6 +258,99 @@ function distributionView(
 }
 
 describe("errand purchase refresh recovery", () => {
+  it("waits for drawer history after cancelling a shopping task before navigating", async () => {
+    let finishCleanup!: () => void;
+    waitForDrawerHistoryCleanup.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishCleanup = resolve;
+      }),
+    );
+    cancelTask.mockResolvedValue(undefined);
+    await render(
+      <MobileHeaderActionsProvider>
+        <header>
+          <MobileHeaderActionSlot />
+        </header>
+        <ShoppingTaskView
+          dataSource="local"
+          connectBaseUrl="http://127.0.0.1:1327"
+          detail={shoppingDetail}
+          taskUpdatedAt={shoppingDetail.taskUpdatedAt}
+        />
+      </MobileHeaderActionsProvider>,
+    );
+    await act(async () =>
+      (container.querySelector("header button") as HTMLButtonElement).click(),
+    );
+    await click("确认取消");
+    expect(waitForDrawerHistoryCleanup).toHaveBeenCalledTimes(1);
+    expect(push).not.toHaveBeenCalled();
+    expect(cancelTask).toHaveBeenCalledTimes(1);
+    await act(async () => finishCleanup());
+    expect(push).toHaveBeenCalledWith("/group");
+  });
+
+  it("waits for drawer history after finishing distribution before opening payment", async () => {
+    let finishCleanup!: () => void;
+    waitForDrawerHistoryCleanup.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishCleanup = resolve;
+      }),
+    );
+    transitionToCollectingPayment.mockResolvedValue(undefined);
+    const item = distributingDetail.items[0]!;
+    await render(
+      distributionView({
+        ...distributingDetail,
+        items: [
+          {
+            ...item,
+            requesters: [{ ...item.requesters[0]!, distributedQuantity: 1 }],
+          },
+        ],
+      }),
+    );
+    await click("确认分发完成");
+    await click("确认完成");
+    expect(waitForDrawerHistoryCleanup).toHaveBeenCalledTimes(1);
+    expect(replace).not.toHaveBeenCalled();
+    expect(transitionToCollectingPayment).toHaveBeenCalledTimes(1);
+    await act(async () => finishCleanup());
+    expect(replace).toHaveBeenCalledWith("/group/purchase/7002/payment");
+  });
+
+  it.each(["completed", "collecting_payment"])(
+    "waits for drawer history before leaving a completed order from %s",
+    async (status) => {
+      let finishCleanup!: () => void;
+      waitForDrawerHistoryCleanup.mockReturnValueOnce(
+        new Promise<void>((resolve) => {
+          finishCleanup = resolve;
+        }),
+      );
+      getErrandTaskBrief.mockResolvedValue({
+        id: "7004",
+        status,
+        updatedAt: "2026-07-18T02:00:00Z",
+      });
+      transitionToCompleted.mockResolvedValue(undefined);
+      await render(
+        <CollectingPaymentView
+          dataSource="local"
+          connectBaseUrl="http://127.0.0.1:1327"
+          detail={collectingDetail}
+          taskId="7004"
+          taskUpdatedAt={collectingDetail.taskUpdatedAt}
+        />,
+      );
+      await click("订单完成");
+      await click("订单完成", true);
+      expect(waitForDrawerHistoryCleanup).toHaveBeenCalledTimes(1);
+      expect(replace).not.toHaveBeenCalled();
+      await act(async () => finishCleanup());
+      expect(replace).toHaveBeenCalledWith("/orders?type=errand&view=captain");
+    },
+  );
   it("does not finish or cancel a shopping task after agreement refusal", async () => {
     ensureAgreement.mockImplementation(async (beforePrompt?: () => void) => {
       beforePrompt?.();

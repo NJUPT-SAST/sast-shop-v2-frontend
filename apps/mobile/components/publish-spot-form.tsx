@@ -717,7 +717,14 @@ export function PublishSpotForm({
               上架前需配置微信或支付宝收款码
             </DrawerDescription>
           </DrawerHeader>
-          <DrawerFooter className="pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <DrawerFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setNeedsQrCode(false)}
+            >
+              稍后处理
+            </Button>
             <Button
               type="button"
               onClick={() => {
@@ -726,13 +733,6 @@ export function PublishSpotForm({
               }}
             >
               前往上传
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setNeedsQrCode(false)}
-            >
-              稍后处理
             </Button>
           </DrawerFooter>
         </DrawerContent>
@@ -860,7 +860,7 @@ function StoreChoiceDrawer({
             ),
           )}
         </RadioGroup>
-        <DrawerFooter className="pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <DrawerFooter>
           <Button type="button" size="lg" disabled={!value} onClick={onConfirm}>
             确认商品
           </Button>

@@ -9,6 +9,15 @@ import {
   useProfileDialogs,
 } from "../components/profile-dialogs-provider";
 
+const { drawerHistoryEvents, addressFormClose } = vi.hoisted(() => ({
+  drawerHistoryEvents: new WeakSet<PopStateEvent>(),
+  addressFormClose: { current: undefined as undefined | (() => void) },
+}));
+vi.mock("@workspace/ui/lib/drawer-history", () => ({
+  isDrawerHistoryPopState: (event: PopStateEvent) =>
+    drawerHistoryEvents.has(event),
+}));
+
 vi.mock("next/navigation", () => ({
   usePathname: () => "/profile",
   useRouter: () => ({
@@ -30,13 +39,23 @@ vi.mock("@workspace/ui/components/responsive-dialog", () => {
       open: boolean;
       onOpenChange: (open: boolean) => void;
       children: ReactNode;
-    }) =>
-      open ? (
+    }) => {
+      function containsTitle(node: ReactNode): boolean {
+        if (node === "添加地址" || node === "编辑地址") return true;
+        if (Array.isArray(node)) return node.some(containsTitle);
+        if (React.isValidElement<{ children?: ReactNode }>(node))
+          return containsTitle(node.props.children);
+        return false;
+      }
+      if (containsTitle(children))
+        addressFormClose.current = () => onOpenChange(false);
+      return open ? (
         <div role="dialog">
           {children}
           <button onClick={() => onOpenChange(false)}>关闭抽屉</button>
         </div>
-      ) : null,
+      ) : null;
+    },
     ResponsiveDialogContent: Content,
     ResponsiveDialogDescription: Content,
     ResponsiveDialogFooter: Content,
@@ -96,6 +115,7 @@ beforeEach(() => {
   vi.stubGlobal("React", React);
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   window.history.replaceState(null, "", "/profile");
+  addressFormClose.current = undefined;
   requests = [];
   qrResponse = () => jsonResponse({ qrCodes: [qrCode] });
   addressResponse = () =>
@@ -350,5 +370,59 @@ describe("payment preference storage failures", () => {
         Reflect.deleteProperty(window, "localStorage");
       }
     }
+  });
+});
+
+describe("profile drawer URL synchronization", () => {
+  it("preserves the Drawer history marker while replacing the dialog query", async () => {
+    await renderProvider();
+    window.history.replaceState(
+      { drawerMarker: "entry-1", __NA: true },
+      "",
+      "/profile",
+    );
+    await click("打开收款码");
+    expect(window.location.search).toBe("?dialog=qr-code");
+    expect(window.history.state.drawerMarker).toBe("entry-1");
+    await click("关闭抽屉");
+    expect(window.location.search).toBe("");
+    expect(window.history.state.drawerMarker).toBe("entry-1");
+  });
+
+  it("ignores consumed Drawer back events and still handles genuine route history", async () => {
+    await renderProvider();
+    await act(
+      async () => new Promise((resolve) => window.setTimeout(resolve, 0)),
+    );
+    window.history.replaceState(null, "", "/profile?dialog=address");
+    const drawerBack = new PopStateEvent("popstate");
+    drawerHistoryEvents.add(drawerBack);
+    await act(async () => {
+      window.dispatchEvent(drawerBack);
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    });
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    await act(async () => {
+      window.dispatchEvent(new PopStateEvent("popstate"));
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    });
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(container.textContent).toContain("地址簿");
+  });
+});
+
+describe("nested profile drawer closure", () => {
+  it("does not reopen the address book after an already closed form reports another close", async () => {
+    addressResponse = () => jsonResponse({ shippingAddresses: [] });
+    await renderProvider();
+    await click("打开地址簿");
+    await click("添加地址");
+    await click("关闭抽屉");
+    expect(container.textContent).toContain("地址簿");
+    await click("关闭抽屉");
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    await act(async () => addressFormClose.current?.());
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(window.location.search).toBe("");
   });
 });

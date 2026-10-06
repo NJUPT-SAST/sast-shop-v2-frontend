@@ -5,8 +5,13 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MobileBottomNav } from "../components/mobile-bottom-nav";
 
-const { push } = vi.hoisted(() => ({
+const { push, waitForCleanup } = vi.hoisted(() => ({
   push: vi.fn(),
+  waitForCleanup: vi.fn<() => Promise<void>>(),
+}));
+
+vi.mock("@workspace/ui/lib/drawer-history", () => ({
+  waitForDrawerHistoryCleanup: waitForCleanup,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -108,6 +113,7 @@ beforeEach(() => {
     "Mozilla/5.0 (Linux; Android 15) Mobile Feishu/7.35.0",
   );
   push.mockReset();
+  waitForCleanup.mockReset().mockResolvedValue(undefined);
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -169,6 +175,44 @@ async function enterBarcode(value: string) {
 }
 
 describe("mobile publish entry", () => {
+  it("waits for drawer history cleanup before navigating with a valid manual barcode", async () => {
+    let finishCleanup!: () => void;
+    waitForCleanup.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishCleanup = resolve;
+      }),
+    );
+    await renderNav();
+    await clickButton("上架现货");
+    await clickButton("手动输入");
+    await enterBarcode("0012345");
+    await submitBarcode();
+    expect(container.querySelectorAll('[role="dialog"]')).toHaveLength(0);
+    expect(waitForCleanup).toHaveBeenCalledOnce();
+    expect(push).not.toHaveBeenCalled();
+    await act(async () => finishCleanup());
+    expect(push).toHaveBeenCalledExactlyOnceWith(
+      "/publish/spot?entry=manual&barcode=0012345",
+    );
+  });
+
+  it("waits for drawer history cleanup before navigating to scan entry", async () => {
+    let finishCleanup!: () => void;
+    waitForCleanup.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishCleanup = resolve;
+      }),
+    );
+    await renderNav();
+    await clickButton("上架现货");
+    await clickButton("扫码录入");
+    expect(container.querySelectorAll('[role="dialog"]')).toHaveLength(0);
+    expect(waitForCleanup).toHaveBeenCalledOnce();
+    expect(push).not.toHaveBeenCalled();
+    await act(async () => finishCleanup());
+    expect(push).toHaveBeenCalledExactlyOnceWith("/publish/spot?entry=scan");
+  });
+
   it("offers entry methods first, then validates and submits a manual barcode", async () => {
     await renderNav();
     await clickButton("上架现货");

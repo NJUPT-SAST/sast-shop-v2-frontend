@@ -48,7 +48,7 @@ export function ShoppingTaskItemEditor({
         if (!open && !saving) onClose();
       }}
     >
-      <ResponsiveDialogContent className="max-h-[88dvh] overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+      <ResponsiveDialogContent className="max-h-[88dvh] overflow-clip px-4 pb-0 md:pb-4 sm:mx-auto sm:max-w-sm">
         <ResponsiveDialogHeader className="px-0 text-left">
           <ResponsiveDialogTitle>记录采购</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>

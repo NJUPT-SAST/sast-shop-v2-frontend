@@ -6,13 +6,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ErrandDemandDetailGroup } from "@sast-shop/api";
 import { ErrandDemandDetail } from "../components/errand-demand-detail";
 
-const { createErrandTask, ensureAgreement } = vi.hoisted(() => ({
-  createErrandTask: vi.fn(),
-  ensureAgreement: vi.fn(),
-}));
+const { createErrandTask, ensureAgreement, push, waitForDrawerHistoryCleanup } =
+  vi.hoisted(() => ({
+    createErrandTask: vi.fn(),
+    ensureAgreement: vi.fn(),
+    push: vi.fn(),
+    waitForDrawerHistoryCleanup: vi.fn(),
+  }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
+  useRouter: () => ({ refresh: vi.fn(), push }),
+}));
+vi.mock("@workspace/ui/lib/drawer-history", () => ({
+  waitForDrawerHistoryCleanup,
 }));
 vi.mock("@sast-shop/api", () => ({ createErrandTask }));
 vi.mock("../components/transaction-agreement-provider", () => ({
@@ -103,6 +109,8 @@ let root: Root;
 let container: HTMLDivElement;
 
 beforeEach(async () => {
+  push.mockReset();
+  waitForDrawerHistoryCleanup.mockReset().mockResolvedValue(undefined);
   createErrandTask.mockReset();
   ensureAgreement.mockReset();
   ensureAgreement.mockResolvedValue(true);
@@ -149,6 +157,28 @@ async function clickLabel(text: string) {
 }
 
 describe("errand demand selection controls", () => {
+  it("waits for closed drawer history before entering the accepted task", async () => {
+    let finishCleanup!: () => void;
+    waitForDrawerHistoryCleanup.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishCleanup = resolve;
+      }),
+    );
+    createErrandTask.mockResolvedValue({ errandTaskId: "7001" });
+    await clickLabel("李同学");
+    const confirmButtons = () =>
+      Array.from(container.querySelectorAll("button")).filter(
+        (button) => button.textContent?.trim() === "确认接单",
+      );
+    await act(async () => confirmButtons()[0]!.click());
+    await act(async () => confirmButtons().at(-1)!.click());
+
+    expect(createErrandTask).toHaveBeenCalledTimes(1);
+    expect(waitForDrawerHistoryCleanup).toHaveBeenCalledTimes(1);
+    expect(push).not.toHaveBeenCalled();
+    await act(async () => finishCleanup());
+    expect(push).toHaveBeenCalledWith("/group/purchase/7001");
+  });
   it("does not accept a task when the transaction agreement is declined", async () => {
     ensureAgreement.mockResolvedValue(false);
     await clickLabel("李同学");

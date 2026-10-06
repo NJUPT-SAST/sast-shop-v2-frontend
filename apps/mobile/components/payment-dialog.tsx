@@ -235,7 +235,7 @@ function PaymentDialogBody({
   }
 
   return (
-    <ResponsiveDialogContent className="max-h-[94dvh] overflow-hidden px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-md">
+    <ResponsiveDialogContent className="max-h-[94dvh] overflow-hidden px-4 pb-0 md:pb-4 sm:mx-auto sm:max-w-md">
       <ResponsiveDialogHeader className="px-0 py-3">
         <ResponsiveDialogTitle className="text-lg">支付</ResponsiveDialogTitle>
         <ResponsiveDialogDescription className="sr-only">
@@ -393,23 +393,17 @@ function PaymentDialogBody({
       </div>
 
       {status === "ready" ? (
-        <ResponsiveDialogFooter className="flex-row-reverse gap-2 pt-2">
+        <ResponsiveDialogFooter>
+          <Button type="button" variant="outline" onClick={onCancelPayment}>
+            稍后支付
+          </Button>
           <Button
             type="button"
             disabled={!hasQrCode || submitting}
-            className="flex-[2]"
             onClick={handlePay}
           >
             <RiCheckboxCircleLine data-icon="inline-start" />
             {submitting ? "提交中" : `我已支付 · ${formatPrice(amountCents)}`}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            className="text-muted-foreground"
-            onClick={onCancelPayment}
-          >
-            稍后支付
           </Button>
         </ResponsiveDialogFooter>
       ) : status === "submitted" ? (

@@ -1,5 +1,7 @@
 "use client";
 
+import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
+
 import { useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -147,6 +149,7 @@ export function ErrandDemandDetail({
 
       toast.success("接单成功");
       setConfirmOpen(false);
+      await waitForDrawerHistoryCleanup();
       router.push(`/group/purchase/${result.errandTaskId}`);
     } catch (error) {
       toast.error(
@@ -252,7 +255,7 @@ export function ErrandDemandDetail({
           if (!submitting) setConfirmOpen(open);
         }}
       >
-        <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-md">
+        <ResponsiveDialogContent className="px-4 pb-0 md:pb-4 sm:mx-auto sm:max-w-md">
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>确认接单</ResponsiveDialogTitle>
             <ResponsiveDialogDescription className="leading-6">

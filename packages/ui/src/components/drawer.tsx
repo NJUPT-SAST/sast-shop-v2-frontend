@@ -4,13 +4,48 @@ import * as React from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 
 import { cn } from "#lib/utils";
+import { registerDrawerHistory } from "#lib/drawer-history";
 
 function Drawer({
   direction = "bottom",
+  open,
+  defaultOpen = false,
+  onOpenChange,
+  dismissible = true,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen);
+  const isOpen = open ?? uncontrolledOpen;
+  const id = React.useId();
+  const state = React.useRef({ isOpen, dismissible, onOpenChange });
+  React.useEffect(() => {
+    state.current = { isOpen, dismissible, onOpenChange };
+  });
+  const changeOpen = React.useCallback((nextOpen: boolean) => {
+    setUncontrolledOpen(nextOpen);
+    state.current.onOpenChange?.(nextOpen);
+  }, []);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    return registerDrawerHistory({
+      id,
+      isOpen: () => state.current.isOpen,
+      onBack: () => {
+        if (state.current.dismissible) changeOpen(false);
+      },
+    });
+  }, [id, isOpen, changeOpen]);
+
   return (
-    <DrawerPrimitive.Root data-slot="drawer" direction={direction} {...props} />
+    <DrawerPrimitive.Root
+      data-slot="drawer"
+      direction={direction}
+      open={isOpen}
+      onOpenChange={changeOpen}
+      dismissible={dismissible}
+      {...props}
+    />
   );
 }
 
@@ -86,7 +121,7 @@ function DrawerFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="drawer-footer"
       className={cn(
-        "mt-auto flex flex-col gap-2 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] [&>[data-slot=button]]:min-h-11",
+        "mt-auto flex shrink-0 items-center gap-2 border-t bg-card p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] [&>[data-slot=button]]:min-h-11 [&>[data-slot=button]]:min-w-0 [&>[data-slot=button]]:flex-1 [&>[data-slot=button]]:whitespace-normal",
         className,
       )}
       {...props}

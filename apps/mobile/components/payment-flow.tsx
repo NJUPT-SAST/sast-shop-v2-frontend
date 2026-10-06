@@ -127,14 +127,14 @@ export function SupplementSerialNumberDialog({
 
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent>
-        <ResponsiveDialogHeader>
+      <ResponsiveDialogContent className="px-4 pb-0 md:pb-6">
+        <ResponsiveDialogHeader className="px-0">
           <ResponsiveDialogTitle>补充支付流水号</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
             忘记备注付款标识码时，可补充交易单号协助核款
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
-        <FieldGroup className="px-4 pb-2">
+        <FieldGroup className="pb-2">
           <Field>
             <FieldLabel htmlFor="serial-number" className="sr-only">
               支付流水号
@@ -147,7 +147,7 @@ export function SupplementSerialNumberDialog({
             />
           </Field>
         </FieldGroup>
-        <ResponsiveDialogFooter className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <ResponsiveDialogFooter>
           <Button
             type="button"
             variant="outline"

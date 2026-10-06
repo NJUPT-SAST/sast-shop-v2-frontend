@@ -23,6 +23,7 @@ import { Input } from "@workspace/ui/components/input";
 import { cn } from "@workspace/ui/lib/utils";
 import { useFeishuUiEnvironment } from "@/hooks/use-feishu-ui-environment";
 import { normalizeBarcodeQuery } from "@/lib/product-template-flow";
+import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
 import { BrandIllustration } from "./brand-illustration";
 
 export function MobilePublishEntry() {
@@ -42,7 +43,7 @@ export function MobilePublishEntry() {
     setPublishStep("barcode");
   }
 
-  function handleBarcodeSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleBarcodeSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const result = normalizeBarcodeQuery(barcode);
     if (!result.ok) {
@@ -52,6 +53,7 @@ export function MobilePublishEntry() {
     }
 
     setPublishStep(null);
+    await waitForDrawerHistoryCleanup();
     router.push(
       `/publish/spot?entry=manual&barcode=${encodeURIComponent(result.barcode)}`,
     );
@@ -112,8 +114,9 @@ export function MobilePublishEntry() {
                 variant="secondary"
                 size="lg"
                 className="h-24 flex-col gap-2 rounded-xl border border-primary/20 bg-primary/10 text-primary shadow-sm hover:bg-primary/15"
-                onClick={() => {
+                onClick={async () => {
                   setPublishStep(null);
+                  await waitForDrawerHistoryCleanup();
                   router.push("/publish/spot?entry=scan");
                 }}
               >
@@ -183,10 +186,8 @@ export function MobilePublishEntry() {
                 ) : null}
               </Field>
             </FieldGroup>
-            <DrawerFooter className="shrink-0 pb-[calc(2rem+env(safe-area-inset-bottom))]">
-              <Button type="submit" className="min-h-11">
-                继续填写商品信息
-              </Button>
+            <DrawerFooter>
+              <Button type="submit">继续填写商品信息</Button>
             </DrawerFooter>
           </form>
         </DrawerContent>

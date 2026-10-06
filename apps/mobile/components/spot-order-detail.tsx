@@ -913,7 +913,7 @@ function CancelOrderDialog({
 }) {
   return (
     <ResponsiveDialog forceDrawer open={open} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+      <ResponsiveDialogContent className="px-4 pb-0 sm:mx-auto sm:max-w-sm">
         <ResponsiveDialogHeader className="px-0 text-left">
           <ResponsiveDialogTitle>取消订单</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
@@ -967,7 +967,7 @@ function LifecycleConfirmDialog({
 }) {
   return (
     <ResponsiveDialog forceDrawer open={open} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+      <ResponsiveDialogContent className="px-4 pb-0 sm:mx-auto sm:max-w-sm">
         <ResponsiveDialogHeader className="px-0 text-left">
           <ResponsiveDialogTitle>{title}</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>

@@ -1,5 +1,7 @@
 "use client";
 
+import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
+
 import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RiArrowDownSLine, RiEditLine, RiForbidLine } from "@remixicon/react";
@@ -436,6 +438,7 @@ export function DistributingTaskView({
         serviceOptions,
       );
       setDialog({ type: "none" });
+      await waitForDrawerHistoryCleanup();
       router.replace(buildErrandTaskPaymentHref(detail.taskId));
     } catch (error) {
       try {
@@ -485,6 +488,7 @@ export function DistributingTaskView({
     try {
       await cancelTask(detail.taskId, attemptedVersion, serviceOptions);
       setDialog({ type: "none" });
+      await waitForDrawerHistoryCleanup();
       router.replace("/orders?type=errand&view=captain");
     } catch (error) {
       toast.error(
@@ -800,7 +804,7 @@ export function DistributingTaskView({
           if (!open && !savingPrice) setDialog({ type: "none" });
         }}
       >
-        <ResponsiveDialogContent className="max-h-[88dvh] overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+        <ResponsiveDialogContent className="max-h-[88dvh] overflow-clip px-4 pb-0 md:pb-4 sm:mx-auto sm:max-w-sm">
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>修改单价</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
@@ -872,7 +876,7 @@ export function DistributingTaskView({
           if (!open && assigningIds.size === 0) setDialog({ type: "none" });
         }}
       >
-        <ResponsiveDialogContent className="max-h-[88dvh] overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+        <ResponsiveDialogContent className="max-h-[88dvh] overflow-clip px-4 pb-0 md:pb-4 sm:mx-auto sm:max-w-sm">
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>部分分发</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
@@ -946,7 +950,7 @@ export function DistributingTaskView({
           if (!open && !submitting) setDialog({ type: "none" });
         }}
       >
-        <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+        <ResponsiveDialogContent className="px-4 pb-0 md:pb-4 sm:mx-auto sm:max-w-sm">
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>确认开始分发</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
@@ -980,7 +984,7 @@ export function DistributingTaskView({
           if (!open && !submitting) setDialog({ type: "none" });
         }}
       >
-        <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+        <ResponsiveDialogContent className="px-4 pb-0 md:pb-4 sm:mx-auto sm:max-w-sm">
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>确认分发完成</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
@@ -1013,7 +1017,7 @@ export function DistributingTaskView({
           if (!open && !submitting) setDialog({ type: "none" });
         }}
       >
-        <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+        <ResponsiveDialogContent className="px-4 pb-0 md:pb-4 sm:mx-auto sm:max-w-sm">
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>取消采购</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>

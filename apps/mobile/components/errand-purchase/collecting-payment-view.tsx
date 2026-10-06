@@ -1,5 +1,7 @@
 "use client";
 
+import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
+
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -333,6 +335,7 @@ export function CollectingPaymentView({
       );
       if (latestTask?.status === "completed") {
         setDialog({ type: "none" });
+        await waitForDrawerHistoryCleanup();
         router.replace("/orders?type=errand&view=captain");
         return;
       }
@@ -341,6 +344,7 @@ export function CollectingPaymentView({
         attemptedTransition = true;
         await transitionToCompleted(taskId, attemptedVersion, serviceOptions);
         setDialog({ type: "none" });
+        await waitForDrawerHistoryCleanup();
         router.replace("/orders?type=errand&view=captain");
         return;
       }
@@ -638,7 +642,7 @@ export function CollectingPaymentView({
         }}
       >
         <ResponsiveDialogContent
-          className="max-h-[88dvh] overflow-clip px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm"
+          className="max-h-[88dvh] overflow-clip px-4 pb-0 md:pb-4 sm:mx-auto sm:max-w-sm"
           showCloseButton={confirmingBillId === null}
         >
           <ResponsiveDialogHeader className="px-0 text-left">
@@ -727,7 +731,7 @@ export function CollectingPaymentView({
           if (!open && !submitting) setDialog({ type: "none" });
         }}
       >
-        <ResponsiveDialogContent className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:mx-auto sm:max-w-sm">
+        <ResponsiveDialogContent className="px-4 pb-0 md:pb-4 sm:mx-auto sm:max-w-sm">
           <ResponsiveDialogHeader className="px-0 text-left">
             <ResponsiveDialogTitle>确认订单完成</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>

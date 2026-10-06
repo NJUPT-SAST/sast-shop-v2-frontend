@@ -276,10 +276,8 @@ export function TransactionAgreementProvider({
           {mode === "consent" ? (
             <Footer
               className={cn(
-                "shrink-0 border-t",
-                desktop
-                  ? "flex-col p-6 sm:flex-col"
-                  : "pb-[calc(2rem+env(safe-area-inset-bottom))]",
+                "shrink-0 border-t flex-col items-stretch",
+                desktop ? "flex-col p-6 sm:flex-col" : undefined,
               )}
             >
               {error ? (
@@ -287,7 +285,7 @@ export function TransactionAgreementProvider({
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               ) : null}
-              <div className="flex gap-3">
+              <div className="flex gap-2">
                 <Button
                   variant="outline"
                   className="min-h-11 flex-1"
@@ -296,7 +294,7 @@ export function TransactionAgreementProvider({
                   暂不同意
                 </Button>
                 <Button
-                  className="min-h-11 flex-[2]"
+                  className="min-h-11 min-w-0 flex-1 whitespace-normal"
                   aria-label="同意并继续"
                   disabled={seconds > 0 || saving}
                   onClick={() => void acceptAgreement()}
