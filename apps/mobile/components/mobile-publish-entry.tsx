@@ -165,7 +165,6 @@ export function MobilePublishEntry() {
                   ref={barcodeRef}
                   id="publish-entry-barcode"
                   value={barcode}
-                  className="h-11"
                   autoComplete="off"
                   inputMode="numeric"
                   maxLength={64}

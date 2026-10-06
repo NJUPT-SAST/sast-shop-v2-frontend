@@ -31,7 +31,11 @@ import {
 } from "@workspace/ui/components/card";
 import { Empty } from "@workspace/ui/components/empty";
 import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
-import { Input } from "@workspace/ui/components/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@workspace/ui/components/input-group";
 import { LoadFailure } from "@workspace/ui/components/load-failure";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
@@ -117,10 +121,12 @@ export function ErrandDemandHall({
         </h1>
       </section>
 
-      <label className="relative block">
-        <span className="sr-only">搜索店铺名称</span>
-        <RiSearchLine className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
+      <InputGroup>
+        <InputGroupAddon>
+          <RiSearchLine />
+        </InputGroupAddon>
+        <InputGroupInput
+          aria-label="搜索店铺名称"
           ref={searchInputRef}
           value={keyword}
           onChange={(event) => {
@@ -128,9 +134,8 @@ export function ErrandDemandHall({
           }}
           placeholder="搜索店铺名称"
           autoComplete="off"
-          className="rounded-lg pl-9"
         />
-      </label>
+      </InputGroup>
 
       {error ? (
         <LoadFailure

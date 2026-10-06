@@ -543,7 +543,7 @@ export function SpotMarketplace({
         </div>
       </section>
 
-      <InputGroup className="h-11 bg-card">
+      <InputGroup>
         <InputGroupAddon>
           <InputGroupText>
             <RiSearchLine />

@@ -493,7 +493,7 @@ export function PublishSpotForm({
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor={field.name}>商品条码</FieldLabel>
-                <InputGroup className="h-12 bg-card">
+                <InputGroup>
                   <InputGroupAddon>
                     <RiBarcodeLine />
                   </InputGroupAddon>

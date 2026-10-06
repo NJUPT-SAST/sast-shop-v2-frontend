@@ -469,7 +469,7 @@ export function OrdersView({
           </Select>
         </div>
 
-        <InputGroup className="h-11 bg-card">
+        <InputGroup>
           <InputGroupAddon>
             <InputGroupText>
               <RiSearchLine />

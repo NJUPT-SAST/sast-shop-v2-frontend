@@ -1,6 +1,11 @@
 import * as React from "react";
 
 import { cn } from "#lib/utils";
+import {
+  textControlContentStyles,
+  textControlStateStyles,
+  textControlSurfaceStyles,
+} from "#lib/text-control-styles";
 
 function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   return (
@@ -8,7 +13,10 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
       type={type}
       data-slot="input"
       className={cn(
-        "h-11 w-full min-w-0 rounded-md border border-input bg-transparent px-2.5 py-1 text-base ring-inset transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:h-9 md:text-sm dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
+        textControlSurfaceStyles,
+        textControlContentStyles,
+        textControlStateStyles,
+        "h-11 py-1 file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground disabled:pointer-events-none md:h-9",
         className,
       )}
       {...props}
