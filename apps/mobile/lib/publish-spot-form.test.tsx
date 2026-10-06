@@ -14,7 +14,7 @@ import { PublishSpotForm } from "../components/publish-spot-form";
 const { ensureAgreement } = vi.hoisted(() => ({ ensureAgreement: vi.fn() }));
 
 vi.mock("@sast-shop/api", () => ({
-  configureLarkJsapi: vi.fn(async () => undefined),
+  configureLarkPageJsapi: vi.fn(async () => undefined),
   createSpotGoods: vi.fn(),
   getProductTemplatesByBarcode: vi.fn(),
   isLarkScanCancelledError: (reason: unknown) =>

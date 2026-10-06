@@ -26,7 +26,7 @@ import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 import {
-  configureLarkJsapi,
+  configureLarkPageJsapi,
   createProductTemplate,
   deleteProductTemplate,
   isLarkScanCancelledError,
@@ -250,21 +250,21 @@ export function ProductTemplateManager({
     scanningBarcodeRef.current = true;
     setScanningBarcode(true);
     try {
-      const signingUrl = window.location.href.split("#", 1)[0] ?? "";
-      const response = await fetch(
-        `/api/auth/jsapi-config?url=${encodeURIComponent(signingUrl)}`,
-        { cache: "no-store" },
-      );
-      const body: unknown = await response.json().catch(() => null);
-      if (!response.ok || !isJsapiAuthConfig(body)) {
-        throw new Error(
-          response.status === 401
-            ? "登录已失效，请重新打开应用"
-            : "扫码鉴权暂不可用，请稍后再试",
+      await configureLarkPageJsapi(window.h5sdk, async (signingUrl) => {
+        const response = await fetch(
+          `/api/auth/jsapi-config?url=${encodeURIComponent(signingUrl)}`,
+          { cache: "no-store" },
         );
-      }
-
-      await configureLarkJsapi(window.h5sdk, body);
+        const body: unknown = await response.json().catch(() => null);
+        if (!response.ok || !isJsapiAuthConfig(body)) {
+          throw new Error(
+            response.status === 401
+              ? "登录已失效，请重新打开应用"
+              : "扫码鉴权暂不可用，请稍后再试",
+          );
+        }
+        return body;
+      });
       const barcode = await scanLarkBarcode(window.tt);
       form.setValue("barcode", barcode, {
         shouldDirty: true,

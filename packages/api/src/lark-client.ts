@@ -63,7 +63,7 @@ export interface LarkH5Sdk {
       onSuccess?: (result: unknown) => void;
       onFail?: (result: unknown) => void;
     },
-  ) => void;
+  ) => void | Promise<unknown>;
 }
 
 export function isLarkClientEnvironment(
@@ -151,20 +151,90 @@ export function configureLarkJsapi(
         return;
       }
 
-      const configure = () => {
-        sdk.config?.({
-          ...config,
-          timestamp,
-          jsApiList,
-          onSuccess: () => resolve(),
-          onFail: () =>
-            reject(new Error("飞书 JSAPI 鉴权失败，请重新打开应用")),
-        });
-      };
-
-      if (sdk.ready) sdk.ready(configure);
-      else configure();
+      const configuring = sdk.config({
+        ...config,
+        timestamp,
+        jsApiList,
+        onSuccess: () => {
+          if (sdk.ready) sdk.ready(() => resolve());
+          else resolve();
+        },
+        onFail: (result) => reject(createJsapiAuthError(result)),
+      });
+      void Promise.resolve(configuring).catch((result: unknown) =>
+        reject(createJsapiAuthError(result)),
+      );
     },
+  );
+}
+
+export async function configureLarkPageJsapi(
+  sdk: LarkH5Sdk,
+  getConfig: (signingUrl: string) => Promise<JSAPIAuthConfig>,
+  jsApiList: LarkJsapiName[] = ["tt.scanCode"],
+): Promise<void> {
+  const signingUrl = window.location.href.split("#", 1)[0] ?? "";
+  const navigation = window.performance.getEntriesByType?.("navigation")[0];
+  let entryUrl: string | undefined;
+  if (navigation?.name) {
+    try {
+      const url = new URL(navigation.name);
+      if (
+        url.origin === window.location.origin &&
+        !url.username &&
+        !url.password
+      ) {
+        url.hash = "";
+        entryUrl = url.href;
+      }
+    } catch {
+      entryUrl = undefined;
+    }
+  }
+
+  try {
+    await configureLarkJsapi(sdk, await getConfig(signingUrl), jsApiList);
+  } catch (reason) {
+    if (
+      !(reason instanceof LarkClientError) ||
+      reason.errno !== 333441 ||
+      !entryUrl ||
+      entryUrl === signingUrl
+    ) {
+      throw reason;
+    }
+    // Native URL validation may retain the document URL across SPA navigation.
+    await configureLarkJsapi(sdk, await getConfig(entryUrl), jsApiList);
+  }
+}
+
+function createJsapiAuthError(result: unknown): LarkClientError {
+  const fields =
+    result && typeof result === "object"
+      ? (result as Record<string, unknown>)
+      : {};
+  const code = fields.errorCode ?? fields.errCode ?? fields.errno;
+  const errno =
+    (typeof code === "number" ||
+      (typeof code === "string" && /^\d+$/.test(code))) &&
+    Number.isSafeInteger(Number(code))
+      ? Number(code)
+      : undefined;
+  const messages: Record<number, string> = {
+    333441: "飞书 JSAPI 签名校验失败，请重新打开应用",
+    333442: "飞书 JSAPI 票据无效，请稍后重试",
+    333443: "飞书 JSAPI 签名已使用，请重试",
+    333444: "飞书 JSAPI 签名已过期，请重试",
+    333447: "飞书应用尚未配置 H5 可信域名，请联系管理员",
+    333448: "当前地址不在飞书应用的 H5 可信域名内，请联系管理员",
+    333449: "当前账号不在飞书应用的可用范围内，请联系管理员",
+  };
+  const message =
+    (errno === undefined ? undefined : messages[errno]) ??
+    "飞书 JSAPI 鉴权失败，请重新打开应用";
+  return new LarkClientError(
+    errno === undefined ? message : `${message}（错误码：${errno}）`,
+    errno,
   );
 }
 

@@ -1,7 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   configureLarkJsapi,
+  configureLarkPageJsapi,
   enterLarkChat,
   isLarkClientEnvironment,
   isLarkMobileClientEnvironment,
@@ -14,6 +15,149 @@ import {
 } from "./lark-client";
 
 describe("Lark client adapter", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const authConfig = {
+    appId: "cli_test",
+    timestamp: "1784320800000",
+    nonceStr: "nonce",
+    signature: "signature",
+  };
+
+  function stubPage(entryUrl = "https://shop.example.com/?source=workplace") {
+    vi.stubGlobal("window", {
+      location: new URL("https://shop.example.com/shop#drawer"),
+      performance: {
+        getEntriesByType: () => [{ name: entryUrl }],
+      },
+    });
+  }
+
+  it("configures before waiting for SDK readiness and waits before resolving", async () => {
+    let succeed: (() => void) | undefined;
+    let readyCallback: (() => void) | undefined;
+    const config = vi.fn<NonNullable<LarkH5Sdk["config"]>>((options) => {
+      succeed = () => options.onSuccess?.({});
+    });
+    const ready = vi.fn((callback: () => void) => {
+      readyCallback = callback;
+    });
+    const resolved = vi.fn();
+    const pending = configureLarkJsapi({ config, ready }, authConfig).then(
+      resolved,
+    );
+
+    expect(config).toHaveBeenCalledTimes(1);
+    expect(ready).not.toHaveBeenCalled();
+    succeed!();
+    expect(ready).toHaveBeenCalledTimes(1);
+    await Promise.resolve();
+    expect(resolved).not.toHaveBeenCalled();
+    readyCallback!();
+    await pending;
+    expect(resolved).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["errorCode", "errCode", "errno"])(
+    "preserves the JSAPI %s without exposing signature diagnostics",
+    async (field) => {
+      const config: NonNullable<LarkH5Sdk["config"]> = (options) => {
+        options.onFail?.({
+          [field]: "333441",
+          errorMessage:
+            "invalid signature: jsticket: secret-ticket, signature: secret-signature",
+        });
+      };
+      const error = await configureLarkJsapi({ config }, authConfig).catch(
+        (reason: unknown) => reason,
+      );
+      expect(error).toMatchObject({ errno: 333441 });
+      expect(error).toHaveProperty(
+        "message",
+        expect.stringContaining("333441"),
+      );
+      expect(error).toHaveProperty(
+        "message",
+        expect.not.stringContaining("secret"),
+      );
+    },
+  );
+
+  it("re-signs the document entry URL after a signature failure following SPA navigation", async () => {
+    stubPage();
+    const getConfig = vi.fn(async () => authConfig);
+    const config = vi
+      .fn<NonNullable<LarkH5Sdk["config"]>>()
+      .mockImplementationOnce((options) =>
+        options.onFail?.({ errorCode: 333441 }),
+      )
+      .mockImplementationOnce((options) => options.onSuccess?.({}));
+
+    await configureLarkPageJsapi({ config }, getConfig);
+
+    expect(getConfig.mock.calls).toEqual([
+      ["https://shop.example.com/shop"],
+      ["https://shop.example.com/?source=workplace"],
+    ]);
+    expect(config).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry domain configuration failures", async () => {
+    stubPage();
+    const getConfig = vi.fn(async () => authConfig);
+    const config: NonNullable<LarkH5Sdk["config"]> = (options) =>
+      options.onFail?.({ errorCode: 333448 });
+
+    await expect(configureLarkPageJsapi({ config }, getConfig)).rejects.toThrow(
+      "H5 可信域名",
+    );
+    expect(getConfig).toHaveBeenCalledTimes(1);
+  });
+
+  it("handles the SDK config promise rejection without exposing its diagnostics", async () => {
+    const config: NonNullable<LarkH5Sdk["config"]> = () =>
+      Promise.reject({
+        errorCode: 333442,
+        errorMessage: "jsticket: secret-ticket",
+      });
+
+    await expect(configureLarkJsapi({ config }, authConfig)).rejects.toThrow(
+      "飞书 JSAPI 票据无效，请稍后重试（错误码：333442）",
+    );
+  });
+
+  it.each([
+    "https://shop.example.com/shop",
+    "https://untrusted.example.com/",
+    "https://user:secret@shop.example.com/",
+    "not-a-url",
+  ])(
+    "does not retry an unchanged or unsafe document URL %s",
+    async (entryUrl) => {
+      stubPage(entryUrl);
+      const getConfig = vi.fn(async () => authConfig);
+      const config: NonNullable<LarkH5Sdk["config"]> = (options) =>
+        options.onFail?.({ errorCode: 333441 });
+
+      await expect(
+        configureLarkPageJsapi({ config }, getConfig),
+      ).rejects.toThrow("333441");
+      expect(getConfig).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("stops after one entry URL retry", async () => {
+    stubPage();
+    const getConfig = vi.fn(async () => authConfig);
+    const config: NonNullable<LarkH5Sdk["config"]> = (options) =>
+      options.onFail?.({ errorCode: 333441 });
+
+    await expect(configureLarkPageJsapi({ config }, getConfig)).rejects.toThrow(
+      "333441",
+    );
+    expect(getConfig).toHaveBeenCalledTimes(2);
+  });
+
   it("requests the login code with requestAccess", async () => {
     const requestAccess = vi.fn<NonNullable<LarkClientApi["requestAccess"]>>(
       (options) => options.success({ code: " access-code " }),

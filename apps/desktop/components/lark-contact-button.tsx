@@ -3,7 +3,7 @@
 import { useRef, useState, useSyncExternalStore } from "react";
 import { RiMessage3Line } from "@remixicon/react";
 import {
-  configureLarkJsapi,
+  configureLarkPageJsapi,
   enterLarkChat,
   getBuyerErrandOrderCaptainContact,
   getSpotOrderSellerContact,
@@ -58,21 +58,25 @@ export function LarkContactButton({
         dataSource,
         connectBaseUrl,
       });
-      const signingUrl = window.location.href.split("#", 1)[0] ?? "";
-      const response = await fetch(
-        `/api/auth/jsapi-config?url=${encodeURIComponent(signingUrl)}`,
-        { cache: "no-store" },
+      await configureLarkPageJsapi(
+        window.h5sdk,
+        async (signingUrl) => {
+          const response = await fetch(
+            `/api/auth/jsapi-config?url=${encodeURIComponent(signingUrl)}`,
+            { cache: "no-store" },
+          );
+          const body: unknown = await response.json().catch(() => null);
+          if (!response.ok || !isJsapiAuthConfig(body)) {
+            throw new Error(
+              response.status === 401
+                ? "登录已失效，请重新打开应用"
+                : "联系功能暂不可用，请稍后再试",
+            );
+          }
+          return body;
+        },
+        ["tt.enterChat"],
       );
-      const body: unknown = await response.json().catch(() => null);
-      if (!response.ok || !isJsapiAuthConfig(body)) {
-        throw new Error(
-          response.status === 401
-            ? "登录已失效，请重新打开应用"
-            : "联系功能暂不可用，请稍后再试",
-        );
-      }
-
-      await configureLarkJsapi(window.h5sdk, body, ["tt.enterChat"]);
       await enterLarkChat(window.tt, contactOpenId);
     } catch (reason) {
       toast.error(

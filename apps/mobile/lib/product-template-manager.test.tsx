@@ -4,7 +4,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  configureLarkJsapi,
+  configureLarkPageJsapi,
   createProductTemplate,
   deleteProductTemplate,
   LarkClientError,
@@ -21,7 +21,7 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@sast-shop/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@sast-shop/api")>()),
-  configureLarkJsapi: vi.fn(),
+  configureLarkPageJsapi: vi.fn(),
   createProductTemplate: vi.fn(),
   deleteProductTemplate: vi.fn(),
   listProductTemplatesPage: vi.fn(),
@@ -94,7 +94,11 @@ beforeEach(() => {
   vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
     "Mozilla/5.0 (Linux; Android 15) Mobile Chrome/140.0",
   );
-  vi.mocked(configureLarkJsapi).mockResolvedValue(undefined);
+  vi.mocked(configureLarkPageJsapi).mockImplementation(
+    async (_sdk, getConfig) => {
+      await getConfig(window.location.href.split("#", 1)[0] ?? "");
+    },
+  );
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -304,9 +308,9 @@ describe("product template barcode scan", () => {
     expect(scanButton()).not.toBeNull();
     expect(scanButton().getAttribute("type")).toBe("button");
     await act(async () => scanButton().click());
-    expect(configureLarkJsapi).toHaveBeenCalledWith(
+    expect(configureLarkPageJsapi).toHaveBeenCalledWith(
       window.h5sdk,
-      expect.objectContaining({ appId: "cli_test" }),
+      expect.any(Function),
     );
     expect(scanLarkBarcode).toHaveBeenCalledWith(window.tt);
     expect(container.querySelector<HTMLInputElement>("#barcode")?.value).toBe(

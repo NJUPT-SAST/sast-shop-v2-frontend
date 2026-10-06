@@ -23,6 +23,7 @@ export {
 } from "./services/auth";
 export {
   configureLarkJsapi,
+  configureLarkPageJsapi,
   enterLarkChat,
   isLarkClientEnvironment,
   isLarkMobileClientEnvironment,
