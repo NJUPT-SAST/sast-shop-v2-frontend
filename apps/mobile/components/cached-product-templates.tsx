@@ -8,7 +8,7 @@ import {
   type PageResult,
 } from "@sast-shop/api";
 import { useCachedResource } from "@workspace/ui/hooks/use-cached-resource";
-import { LoadFailure } from "@workspace/ui/components/load-failure";
+import { LoadFailure } from "@/components/load-failure";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { ProductTemplateManager } from "./product-template-manager";
 
@@ -65,6 +65,7 @@ export function CachedProductTemplates({
     if (error)
       return (
         <LoadFailure
+          variant="page"
           title="商品模板加载失败"
           description="商品模板暂不可用，请稍后再试"
           onRetry={() => void refresh()}

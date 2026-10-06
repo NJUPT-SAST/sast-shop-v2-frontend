@@ -39,8 +39,8 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card";
 import { Empty } from "@workspace/ui/components/empty";
-import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
-import { LoadFailure } from "@workspace/ui/components/load-failure";
+import { InfiniteListStatus } from "@/components/infinite-list-status";
+import { LoadFailure } from "@/components/load-failure";
 import {
   InputGroup,
   InputGroupAddon,
@@ -588,6 +588,7 @@ export function SpotMarketplace({
       {searching ? <SpotGoodsLoadingSkeletons /> : null}
       {pageError ? (
         <LoadFailure
+          variant="page"
           title="现货加载失败"
           description={pageError}
           onRetry={() => (keyword ? void search.refresh() : router.refresh())}

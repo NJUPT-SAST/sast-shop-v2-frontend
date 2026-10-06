@@ -36,6 +36,8 @@
 | spot-empty            | 空商品货架与价签   | 商城暂无在售现货                   |
 | search-empty          | 放大镜与商品卡片   | 搜索无结果、无效链接               |
 | cart-empty            | 空购物篮           | 跑腿清单暂无商品                   |
+| load-error            | 云朵与断开的连接   | 内容加载失败、网络或服务暂不可用   |
+| barcode-empty         | 条码标签与放大镜   | 条码没有匹配的商品模板             |
 
 ## 使用位置
 
@@ -44,6 +46,8 @@ Next.js 使用文件约定生成浏览器图标与主屏图标标签。商城底
 等待中的团长角色用于跑腿大厅没有待接单需求、且没有搜索词时的空状态。功能图形通过 `BrandIllustration` 组合到对应入口、登录等待和真实空状态；组件在不超过 64 像素时选用 compact 素材，并跳过 Next.js 二次图片压缩。页面搜索无结果使用放大镜插画，局部空状态保持紧凑。空状态直接置于页面或内容区，不增加背景卡片；操作只保留创建内容、清空搜索等有效入口。插画由内置 imagegen 生成，完整提示词保存在对应 `*-prompt.txt`；加载失败、支付与订单结果继续使用状态控件和文字。
 
 插画为装饰图，使用空 `alt`；标题和操作由原有页面负责，图片加载失败时仍可理解当前状态。商家 Logo、用户头像、商品图片和微信/支付宝平台标识使用真实数据与标志；收款码插画是不可扫描的抽象图案。完整海报不直接放进购物首屏。
+
+加载失败和条码未匹配素材采用内置 imagegen 的生成模式，分别保存在 [load-error-master.png](load-error-master.png)、[barcode-empty-master.png](barcode-empty-master.png)，完整提示词保存在 [load-error-prompt.txt](load-error-prompt.txt)、[barcode-empty-prompt.txt](barcode-empty-prompt.txt)。移动端错误及空状态的使用范围见 [走查清单](../../docs/mobile-feedback-states.md)。
 
 ## 导出
 

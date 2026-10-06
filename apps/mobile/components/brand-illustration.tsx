@@ -33,7 +33,14 @@ import searchEmptyCompact from "../public/brand/search-empty-compact.webp";
 import cartEmpty from "../public/brand/cart-empty.webp";
 import cartEmptyCompact from "../public/brand/cart-empty-compact.webp";
 
+import loadError from "../public/brand/load-error.webp";
+import loadErrorCompact from "../public/brand/load-error-compact.webp";
+import barcodeEmpty from "../public/brand/barcode-empty.webp";
+import barcodeEmptyCompact from "../public/brand/barcode-empty-compact.webp";
+
 const illustrations = {
+  "load-error": { regular: loadError, compact: loadErrorCompact },
+  "barcode-empty": { regular: barcodeEmpty, compact: barcodeEmptyCompact },
   "spot-empty": { regular: spotEmpty, compact: spotEmptyCompact },
   "search-empty": { regular: searchEmpty, compact: searchEmptyCompact },
   "cart-empty": { regular: cartEmpty, compact: cartEmptyCompact },

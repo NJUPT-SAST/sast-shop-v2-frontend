@@ -11,6 +11,7 @@ export function InfiniteListStatus({
   hasItems,
   onLoadMore,
   loadingFallback,
+  errorIllustration,
   endMessage = "已经到底了",
   endMessageClassName,
 }: {
@@ -20,6 +21,7 @@ export function InfiniteListStatus({
   hasItems: boolean;
   onLoadMore: () => void;
   loadingFallback: ReactNode;
+  errorIllustration?: ReactNode;
   endMessage?: ReactNode;
   endMessageClassName?: string;
 }) {
@@ -69,6 +71,7 @@ export function InfiniteListStatus({
         <LoadFailure
           variant="compact"
           surface="plain"
+          illustration={errorIllustration}
           title="加载更多失败"
           onRetry={onLoadMore}
         />

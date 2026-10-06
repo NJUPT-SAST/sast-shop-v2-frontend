@@ -54,7 +54,7 @@ import {
 } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
-import { LoadFailure } from "@workspace/ui/components/load-failure";
+import { LoadFailure } from "@/components/load-failure";
 import {
   RadioGroup,
   RadioGroupItem,
@@ -675,7 +675,7 @@ function ProfileLoadError({
 }) {
   return (
     <LoadFailure
-      variant="compact"
+      variant="section"
       title={title}
       description={message ?? "暂时无法加载，请稍后再试"}
       onRetry={onRetry}

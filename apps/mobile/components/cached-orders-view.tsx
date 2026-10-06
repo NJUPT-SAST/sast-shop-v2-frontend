@@ -8,7 +8,7 @@ import {
   type PageResult,
 } from "@sast-shop/api";
 import { useCachedResource } from "@workspace/ui/hooks/use-cached-resource";
-import { LoadFailure } from "@workspace/ui/components/load-failure";
+import { LoadFailure } from "@/components/load-failure";
 import { OrdersView } from "@/components/orders-view";
 import { OrdersPageSkeleton } from "@/components/orders-page-skeleton";
 import type { OrderFilters } from "@/lib/order-filters";

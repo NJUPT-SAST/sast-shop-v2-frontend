@@ -20,7 +20,7 @@ import { Button } from "@workspace/ui/components/button";
 import { CopyButton } from "@workspace/ui/components/copy-button";
 import { PaymentCodeHelp } from "@workspace/ui/components/payment-code-help";
 import { Empty } from "@workspace/ui/components/empty";
-import { LoadFailure } from "@workspace/ui/components/load-failure";
+import { LoadFailure } from "@/components/load-failure";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,

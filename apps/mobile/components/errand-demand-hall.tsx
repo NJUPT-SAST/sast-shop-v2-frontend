@@ -31,13 +31,13 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card";
 import { Empty } from "@workspace/ui/components/empty";
-import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
+import { InfiniteListStatus } from "@/components/infinite-list-status";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from "@workspace/ui/components/input-group";
-import { LoadFailure } from "@workspace/ui/components/load-failure";
+import { LoadFailure } from "@/components/load-failure";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
 import { useCachedResource } from "@workspace/ui/hooks/use-cached-resource";
@@ -175,6 +175,7 @@ export function ErrandDemandHall({
 
       {displayError ? (
         <LoadFailure
+          variant="page"
           title="跑腿需求加载失败"
           description={displayError}
           onRetry={() => {

@@ -23,7 +23,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
-import { LoadFailure } from "@workspace/ui/components/load-failure";
+import { LoadFailure } from "@/components/load-failure";
 import { BrandIllustration } from "@/components/brand-illustration";
 import { ManagedImage } from "@/components/managed-image";
 import { StoreCreateDialog } from "@/components/store-create-dialog";
@@ -113,7 +113,7 @@ export function GroupOverviewClient({
             <Skeleton className="h-24 w-full rounded-lg" />
           ) : taskError && !tasksResource.data ? (
             <LoadFailure
-              variant="compact"
+              variant="section"
               title="采购任务加载失败"
               description={taskError}
               onRetry={() => void tasksResource.refresh()}
@@ -161,7 +161,7 @@ export function GroupOverviewClient({
           </div>
         ) : storeError && !storesResource.data ? (
           <LoadFailure
-            variant="compact"
+            variant="section"
             title="店铺信息加载失败"
             description={storeError}
             onRetry={() => void storesResource.refresh()}

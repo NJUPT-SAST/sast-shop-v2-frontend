@@ -33,8 +33,8 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card";
 import { Empty } from "@workspace/ui/components/empty";
-import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
-import { LoadFailure } from "@workspace/ui/components/load-failure";
+import { InfiniteListStatus } from "@/components/infinite-list-status";
+import { LoadFailure } from "@/components/load-failure";
 import {
   InputGroup,
   InputGroupAddon,
@@ -593,6 +593,7 @@ function OrderList({
   if (hasError) {
     return (
       <LoadFailure
+        variant="page"
         title="订单加载失败"
         description="网络或服务暂时不可用，请稍后重试。"
         onRetry={onRetry}

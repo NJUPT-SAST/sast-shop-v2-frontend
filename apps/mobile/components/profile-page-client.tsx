@@ -14,7 +14,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@workspace/ui/components/avatar";
-import { LoadFailure } from "@workspace/ui/components/load-failure";
+import { LoadFailure } from "@/components/load-failure";
 import { ProfileManagement } from "@/components/profile-management";
 
 async function loadProfileUser(

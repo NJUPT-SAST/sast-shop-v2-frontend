@@ -4,23 +4,22 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { Button } from "#components/button";
 import { cn } from "#lib/utils";
 
-const loadFailureVariants = cva("rounded-lg text-card-foreground", {
+const loadFailureVariants = cva("w-full text-foreground", {
   variants: {
     variant: {
-      page: "flex min-h-[min(24rem,60dvh)] flex-col items-center justify-center gap-3 px-4 py-10 text-center",
+      page: "flex min-h-[min(24rem,60dvh)] flex-1 flex-col items-center justify-center gap-4 px-4 py-10 text-center [@media(max-height:640px)]:py-4",
       section:
-        "flex min-h-36 flex-col items-center justify-center gap-3 px-4 py-8 text-center",
-      compact:
-        "flex flex-col items-center justify-center gap-3 px-4 py-5 text-center",
+        "flex min-h-36 flex-col items-center justify-center gap-4 px-4 py-8 text-center [@media(max-height:640px)]:py-4",
+      compact: "flex items-center gap-3 px-1 py-4 text-left",
     },
     surface: {
-      card: "border border-destructive/25 bg-card",
+      card: "rounded-lg border bg-card",
       plain: "bg-transparent",
     },
   },
   defaultVariants: {
     variant: "section",
-    surface: "card",
+    surface: "plain",
   },
 });
 
@@ -44,6 +43,7 @@ type LoadFailureProps = Omit<ComponentProps<"div">, "title"> &
     title: ReactNode;
     description?: ReactNode;
     icon?: ReactNode;
+    illustration?: ReactNode;
     retryLabel?: ReactNode;
     secondaryAction?: ReactNode;
   };
@@ -55,6 +55,7 @@ function LoadFailure({
   title,
   description,
   icon = <RiErrorWarningLine className="size-5" />,
+  illustration,
   retryLabel = "重新加载",
   onRetry,
   retryHref,
@@ -65,18 +66,18 @@ function LoadFailure({
   const titleId = `${baseId}-title`;
   const descriptionId = `${baseId}-description`;
   const resolvedVariant = variant ?? "section";
-  const resolvedSurface = surface ?? "card";
+  const resolvedSurface = surface ?? "plain";
   const compact = resolvedVariant === "compact";
   const normalizedDescription =
     typeof description === "string"
       ? description.replace(/[。.]+$/u, "")
       : description;
   const retryAction = onRetry ? (
-    <Button type="button" size={compact ? "sm" : "default"} onClick={onRetry}>
+    <Button type="button" size="touch" onClick={onRetry}>
       {retryLabel}
     </Button>
   ) : retryHref ? (
-    <Button asChild size={compact ? "sm" : "default"}>
+    <Button asChild size="touch">
       <a href={retryHref}>{retryLabel}</a>
     </Button>
   ) : null;
@@ -99,18 +100,31 @@ function LoadFailure({
       aria-describedby={normalizedDescription ? descriptionId : undefined}
     >
       <div
-        data-slot="load-failure-icon"
+        data-slot={
+          illustration ? "load-failure-illustration" : "load-failure-icon"
+        }
         className={cn(
-          "flex shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive",
-          compact ? "size-9" : "size-11",
+          "flex shrink-0 items-center justify-center text-muted-foreground",
+          !illustration && (compact ? "size-9" : "size-11"),
         )}
         aria-hidden="true"
       >
-        {icon}
+        {illustration ?? icon}
       </div>
 
-      <div data-slot="load-failure-content" className="min-w-0">
-        <div className="space-y-1">
+      <div
+        data-slot="load-failure-content"
+        className={cn(
+          "min-w-0",
+          compact && "flex flex-1 flex-wrap items-center gap-3",
+        )}
+      >
+        <div
+          className={cn(
+            "flex min-w-0 flex-col gap-1",
+            compact && "flex-1 basis-36",
+          )}
+        >
           <p
             id={titleId}
             data-slot="load-failure-title"
@@ -135,7 +149,10 @@ function LoadFailure({
         {retryAction || secondaryAction ? (
           <div
             data-slot="load-failure-actions"
-            className="mt-4 flex flex-wrap justify-center gap-2"
+            className={cn(
+              "flex flex-wrap gap-2",
+              compact ? "shrink-0" : "mt-4 justify-center",
+            )}
           >
             {retryAction}
             {secondaryAction}

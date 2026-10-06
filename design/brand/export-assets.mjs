@@ -115,6 +115,8 @@ const moduleNames = [
   "spot-empty",
   "search-empty",
   "cart-empty",
+  "load-error",
+  "barcode-empty",
 ];
 
 if (selectedModule && !moduleNames.includes(selectedModule)) {

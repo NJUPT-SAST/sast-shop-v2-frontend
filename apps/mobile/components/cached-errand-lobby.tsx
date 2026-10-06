@@ -1,7 +1,7 @@
 "use client";
 
 import { listErrandDemandStoresPage, type DataSource } from "@sast-shop/api";
-import { LoadFailure } from "@workspace/ui/components/load-failure";
+import { LoadFailure } from "@/components/load-failure";
 import { useCachedResource } from "@workspace/ui/hooks/use-cached-resource";
 
 import ErrandDemandHallLoading from "@/components/errand-lobby-skeleton";
@@ -50,6 +50,7 @@ export function CachedErrandLobby({
       />
       {data && error ? (
         <LoadFailure
+          variant="compact"
           title="跑腿需求更新失败"
           description="当前显示上次加载的需求，请重试更新"
           onRetry={() => void refresh()}

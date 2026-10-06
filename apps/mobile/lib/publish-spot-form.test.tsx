@@ -217,3 +217,48 @@ describe("publish spot scan recovery", () => {
     expect(container.textContent).toContain("请先上传收款码");
   });
 });
+
+describe("barcode lookup feedback", () => {
+  it("keeps the barcode and retries a failed lookup without publishing", async () => {
+    vi.mocked(getProductTemplatesByBarcode)
+      .mockRejectedValueOnce(new Error("connection unavailable"))
+      .mockResolvedValueOnce([match]);
+    await renderForm("manual", "690000000001");
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 350));
+    });
+
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+      "商品匹配失败",
+    );
+    expect(container.querySelector<HTMLInputElement>("#barcode")?.value).toBe(
+      "690000000001",
+    );
+    await click("重试匹配");
+
+    expect(getProductTemplatesByBarcode).toHaveBeenCalledTimes(2);
+    expect(getProductTemplatesByBarcode).toHaveBeenLastCalledWith(
+      "690000000001",
+      expect.objectContaining({ dataSource: "mock" }),
+    );
+    expect(container.textContent).toContain("矿泉水");
+    expect(createSpotGoods).not.toHaveBeenCalled();
+  });
+
+  it("offers template creation for no matches instead of treating it as a network failure", async () => {
+    await renderForm("manual", "690000000001");
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 350));
+    });
+
+    const link = Array.from(container.querySelectorAll("a")).find(
+      (element) => element.textContent === "创建商品模板",
+    );
+    expect(link?.getAttribute("href")).toBe(
+      "/group/templates?create=1&barcode=690000000001",
+    );
+    expect(container.textContent).toContain("未找到商品模板");
+    expect(container.textContent).not.toContain("重试匹配");
+    expect(createSpotGoods).not.toHaveBeenCalled();
+  });
+});

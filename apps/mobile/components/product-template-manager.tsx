@@ -51,8 +51,8 @@ import {
   DrawerTitle,
 } from "@workspace/ui/components/drawer";
 import { Empty } from "@workspace/ui/components/empty";
-import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
-import { LoadFailure } from "@workspace/ui/components/load-failure";
+import { InfiniteListStatus } from "@/components/infinite-list-status";
+import { LoadFailure } from "@/components/load-failure";
 import {
   Field,
   FieldDescription,
@@ -412,7 +412,7 @@ export function ProductTemplateManager({
       {searching ? <TemplateLoadingSkeletons /> : null}
       {pageError ? (
         <LoadFailure
-          variant="compact"
+          variant="section"
           title="商品模板加载失败"
           description={pageError}
           onRetry={() => (keyword ? void search.refresh() : router.refresh())}

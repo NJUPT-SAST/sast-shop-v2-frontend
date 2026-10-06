@@ -19,7 +19,7 @@ import { formatPrice, parseYuanToCents } from "@sast-shop/domain";
 import { Button } from "@workspace/ui/components/button";
 import { Card } from "@workspace/ui/components/card";
 import { Empty } from "@workspace/ui/components/empty";
-import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
+import { InfiniteListStatus } from "@/components/infinite-list-status";
 import { Input } from "@workspace/ui/components/input";
 import { QuantityStepper } from "@workspace/ui/components/quantity-stepper";
 import { Skeleton } from "@workspace/ui/components/skeleton";

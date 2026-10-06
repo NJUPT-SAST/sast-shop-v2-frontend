@@ -9,13 +9,11 @@ import {
   useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from "react";
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   RiAddLine,
-  RiArrowRightSLine,
   RiBarcodeLine,
   RiCheckboxCircleLine,
   RiErrorWarningLine,
@@ -52,6 +50,9 @@ import {
   DrawerTitle,
 } from "@workspace/ui/components/drawer";
 import { Empty } from "@workspace/ui/components/empty";
+import { LoadFailure } from "@/components/load-failure";
+import { BrandIllustration } from "@/components/brand-illustration";
+import { cn } from "@workspace/ui/lib/utils";
 import {
   Field,
   FieldError,
@@ -440,7 +441,12 @@ export function PublishSpotForm({
     <div className="flex min-w-0 flex-1 flex-col gap-6 py-6">
       <h1 className="min-w-0 text-xl font-semibold md:text-2xl">上架现货</h1>
 
-      <section className="flex min-w-0 flex-col gap-5">
+      <section
+        className={cn(
+          "flex min-w-0 flex-col gap-5",
+          (lookupStatus === "empty" || lookupStatus === "error") && "flex-1",
+        )}
+      >
         <h2 className="text-sm font-medium text-muted-foreground">
           第 1 步 · 识别商品
         </h2>
@@ -534,30 +540,33 @@ export function PublishSpotForm({
         ) : null}
 
         {lookupStatus === "empty" ? (
-          <TemplateActionItem
+          <Empty
+            className="flex-1 [@media(max-height:640px)]:py-4"
+            illustration={
+              <BrandIllustration
+                name="barcode-empty"
+                size={112}
+                className="[@media(max-height:640px)]:size-20"
+              />
+            }
             title="未找到商品模板"
-            description="创建模板后即可继续上架"
-            icon={<RiAddLine />}
-            href={createTemplateHref}
+            description="该条码还没有对应模板，创建后即可继续上架"
+            action={
+              <Button asChild size="touch">
+                <Link href={createTemplateHref}>创建商品模板</Link>
+              </Button>
+            }
           />
         ) : null}
 
         {lookupStatus === "error" ? (
-          <Alert variant="destructive">
-            <RiErrorWarningLine />
-            <AlertTitle>商品匹配失败</AlertTitle>
-            <AlertDescription>请检查网络，或修改条码后重试。</AlertDescription>
-            <AlertAction>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => void lookupTemplates(barcode)}
-              >
-                重试
-              </Button>
-            </AlertAction>
-          </Alert>
+          <LoadFailure
+            className="flex-1"
+            title="商品匹配失败"
+            description="暂时无法获取商品信息，请稍后重试"
+            retryLabel="重试匹配"
+            onRetry={() => void lookupTemplates(barcode)}
+          />
         ) : null}
 
         {lookupStatus === "choose" && matches.length > 1 && !selectedMatch ? (
@@ -873,37 +882,6 @@ function StoreChoiceDrawer({
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
-  );
-}
-
-function TemplateActionItem({
-  title,
-  description,
-  icon,
-  href,
-}: {
-  title: string;
-  description?: string;
-  icon: ReactNode;
-  href: string;
-}) {
-  return (
-    <Item asChild>
-      <Link href={href}>
-        <span className="flex size-9 shrink-0 items-center justify-center text-primary">
-          {icon}
-        </span>
-        <ItemContent>
-          <ItemTitle>{title}</ItemTitle>
-          {description ? (
-            <ItemDescription>{description}</ItemDescription>
-          ) : null}
-        </ItemContent>
-        <ItemActions>
-          <RiArrowRightSLine />
-        </ItemActions>
-      </Link>
-    </Item>
   );
 }
 
