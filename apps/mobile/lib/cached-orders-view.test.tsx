@@ -11,11 +11,13 @@ const {
   listSpotOrdersPage,
   listBuyerErrandOrdersPage,
   listErrandTasksPage,
+  listMyPockets,
   refresh,
 } = vi.hoisted(() => ({
   listSpotOrdersPage: vi.fn(),
   listBuyerErrandOrdersPage: vi.fn(),
   listErrandTasksPage: vi.fn(),
+  listMyPockets: vi.fn(),
   refresh: vi.fn(),
 }));
 vi.mock("@sast-shop/api", async (importOriginal) => ({
@@ -23,6 +25,7 @@ vi.mock("@sast-shop/api", async (importOriginal) => ({
   listSpotOrdersPage,
   listBuyerErrandOrdersPage,
   listErrandTasksPage,
+  listMyPockets,
 }));
 vi.mock("next/navigation", () => ({
   usePathname: () => "/orders",
@@ -79,6 +82,10 @@ beforeEach(() => {
     vi.fn(() => 1),
   );
   vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+    configurable: true,
+    value: vi.fn(),
+  });
   vi.stubGlobal(
     "ResizeObserver",
     class {
@@ -101,6 +108,18 @@ beforeEach(() => {
   listSpotOrdersPage.mockReset().mockResolvedValue(page());
   listBuyerErrandOrdersPage.mockReset().mockResolvedValue(page());
   listErrandTasksPage.mockReset().mockResolvedValue(page([task]));
+  listMyPockets.mockReset().mockResolvedValue({
+    pockets: [
+      {
+        id: "9001",
+        title: "晚餐分摊",
+        status: "collecting",
+        participantCount: 3,
+        totalCents: 9000,
+      },
+    ],
+    nextPageToken: "",
+  });
   refresh.mockReset();
   firstCommits = [];
   window.history.replaceState(null, "", "/orders?type=errand&view=captain");
@@ -129,6 +148,15 @@ function Probe({
       dataSource="mock"
       connectBaseUrl="http://localhost/api/connect"
       initialFilters={filters}
+      initialPocketTab={
+        new URLSearchParams(window.location.search).get("tab") === "pocket"
+      }
+      initialPocketPerspective={
+        new URLSearchParams(window.location.search).get("pocketView") ===
+        "member"
+          ? "member"
+          : "owner"
+      }
       refreshKey={refreshKey}
     />
   );
@@ -151,6 +179,111 @@ function deferred<T>() {
 }
 
 describe("cached orders list", () => {
+  it("selects Pocket perspective beside order tabs and restores it from the URL", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/orders?tab=pocket&pocketView=member",
+    );
+    await render("visit-pocket", buyerFilters);
+    expect(listMyPockets).toHaveBeenLastCalledWith(
+      { perspective: "member" },
+      { dataSource: "mock", connectBaseUrl: "http://localhost/api/connect" },
+    );
+    const perspective = container.querySelector<HTMLElement>(
+      '[aria-label="Pocket视角"]',
+    )!;
+    expect(perspective.textContent).toContain("我参与的");
+    const tabList = container.querySelector('[aria-label="订单类型"]')!;
+    expect(tabList.parentElement?.parentElement).toBe(
+      perspective.parentElement,
+    );
+    expect(container.querySelectorAll('[role="tab"]')).toHaveLength(3);
+    await act(async () => {
+      perspective.focus();
+      perspective.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, key: "Enter" }),
+      );
+    });
+    const owner = Array.from(
+      document.querySelectorAll<HTMLElement>('[role="option"]'),
+    ).find((item) => item.textContent === "我发起的");
+    expect(owner).toBeDefined();
+    await act(async () => owner!.click());
+    expect(listMyPockets).toHaveBeenLastCalledWith(
+      { perspective: "owner" },
+      { dataSource: "mock", connectBaseUrl: "http://localhost/api/connect" },
+    );
+    expect(new URLSearchParams(window.location.search).has("pocketView")).toBe(
+      false,
+    );
+    window.history.replaceState(
+      null,
+      "",
+      "/orders?tab=pocket&pocketView=member",
+    );
+    await act(async () => window.dispatchEvent(new PopStateEvent("popstate")));
+    expect(listMyPockets).toHaveBeenLastCalledWith(
+      { perspective: "member" },
+      { dataSource: "mock", connectBaseUrl: "http://localhost/api/connect" },
+    );
+  });
+
+  it("loads a restored Pocket tab while ordinary orders are still loading", async () => {
+    const pending = new Promise<ReturnType<typeof page>>(() => undefined);
+    listSpotOrdersPage.mockReturnValue(pending);
+    listBuyerErrandOrdersPage.mockReturnValue(pending);
+    listErrandTasksPage.mockReturnValue(pending);
+    window.history.replaceState(null, "", "/orders?tab=pocket");
+    await render("visit-pocket", buyerFilters);
+    expect(container.textContent).toContain("晚餐分摊");
+    expect(container.querySelector('[aria-label="正在加载订单"]')).toBeNull();
+    expect(
+      container.querySelector('input[aria-label="搜索店铺或商品"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[role="tab"][data-state="active"]')?.textContent,
+    ).toBe("Pocket");
+    expect(container.textContent).not.toContain("我的 Pocket");
+    expect(container.textContent).not.toContain("发起 Pocket");
+    expect(listMyPockets).toHaveBeenCalledWith(
+      { perspective: "owner" },
+      { dataSource: "mock", connectBaseUrl: "http://localhost/api/connect" },
+    );
+  });
+
+  it("switches Pocket at the same level without adding history and restores ordinary filters", async () => {
+    await render("visit-1");
+    const historyLength = window.history.length;
+    const selectTab = async (label: string) => {
+      const tab = Array.from(
+        container.querySelectorAll<HTMLElement>('[role="tab"]'),
+      ).find((element) => element.textContent === label);
+      expect(tab).toBeDefined();
+      await act(async () =>
+        tab!.dispatchEvent(
+          new MouseEvent("mousedown", { bubbles: true, button: 0 }),
+        ),
+      );
+    };
+    await selectTab("Pocket");
+    expect(new URLSearchParams(window.location.search).get("tab")).toBe(
+      "pocket",
+    );
+    expect(window.history.length).toBe(historyLength);
+    expect(container.textContent).toContain("晚餐分摊");
+    await selectTab("跑腿");
+    expect(new URLSearchParams(window.location.search).has("tab")).toBe(false);
+    expect(container.textContent).toContain(task.storeName);
+    expect(window.history.length).toBe(historyLength);
+    expect(listErrandTasksPage).toHaveBeenCalledOnce();
+    window.history.replaceState(null, "", "/orders?tab=pocket");
+    await act(async () => window.dispatchEvent(new PopStateEvent("popstate")));
+    expect(container.textContent).toContain("晚餐分摊");
+    await render("manual-refresh");
+    expect(listMyPockets).toHaveBeenCalledTimes(3);
+  });
+
   it("shows cached orders on the first commit after navigating back without another request", async () => {
     await render("visit-1");
     expect(container.textContent).toContain(task.storeName);

@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file sast/sastshopv2/user/v1/user_service_internal.proto.
  */
 export const file_sast_sastshopv2_user_v1_user_service_internal: GenFile = /*@__PURE__*/
-  fileDesc("CjNzYXN0L3Nhc3RzaG9wdjIvdXNlci92MS91c2VyX3NlcnZpY2VfaW50ZXJuYWwucHJvdG8SF3Nhc3Quc2FzdHNob3B2Mi51c2VyLnYxIlgKEEludGVybmFsVXNlckluZm8SCgoCaWQYASABKAMSDAoEbmFtZRgCIAEoCRISCgphdmF0YXJfdXJsGAMgASgJEhYKDmZlaXNodV9vcGVuX2lkGAQgASgJIiMKD0dldFVzZXJzUmVxdWVzdBIQCgh1c2VyX2lkcxgBIAMoAyJEChBHZXRVc2Vyc1Jlc3BvbnNlEjAKBXVzZXJzGAEgAygLMiEuc2FzdC5zYXN0c2hvcHYyLnVzZXIudjEuVXNlckluZm8iNwobR2V0VXNlckNvbnRhY3RPcGVuSURSZXF1ZXN0EhgKB3VzZXJfaWQYASABKANCB7pIBCICIAAiNgocR2V0VXNlckNvbnRhY3RPcGVuSURSZXNwb25zZRIWCg5mZWlzaHVfb3Blbl9pZBgBIAEoCTL8AQoTVXNlckludGVybmFsU2VydmljZRJfCghHZXRVc2VycxIoLnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLkdldFVzZXJzUmVxdWVzdBopLnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLkdldFVzZXJzUmVzcG9uc2USgwEKFEdldFVzZXJDb250YWN0T3BlbklEEjQuc2FzdC5zYXN0c2hvcHYyLnVzZXIudjEuR2V0VXNlckNvbnRhY3RPcGVuSURSZXF1ZXN0GjUuc2FzdC5zYXN0c2hvcHYyLnVzZXIudjEuR2V0VXNlckNvbnRhY3RPcGVuSURSZXNwb25zZWIGcHJvdG8z", [file_buf_validate_validate, file_sast_sastshopv2_user_v1_user_info]);
+  fileDesc("CjNzYXN0L3Nhc3RzaG9wdjIvdXNlci92MS91c2VyX3NlcnZpY2VfaW50ZXJuYWwucHJvdG8SF3Nhc3Quc2FzdHNob3B2Mi51c2VyLnYxIlgKEEludGVybmFsVXNlckluZm8SCgoCaWQYASABKAMSDAoEbmFtZRgCIAEoCRISCgphdmF0YXJfdXJsGAMgASgJEhYKDmZlaXNodV9vcGVuX2lkGAQgASgJIiMKD0dldFVzZXJzUmVxdWVzdBIQCgh1c2VyX2lkcxgBIAMoAyJEChBHZXRVc2Vyc1Jlc3BvbnNlEjAKBXVzZXJzGAEgAygLMiEuc2FzdC5zYXN0c2hvcHYyLnVzZXIudjEuVXNlckluZm8iNwobR2V0VXNlckNvbnRhY3RPcGVuSURSZXF1ZXN0EhgKB3VzZXJfaWQYASABKANCB7pIBCICIAAiNgocR2V0VXNlckNvbnRhY3RPcGVuSURSZXNwb25zZRIWCg5mZWlzaHVfb3Blbl9pZBgBIAEoCSJKChJTZWFyY2hVc2Vyc1JlcXVlc3QSDQoFcXVlcnkYASABKAkSEQoJcGFnZV9zaXplGAIgASgFEhIKCnBhZ2VfdG9rZW4YAyABKAkiYAoTU2VhcmNoVXNlcnNSZXNwb25zZRIwCgV1c2VycxgBIAMoCzIhLnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLlVzZXJJbmZvEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCTLmAgoTVXNlckludGVybmFsU2VydmljZRJoCgtTZWFyY2hVc2VycxIrLnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLlNlYXJjaFVzZXJzUmVxdWVzdBosLnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLlNlYXJjaFVzZXJzUmVzcG9uc2USXwoIR2V0VXNlcnMSKC5zYXN0LnNhc3RzaG9wdjIudXNlci52MS5HZXRVc2Vyc1JlcXVlc3QaKS5zYXN0LnNhc3RzaG9wdjIudXNlci52MS5HZXRVc2Vyc1Jlc3BvbnNlEoMBChRHZXRVc2VyQ29udGFjdE9wZW5JRBI0LnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLkdldFVzZXJDb250YWN0T3BlbklEUmVxdWVzdBo1LnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLkdldFVzZXJDb250YWN0T3BlbklEUmVzcG9uc2ViBnByb3RvMw", [file_buf_validate_validate, file_sast_sastshopv2_user_v1_user_info]);
 
 /**
  * @generated from message sast.sastshopv2.user.v1.InternalUserInfo
@@ -116,9 +116,68 @@ export const GetUserContactOpenIDResponseSchema: GenMessage<GetUserContactOpenID
   messageDesc(file_sast_sastshopv2_user_v1_user_service_internal, 4);
 
 /**
+ * @generated from message sast.sastshopv2.user.v1.SearchUsersRequest
+ */
+export type SearchUsersRequest = Message<"sast.sastshopv2.user.v1.SearchUsersRequest"> & {
+  /**
+   * @generated from field: string query = 1;
+   */
+  query: string;
+
+  /**
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
+};
+
+/**
+ * Describes the message sast.sastshopv2.user.v1.SearchUsersRequest.
+ * Use `create(SearchUsersRequestSchema)` to create a new message.
+ */
+export const SearchUsersRequestSchema: GenMessage<SearchUsersRequest> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_user_v1_user_service_internal, 5);
+
+/**
+ * @generated from message sast.sastshopv2.user.v1.SearchUsersResponse
+ */
+export type SearchUsersResponse = Message<"sast.sastshopv2.user.v1.SearchUsersResponse"> & {
+  /**
+   * @generated from field: repeated sast.sastshopv2.user.v1.UserInfo users = 1;
+   */
+  users: UserInfo[];
+
+  /**
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
+};
+
+/**
+ * Describes the message sast.sastshopv2.user.v1.SearchUsersResponse.
+ * Use `create(SearchUsersResponseSchema)` to create a new message.
+ */
+export const SearchUsersResponseSchema: GenMessage<SearchUsersResponse> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_user_v1_user_service_internal, 6);
+
+/**
  * @generated from service sast.sastshopv2.user.v1.UserInternalService
  */
 export const UserInternalService: GenService<{
+  /**
+   * Authenticated internal directory search for active application users.
+   *
+   * @generated from rpc sast.sastshopv2.user.v1.UserInternalService.SearchUsers
+   */
+  searchUsers: {
+    methodKind: "unary";
+    input: typeof SearchUsersRequestSchema;
+    output: typeof SearchUsersResponseSchema;
+  },
   /**
    * 批量获取用户信息
    *

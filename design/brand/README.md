@@ -65,4 +65,8 @@ node design/brand/export-assets.mjs transaction-agreement
 
 功能图形同时导出到两个应用的 `public/brand/`；个人中心入口均按 32 像素展示。
 
+人脸录入与 Pocket 使用内置 imagegen 新绘制的 `face`、`pocket` 模块，延续哑光黏土、奶白与 Action Coral 风格。原图与完整提示词保存在对应 `*-master.png`、`*-prompt.txt`；加号抽屉两类功能使用同规格图形，上架现货沿用条码扫描 `scan` 模块。
+
+人脸状态沿用同一造型，`face-empty` 表示尚未录入、`face-active` 表示已录入、`face-inactive` 表示已停用或授权到期；处理中结合 `face` 与加载指示，失败沿用 `load-error`。所有插画保留明确的状态文字，不单靠图形传达业务状态。
+
 导出脚本使用 Next.js 已安装的 sharp，从原图和小尺寸矢量标志生成各类资源；功能模块素材采用无损 WebP，保留透明通道，无额外依赖。

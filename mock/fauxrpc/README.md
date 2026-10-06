@@ -8,7 +8,7 @@
 
 ## Source
 
-接口来源以远程 Buf module 为准：`buf.build/sast/sast-shop-v2`。
+接口使用仓库中的 `proto/` 快照，与前端客户端同源；同步方式见 `proto/README.md`。
 
 ## Run
 

@@ -4,6 +4,8 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Bill } from "./bill_pb";
 import { file_sast_sastshopv2_payment_v1_bill } from "./bill_pb";
 import type { Message } from "@bufbuild/protobuf";
@@ -12,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file sast/sastshopv2/payment/v1/payment_internal.proto.
  */
 export const file_sast_sastshopv2_payment_v1_payment_internal: GenFile = /*@__PURE__*/
-  fileDesc("CjFzYXN0L3Nhc3RzaG9wdjIvcGF5bWVudC92MS9wYXltZW50X2ludGVybmFsLnByb3RvEhpzYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MSJ9ChlDcmVhdGVCaWxsRm9yT3JkZXJSZXF1ZXN0EhMKC3NvdXJjZV90eXBlGAEgASgJEhEKCXNvdXJjZV9pZBgCIAEoAxIQCghwYXllcl9pZBgDIAEoAxIQCghwYXllZV9pZBgEIAEoAxIUCgxhbW91bnRfY2VudHMYBSABKAUiTAoaQ3JlYXRlQmlsbEZvck9yZGVyUmVzcG9uc2USLgoEYmlsbBgBIAEoCzIgLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJpbGwiZwoZQ2FuY2VsQmlsbEJ5U291cmNlUmVxdWVzdBITCgtzb3VyY2VfdHlwZRgBIAEoCRIRCglzb3VyY2VfaWQYAiABKAMSFQoIcGF5ZXJfaWQYAyABKANIAIgBAUILCglfcGF5ZXJfaWQiHAoaQ2FuY2VsQmlsbEJ5U291cmNlUmVzcG9uc2UiKAoUQmF0Y2hHZXRCaWxsc1JlcXVlc3QSEAoIYmlsbF9pZHMYASADKAMiSAoVQmF0Y2hHZXRCaWxsc1Jlc3BvbnNlEi8KBWJpbGxzGAEgAygLMiAuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQmlsbDKaAwoWUGF5bWVudEludGVybmFsU2VydmljZRKDAQoSQ3JlYXRlQmlsbEZvck9yZGVyEjUuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ3JlYXRlQmlsbEZvck9yZGVyUmVxdWVzdBo2LnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkNyZWF0ZUJpbGxGb3JPcmRlclJlc3BvbnNlEoMBChJDYW5jZWxCaWxsQnlTb3VyY2USNS5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5DYW5jZWxCaWxsQnlTb3VyY2VSZXF1ZXN0GjYuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ2FuY2VsQmlsbEJ5U291cmNlUmVzcG9uc2USdAoNQmF0Y2hHZXRCaWxscxIwLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJhdGNoR2V0QmlsbHNSZXF1ZXN0GjEuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQmF0Y2hHZXRCaWxsc1Jlc3BvbnNlYgZwcm90bzM", [file_sast_sastshopv2_payment_v1_bill]);
+  fileDesc("CjFzYXN0L3Nhc3RzaG9wdjIvcGF5bWVudC92MS9wYXltZW50X2ludGVybmFsLnByb3RvEhpzYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MSJ9ChlDcmVhdGVCaWxsRm9yT3JkZXJSZXF1ZXN0EhMKC3NvdXJjZV90eXBlGAEgASgJEhEKCXNvdXJjZV9pZBgCIAEoAxIQCghwYXllcl9pZBgDIAEoAxIQCghwYXllZV9pZBgEIAEoAxIUCgxhbW91bnRfY2VudHMYBSABKAUiTAoaQ3JlYXRlQmlsbEZvck9yZGVyUmVzcG9uc2USLgoEYmlsbBgBIAEoCzIgLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJpbGwiZwoZQ2FuY2VsQmlsbEJ5U291cmNlUmVxdWVzdBITCgtzb3VyY2VfdHlwZRgBIAEoCRIRCglzb3VyY2VfaWQYAiABKAMSFQoIcGF5ZXJfaWQYAyABKANIAIgBAUILCglfcGF5ZXJfaWQiHAoaQ2FuY2VsQmlsbEJ5U291cmNlUmVzcG9uc2UiKAoUQmF0Y2hHZXRCaWxsc1JlcXVlc3QSEAoIYmlsbF9pZHMYASADKAMiSAoVQmF0Y2hHZXRCaWxsc1Jlc3BvbnNlEi8KBWJpbGxzGAEgAygLMiAuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQmlsbCIpChVHZXRQYXllZVFyQ29kZVJlcXVlc3QSEAoIb3duZXJfaWQYASABKAMiZQoWR2V0UGF5ZWVRckNvZGVSZXNwb25zZRIKCgJpZBgBIAEoAxIPCgdjb250ZW50GAIgASgJEi4KCnVwZGF0ZWRfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIjkKJENhbmNlbFdlc3RQb2NrZXRCaWxsc0lmVW5wYWlkUmVxdWVzdBIRCglwb2NrZXRfaWQYASABKAMiJwolQ2FuY2VsV2VzdFBvY2tldEJpbGxzSWZVbnBhaWRSZXNwb25zZTK6BQoWUGF5bWVudEludGVybmFsU2VydmljZRJ3Cg5HZXRQYXllZVFyQ29kZRIxLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkdldFBheWVlUXJDb2RlUmVxdWVzdBoyLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkdldFBheWVlUXJDb2RlUmVzcG9uc2USpAEKHUNhbmNlbFdlc3RQb2NrZXRCaWxsc0lmVW5wYWlkEkAuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ2FuY2VsV2VzdFBvY2tldEJpbGxzSWZVbnBhaWRSZXF1ZXN0GkEuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ2FuY2VsV2VzdFBvY2tldEJpbGxzSWZVbnBhaWRSZXNwb25zZRKDAQoSQ3JlYXRlQmlsbEZvck9yZGVyEjUuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ3JlYXRlQmlsbEZvck9yZGVyUmVxdWVzdBo2LnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkNyZWF0ZUJpbGxGb3JPcmRlclJlc3BvbnNlEoMBChJDYW5jZWxCaWxsQnlTb3VyY2USNS5zYXN0LnNhc3RzaG9wdjIucGF5bWVudC52MS5DYW5jZWxCaWxsQnlTb3VyY2VSZXF1ZXN0GjYuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQ2FuY2VsQmlsbEJ5U291cmNlUmVzcG9uc2USdAoNQmF0Y2hHZXRCaWxscxIwLnNhc3Quc2FzdHNob3B2Mi5wYXltZW50LnYxLkJhdGNoR2V0QmlsbHNSZXF1ZXN0GjEuc2FzdC5zYXN0c2hvcHYyLnBheW1lbnQudjEuQmF0Y2hHZXRCaWxsc1Jlc3BvbnNlYgZwcm90bzM", [file_google_protobuf_timestamp, file_sast_sastshopv2_payment_v1_bill]);
 
 /**
  * @generated from message sast.sastshopv2.payment.v1.CreateBillForOrderRequest
@@ -145,9 +147,99 @@ export const BatchGetBillsResponseSchema: GenMessage<BatchGetBillsResponse> = /*
   messageDesc(file_sast_sastshopv2_payment_v1_payment_internal, 5);
 
 /**
+ * @generated from message sast.sastshopv2.payment.v1.GetPayeeQrCodeRequest
+ */
+export type GetPayeeQrCodeRequest = Message<"sast.sastshopv2.payment.v1.GetPayeeQrCodeRequest"> & {
+  /**
+   * @generated from field: int64 owner_id = 1;
+   */
+  ownerId: bigint;
+};
+
+/**
+ * Describes the message sast.sastshopv2.payment.v1.GetPayeeQrCodeRequest.
+ * Use `create(GetPayeeQrCodeRequestSchema)` to create a new message.
+ */
+export const GetPayeeQrCodeRequestSchema: GenMessage<GetPayeeQrCodeRequest> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_payment_v1_payment_internal, 6);
+
+/**
+ * @generated from message sast.sastshopv2.payment.v1.GetPayeeQrCodeResponse
+ */
+export type GetPayeeQrCodeResponse = Message<"sast.sastshopv2.payment.v1.GetPayeeQrCodeResponse"> & {
+  /**
+   * @generated from field: int64 id = 1;
+   */
+  id: bigint;
+
+  /**
+   * @generated from field: string content = 2;
+   */
+  content: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 3;
+   */
+  updatedAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message sast.sastshopv2.payment.v1.GetPayeeQrCodeResponse.
+ * Use `create(GetPayeeQrCodeResponseSchema)` to create a new message.
+ */
+export const GetPayeeQrCodeResponseSchema: GenMessage<GetPayeeQrCodeResponse> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_payment_v1_payment_internal, 7);
+
+/**
+ * @generated from message sast.sastshopv2.payment.v1.CancelWestPocketBillsIfUnpaidRequest
+ */
+export type CancelWestPocketBillsIfUnpaidRequest = Message<"sast.sastshopv2.payment.v1.CancelWestPocketBillsIfUnpaidRequest"> & {
+  /**
+   * @generated from field: int64 pocket_id = 1;
+   */
+  pocketId: bigint;
+};
+
+/**
+ * Describes the message sast.sastshopv2.payment.v1.CancelWestPocketBillsIfUnpaidRequest.
+ * Use `create(CancelWestPocketBillsIfUnpaidRequestSchema)` to create a new message.
+ */
+export const CancelWestPocketBillsIfUnpaidRequestSchema: GenMessage<CancelWestPocketBillsIfUnpaidRequest> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_payment_v1_payment_internal, 8);
+
+/**
+ * @generated from message sast.sastshopv2.payment.v1.CancelWestPocketBillsIfUnpaidResponse
+ */
+export type CancelWestPocketBillsIfUnpaidResponse = Message<"sast.sastshopv2.payment.v1.CancelWestPocketBillsIfUnpaidResponse"> & {
+};
+
+/**
+ * Describes the message sast.sastshopv2.payment.v1.CancelWestPocketBillsIfUnpaidResponse.
+ * Use `create(CancelWestPocketBillsIfUnpaidResponseSchema)` to create a new message.
+ */
+export const CancelWestPocketBillsIfUnpaidResponseSchema: GenMessage<CancelWestPocketBillsIfUnpaidResponse> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_payment_v1_payment_internal, 9);
+
+/**
  * @generated from service sast.sastshopv2.payment.v1.PaymentInternalService
  */
 export const PaymentInternalService: GenService<{
+  /**
+   * @generated from rpc sast.sastshopv2.payment.v1.PaymentInternalService.GetPayeeQrCode
+   */
+  getPayeeQrCode: {
+    methodKind: "unary";
+    input: typeof GetPayeeQrCodeRequestSchema;
+    output: typeof GetPayeeQrCodeResponseSchema;
+  },
+  /**
+   * @generated from rpc sast.sastshopv2.payment.v1.PaymentInternalService.CancelWestPocketBillsIfUnpaid
+   */
+  cancelWestPocketBillsIfUnpaid: {
+    methodKind: "unary";
+    input: typeof CancelWestPocketBillsIfUnpaidRequestSchema;
+    output: typeof CancelWestPocketBillsIfUnpaidResponseSchema;
+  },
   /**
    * 为订单或任务创建支付账单，按 source_type + source_id + payer_id 幂等
    * 现货使用 source_type = "spot_order"、source_id = spot_order.id

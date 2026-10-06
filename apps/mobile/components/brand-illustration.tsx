@@ -37,8 +37,23 @@ import loadError from "../public/brand/load-error.webp";
 import loadErrorCompact from "../public/brand/load-error-compact.webp";
 import barcodeEmpty from "../public/brand/barcode-empty.webp";
 import barcodeEmptyCompact from "../public/brand/barcode-empty-compact.webp";
+import face from "../public/brand/face.webp";
+import faceCompact from "../public/brand/face-compact.webp";
+import pocket from "../public/brand/pocket.webp";
+import pocketCompact from "../public/brand/pocket-compact.webp";
+import faceEmpty from "../public/brand/face-empty.webp";
+import faceEmptyCompact from "../public/brand/face-empty-compact.webp";
+import faceActive from "../public/brand/face-active.webp";
+import faceActiveCompact from "../public/brand/face-active-compact.webp";
+import faceInactive from "../public/brand/face-inactive.webp";
+import faceInactiveCompact from "../public/brand/face-inactive-compact.webp";
 
 const illustrations = {
+  "face-empty": { regular: faceEmpty, compact: faceEmptyCompact },
+  "face-active": { regular: faceActive, compact: faceActiveCompact },
+  "face-inactive": { regular: faceInactive, compact: faceInactiveCompact },
+  face: { regular: face, compact: faceCompact },
+  pocket: { regular: pocket, compact: pocketCompact },
   "load-error": { regular: loadError, compact: loadErrorCompact },
   "barcode-empty": { regular: barcodeEmpty, compact: barcodeEmptyCompact },
   "spot-empty": { regular: spotEmpty, compact: spotEmptyCompact },

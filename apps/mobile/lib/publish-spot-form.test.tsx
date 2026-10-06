@@ -89,6 +89,7 @@ beforeEach(() => {
   );
   vi.mocked(getProductTemplatesByBarcode).mockResolvedValue([]);
   vi.mocked(listPaymentQrCodes).mockResolvedValue([]);
+  vi.mocked(scanLarkBarcode).mockReset();
   ensureAgreement.mockReset().mockResolvedValue(true);
   container = document.createElement("div");
   document.body.append(container);
@@ -123,6 +124,19 @@ async function click(label: string) {
   await act(async () => button!.click());
 }
 
+async function enterBarcode(value: string) {
+  const input = container.querySelector<HTMLInputElement>("#barcode");
+  expect(input).not.toBeNull();
+  await act(async () => {
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )!.set!;
+    setter.call(input, value);
+    input!.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+
 describe("publish spot scan recovery", () => {
   it("looks up a barcode passed from the entry drawer", async () => {
     vi.mocked(getProductTemplatesByBarcode).mockResolvedValue([match]);
@@ -141,13 +155,26 @@ describe("publish spot scan recovery", () => {
     expect(container.textContent).toContain("矿泉水");
   });
 
-  it("keeps manual entry available outside the Feishu SDK", async () => {
+  it("keeps manual entry hidden until the Feishu SDK is ready and scanning succeeds", async () => {
     vi.stubGlobal("h5sdk", undefined);
     vi.stubGlobal("tt", undefined);
     await renderForm("scan");
 
-    expect(container.querySelector("#barcode")).not.toBeNull();
+    expect(container.querySelector("#barcode")).toBeNull();
+    expect(container.textContent).not.toContain("手动输入");
     expect(scanLarkBarcode).not.toHaveBeenCalled();
+    vi.stubGlobal("h5sdk", {});
+    vi.stubGlobal("tt", {});
+    vi.mocked(scanLarkBarcode).mockResolvedValueOnce("690000000001");
+    const retry = Array.from(container.querySelectorAll("button")).find(
+      (button) => ["开始扫码", "再次扫码"].includes(button.textContent ?? ""),
+    );
+    expect(retry).toBeDefined();
+    await act(async () => retry!.click());
+    expect(scanLarkBarcode).toHaveBeenCalledOnce();
+    expect(container.querySelector<HTMLInputElement>("#barcode")?.value).toBe(
+      "690000000001",
+    );
   });
 
   it("uses an already scanned barcode without opening the scanner again", async () => {
@@ -167,15 +194,19 @@ describe("publish spot scan recovery", () => {
     expect(container.textContent).toContain("矿泉水");
   });
 
-  it("offers retry and manual entry after an SDK scan cancellation", async () => {
-    vi.mocked(scanLarkBarcode).mockRejectedValue(new Error("cancelled"));
+  it("keeps manual entry hidden after cancellation and allows scanning again", async () => {
+    vi.mocked(scanLarkBarcode).mockRejectedValueOnce(new Error("cancelled"));
     await renderForm("scan");
 
-    expect(container.textContent).toContain(
-      "已取消扫码，可以重试或手动输入条码",
+    expect(container.textContent).toContain("已取消扫码，可以重试");
+    expect(container.querySelector("#barcode")).toBeNull();
+    expect(container.textContent).not.toContain("手动输入");
+    vi.mocked(scanLarkBarcode).mockResolvedValueOnce("690000000001");
+    await click("再次扫码");
+    expect(scanLarkBarcode).toHaveBeenCalledTimes(2);
+    expect(container.querySelector<HTMLInputElement>("#barcode")?.value).toBe(
+      "690000000001",
     );
-    await click("手动输入");
-    expect(container.querySelector("#barcode")).not.toBeNull();
   });
 
   it("retries after an SDK failure", async () => {
@@ -196,16 +227,8 @@ describe("publish spot scan recovery", () => {
 
   it("warns about QR setup before publishing and still checks on submit", async () => {
     vi.mocked(getProductTemplatesByBarcode).mockResolvedValue([match]);
-    await renderForm("manual");
-    const input = container.querySelector<HTMLInputElement>("#barcode")!;
-    await act(async () => {
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLInputElement.prototype,
-        "value",
-      )!.set!;
-      setter.call(input, "690000000001");
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-    });
+    await renderForm("scan", "690000000001");
+    await enterBarcode("690000000002");
     await act(async () => {
       await new Promise((resolve) => window.setTimeout(resolve, 350));
     });
@@ -216,6 +239,43 @@ describe("publish spot scan recovery", () => {
     expect(createSpotGoods).not.toHaveBeenCalled();
     expect(container.textContent).toContain("请先上传收款码");
   });
+
+  it("keeps a scanned barcode editable after clearing and changing it", async () => {
+    vi.mocked(scanLarkBarcode).mockResolvedValueOnce("690000000001");
+    await renderForm("scan");
+    expect(container.querySelector<HTMLInputElement>("#barcode")?.value).toBe(
+      "690000000001",
+    );
+    await enterBarcode("");
+    expect(container.querySelector<HTMLInputElement>("#barcode")?.value).toBe(
+      "",
+    );
+    expect(container.textContent).not.toContain("手动输入");
+    await enterBarcode("690000000002");
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 350));
+    });
+    expect(container.querySelector<HTMLInputElement>("#barcode")?.value).toBe(
+      "690000000002",
+    );
+    expect(getProductTemplatesByBarcode).toHaveBeenLastCalledWith(
+      "690000000002",
+      expect.objectContaining({ dataSource: "mock" }),
+    );
+    expect(scanLarkBarcode).toHaveBeenCalledOnce();
+  });
+
+  it.each(["", "invalid"])(
+    "hides manual barcode input for a legacy manual entry without a valid initial barcode (%s)",
+    async (initialBarcode) => {
+      await renderForm("manual", initialBarcode);
+      expect(container.querySelector("#barcode")).toBeNull();
+      expect(container.textContent).not.toContain("手动输入");
+      expect(container.textContent).toContain("开始扫码");
+      expect(scanLarkBarcode).not.toHaveBeenCalled();
+      expect(getProductTemplatesByBarcode).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe("barcode lookup feedback", () => {

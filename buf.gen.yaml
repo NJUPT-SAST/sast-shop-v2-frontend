@@ -6,4 +6,4 @@ plugins:
     include_imports: true
     opt: target=ts
 inputs:
-  - module: buf.build/sast/sast-shop-v2
+  - directory: .

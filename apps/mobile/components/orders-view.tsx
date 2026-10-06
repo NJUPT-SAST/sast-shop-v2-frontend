@@ -44,6 +44,7 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -79,6 +80,8 @@ import {
 } from "@/lib/order-filters";
 import { buildSpotOrderDetailHref } from "@/lib/spot-order-route";
 import { ManagedImage } from "./managed-image";
+import { PocketList } from "./west-pocket/pocket-list";
+import { PocketProvider } from "./west-pocket/shared";
 
 type RenderableOrder = {
   id: string;
@@ -111,6 +114,9 @@ type OrdersViewProps = {
   dataSource: DataSource;
   connectBaseUrl: string;
   initialFilters: OrderFilters;
+  initialPocketTab?: boolean;
+  initialPocketPerspective?: "owner" | "member";
+  refreshKey?: string;
   spotBuyerPage: PageResult<SpotOrder>;
   spotSellerPage: PageResult<SpotOrder>;
   buyerErrandPage: PageResult<BuyerErrandOrder>;
@@ -134,10 +140,21 @@ export function OrdersView({
   errandTaskPage,
   errors,
   initialLoading,
+  initialPocketTab = false,
+  initialPocketPerspective = "owner",
+  refreshKey,
 }: OrdersViewProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [filters, setFilters] = useState<OrderFilters>(initialFilters);
+  const [pocketTab, setPocketTab] = useState(initialPocketTab);
+  const [pocketPerspective, setPocketPerspective] = useState(
+    initialPocketPerspective,
+  );
+  const pocketOptions = useMemo(
+    () => ({ dataSource, connectBaseUrl }),
+    [dataSource, connectBaseUrl],
+  );
   const [rememberedViews, setRememberedViews] = useState<RememberedOrderViews>(
     () =>
       rememberOrderView(
@@ -282,6 +299,15 @@ export function OrdersView({
         new URLSearchParams(window.location.search),
       );
 
+      setPocketTab(
+        new URLSearchParams(window.location.search).get("tab") === "pocket",
+      );
+      setPocketPerspective(
+        new URLSearchParams(window.location.search).get("pocketView") ===
+          "member"
+          ? "member"
+          : "owner",
+      );
       setFilters(nextFilters);
       setRememberedViews((current) =>
         rememberOrderView(current, nextFilters.type, nextFilters.view),
@@ -307,13 +333,14 @@ export function OrdersView({
       window.cancelAnimationFrame(frame);
       window.removeEventListener("resize", updateStatusScrollState);
     };
-  }, [filters.type, filters.view, updateStatusScrollState]);
+  }, [filters.type, filters.view, pocketTab, updateStatusScrollState]);
 
   useEffect(() => {
     const shouldContinueSearching = filters.query.trim().length > 0;
     const shouldFillEmptyFilter = filteredOrders.length === 0;
 
     if (
+      pocketTab ||
       (!shouldContinueSearching && !shouldFillEmptyFilter) ||
       !currentFeedHasMore ||
       currentFeedLoadingMore ||
@@ -334,6 +361,7 @@ export function OrdersView({
     filteredOrders.length,
     filters.query,
     loadMoreCurrentFeed,
+    pocketTab,
   ]);
 
   function updateFilters(updates: {
@@ -359,6 +387,10 @@ export function OrdersView({
       ...updates,
       rememberedViews: nextRememberedViews,
     });
+    if (updates.type !== undefined) {
+      nextParams.delete("tab");
+      setPocketTab(false);
+    }
     const nextFilters = getOrderFiltersFromParams(nextParams);
 
     setFilters(nextFilters);
@@ -412,6 +444,31 @@ export function OrdersView({
     pendingSearchHrefRef.current = null;
   }
 
+  function openPocketTab() {
+    flushPendingSearchRoute();
+    const params = new URLSearchParams(window.location.search);
+    params.set("tab", "pocket");
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${pathname}?${params}`,
+    );
+    setPocketTab(true);
+  }
+
+  function updatePocketPerspective(value: string) {
+    const next = value === "member" ? "member" : "owner";
+    const params = new URLSearchParams(window.location.search);
+    if (next === "member") params.set("pocketView", next);
+    else params.delete("pocketView");
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${pathname}?${params}`,
+    );
+    setPocketPerspective(next);
+  }
+
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-4 py-4">
       <section>
@@ -421,10 +478,11 @@ export function OrdersView({
       <section aria-label="订单筛选" className="flex min-w-0 flex-col gap-3">
         <div className="flex min-w-0 items-center justify-between gap-3">
           <Tabs
-            value={filters.type}
-            onValueChange={(value) =>
-              updateFilters({ type: value as OrderType })
-            }
+            value={pocketTab ? "pocket" : filters.type}
+            onValueChange={(value) => {
+              if (value === "pocket") openPocketTab();
+              else updateFilters({ type: value as OrderType });
+            }}
           >
             <TabsList
               aria-label="订单类型"
@@ -435,144 +493,167 @@ export function OrdersView({
                 <TabsTrigger
                   key={item.value}
                   value={item.value}
-                  className="h-11 min-w-16 px-3"
+                  className="h-11 min-w-0 px-2"
                 >
                   {item.label}
                 </TabsTrigger>
               ))}
+              <TabsTrigger value="pocket" className="h-11 min-w-0 px-2">
+                Pocket
+              </TabsTrigger>
             </TabsList>
           </Tabs>
 
           <Select
-            value={filters.view}
-            onValueChange={(value) =>
-              updateFilters({ view: value as OrderView })
-            }
+            value={pocketTab ? pocketPerspective : filters.view}
+            onValueChange={(value) => {
+              if (pocketTab) updatePocketPerspective(value);
+              else updateFilters({ view: value as OrderView });
+            }}
           >
             <SelectTrigger
-              aria-label="订单视角"
+              aria-label={pocketTab ? "Pocket视角" : "订单视角"}
               className="h-11 w-fit shrink-0 gap-2 border-transparent bg-transparent shadow-none"
             >
               <SelectValue />
             </SelectTrigger>
             <SelectContent align="end">
-              {viewOptions.map((option) => (
-                <SelectItem
-                  key={option.value}
-                  value={option.value}
-                  className="min-h-11"
-                >
-                  {option.label}
-                </SelectItem>
-              ))}
+              <SelectGroup>
+                {(pocketTab
+                  ? [
+                      { value: "owner", label: "我发起的" },
+                      { value: "member", label: "我参与的" },
+                    ]
+                  : viewOptions
+                ).map((option) => (
+                  <SelectItem
+                    key={option.value}
+                    value={option.value}
+                    className="min-h-11"
+                  >
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
         </div>
 
-        <InputGroup>
-          <InputGroupAddon>
-            <InputGroupText>
-              <RiSearchLine />
-            </InputGroupText>
-          </InputGroupAddon>
-          <InputGroupInput
-            aria-label="搜索店铺或商品"
-            value={filters.query}
-            onChange={(event) => updateFilters({ q: event.target.value })}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") flushPendingSearchRoute();
-            }}
-            placeholder="搜索店铺或商品"
-          />
-        </InputGroup>
-
-        <div className="flex min-w-0 items-center gap-2 pb-1">
-          <Button
-            type="button"
-            variant={filters.status === "all" ? "default" : "outline"}
-            size="sm"
-            className="h-8 shrink-0 rounded-full px-3 text-xs"
-            aria-pressed={filters.status === "all"}
-            onClick={() => updateFilters({ status: "all" })}
-          >
-            全部
-          </Button>
-          <div className="relative min-w-0 flex-1 overflow-hidden">
-            {statusScrollState.canScrollLeft ? (
-              <span className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-background to-transparent" />
-            ) : null}
-            <div
-              ref={statusScrollRef}
-              className="min-w-0 touch-pan-x overflow-x-auto overscroll-x-contain app-scrollbar"
-              onScroll={updateStatusScrollState}
-            >
-              <ToggleGroup
-                type="single"
-                value={filters.status === "all" ? "" : filters.status}
-                variant="outline"
-                size="sm"
-                spacing={1}
-                selectionVariant="primary"
-                aria-label="订单状态筛选"
-                className="w-max flex-nowrap"
-                onValueChange={(value) => {
-                  if (value) updateFilters({ status: value as OrderStatus });
+        {!pocketTab ? (
+          <>
+            <InputGroup>
+              <InputGroupAddon>
+                <InputGroupText>
+                  <RiSearchLine />
+                </InputGroupText>
+              </InputGroupAddon>
+              <InputGroupInput
+                aria-label="搜索店铺或商品"
+                value={filters.query}
+                onChange={(event) => updateFilters({ q: event.target.value })}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") flushPendingSearchRoute();
                 }}
+                placeholder="搜索店铺或商品"
+              />
+            </InputGroup>
+
+            <div className="flex min-w-0 items-center gap-2 pb-1">
+              <Button
+                type="button"
+                variant={filters.status === "all" ? "default" : "outline"}
+                size="sm"
+                className="h-8 shrink-0 rounded-full px-3 text-xs"
+                aria-pressed={filters.status === "all"}
+                onClick={() => updateFilters({ status: "all" })}
               >
-                {statusOptions.slice(1).map((option) => (
-                  <ToggleGroupItem
-                    key={option.value}
-                    value={option.value}
-                    aria-label={`筛选${option.label}订单`}
-                    className="h-8 min-w-0 rounded-full px-3 text-xs"
+                全部
+              </Button>
+              <div className="relative min-w-0 flex-1 overflow-hidden">
+                {statusScrollState.canScrollLeft ? (
+                  <span className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-background to-transparent" />
+                ) : null}
+                <div
+                  ref={statusScrollRef}
+                  className="min-w-0 touch-pan-x overflow-x-auto overscroll-x-contain app-scrollbar"
+                  onScroll={updateStatusScrollState}
+                >
+                  <ToggleGroup
+                    type="single"
+                    value={filters.status === "all" ? "" : filters.status}
+                    variant="outline"
+                    size="sm"
+                    spacing={1}
+                    selectionVariant="primary"
+                    aria-label="订单状态筛选"
+                    className="w-max flex-nowrap"
+                    onValueChange={(value) => {
+                      if (value)
+                        updateFilters({ status: value as OrderStatus });
+                    }}
                   >
-                    {option.label}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
+                    {statusOptions.slice(1).map((option) => (
+                      <ToggleGroupItem
+                        key={option.value}
+                        value={option.value}
+                        aria-label={`筛选${option.label}订单`}
+                        className="h-8 min-w-0 rounded-full px-3 text-xs"
+                      >
+                        {option.label}
+                      </ToggleGroupItem>
+                    ))}
+                  </ToggleGroup>
+                </div>
+                {statusScrollState.canScrollRight ? (
+                  <span className="pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-gradient-to-l from-background to-transparent" />
+                ) : null}
+              </div>
             </div>
-            {statusScrollState.canScrollRight ? (
-              <span className="pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-gradient-to-l from-background to-transparent" />
-            ) : null}
-          </div>
-        </div>
+          </>
+        ) : null}
       </section>
 
-      <div
-        className="flex min-w-0 flex-1 flex-col"
-        onClickCapture={(event) => {
-          if (
-            event.target instanceof Element &&
-            event.target.closest("a[href]")
-          ) {
-            cancelPendingSearchRoute();
-          }
-        }}
-      >
-        {currentLoading ? (
-          <OrderLoadingSkeletons label="正在加载该视角订单" />
-        ) : (
-          <OrderList
-            filters={filters}
-            orders={filteredOrders}
-            hasError={currentError}
-            showEmpty={!currentFeed.loadingMore && !currentFeed.hasMore}
-            onRetry={() => router.refresh()}
-          />
-        )}
-        {!currentError && !currentLoading ? (
-          <InfiniteListStatus
-            hasMore={currentFeed.hasMore}
-            loading={currentFeed.loadingMore}
-            error={currentFeed.loadMoreError}
-            hasItems={filteredOrders.length > 0}
-            onLoadMore={() => void currentFeed.loadMore()}
-            loadingFallback={<OrderLoadingSkeletons />}
-            endMessage={`已经到底，共 ${filteredOrders.length} 笔订单`}
-            endMessageClassName="pt-6"
-          />
-        ) : null}
-      </div>
+      {pocketTab ? (
+        <PocketProvider options={pocketOptions}>
+          <PocketList refreshKey={refreshKey} perspective={pocketPerspective} />
+        </PocketProvider>
+      ) : (
+        <div
+          className="flex min-w-0 flex-1 flex-col"
+          onClickCapture={(event) => {
+            if (
+              event.target instanceof Element &&
+              event.target.closest("a[href]")
+            ) {
+              cancelPendingSearchRoute();
+            }
+          }}
+        >
+          {currentLoading ? (
+            <OrderLoadingSkeletons label="正在加载该视角订单" />
+          ) : (
+            <OrderList
+              filters={filters}
+              orders={filteredOrders}
+              hasError={currentError}
+              showEmpty={!currentFeed.loadingMore && !currentFeed.hasMore}
+              onRetry={() => router.refresh()}
+            />
+          )}
+          {!currentError && !currentLoading ? (
+            <InfiniteListStatus
+              hasMore={currentFeed.hasMore}
+              loading={currentFeed.loadingMore}
+              error={currentFeed.loadMoreError}
+              hasItems={filteredOrders.length > 0}
+              onLoadMore={() => void currentFeed.loadMore()}
+              loadingFallback={<OrderLoadingSkeletons />}
+              endMessage={`已经到底，共 ${filteredOrders.length} 笔订单`}
+              endMessageClassName="pt-6"
+            />
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }

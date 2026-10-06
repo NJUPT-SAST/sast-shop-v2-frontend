@@ -11,12 +11,17 @@ type OrdersPageProps = {
 
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const params = await (searchParams ?? Promise.resolve({}));
-  const initialFilters = getOrderFiltersFromParams(toURLSearchParams(params));
+  const search = toURLSearchParams(params);
+  const initialFilters = getOrderFiltersFromParams(search);
   return (
     <CachedOrdersView
       dataSource={mobileAppConfig.dataSource}
       connectBaseUrl={mobileAppConfig.connectBaseUrl}
       initialFilters={initialFilters}
+      initialPocketTab={search.get("tab") === "pocket"}
+      initialPocketPerspective={
+        search.get("pocketView") === "member" ? "member" : "owner"
+      }
       refreshKey={randomUUID()}
     />
   );

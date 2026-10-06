@@ -1,0 +1,115 @@
+stubs:
+  - id: pocket-capabilities
+    target: sast.sastshopv2.westpocket.v1.WestPocketService/GetCapabilities
+    content:
+      faceRecognitionAvailable: false
+      photoUploadAvailable: false
+      notificationsAvailable: false
+      faceConsentVersion: west-pocket-face-v1
+      photoConsentVersion: west-pocket-photo-v1
+      maxPhotos: 10
+      maxMembers: 100
+      maxUploadBytes: 10485760
+  - id: pocket-list
+    target: sast.sastshopv2.westpocket.v1.WestPocketService/ListMyPockets
+    active_if: req.perspective == "owner"
+    priority: 110
+    content:
+      pockets:
+        - &draft
+          id: "7101"
+          ownerId: "10001"
+          title: 周五晚饭
+          totalCents: 12000
+          status: draft
+          revision: "1"
+          participantCount: 1
+          isOwner: true
+          owner: &owner
+            id: "10001"
+            name: 阮小妍
+  - id: pocket-list-member
+    target: sast.sastshopv2.westpocket.v1.WestPocketService/ListMyPockets
+    active_if: req.perspective == "member"
+    priority: 110
+    content:
+      pockets:
+        - &collecting
+          id: "7102"
+          ownerId: "42"
+          title: 社团聚餐
+          totalCents: 18000
+          status: collecting
+          revision: "4"
+          participantCount: 3
+          ownerShareCents: 6000
+          receivableCents: 12000
+          owner: &payee
+            id: "42"
+            name: 张同学
+  - id: pocket-create
+    target: sast.sastshopv2.westpocket.v1.WestPocketService/CreatePocket
+    content:
+      pocket: *draft
+  - id: pocket-detail-draft
+    target: sast.sastshopv2.westpocket.v1.WestPocketService/GetPocket
+    active_if: req.pocket_id == 7101
+    priority: 110
+    content:
+      pocket: *draft
+      isOwner: true
+      members:
+        - id: "7201"
+          userId: "10001"
+          user: *owner
+          selectionSource: owner
+          isOwner: true
+          albumAccess: pending
+  - id: pocket-detail-collecting
+    target: sast.sastshopv2.westpocket.v1.WestPocketService/GetPocket
+    active_if: req.pocket_id == 7102
+    priority: 110
+    content:
+      pocket: *collecting
+      isOwner: false
+      members:
+        - id: "7202"
+          userId: "10001"
+          user: *owner
+          shareCents: 6000
+          paymentBillId: "7302"
+          billStatus: unpaid
+          billUpdatedAt: "2026-10-06T08:00:00.123456789Z"
+          albumAccess: pending
+  - id: pocket-payment
+    target: sast.sastshopv2.westpocket.v1.WestPocketService/GetMyPayment
+    content:
+      pocket: *collecting
+      payee: *payee
+      qrContent: wxp://mock-pocket-payment
+      bill:
+        id: "7302"
+        billNo: POCKET-7302
+        payer: *owner
+        payee: *payee
+        amountCents: 6000
+        verifyCode: "2806"
+        status: BILL_STATUS_UNPAID
+        channel: CHANNEL_WECHAT
+        updatedAt: "2026-10-06T08:00:00.123456789Z"
+        sourceType: west_pocket
+        sourceId: "7102"
+  - id: pocket-face-profile
+    target: sast.sastshopv2.westpocket.v1.FaceProfileService/GetMyFaceProfile
+    content: {}
+  - id: pocket-recognition
+    target: sast.sastshopv2.westpocket.v1.WestPocketService/GetRecognitionResults
+    content: {}
+  - id: pocket-search-participants
+    target: sast.sastshopv2.westpocket.v1.WestPocketService/SearchParticipants
+    cel_content: |
+      {'users': [
+        {'id': 10001, 'name': '阮小妍'},
+        {'id': 42, 'name': '张同学'},
+        {'id': 43, 'name': '李同学'}
+      ].filter(user, user.name.contains(req.query))}

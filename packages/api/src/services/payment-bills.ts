@@ -1,9 +1,5 @@
 import { createClient } from "@connectrpc/connect";
-import {
-  timestampDate,
-  timestampFromDate,
-  type Timestamp,
-} from "@bufbuild/protobuf/wkt";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import {
   BillStatus,
   type Bill as ProtoBill,
@@ -14,6 +10,7 @@ import type { UserInfo } from "../gen/sast/sastshopv2/user/v1/user_info_pb";
 import { resolveDataSource, type ServiceOptions } from "../data-source";
 import { FeatureUnavailableError, ValidationError } from "../errors";
 import { createLocalTransport, requestLocal } from "../local-connect";
+import { formatProtoTimestamp, parseProtoTimestamp } from "../proto-timestamp";
 import type { PaymentQrChannel } from "./payment-qr-codes";
 
 const MAX_SIGNED_INT64 = 9223372036854775807n;
@@ -168,11 +165,11 @@ export function mapPaymentBill(bill: ProtoBill): PaymentBill {
     verifyCode: bill.verifyCode,
     channel: mapChannelFromProto(bill.channel),
     serialNumber: bill.serialNumber ?? null,
-    submittedAt: formatTimestamp(bill.submittedAt),
-    completedAt: formatTimestamp(bill.completedAt),
-    closedAt: formatTimestamp(bill.closedAt),
-    createdAt: formatTimestamp(bill.createdAt),
-    updatedAt: formatTimestamp(bill.updatedAt),
+    submittedAt: formatProtoTimestamp(bill.submittedAt),
+    completedAt: formatProtoTimestamp(bill.completedAt),
+    closedAt: formatProtoTimestamp(bill.closedAt),
+    createdAt: formatProtoTimestamp(bill.createdAt),
+    updatedAt: formatProtoTimestamp(bill.updatedAt),
     sourceType: bill.sourceType ?? null,
     sourceId: bill.sourceId?.toString() ?? null,
   };
@@ -235,17 +232,7 @@ function parseTimestampInput(input: TimestampInput): Timestamp {
     return input;
   }
 
-  const date = new Date(input);
-
-  if (Number.isNaN(date.getTime())) {
-    throw new ValidationError("账单更新时间不正确");
-  }
-
-  return timestampFromDate(date);
-}
-
-function formatTimestamp(timestamp?: Timestamp): string | null {
-  return timestamp ? timestampDate(timestamp).toISOString() : null;
+  return parseProtoTimestamp(input, "账单更新时间不正确");
 }
 
 function mapUserInfo(userInfo?: UserInfo): PaymentBillUser | null {

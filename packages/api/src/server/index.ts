@@ -19,3 +19,4 @@ export {
   createConnectProxyAbort,
 } from "./connect-proxy-abort";
 export { hasTrustedRequestOrigin } from "./request-origin";
+export { isPublicConnectPath } from "./public-connect-path";

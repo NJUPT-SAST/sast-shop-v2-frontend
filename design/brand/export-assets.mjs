@@ -117,6 +117,11 @@ const moduleNames = [
   "cart-empty",
   "load-error",
   "barcode-empty",
+  "face",
+  "face-empty",
+  "face-active",
+  "face-inactive",
+  "pocket",
 ];
 
 if (selectedModule && !moduleNames.includes(selectedModule)) {

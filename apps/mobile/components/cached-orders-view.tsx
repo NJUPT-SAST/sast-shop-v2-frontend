@@ -26,11 +26,15 @@ export function CachedOrdersView({
   connectBaseUrl,
   initialFilters,
   refreshKey,
+  initialPocketTab = false,
+  initialPocketPerspective = "owner",
 }: {
   dataSource: DataSource;
   connectBaseUrl: string;
   initialFilters: OrderFilters;
   refreshKey: string;
+  initialPocketTab?: boolean;
+  initialPocketPerspective?: "owner" | "member";
 }) {
   const options = { dataSource, connectBaseUrl, page: 1, pageSize: 20 };
   const scope = JSON.stringify(["mobile", dataSource, connectBaseUrl]);
@@ -60,6 +64,7 @@ export function CachedOrdersView({
   });
   const resources = [spotBuyer, spotSeller, errandParticipant, errandCaptain];
   if (
+    !initialPocketTab &&
     resources.every((resource) => !resource.data) &&
     resources.some((resource) => !resource.data && !resource.error)
   ) {
@@ -90,6 +95,9 @@ export function CachedOrdersView({
         dataSource={dataSource}
         connectBaseUrl={connectBaseUrl}
         initialFilters={initialFilters}
+        initialPocketTab={initialPocketTab}
+        initialPocketPerspective={initialPocketPerspective}
+        refreshKey={refreshKey}
         spotBuyerPage={spotBuyer.data ?? emptyPage}
         spotSellerPage={spotSeller.data ?? emptyPage}
         buyerErrandPage={errandParticipant.data ?? emptyPage}

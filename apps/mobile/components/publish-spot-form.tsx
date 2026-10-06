@@ -151,7 +151,9 @@ export function PublishSpotForm({
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [scanning, setScanning] = useState(false);
-  const [manualEntry, setManualEntry] = useState(entry === "manual");
+  const [barcodeEditable, setBarcodeEditable] = useState(
+    normalizeBarcodeQuery(initialBarcode).ok,
+  );
   const [scanFeedback, setScanFeedback] = useState<{
     message: string;
     failed: boolean;
@@ -264,11 +266,10 @@ export function PublishSpotForm({
   async function scanBarcode() {
     if (scanningRef.current) return;
     if (!window.h5sdk || !window.tt) {
-      setManualEntry(true);
       toast.message(
         showFeishuEntry
-          ? "飞书扫码组件尚未就绪，请稍后重试或手动输入"
-          : "请在飞书移动端内扫码，当前环境可手动输入条码",
+          ? "飞书扫码组件尚未就绪，请稍后重试"
+          : "请在飞书移动端内扫码",
       );
       return;
     }
@@ -293,6 +294,7 @@ export function PublishSpotForm({
         return body;
       });
       const scannedBarcode = await scanLarkBarcode(window.tt);
+      setBarcodeEditable(true);
       const previousBarcode = form.getValues("barcode");
       form.setValue("barcode", scannedBarcode, {
         shouldDirty: true,
@@ -307,15 +309,17 @@ export function PublishSpotForm({
     } catch (reason) {
       if (isLarkScanCancelledError(reason)) {
         setScanFeedback({
-          message: "已取消扫码，可以重试或手动输入条码",
+          message: "已取消扫码，可以重试",
           failed: false,
         });
         return;
       }
       const message =
         reason instanceof Error
-          ? reason.message
-          : "扫码失败，请重试或手动输入条码";
+          ? reason.message === "扫描结果不是有效商品条码，请手动输入"
+            ? "未识别到商品条码，请重新扫码"
+            : reason.message
+          : "扫码失败，请重试";
       setScanFeedback({ message, failed: true });
       toast.error(message);
     } finally {
@@ -405,11 +409,7 @@ export function PublishSpotForm({
     barcode.trim(),
   )}`;
   const createStoreReturnTo = buildCreateStoreReturnTo(barcode);
-  const showEntryForm =
-    manualEntry ||
-    !showFeishuEntry ||
-    barcode.length > 0 ||
-    lookupStatus !== "idle";
+  const showEntryForm = barcodeEditable;
 
   if (submitted) {
     return (
@@ -469,7 +469,7 @@ export function PublishSpotForm({
               </p>
             ) : (
               <p className="text-sm text-muted-foreground">
-                扫描商品包装上的条码，或手动输入编号。
+                扫描商品包装上的条码，识别后可修改编号
               </p>
             )}
             <div className="flex gap-3">
@@ -485,15 +485,6 @@ export function PublishSpotForm({
                   <RiBarcodeLine data-icon="inline-start" />
                 )}
                 {scanning ? "正在扫码" : scanFeedback ? "再次扫码" : "开始扫码"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="min-h-11 flex-1"
-                disabled={scanning}
-                onClick={() => setManualEntry(true)}
-              >
-                手动输入
               </Button>
             </div>
           </div>

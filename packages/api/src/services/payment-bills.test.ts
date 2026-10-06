@@ -231,6 +231,53 @@ describe("payment bill service", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it.each(["pay", "confirm", "supplement"] as const)(
+    "preserves the bill version through read and %s requests",
+    async (action) => {
+      const updatedAt = "2026-07-18T02:00:00.123456789Z";
+      const requestBodies: Record<string, unknown>[] = [];
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (input: string | Request, init?: RequestInit) => {
+          const body =
+            typeof input === "string" ? init?.body : await input.clone().text();
+          requestBodies.push(JSON.parse(bodyToText(body)));
+          return stubJsonResponse({ bill: { id: "12", updatedAt } });
+        }),
+      );
+
+      const bill = await getBill("12", localOptions);
+      expect(bill.updatedAt).toBe(updatedAt);
+      const input = { billId: bill.id, updatedAt: bill.updatedAt! };
+      if (action === "pay") {
+        await payBill({ ...input, channel: "wechat" }, localOptions);
+      } else if (action === "confirm") {
+        await confirmBill(input, localOptions);
+      } else {
+        await supplementBillSerialNumber(
+          { ...input, serialNumber: "SN-123456" },
+          localOptions,
+        );
+      }
+      expect(requestBodies[1]?.updatedAt).toBe(updatedAt);
+    },
+  );
+
+  it("rejects an invalid calendar date before a bill mutation", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      confirmBill(
+        {
+          billId: "12",
+          updatedAt: "2026-02-30T00:00:00Z",
+        },
+        localOptions,
+      ),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("throws for remote mode before backend client is wired", async () => {
     await expect(
       getBill("12", { dataSource: "remote" }),

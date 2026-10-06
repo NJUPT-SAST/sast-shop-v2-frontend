@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { RiArrowRightSLine } from "@remixicon/react";
 import { isLarkClientEnvironment } from "@sast-shop/api";
 import { Button } from "@workspace/ui/components/button";
@@ -26,6 +27,11 @@ export function ProfileManagementClient({
         onClick={openAddressDialog}
         border
         first
+      />
+      <ProfileNavigationLink
+        title="人脸录入"
+        icon={<BrandIllustration name="face" size={32} />}
+        href="/profile/face"
       />
       <ProfileMenuButton
         title="收款码"
@@ -54,6 +60,33 @@ export function ProfileManagementClient({
         />
       ) : null}
     </div>
+  );
+}
+
+function ProfileNavigationLink({
+  title,
+  icon,
+  href,
+}: {
+  title: string;
+  icon: ReactNode;
+  href: string;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="lg"
+      className="h-auto min-h-16 w-full justify-start gap-4 rounded-none border-b px-4 py-3"
+      asChild
+    >
+      <Link href={href}>
+        <span className="flex size-10 shrink-0 items-center justify-center">
+          {icon}
+        </span>
+        <span className="flex-1 text-left font-medium">{title}</span>
+        <RiArrowRightSLine className="size-5 text-muted-foreground" />
+      </Link>
+    </Button>
   );
 }
 

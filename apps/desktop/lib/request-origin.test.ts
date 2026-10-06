@@ -166,7 +166,7 @@ describe("session origin behind a reverse proxy", () => {
   });
 });
 
-const path = ["sast.sastshopv2.user.v1.UserService", "GetCurrentUser"];
+const path = ["sast.sastshopv2.user.v1.UserService", "GetUserInfo"];
 const context = () => ({ params: Promise.resolve({ path }) });
 
 describe("authenticated proxy origin", () => {

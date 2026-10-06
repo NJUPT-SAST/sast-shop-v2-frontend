@@ -183,31 +183,16 @@ async function clickButton(label: string) {
   await act(async () => button!.click());
 }
 
-async function submitBarcode() {
-  const form = getOpenDialog().querySelector("form");
-  expect(form).not.toBeNull();
-  await act(async () => {
-    form!.dispatchEvent(
-      new Event("submit", { bubbles: true, cancelable: true }),
-    );
-  });
-}
-
-async function enterBarcode(value: string) {
-  const input = getOpenDialog().querySelector<HTMLInputElement>("input");
-  expect(input).not.toBeNull();
-  await act(async () => {
-    const setter = Object.getOwnPropertyDescriptor(
-      HTMLInputElement.prototype,
-      "value",
-    )!.set!;
-    setter.call(input, value);
-    input!.dispatchEvent(new Event("input", { bubbles: true }));
-  });
+function getButton(label: string): HTMLButtonElement {
+  const button = Array.from(container.querySelectorAll("button")).find(
+    (item) => item.getAttribute("aria-label") === label,
+  );
+  expect(button, `Missing button: ${label}`).toBeDefined();
+  return button!;
 }
 
 describe("mobile publish entry", () => {
-  it("waits for drawer history cleanup before navigating with a valid manual barcode", async () => {
+  it("opens Pocket from the center plus after drawer history cleanup", async () => {
     let finishCleanup!: () => void;
     waitForCleanup.mockReturnValueOnce(
       new Promise<void>((resolve) => {
@@ -215,17 +200,32 @@ describe("mobile publish entry", () => {
       }),
     );
     await renderNav();
-    await clickButton("上架现货");
-    await clickButton("手动输入");
-    await enterBarcode("0012345");
-    await submitBarcode();
+    await clickButton("发布");
+    const pocket = getButton("发起 Pocket");
+    await act(async () => {
+      pocket.click();
+      pocket.click();
+    });
     expect(container.querySelectorAll('[role="dialog"]')).toHaveLength(0);
     expect(waitForCleanup).toHaveBeenCalledOnce();
     expect(push).not.toHaveBeenCalled();
     await act(async () => finishCleanup());
-    expect(push).toHaveBeenCalledExactlyOnceWith(
-      "/publish/spot?entry=manual&barcode=0012345",
+    expect(push).toHaveBeenCalledExactlyOnceWith("/west-pocket/new");
+  });
+
+  it("does not navigate to Pocket after unmounting during drawer cleanup", async () => {
+    let finishCleanup!: () => void;
+    waitForCleanup.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishCleanup = resolve;
+      }),
     );
+    await renderNav();
+    await clickButton("发布");
+    await clickButton("发起 Pocket");
+    await act(async () => root.render(null));
+    await act(async () => finishCleanup());
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("scans in place and waits for drawer cleanup before navigating with the result", async () => {
@@ -242,8 +242,8 @@ describe("mobile publish entry", () => {
       }),
     );
     await renderNav();
+    await clickButton("发布");
     await clickButton("上架现货");
-    await clickButton("扫码录入");
     expect(getOpenDialog().textContent).toContain("正在扫码");
     expect(waitForCleanup).not.toHaveBeenCalled();
     expect(push).not.toHaveBeenCalled();
@@ -261,65 +261,68 @@ describe("mobile publish entry", () => {
     );
   });
 
-  it("keeps the entry unchanged on cancellation and allows retry or manual input", async () => {
+  it("keeps both entries available on cancellation and allows retry", async () => {
     scanCode.mockImplementationOnce((options) => {
       options.fail({ errno: 1505002, errString: "用户取消扫码" });
     });
     await renderNav();
-    await clickButton("上架现货");
+    await clickButton("发布");
     const dialog = getOpenDialog();
-    await clickButton("扫码录入");
+    await clickButton("上架现货");
 
     expect(getOpenDialog()).toBe(dialog);
-    expect(dialog.textContent).toContain("扫码录入");
+    expect(dialog.textContent).toContain("上架现货");
     expect(push).not.toHaveBeenCalled();
     expect(waitForCleanup).not.toHaveBeenCalled();
     expect(toast.error).not.toHaveBeenCalled();
     expect(toast.message).not.toHaveBeenCalled();
-    await clickButton("扫码录入");
+    expect(getButton("上架现货").disabled).toBe(false);
+    expect(getButton("发起 Pocket").disabled).toBe(false);
+    await clickButton("上架现货");
     expect(scanCode).toHaveBeenCalledTimes(2);
     expect(push).toHaveBeenCalledExactlyOnceWith(
       "/publish/spot?entry=scan&barcode=0012345",
     );
-
-    await clickButton("上架现货");
-    await clickButton("手动输入");
-    expect(getOpenDialog().querySelector("input")).not.toBeNull();
   });
 
   it("keeps the entry available when the SDK is not ready", async () => {
     vi.stubGlobal("tt", {});
     await renderNav();
+    await clickButton("发布");
     await clickButton("上架现货");
-    await clickButton("扫码录入");
 
-    expect(getOpenDialog().textContent).toContain("扫码录入");
+    expect(getOpenDialog().textContent).toContain("上架现货");
     expect(push).not.toHaveBeenCalled();
     expect(fetchConfig).not.toHaveBeenCalled();
     expect(toast.message).toHaveBeenCalledWith(
-      "飞书扫码组件尚未就绪，请稍后重试或手动输入",
+      "飞书扫码组件尚未就绪，请稍后重试",
     );
-    await clickButton("手动输入");
-    expect(getOpenDialog().querySelector("input")).not.toBeNull();
+    expect(getButton("上架现货").disabled).toBe(false);
+    expect(getButton("发起 Pocket").disabled).toBe(false);
+    vi.stubGlobal("tt", { scanCode });
+    await clickButton("上架现货");
+    expect(push).toHaveBeenCalledExactlyOnceWith(
+      "/publish/spot?entry=scan&barcode=0012345",
+    );
   });
 
   it("keeps the entry available after failed authentication or an invalid scan", async () => {
     fetchConfig.mockResolvedValueOnce(Response.json({}, { status: 503 }));
     await renderNav();
+    await clickButton("发布");
     await clickButton("上架现货");
-    await clickButton("扫码录入");
     expect(scanCode).not.toHaveBeenCalled();
     expect(toast.error).toHaveBeenCalledWith("扫码鉴权暂不可用，请稍后再试");
     scanCode.mockImplementationOnce((options) => {
       options.success({ result: "invalid" });
     });
-    await clickButton("扫码录入");
-    expect(toast.error).toHaveBeenCalledWith(
-      "扫描结果不是有效商品条码，请手动输入",
-    );
+    await clickButton("上架现货");
+    expect(toast.error).toHaveBeenCalledWith("未识别到商品条码，请重新扫码");
     expect(push).not.toHaveBeenCalled();
     expect(waitForCleanup).not.toHaveBeenCalled();
-    expect(getOpenDialog().textContent).toContain("扫码录入");
+    expect(getOpenDialog().textContent).toContain("上架现货");
+    expect(getButton("上架现货").disabled).toBe(false);
+    expect(getButton("发起 Pocket").disabled).toBe(false);
   });
 
   it("prevents repeated scans and ignores a result after closing and reopening", async () => {
@@ -330,28 +333,26 @@ describe("mobile publish entry", () => {
       finishScan = options.success;
     });
     await renderNav();
-    await clickButton("上架现货");
-    const scanButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent === "扫码录入",
-    )!;
+    await clickButton("发布");
+    const scanButton = getButton("上架现货");
     await act(async () => {
       scanButton.click();
       scanButton.click();
     });
     expect(configure).toHaveBeenCalledOnce();
     expect(scanCode).toHaveBeenCalledOnce();
-    expect(
-      Array.from(container.querySelectorAll("button")).find(
-        (button) => button.textContent === "手动输入",
-      )?.disabled,
-    ).toBe(true);
+    expect(scanButton.disabled).toBe(true);
+    expect(getButton("发起 Pocket").disabled).toBe(true);
+    await clickButton("发起 Pocket");
+    expect(push).not.toHaveBeenCalled();
+    expect(waitForCleanup).not.toHaveBeenCalled();
     await clickButton("关闭弹层");
-    await clickButton("上架现货");
+    await clickButton("发布");
     await act(async () => finishScan({ result: "0012345" }));
     expect(push).not.toHaveBeenCalled();
     expect(waitForCleanup).not.toHaveBeenCalled();
-    expect(getOpenDialog().textContent).toContain("扫码录入");
-    await clickButton("扫码录入");
+    expect(getOpenDialog().textContent).toContain("上架现货");
+    await clickButton("上架现货");
     expect(push).toHaveBeenCalledExactlyOnceWith(
       "/publish/spot?entry=scan&barcode=0012345",
     );
@@ -363,8 +364,8 @@ describe("mobile publish entry", () => {
       finishAuth = () => options.onSuccess?.({});
     });
     await renderNav();
+    await clickButton("发布");
     await clickButton("上架现货");
-    await clickButton("扫码录入");
     await clickButton("关闭弹层");
     await act(async () => finishAuth());
     expect(scanCode).not.toHaveBeenCalled();
@@ -379,68 +380,38 @@ describe("mobile publish entry", () => {
       finishScan = options.success;
     });
     await renderNav();
+    await clickButton("发布");
     await clickButton("上架现货");
-    await clickButton("扫码录入");
     await act(async () => root.render(null));
     await act(async () => finishScan({ result: "0012345" }));
     expect(push).not.toHaveBeenCalled();
     expect(waitForCleanup).not.toHaveBeenCalled();
   });
 
-  it("offers entry methods first, then validates and submits a manual barcode", async () => {
+  it("offers only sibling spot and Pocket entries without a manual input", async () => {
     await renderNav();
-    await clickButton("上架现货");
-
-    expect(getOpenDialog().textContent).toContain("手动输入");
-    expect(getOpenDialog().textContent).toContain("扫码录入");
-    expect(getOpenDialog().querySelector("input")).toBeNull();
-
-    await clickButton("手动输入");
-    expect(getOpenDialog().textContent).toContain("输入商品条码");
-    expect(getOpenDialog().querySelector("input")).not.toBeNull();
-
-    await submitBarcode();
-    expect(push).not.toHaveBeenCalled();
-    expect(getOpenDialog().textContent).toContain("请输入商品条码");
-
-    await enterBarcode("12A");
-    await submitBarcode();
-    expect(push).not.toHaveBeenCalled();
-    expect(getOpenDialog().textContent).toContain("商品条码只能包含数字");
-
-    await enterBarcode(" 0012345 ");
-    await submitBarcode();
-    expect(push).toHaveBeenCalledExactlyOnceWith(
-      "/publish/spot?entry=manual&barcode=0012345",
-    );
+    await clickButton("发布");
+    const dialog = getOpenDialog();
+    const spot = getButton("上架现货");
+    const pocket = getButton("发起 Pocket");
+    expect(spot.parentElement).toBe(pocket.parentElement);
+    expect(spot.textContent).toContain("扫描商品条码");
+    expect(pocket.textContent).toContain("选人分摊与收款");
+    expect(dialog.querySelector("input, form")).toBeNull();
+    expect(dialog.textContent).not.toContain("手动输入");
+    expect(dialog.textContent).not.toContain("输入商品条码");
   });
 
-  it("clears the manual draft and error after closing and reopening", async () => {
-    await renderNav();
-    await clickButton("上架现货");
-    await clickButton("手动输入");
-    await enterBarcode("ABC");
-    await submitBarcode();
-    expect(getOpenDialog().textContent).toContain("商品条码只能包含数字");
-
-    await clickButton("关闭弹层");
-    await clickButton("上架现货");
-    expect(getOpenDialog().textContent).toContain("手动输入");
-    expect(getOpenDialog().querySelector("input")).toBeNull();
-    await clickButton("手动输入");
-
-    expect(
-      getOpenDialog().querySelector<HTMLInputElement>("input")?.value,
-    ).toBe("");
-    expect(getOpenDialog().textContent).not.toContain("商品条码只能包含数字");
-  });
-
-  it("hides scanning outside Feishu", async () => {
+  it("hides scanning outside Feishu and keeps Pocket available", async () => {
     await renderNav(false);
-    await clickButton("上架现货");
-    expect(getOpenDialog().textContent).toContain("手动输入");
-    expect(getOpenDialog().textContent).not.toContain("扫码录入");
-    await clickButton("手动输入");
-    expect(getOpenDialog().textContent).toContain("输入商品条码");
+    await clickButton("发布");
+    const dialog = getOpenDialog();
+    expect(dialog.querySelector('[aria-label="上架现货"]')).toBeNull();
+    expect(dialog.querySelector("input, form")).toBeNull();
+    expect(dialog.textContent).not.toContain("手动输入");
+    expect(getButton("发起 Pocket").disabled).toBe(false);
+    await clickButton("发起 Pocket");
+    expect(scanCode).not.toHaveBeenCalled();
+    expect(push).toHaveBeenCalledExactlyOnceWith("/west-pocket/new");
   });
 });
