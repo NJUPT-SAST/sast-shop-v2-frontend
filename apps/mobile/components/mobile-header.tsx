@@ -32,10 +32,7 @@ export function MobileHeader() {
           className="justify-self-start border-0 bg-transparent shadow-none"
           aria-label="返回上一页"
           onClick={() => {
-            if (
-              pathname.startsWith("/west-pocket/") &&
-              window.history.length <= 1
-            ) {
+            if (pathname.startsWith("/pocket/") && window.history.length <= 1) {
               router.replace("/orders?tab=pocket");
               return;
             }

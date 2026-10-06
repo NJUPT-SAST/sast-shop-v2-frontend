@@ -1,7 +1,8 @@
-import { PocketFacePage } from "@/components/pocket/pocket-face";
+import type { ReactNode } from "react";
 import { PocketProvider } from "@/components/pocket/shared";
 import { mobileAppConfig } from "@/lib/app-config";
-export default function FacePage() {
+
+export default function PocketLayout({ children }: { children: ReactNode }) {
   return (
     <PocketProvider
       options={{
@@ -9,7 +10,7 @@ export default function FacePage() {
         connectBaseUrl: mobileAppConfig.connectBaseUrl,
       }}
     >
-      <PocketFacePage />
+      {children}
     </PocketProvider>
   );
 }

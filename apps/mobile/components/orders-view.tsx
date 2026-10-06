@@ -80,8 +80,8 @@ import {
 } from "@/lib/order-filters";
 import { buildSpotOrderDetailHref } from "@/lib/spot-order-route";
 import { ManagedImage } from "./managed-image";
-import { PocketList } from "./west-pocket/pocket-list";
-import { PocketProvider } from "./west-pocket/shared";
+import { PocketList } from "./pocket/pocket-list";
+import { PocketProvider } from "./pocket/shared";
 
 type RenderableOrder = {
   id: string;

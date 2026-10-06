@@ -181,4 +181,4 @@ export {
   mergeDistributingTaskItems,
   mergeShoppingTaskItems,
 } from "./errand-recovery";
-export * from "./services/west-pocket";
+export * from "./services/pocket";

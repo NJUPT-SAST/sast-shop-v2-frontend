@@ -106,7 +106,7 @@ export function MobilePublishEntry() {
     await waitForDrawerHistoryCleanup();
     if (pendingNavigationRef.current !== request) return;
     pendingNavigationRef.current = null;
-    router.push("/west-pocket/new");
+    router.push("/pocket/new");
   }
 
   return (

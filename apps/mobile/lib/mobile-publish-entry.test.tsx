@@ -210,7 +210,7 @@ describe("mobile publish entry", () => {
     expect(waitForCleanup).toHaveBeenCalledOnce();
     expect(push).not.toHaveBeenCalled();
     await act(async () => finishCleanup());
-    expect(push).toHaveBeenCalledExactlyOnceWith("/west-pocket/new");
+    expect(push).toHaveBeenCalledExactlyOnceWith("/pocket/new");
   });
 
   it("does not navigate to Pocket after unmounting during drawer cleanup", async () => {
@@ -412,6 +412,6 @@ describe("mobile publish entry", () => {
     expect(getButton("发起 Pocket").disabled).toBe(false);
     await clickButton("发起 Pocket");
     expect(scanCode).not.toHaveBeenCalled();
-    expect(push).toHaveBeenCalledExactlyOnceWith("/west-pocket/new");
+    expect(push).toHaveBeenCalledExactlyOnceWith("/pocket/new");
   });
 });
