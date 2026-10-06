@@ -4,6 +4,7 @@ import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { RiAddLine, RiShoppingCartLine, RiStore2Line } from "@remixicon/react";
 import {
   createErrandDemand,
@@ -335,6 +336,13 @@ export function ErrandShop({
             className="flex-1"
             illustration={<BrandIllustration name="template" size={96} />}
             title="此店铺暂无可用商品模板"
+            action={
+              <Button asChild size="touch" variant="outline">
+                <Link href="/group" replace>
+                  返回团购
+                </Link>
+              </Button>
+            }
           />
         ) : templates.length > 0 ? (
           <div className="columns-1 gap-3 md:columns-2">
