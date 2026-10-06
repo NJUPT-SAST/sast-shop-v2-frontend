@@ -40,6 +40,7 @@ import {
 } from "@workspace/ui/components/input-group";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
+import { useCachedResource } from "@workspace/ui/hooks/use-cached-resource";
 
 import { parsePositiveInt64RouteId } from "@/lib/route-id";
 
@@ -65,6 +66,57 @@ export function ErrandDemandHall({
 }) {
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
+  const storeName = keyword.trim();
+  const [debouncedStoreName, setDebouncedStoreName] = useState("");
+  useEffect(() => {
+    const timeout = window.setTimeout(
+      () => setDebouncedStoreName(storeName),
+      250,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [storeName]);
+  const search = useCachedResource({
+    cacheKey: JSON.stringify([
+      "desktop:errand-lobby-search",
+      dataSource,
+      connectBaseUrl,
+      initialPage.pageSize,
+      debouncedStoreName,
+    ]),
+    staleTime: 30_000,
+    refreshKey: initialPage,
+    load: () =>
+      debouncedStoreName
+        ? listErrandDemandStoresPage({
+            dataSource,
+            connectBaseUrl,
+            page: 1,
+            pageSize: initialPage.pageSize,
+            storeName: debouncedStoreName,
+          })
+        : Promise.resolve(initialPage),
+  });
+  const searching =
+    Boolean(storeName) && (storeName !== debouncedStoreName || !search.data);
+  const searchError =
+    storeName === debouncedStoreName && storeName && search.error
+      ? "搜索暂不可用，请稍后重试"
+      : null;
+  const displayError = storeName ? searchError : error;
+  const resultPage = storeName ? search.data : initialPage;
+  const firstPage = useMemo(
+    () =>
+      !searching && resultPage
+        ? resultPage
+        : {
+            items: [],
+            currentPage: 1,
+            pageSize: initialPage.pageSize,
+            totalCount: 0,
+            hasMore: false,
+          },
+    [initialPage.pageSize, resultPage, searching],
+  );
   const loadPage = useCallback(
     (page: number) =>
       listErrandDemandStoresPage({
@@ -72,8 +124,9 @@ export function ErrandDemandHall({
         connectBaseUrl,
         page,
         pageSize: initialPage.pageSize,
+        storeName,
       }),
-    [connectBaseUrl, dataSource, initialPage.pageSize],
+    [connectBaseUrl, dataSource, initialPage.pageSize, storeName],
   );
   const {
     items: demands,
@@ -83,25 +136,11 @@ export function ErrandDemandHall({
     totalCount,
     loadMore,
   } = useInfinitePage({
-    initialPage,
+    initialPage: firstPage,
     loadPage,
     getKey: getDemandKey,
-    identity: `${dataSource}:${connectBaseUrl}`,
+    identity: JSON.stringify([dataSource, connectBaseUrl, storeName]),
   });
-  const filtered = useMemo(() => {
-    const query = keyword.trim().toLocaleLowerCase("zh-CN");
-    return query
-      ? demands.filter((demand) =>
-          demand.storeName.toLocaleLowerCase("zh-CN").includes(query),
-        )
-      : demands;
-  }, [demands, keyword]);
-
-  useEffect(() => {
-    if (!keyword.trim() || !hasMore || loadMoreError) return;
-    const timeout = window.setTimeout(() => void loadMore(), 250);
-    return () => window.clearTimeout(timeout);
-  }, [hasMore, keyword, loadMore, loadMoreError]);
 
   return (
     <div className="space-y-6">
@@ -127,13 +166,18 @@ export function ErrandDemandHall({
         />
       </InputGroup>
 
-      {error ? (
+      {displayError ? (
         <LoadFailure
           title="跑腿需求加载失败"
-          description={error}
-          onRetry={() => router.refresh()}
+          description={displayError}
+          onRetry={() => {
+            if (storeName) void search.refresh();
+            else router.refresh();
+          }}
         />
-      ) : filtered.length === 0 && !loadingMore && !hasMore ? (
+      ) : searching ? (
+        <DemandLoadingSkeletons />
+      ) : demands.length === 0 && !loadingMore && !hasMore ? (
         <Empty
           icon={<RiStore2Line className="size-5" />}
           title={keyword.trim() ? "没有匹配的店铺需求" : "暂无待接单需求"}
@@ -145,15 +189,15 @@ export function ErrandDemandHall({
             ) : undefined
           }
         />
-      ) : filtered.length > 0 ? (
+      ) : demands.length > 0 ? (
         <section className="grid min-w-0 gap-4 lg:grid-cols-2">
-          {filtered.map((demand) => (
+          {demands.map((demand) => (
             <DemandCard key={demand.storeId} demand={demand} />
           ))}
         </section>
       ) : null}
 
-      {!error ? (
+      {!displayError && !searching ? (
         <InfiniteListStatus
           hasMore={hasMore}
           loading={loadingMore}

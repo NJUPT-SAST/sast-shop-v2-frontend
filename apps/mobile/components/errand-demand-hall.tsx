@@ -40,6 +40,7 @@ import {
 import { LoadFailure } from "@workspace/ui/components/load-failure";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
+import { useCachedResource } from "@workspace/ui/hooks/use-cached-resource";
 
 import { formatErrandDisplayPrice } from "@/lib/errand-display";
 import { sanitizeImageSrc } from "@/lib/image-src";
@@ -71,7 +72,58 @@ export function ErrandDemandHall({
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const hasKeyword = Boolean(keyword.trim());
+  const storeName = keyword.trim();
+  const hasKeyword = Boolean(storeName);
+  const [debouncedStoreName, setDebouncedStoreName] = useState("");
+  useEffect(() => {
+    const timeout = window.setTimeout(
+      () => setDebouncedStoreName(storeName),
+      250,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [storeName]);
+  const search = useCachedResource({
+    cacheKey: JSON.stringify([
+      "mobile:errand-lobby-search",
+      dataSource,
+      connectBaseUrl,
+      initialPage.pageSize,
+      debouncedStoreName,
+    ]),
+    staleTime: 30_000,
+    refreshKey: initialPage,
+    load: () =>
+      debouncedStoreName
+        ? listErrandDemandStoresPage({
+            dataSource,
+            connectBaseUrl,
+            page: 1,
+            pageSize: initialPage.pageSize,
+            storeName: debouncedStoreName,
+          })
+        : Promise.resolve(initialPage),
+  });
+  const searching =
+    hasKeyword && (storeName !== debouncedStoreName || !search.data);
+  const searchError =
+    storeName === debouncedStoreName && hasKeyword && search.error
+      ? "搜索暂不可用，请稍后重试"
+      : null;
+  const displayError = hasKeyword ? searchError : error;
+  const resultPage = hasKeyword ? search.data : initialPage;
+  const firstPage = useMemo(
+    () =>
+      !searching && resultPage
+        ? resultPage
+        : {
+            items: [],
+            currentPage: 1,
+            pageSize: initialPage.pageSize,
+            totalCount: 0,
+            hasMore: false,
+          },
+    [initialPage.pageSize, resultPage, searching],
+  );
   const loadPage = useCallback(
     (page: number) =>
       listErrandDemandStoresPage({
@@ -79,8 +131,9 @@ export function ErrandDemandHall({
         connectBaseUrl,
         page,
         pageSize: initialPage.pageSize,
+        storeName,
       }),
-    [connectBaseUrl, dataSource, initialPage.pageSize],
+    [connectBaseUrl, dataSource, initialPage.pageSize, storeName],
   );
   const {
     items: demands,
@@ -90,29 +143,11 @@ export function ErrandDemandHall({
     totalCount,
     loadMore,
   } = useInfinitePage({
-    initialPage,
+    initialPage: firstPage,
     loadPage,
     getKey: getDemandKey,
-    identity: `${dataSource}:${connectBaseUrl}`,
+    identity: JSON.stringify([dataSource, connectBaseUrl, storeName]),
   });
-
-  const filteredDemands = useMemo(() => {
-    const value = keyword.trim().toLowerCase();
-
-    if (!value) {
-      return demands;
-    }
-
-    return demands.filter((demand) =>
-      demand.storeName.toLowerCase().includes(value),
-    );
-  }, [demands, keyword]);
-
-  useEffect(() => {
-    if (!hasKeyword || !hasMore || loadMoreError) return;
-    const timeout = window.setTimeout(() => void loadMore(), 250);
-    return () => window.clearTimeout(timeout);
-  }, [hasKeyword, hasMore, loadMore, loadMoreError]);
 
   return (
     <div className="flex flex-1 flex-col gap-5 py-6">
@@ -138,15 +173,20 @@ export function ErrandDemandHall({
         />
       </InputGroup>
 
-      {error ? (
+      {displayError ? (
         <LoadFailure
           title="跑腿需求加载失败"
-          description={error}
-          onRetry={() => router.refresh()}
+          description={displayError}
+          onRetry={() => {
+            if (hasKeyword) void search.refresh();
+            else router.refresh();
+          }}
         />
-      ) : filteredDemands.length > 0 ? (
+      ) : searching ? (
+        <DemandLoadingSkeletons />
+      ) : demands.length > 0 ? (
         <section className="flex flex-col gap-3">
-          {filteredDemands.map((demand) => (
+          {demands.map((demand) => (
             <DemandCard key={demand.storeId} demand={demand} />
           ))}
         </section>
@@ -189,7 +229,7 @@ export function ErrandDemandHall({
         />
       ) : null}
 
-      {!error ? (
+      {!displayError && !searching ? (
         <InfiniteListStatus
           hasMore={hasMore}
           loading={loadingMore}
