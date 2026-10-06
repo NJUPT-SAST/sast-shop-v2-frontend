@@ -1,21 +1,16 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import {
-  RiAddLine,
-  RiCameraLine,
-  RiImageLine,
-  RiDeleteBinLine,
-} from "@remixicon/react";
+import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
 import { Button } from "@workspace/ui/components/button";
 import {
   Drawer,
   DrawerContent,
   DrawerDescription,
-  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
 } from "@workspace/ui/components/drawer";
 import { ManagedImage } from "../managed-image";
+import { BrandIllustration } from "../brand-illustration";
 import { pocketError, validatePocketImage } from "@/lib/pocket";
 import { PocketError } from "./shared";
 
@@ -152,53 +147,45 @@ export function PocketPhotoPicker({
       />
       <PocketError message={error} />
       <Drawer open={sourceOpen} onOpenChange={setSourceOpen}>
-        <DrawerContent>
+        <DrawerContent className="overflow-clip">
           <DrawerHeader className="text-center">
             <DrawerTitle>添加照片</DrawerTitle>
             <DrawerDescription className="sr-only">
               选择拍照或从相册添加照片
             </DrawerDescription>
           </DrawerHeader>
-          <div className="flex flex-col gap-2 px-4">
-            <Button
-              type="button"
-              variant="outline"
-              size="touch"
-              className="justify-start"
-              disabled={disabled || photos.length >= maxPhotos}
-              onClick={() => {
-                setSourceOpen(false);
-                camera.current?.click();
-              }}
-            >
-              <RiCameraLine data-icon="inline-start" />
-              拍照
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="touch"
-              className="justify-start"
-              disabled={disabled || photos.length >= maxPhotos}
-              onClick={() => {
-                setSourceOpen(false);
-                album.current?.click();
-              }}
-            >
-              <RiImageLine data-icon="inline-start" />
-              从相册选择
-            </Button>
+          <div className="app-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="touch"
+                className="h-auto min-h-36 min-w-0 flex-col gap-2 whitespace-normal rounded-xl bg-card px-3 py-4 shadow-sm"
+                disabled={disabled || photos.length >= maxPhotos}
+                onClick={() => {
+                  setSourceOpen(false);
+                  camera.current?.click();
+                }}
+              >
+                <BrandIllustration name="camera" size={48} />
+                <span className="font-semibold">拍照</span>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="touch"
+                className="h-auto min-h-36 min-w-0 flex-col gap-2 whitespace-normal rounded-xl bg-card px-3 py-4 shadow-sm"
+                disabled={disabled || photos.length >= maxPhotos}
+                onClick={() => {
+                  setSourceOpen(false);
+                  album.current?.click();
+                }}
+              >
+                <BrandIllustration name="photo-album" size={48} />
+                <span className="font-semibold">从相册选择</span>
+              </Button>
+            </div>
           </div>
-          <DrawerFooter className="pb-[calc(1rem+env(safe-area-inset-bottom))]">
-            <Button
-              type="button"
-              variant="ghost"
-              size="touch"
-              onClick={() => setSourceOpen(false)}
-            >
-              取消
-            </Button>
-          </DrawerFooter>
         </DrawerContent>
       </Drawer>
     </div>

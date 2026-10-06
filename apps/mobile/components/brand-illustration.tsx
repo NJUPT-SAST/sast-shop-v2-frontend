@@ -47,8 +47,14 @@ import faceActive from "../public/brand/face-active.webp";
 import faceActiveCompact from "../public/brand/face-active-compact.webp";
 import faceInactive from "../public/brand/face-inactive.webp";
 import faceInactiveCompact from "../public/brand/face-inactive-compact.webp";
+import camera from "../public/brand/camera.webp";
+import cameraCompact from "../public/brand/camera-compact.webp";
+import photoAlbum from "../public/brand/photo-album.webp";
+import photoAlbumCompact from "../public/brand/photo-album-compact.webp";
 
 const illustrations = {
+  camera: { regular: camera, compact: cameraCompact },
+  "photo-album": { regular: photoAlbum, compact: photoAlbumCompact },
   "face-empty": { regular: faceEmpty, compact: faceEmptyCompact },
   "face-active": { regular: faceActive, compact: faceActiveCompact },
   "face-inactive": { regular: faceInactive, compact: faceInactiveCompact },

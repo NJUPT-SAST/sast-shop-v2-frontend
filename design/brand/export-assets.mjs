@@ -122,6 +122,8 @@ const moduleNames = [
   "face-active",
   "face-inactive",
   "pocket",
+  "camera",
+  "photo-album",
 ];
 
 if (selectedModule && !moduleNames.includes(selectedModule)) {
