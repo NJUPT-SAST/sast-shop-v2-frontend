@@ -157,9 +157,6 @@ export function PocketCreate() {
               : "创建并选择分摊人"}
         </Button>
       </form>
-      <p className="text-sm leading-6 text-muted-foreground">
-        使用微信个人收款码，到账后由你确认
-      </p>
     </div>
   );
 }

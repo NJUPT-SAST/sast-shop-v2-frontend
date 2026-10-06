@@ -232,71 +232,73 @@ export function PocketFacePage() {
                 face
                 photos={photos}
                 onChange={setPhotos}
-                disabled={action.busy || !consented}
+                disabled={action.busy}
                 maxPhotos={3}
               />
-              <Button
-                className="w-full"
-                size="touch"
-                disabled={action.busy || !consented || !photos.length}
-                onClick={() =>
-                  void action.run(
-                    `enroll:${profile?.revision ?? "new"}:${photos.map((photo) => photo.id).join(",")}`,
-                    async (requestId) => {
-                      if (!caps) return;
-                      const uploadIds: string[] = [];
-                      for (let index = 0; index < photos.length; index++) {
-                        const photo = photos[index]!;
-                        setProgress(
-                          `正在上传 ${index + 1} / ${photos.length} 张`,
-                        );
-                        let uploaded = uploads.current.get(photo.id);
-                        if (
-                          !uploaded ||
-                          Date.parse(uploaded.expiresAt) <= Date.now()
-                        ) {
-                          uploaded = await uploadPocketPhoto(photo.file, {
-                            purpose: "face_sample",
-                            consentVersion: caps.faceConsentVersion,
-                            requestId: uploaded
-                              ? crypto.randomUUID()
-                              : photo.id,
-                          });
-                          uploads.current.set(photo.id, uploaded);
+              {photos.length ? (
+                <Button
+                  className="w-full"
+                  size="touch"
+                  disabled={action.busy || !consented || !photos.length}
+                  onClick={() =>
+                    void action.run(
+                      `enroll:${profile?.revision ?? "new"}:${photos.map((photo) => photo.id).join(",")}`,
+                      async (requestId) => {
+                        if (!caps || !consented || !photos.length) return;
+                        const uploadIds: string[] = [];
+                        for (let index = 0; index < photos.length; index++) {
+                          const photo = photos[index]!;
+                          setProgress(
+                            `正在上传 ${index + 1} / ${photos.length} 张`,
+                          );
+                          let uploaded = uploads.current.get(photo.id);
+                          if (
+                            !uploaded ||
+                            Date.parse(uploaded.expiresAt) <= Date.now()
+                          ) {
+                            uploaded = await uploadPocketPhoto(photo.file, {
+                              purpose: "face_sample",
+                              consentVersion: caps.faceConsentVersion,
+                              requestId: uploaded
+                                ? crypto.randomUUID()
+                                : photo.id,
+                            });
+                            uploads.current.set(photo.id, uploaded);
+                          }
+                          uploadIds.push(uploaded.uploadId);
                         }
-                        uploadIds.push(uploaded.uploadId);
-                      }
-                      const response = await enrollPocketFace(
-                        {
-                          uploadIds,
-                          consentVersion: caps.faceConsentVersion,
-                          requestId,
-                          expectedRevision:
-                            profile &&
-                            !["revoked", "failed"].includes(profile.status)
-                              ? profile.revision
-                              : undefined,
-                        },
-                        options,
-                      );
-                      result.setData({ profile: response.profile });
-                      setJobId(response.job?.id ?? null);
-                      setJobPending(
-                        Boolean(
-                          response.job &&
-                          !pocketJobFinished(response.job.status),
-                        ),
-                      );
-                      setPhotos([]);
-                      setConsented(false);
-                      setProgress("已提交，正在检查照片并录入");
-                    },
-                  )
-                }
-              >
-                {action.busy ? <Spinner data-icon="inline-start" /> : null}
-                {profile?.status === "active" ? "重新录入" : "同意并录入"}
-              </Button>
+                        const response = await enrollPocketFace(
+                          {
+                            uploadIds,
+                            consentVersion: caps.faceConsentVersion,
+                            requestId,
+                            expectedRevision:
+                              profile &&
+                              !["revoked", "failed"].includes(profile.status)
+                                ? profile.revision
+                                : undefined,
+                          },
+                          options,
+                        );
+                        result.setData({ profile: response.profile });
+                        setJobId(response.job?.id ?? null);
+                        setJobPending(
+                          Boolean(
+                            response.job &&
+                            !pocketJobFinished(response.job.status),
+                          ),
+                        );
+                        setPhotos([]);
+                        setConsented(false);
+                        setProgress("已提交，正在检查照片并录入");
+                      },
+                    )
+                  }
+                >
+                  {action.busy ? <Spinner data-icon="inline-start" /> : null}
+                  录入
+                </Button>
+              ) : null}
               {progress ? (
                 <p role="status" className="text-sm text-muted-foreground">
                   {progress}

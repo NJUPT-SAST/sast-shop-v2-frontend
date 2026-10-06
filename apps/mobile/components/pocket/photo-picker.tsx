@@ -1,7 +1,20 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { RiCameraLine, RiImageLine, RiDeleteBinLine } from "@remixicon/react";
+import {
+  RiAddLine,
+  RiCameraLine,
+  RiImageLine,
+  RiDeleteBinLine,
+} from "@remixicon/react";
 import { Button } from "@workspace/ui/components/button";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@workspace/ui/components/drawer";
 import { ManagedImage } from "../managed-image";
 import { pocketError, validatePocketImage } from "@/lib/pocket";
 import { PocketError } from "./shared";
@@ -27,6 +40,7 @@ export function PocketPhotoPicker({
   const camera = useRef<HTMLInputElement>(null);
   const album = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
+  const [sourceOpen, setSourceOpen] = useState(false);
   const objectUrls = useRef(new Set<string>());
   useEffect(() => {
     const urls = objectUrls.current;
@@ -48,6 +62,7 @@ export function PocketPhotoPicker({
     if (disabled || !files) return;
     try {
       const selected = Array.from(files);
+      if (!selected.length) return;
       if (selected.length + photos.length > maxPhotos)
         throw new Error(`最多选择 ${maxPhotos} 张照片`);
       selected.forEach(validatePocketImage);
@@ -66,29 +81,44 @@ export function PocketPhotoPicker({
   }
   return (
     <div className="flex min-w-0 flex-col gap-3">
-      <div className="grid grid-cols-2 gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="touch"
-          className="min-w-0 whitespace-normal"
-          disabled={disabled || photos.length >= maxPhotos}
-          onClick={() => camera.current?.click()}
-        >
-          <RiCameraLine data-icon="inline-start" />
-          {face ? "拍摄本人照片" : "拍摄合照"}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="touch"
-          className="min-w-0 whitespace-normal"
-          disabled={disabled || photos.length >= maxPhotos}
-          onClick={() => album.current?.click()}
-        >
-          <RiImageLine data-icon="inline-start" />
-          从相册选择
-        </Button>
+      <div className="app-scrollbar flex min-w-0 gap-2 overflow-x-auto py-1">
+        {photos.map((photo, index) => (
+          <div key={photo.id} className="relative size-24 shrink-0">
+            <ManagedImage
+              src={photo.previewUrl}
+              alt={`待上传照片 ${index + 1}`}
+              className="aspect-square rounded-lg"
+              imageClassName={face ? "object-contain" : undefined}
+            />
+            <Button
+              type="button"
+              size="icon-xs"
+              variant="secondary"
+              className="absolute right-1 top-1 size-6"
+              disabled={disabled}
+              aria-label={`移除第 ${index + 1} 张照片`}
+              onClick={() =>
+                onChange(photos.filter((value) => value.id !== photo.id))
+              }
+            >
+              <RiDeleteBinLine />
+            </Button>
+          </div>
+        ))}
+        {photos.length < maxPhotos ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="size-24 shrink-0 border-dashed bg-muted/30 md:size-24"
+            disabled={disabled}
+            aria-label="添加照片"
+            aria-haspopup="dialog"
+            onClick={() => setSourceOpen(true)}
+          >
+            <RiAddLine className="size-6" />
+          </Button>
+        ) : null}
       </div>
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs leading-5 text-muted-foreground">
         <span>JPEG、PNG，每张不超过 10 MB</span>
@@ -121,33 +151,56 @@ export function PocketPhotoPicker({
         }}
       />
       <PocketError message={error} />
-      {photos.length ? (
-        <div className="grid grid-cols-3 gap-2">
-          {photos.map((photo, index) => (
-            <div key={photo.id} className="relative min-w-0">
-              <ManagedImage
-                src={photo.previewUrl}
-                alt={`待上传照片 ${index + 1}`}
-                className="aspect-square rounded-lg"
-                imageClassName={face ? "object-contain" : undefined}
-              />
-              <Button
-                type="button"
-                size="icon-xs"
-                variant="secondary"
-                className="absolute right-1 top-1"
-                disabled={disabled}
-                aria-label={`移除第 ${index + 1} 张照片`}
-                onClick={() =>
-                  onChange(photos.filter((value) => value.id !== photo.id))
-                }
-              >
-                <RiDeleteBinLine />
-              </Button>
-            </div>
-          ))}
-        </div>
-      ) : null}
+      <Drawer open={sourceOpen} onOpenChange={setSourceOpen}>
+        <DrawerContent>
+          <DrawerHeader className="text-center">
+            <DrawerTitle>添加照片</DrawerTitle>
+            <DrawerDescription className="sr-only">
+              选择拍照或从相册添加照片
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="flex flex-col gap-2 px-4">
+            <Button
+              type="button"
+              variant="outline"
+              size="touch"
+              className="justify-start"
+              disabled={disabled || photos.length >= maxPhotos}
+              onClick={() => {
+                setSourceOpen(false);
+                camera.current?.click();
+              }}
+            >
+              <RiCameraLine data-icon="inline-start" />
+              拍照
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="touch"
+              className="justify-start"
+              disabled={disabled || photos.length >= maxPhotos}
+              onClick={() => {
+                setSourceOpen(false);
+                album.current?.click();
+              }}
+            >
+              <RiImageLine data-icon="inline-start" />
+              从相册选择
+            </Button>
+          </div>
+          <DrawerFooter className="pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            <Button
+              type="button"
+              variant="ghost"
+              size="touch"
+              onClick={() => setSourceOpen(false)}
+            >
+              取消
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }

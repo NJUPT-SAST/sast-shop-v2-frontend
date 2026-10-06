@@ -60,7 +60,62 @@ afterEach(async () => {
 });
 
 describe("Pocket photo picker", () => {
-  it("ignores late file selection after consent is revoked or an upload begins", async () => {
+  it.each([
+    ["拍照", 0],
+    ["从相册选择", 1],
+  ] as const)(
+    "opens the %s file chooser from the add button",
+    async (label, index) => {
+      await mount();
+      const input = container.querySelectorAll("input")[index]!;
+      const openChooser = vi.spyOn(input, "click").mockImplementation(() => {});
+      await act(async () =>
+        container
+          .querySelector<HTMLButtonElement>('[aria-label="添加照片"]')!
+          .click(),
+      );
+      const dialog = document.querySelector('[role="dialog"]')!;
+      expect(dialog).not.toBeNull();
+      const source = Array.from(dialog.querySelectorAll("button")).find(
+        (button) => button.textContent === label,
+      )!;
+      await act(async () => source.click());
+      expect(openChooser).toHaveBeenCalledOnce();
+      expect(dialog.getAttribute("data-state")).toBe("closed");
+      expect(onChange).not.toHaveBeenCalled();
+      openChooser.mockRestore();
+    },
+  );
+
+  it("ignores an empty selection and restores adding after a photo is removed", async () => {
+    await mount();
+    await choose([]);
+    expect(onChange).not.toHaveBeenCalled();
+    createObjectURL
+      .mockImplementationOnce(() => "blob:1")
+      .mockImplementationOnce(() => "blob:2")
+      .mockImplementationOnce(() => "blob:3");
+    await choose(
+      Array.from(
+        { length: 3 },
+        (_, index) =>
+          new File(["photo"], `${index}.jpg`, { type: "image/jpeg" }),
+      ),
+    );
+    const selected: SelectedPocketPhoto[] = onChange.mock.calls[0]![0];
+    await mount(false, selected);
+    expect(container.querySelector('[aria-label="添加照片"]')).toBeNull();
+    await act(async () =>
+      container
+        .querySelector<HTMLButtonElement>('[aria-label="移除第 1 张照片"]')!
+        .click(),
+    );
+    await mount(false, onChange.mock.lastCall![0]);
+    expect(container.querySelector('[aria-label="添加照片"]')).not.toBeNull();
+    expect(revokeObjectURL).toHaveBeenCalledExactlyOnceWith("blob:1");
+  });
+
+  it("ignores late file selection when the picker becomes disabled", async () => {
     await mount();
     await mount(true);
     await choose([new File(["photo"], "photo.jpg", { type: "image/jpeg" })]);
@@ -86,7 +141,7 @@ describe("Pocket photo picker", () => {
     await mount(false, onChange.mock.calls[0]![0]);
     await act(async () =>
       container
-        .querySelector("button[aria-label]")!
+        .querySelector('button[aria-label="移除第 1 张照片"]')!
         .dispatchEvent(new MouseEvent("click", { bubbles: true })),
     );
     expect(onChange).toHaveBeenLastCalledWith([]);
