@@ -60,6 +60,37 @@ export interface ErrandTaskBrief {
 export interface ErrandTaskBriefItem {
   id: string;
   updatedAt: string | null;
+  productTitle: string;
+  productImageUrl: string;
+  requiredQuantity: number;
+  purchasedQuantity: number | null;
+}
+
+export interface ErrandTaskParticipants {
+  participantCount: number;
+  participantAvatars: string[];
+}
+
+export async function getErrandTaskParticipants(
+  taskId: string,
+  options: ServiceOptions = {},
+): Promise<ErrandTaskParticipants> {
+  const errandTaskId = parseInt64(taskId, "跑腿任务 ID 不正确");
+  const dataSource = resolveDataSource(options);
+  if (dataSource === "mock" || dataSource === "local") {
+    const client = createClient(
+      ErrandTaskService,
+      createLocalTransport(options),
+    );
+    const response = await requestLocal("getErrandTaskParticipants", () =>
+      client.getErrandTaskParticipants({ errandTaskId }),
+    );
+    return {
+      participantCount: response.participantCount,
+      participantAvatars: response.participantAvatars,
+    };
+  }
+  throw new FeatureUnavailableError("getErrandTaskParticipants");
 }
 
 type ListErrandTasksOptions = ServiceOptions & {
@@ -316,6 +347,13 @@ function mapErrandTaskBriefItem(item: ErrandTaskItem): ErrandTaskBriefItem {
   return {
     id: item.id.toString(),
     updatedAt: formatTimestamp(item.updatedAt),
+    productTitle: item.productSnapshot?.title ?? "",
+    productImageUrl: item.productSnapshot?.mainImageUrl ?? "",
+    requiredQuantity: item.requiredQuantity,
+    purchasedQuantity:
+      item.purchasedQuantity == null || item.purchasedQuantity === -1
+        ? null
+        : item.purchasedQuantity,
   };
 }
 
@@ -503,7 +541,7 @@ export interface DistributingTaskDetail {
 }
 
 type GetDistributingTaskDetailOptions = ServiceOptions & {
-  taskItems?: ErrandTaskBriefItem[];
+  taskItems?: Pick<ErrandTaskBriefItem, "id" | "updatedAt">[];
   taskUpdatedAt?: string | null;
 };
 

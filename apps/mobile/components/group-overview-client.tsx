@@ -3,19 +3,17 @@
 import {
   listErrandTasks,
   listStores,
-  type ErrandTaskBrief,
   type ErrandTaskStatusFilter,
   type DataSource,
   type Store,
 } from "@sast-shop/api";
-import {
-  RiArrowRightSLine,
-  RiFileList3Line,
-  RiStore2Line,
-} from "@remixicon/react";
+import { RiFileList3Line, RiStore2Line } from "@remixicon/react";
 import Link from "next/link";
-import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+} from "@workspace/ui/components/collapsible";
 import { Empty } from "@workspace/ui/components/empty";
 import {
   Card,
@@ -26,9 +24,9 @@ import {
 import { LoadFailure } from "@/components/load-failure";
 import { BrandIllustration } from "@/components/brand-illustration";
 import { ManagedImage } from "@/components/managed-image";
+import { ErrandTaskCard } from "@/components/errand-task-card";
 import { StoreCreateDialog } from "@/components/store-create-dialog";
 import { getGroupTaskPreview } from "@/lib/errand-task-route";
-import { getStatusBadgeVariant, getStatusLabel } from "@/lib/order-filters";
 import { isValidRouteId } from "@/lib/route-id";
 import { useCachedResource } from "@workspace/ui/hooks/use-cached-resource";
 import { Skeleton } from "@workspace/ui/components/skeleton";
@@ -76,59 +74,59 @@ export function GroupOverviewClient({
   const taskError = tasksResource.error ? "采购任务暂不可用，请稍后再试" : null;
 
   return (
-    <div className="flex flex-1 flex-col gap-8 py-6">
-      <section className="flex flex-col gap-4">
+    <div className="flex flex-1 flex-col py-6">
+      <section className="mb-8 flex flex-col gap-4">
         <h1 className="text-xl font-semibold leading-7 md:text-2xl">团购</h1>
       </section>
 
-      {taskError || tasksResource.loading || tasks.length > 0 ? (
-        <section className="flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="min-w-0 text-xl font-semibold leading-7 md:text-2xl">
-              进行中的任务
-            </h2>
-            {tasks.length > 0 ? (
-              <Button asChild variant="text" size="touch" className="-mr-3">
-                <Link href="/orders?type=errand&view=captain">
-                  <RiFileList3Line
-                    data-icon="inline-start"
-                    aria-hidden="true"
-                  />
-                  全部任务
-                </Link>
-              </Button>
-            ) : null}
-          </div>
-
-          {tasksResource.error && tasksResource.data ? (
-            <LoadFailure
-              variant="compact"
-              title="采购任务更新失败"
-              description="已保留上次加载的采购任务"
-              onRetry={() => void tasksResource.refresh()}
-            />
-          ) : null}
-
-          {tasksResource.loading && !tasksResource.data ? (
-            <Skeleton className="h-24 w-full rounded-lg" />
-          ) : taskError && !tasksResource.data ? (
-            <LoadFailure
-              variant="section"
-              title="采购任务加载失败"
-              description={taskError}
-              onRetry={() => void tasksResource.refresh()}
-            />
-          ) : (
-            <div className="grid min-w-0 gap-3 md:grid-cols-2">
-              {tasks.map((task) => (
-                <TaskCard key={task.id} task={task} />
-              ))}
+      <Collapsible open={tasks.length > 0 || Boolean(taskError)}>
+        <CollapsibleContent>
+          <section className="flex flex-col gap-3 pb-8">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="min-w-0 text-xl font-semibold leading-7 md:text-2xl">
+                进行中的任务
+              </h2>
+              {tasks.length > 0 ? (
+                <Button asChild variant="text" size="touch" className="-mr-3">
+                  <Link href="/orders?type=errand&view=captain">
+                    <RiFileList3Line
+                      data-icon="inline-start"
+                      aria-hidden="true"
+                    />
+                    全部任务
+                  </Link>
+                </Button>
+              ) : null}
             </div>
-          )}
-        </section>
-      ) : null}
 
-      <section className="flex flex-col gap-3">
+            {tasksResource.error && tasksResource.data ? (
+              <LoadFailure
+                variant="compact"
+                title="采购任务更新失败"
+                description="已保留上次加载的采购任务"
+                onRetry={() => void tasksResource.refresh()}
+              />
+            ) : null}
+
+            {taskError && !tasksResource.data ? (
+              <LoadFailure
+                variant="section"
+                title="采购任务加载失败"
+                description={taskError}
+                onRetry={() => void tasksResource.refresh()}
+              />
+            ) : (
+              <div className="grid min-w-0 gap-3 md:grid-cols-2">
+                {tasks.map((task) => (
+                  <ErrandTaskCard key={task.id} task={task} options={options} />
+                ))}
+              </div>
+            )}
+          </section>
+        </CollapsibleContent>
+      </Collapsible>
+
+      <section className="mb-8 flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
           <h2 className="min-w-0 text-xl font-semibold leading-7 md:text-2xl">
             店铺拼单
@@ -234,48 +232,6 @@ export function GroupOverviewClient({
         </div>
       </section>
     </div>
-  );
-}
-
-function TaskCard({ task }: { task: ErrandTaskBrief }) {
-  const canOpen = isValidRouteId(task.id);
-  const card = (
-    <Card className="min-w-0 overflow-hidden rounded-lg transition-colors group-hover:border-primary/40">
-      <CardHeader className="gap-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <CardTitle className="truncate text-base leading-6">
-              {task.storeName}
-            </CardTitle>
-            <CardDescription className="mt-1">
-              {task.itemCount} 种商品
-            </CardDescription>
-          </div>
-          <div className="flex shrink-0 items-center gap-1">
-            <Badge variant={getStatusBadgeVariant(task.status)}>
-              {getStatusLabel(task.status)}
-            </Badge>
-            {canOpen ? (
-              <RiArrowRightSLine className="size-5 text-muted-foreground" />
-            ) : null}
-          </div>
-        </div>
-      </CardHeader>
-    </Card>
-  );
-
-  if (!canOpen) {
-    return <div className="opacity-70">{card}</div>;
-  }
-
-  return (
-    <Link
-      href={`/group/purchase/${task.id}`}
-      prefetch={false}
-      className="group min-w-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-    >
-      {card}
-    </Link>
   );
 }
 

@@ -66,6 +66,7 @@ describe("desktop group overview", () => {
                 storeName: "进行中的小卖部",
                 status: "shopping",
                 itemCount: 2,
+                items: [],
                 createdAt: "2026-10-05T08:00:00Z",
               },
             ]

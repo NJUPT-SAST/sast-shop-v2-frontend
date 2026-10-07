@@ -6,6 +6,7 @@ import {
   getCollectingPaymentDetail,
   getDistributingTaskDetail,
   getErrandTaskBrief,
+  getErrandTaskParticipants,
   getShoppingTaskDetail,
   listErrandTasks,
   listErrandTasksPage,
@@ -40,7 +41,13 @@ describe("listErrandTasks", () => {
             storeName: "SAST 小卖部",
             status: "ERRAND_TASK_STATUS_SHOPPING",
             items: [
-              { id: "7101", updatedAt: "2026-07-18T02:00:00Z" },
+              {
+                id: "7101",
+                updatedAt: "2026-07-18T02:00:00Z",
+                productSnapshot: { title: "可乐", mainImageUrl: "/cola.jpg" },
+                requiredQuantity: 12,
+                purchasedQuantity: 5,
+              },
               { id: "7102" },
             ],
             updatedAt: "2026-06-09T08:31:00Z",
@@ -75,8 +82,22 @@ describe("listErrandTasks", () => {
         status: "shopping",
         itemCount: 2,
         items: [
-          { id: "7101", updatedAt: "2026-07-18T02:00:00.000Z" },
-          { id: "7102", updatedAt: null },
+          {
+            id: "7101",
+            updatedAt: "2026-07-18T02:00:00.000Z",
+            productTitle: "可乐",
+            productImageUrl: "/cola.jpg",
+            requiredQuantity: 12,
+            purchasedQuantity: 5,
+          },
+          {
+            id: "7102",
+            updatedAt: null,
+            productTitle: "",
+            productImageUrl: "",
+            requiredQuantity: 0,
+            purchasedQuantity: null,
+          },
         ],
         updatedAt: "2026-06-09T08:31:00.000Z",
         createdAt: "2026-06-09T08:30:00.000Z",
@@ -114,6 +135,64 @@ describe("listErrandTasks", () => {
       totalCount: 51,
       hasMore: true,
     });
+  });
+
+  it("maps unprocessed and unavailable purchases without treating them as purchased", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        stubJsonResponse({
+          errandTasks: [
+            {
+              taskId: "7001",
+              items: [
+                { id: "1", requiredQuantity: 3 },
+                { id: "2", requiredQuantity: 4, purchasedQuantity: -1 },
+                { id: "3", requiredQuantity: 5, purchasedQuantity: 0 },
+              ],
+            },
+          ],
+          currentPage: 1,
+          totalCount: 1,
+        }),
+      ),
+    );
+    const [task] = await listErrandTasks(localOptions);
+    expect(task?.items.map((item) => item.purchasedQuantity)).toEqual([
+      null,
+      null,
+      0,
+    ]);
+  });
+
+  it("loads participant avatars independently with one request", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        participantCount: 6,
+        participantAvatars: ["/a.jpg", "", "/b.jpg"],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      getErrandTaskParticipants("7001", localOptions),
+    ).resolves.toEqual({
+      participantCount: 6,
+      participantAvatars: ["/a.jpg", "", "/b.jpg"],
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.errand.v1.ErrandTaskService/GetErrandTaskParticipants",
+      body: { errandTaskId: "7001" },
+    });
+  });
+
+  it("rejects invalid participant task ids before sending a request", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      getErrandTaskParticipants("-1", localOptions),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("does not use task creation time as an update concurrency token", async () => {

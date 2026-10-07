@@ -4,30 +4,25 @@ import Link from "next/link";
 import {
   listErrandTasks,
   listStores,
-  type ErrandTaskBrief,
   type ErrandTaskStatusFilter,
   type DataSource,
   type Store,
 } from "@sast-shop/api";
 import { RiArrowRightSLine, RiRunLine, RiStore2Line } from "@remixicon/react";
-import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+} from "@workspace/ui/components/collapsible";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import { Empty } from "@workspace/ui/components/empty";
 import { LoadFailure } from "@workspace/ui/components/load-failure";
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemTitle,
-} from "@workspace/ui/components/item";
 
 import { ManagedImage } from "@/components/managed-image";
 import { BrandIllustration } from "@/components/brand-illustration";
+import { ErrandTaskCard } from "@/components/errand-task-card";
 import { StoreCreateDialog } from "@/components/store-create-dialog";
 import { getActiveErrandTasks } from "@/lib/errand-task-route";
-import { getStatusBadgeVariant, getStatusLabel } from "@/lib/order-filters";
 import { parsePositiveInt64RouteId } from "@/lib/route-id";
 import { useCachedResource } from "@workspace/ui/hooks/use-cached-resource";
 import { Skeleton } from "@workspace/ui/components/skeleton";
@@ -146,43 +141,49 @@ export function GroupOverviewClient({
           )}
         </section>
 
-        <aside className="min-w-0 space-y-4">
-          <section className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="font-semibold">进行中的任务</h2>
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/orders?type=errand&view=captain">查看全部</Link>
-              </Button>
-            </div>
-            {tasksResource.error && tasksResource.data ? (
-              <LoadFailure
-                variant="compact"
-                title="采购任务更新失败"
-                description="已保留上次加载的采购任务"
-                onRetry={() => void tasksResource.refresh()}
-              />
-            ) : null}
+        <aside className="min-w-0">
+          <Collapsible open={tasks.length > 0 || Boolean(tasksResource.error)}>
+            <CollapsibleContent>
+              <section className="flex flex-col gap-3 pb-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="font-semibold">进行中的任务</h2>
+                  {tasks.length > 0 ? (
+                    <Button asChild variant="ghost" size="sm">
+                      <Link href="/orders?type=errand&view=captain">
+                        查看全部
+                      </Link>
+                    </Button>
+                  ) : null}
+                </div>
+                {tasksResource.error && tasksResource.data ? (
+                  <LoadFailure
+                    variant="compact"
+                    title="采购任务更新失败"
+                    description="已保留上次加载的采购任务"
+                    onRetry={() => void tasksResource.refresh()}
+                  />
+                ) : null}
 
-            {tasksResource.loading && !tasksResource.data ? (
-              <Skeleton className="h-24 w-full rounded-lg" />
-            ) : tasksResource.error && !tasksResource.data ? (
-              <LoadFailure
-                variant="compact"
-                title="采购任务加载失败"
-                retryHref="/group"
-              />
-            ) : tasks.length === 0 ? (
-              <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                当前没有进行中的团长任务。
-              </p>
-            ) : (
-              <div className="grid gap-2">
-                {tasks.slice(0, 4).map((task) => (
-                  <TaskItem key={task.id} task={task} />
-                ))}
-              </div>
-            )}
-          </section>
+                {tasksResource.error && !tasksResource.data ? (
+                  <LoadFailure
+                    variant="compact"
+                    title="采购任务加载失败"
+                    onRetry={() => void tasksResource.refresh()}
+                  />
+                ) : (
+                  <div className="grid gap-2">
+                    {tasks.slice(0, 4).map((task) => (
+                      <ErrandTaskCard
+                        key={task.id}
+                        task={task}
+                        options={options}
+                      />
+                    ))}
+                  </div>
+                )}
+              </section>
+            </CollapsibleContent>
+          </Collapsible>
 
           <section className="space-y-3">
             <h2 className="font-semibold">团长工具</h2>
@@ -243,43 +244,6 @@ function StoreCard({ store }: { store: Store }) {
       href={`/group/shop/${id}`}
       prefetch={false}
       className="group min-w-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-    >
-      {content}
-    </Link>
-  );
-}
-
-function TaskItem({ task }: { task: ErrandTaskBrief }) {
-  const id = parsePositiveInt64RouteId(task.id);
-  const content = (
-    <Item variant="outline" className="min-w-0">
-      <ItemContent className="min-w-0">
-        <div className="flex min-w-0 items-center gap-2">
-          <ItemTitle className="truncate">{task.storeName}</ItemTitle>
-          <Badge
-            variant={getStatusBadgeVariant(task.status)}
-            className="shrink-0"
-          >
-            {getStatusLabel(task.status)}
-          </Badge>
-        </div>
-        <ItemDescription>{task.itemCount} 种商品</ItemDescription>
-      </ItemContent>
-      {id ? (
-        <ItemActions>
-          <RiArrowRightSLine className="size-4 text-muted-foreground" />
-        </ItemActions>
-      ) : null}
-    </Item>
-  );
-
-  if (!id) return <div className="opacity-60">{content}</div>;
-
-  return (
-    <Link
-      href={`/group/purchase/${id}`}
-      prefetch={false}
-      className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
       {content}
     </Link>
