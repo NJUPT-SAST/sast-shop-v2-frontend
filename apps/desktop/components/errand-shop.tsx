@@ -414,6 +414,7 @@ export function ErrandShop({
                       <ManagedImage
                         src={template.mainImageUrl}
                         alt={template.title}
+                        fit="contain"
                         className="size-24 shrink-0 rounded-lg border"
                       />
                       <div className="flex min-w-0 flex-1 flex-col">

@@ -533,6 +533,7 @@ export function DistributingTaskView({
                     aria-controls={`distributing-item-${item.errandTaskItemId}`}
                   />
                   <ManagedImage
+                    fit="contain"
                     src={item.imageUrl}
                     alt={item.title}
                     className="pointer-events-none size-14 shrink-0 rounded-lg"

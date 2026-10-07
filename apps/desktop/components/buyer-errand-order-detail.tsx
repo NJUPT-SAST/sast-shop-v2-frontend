@@ -369,6 +369,8 @@ function ProductItemsCard({ items }: { items: BuyerErrandOrderProductItem[] }) {
               <ManagedImage
                 src={item.productTemplate.mainImageUrl}
                 alt={item.productTemplate.title}
+                fit="contain"
+                preview
                 className="size-24 shrink-0 rounded-lg border"
               />
               <div className="min-w-0 flex-1">

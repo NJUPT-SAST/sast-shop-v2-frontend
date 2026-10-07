@@ -27,33 +27,6 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("../components/store-create-dialog", () => ({
   StoreCreateDialog: ({ children }: { children: React.ReactNode }) => children,
 }));
-vi.mock("@workspace/ui/components/dialog", () => {
-  const Content = ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  );
-  return {
-    Dialog: ({
-      open,
-      children,
-      onOpenChange,
-    }: {
-      open: boolean;
-      children: React.ReactNode;
-      onOpenChange: (open: boolean) => void;
-    }) =>
-      open ? (
-        <div>
-          <button onClick={() => onOpenChange(false)}>关闭模板弹层</button>
-          {children}
-        </div>
-      ) : null,
-    DialogContent: Content,
-    DialogHeader: Content,
-    DialogFooter: Content,
-    DialogTitle: Content,
-    DialogDescription: Content,
-  };
-});
 const template: ProductTemplate = {
   id: "4001",
   storeId: "3001",
@@ -122,7 +95,7 @@ async function render(
   );
 }
 function button(name: string) {
-  const found = Array.from(container.querySelectorAll("button")).find(
+  const found = Array.from(document.body.querySelectorAll("button")).find(
     (item) =>
       item.getAttribute("aria-label") === name ||
       item.textContent?.trim() === name,
@@ -134,7 +107,7 @@ async function click(name: string) {
   await act(async () => button(name).click());
 }
 function input(id: string) {
-  return container.querySelector<HTMLInputElement>(`#${id}`)!;
+  return document.body.querySelector<HTMLInputElement>(`#${id}`)!;
 }
 async function fill(id: string, value: string) {
   await act(async () => {
@@ -174,12 +147,14 @@ describe("desktop template editing", () => {
     });
     expect(input("template-form-title").value).toBe("最新矿泉水");
     expect(
-      container.querySelector("#template-form-store")?.hasAttribute("disabled"),
+      document.body
+        .querySelector("#template-form-store")
+        ?.hasAttribute("disabled"),
     ).toBe(true);
-    expect(container.textContent).toContain(
+    expect(document.body.textContent).toContain(
       "编辑时不能更换店铺；请在目标店铺新建模板",
     );
-    expect(container.textContent).toContain("二号店");
+    expect(document.body.textContent).toContain("二号店");
   });
   it("fetches latest details for a list card before editing and writes that precise version", async () => {
     await render(undefined, [
@@ -205,11 +180,11 @@ describe("desktop template editing", () => {
     vi.mocked(getProductTemplate).mockReturnValueOnce(loading.promise);
     await render("4001");
     expect(
-      container.querySelector('[aria-label="正在加载商品模板详情"]'),
+      document.body.querySelector('[aria-label="正在加载商品模板详情"]'),
     ).not.toBeNull();
     expect(button("保存").disabled).toBe(true);
     await act(async () => loading.reject(new Error("network")));
-    expect(container.textContent).toContain("商品模板加载失败");
+    expect(document.body.textContent).toContain("商品模板加载失败");
     await click("重新加载");
     expect(input("template-form-title").value).toBe(template.title);
   });
@@ -217,9 +192,9 @@ describe("desktop template editing", () => {
     const loading = deferred<ProductTemplate>();
     vi.mocked(getProductTemplate).mockReturnValueOnce(loading.promise);
     await render("4001");
-    await click("关闭模板弹层");
+    await click("关闭");
     await act(async () => loading.resolve(template));
-    expect(container.querySelector("#desktop-template-form")).toBeNull();
+    expect(document.body.querySelector("#desktop-template-form")).toBeNull();
     await render("4001");
     expect(getProductTemplate).toHaveBeenCalledOnce();
   });
@@ -241,7 +216,7 @@ describe("desktop template editing", () => {
     vi.mocked(uploadProductImage).mockReturnValueOnce(upload.promise);
     await render("4001");
     const element =
-      container.querySelector<HTMLInputElement>('input[type="file"]')!;
+      document.body.querySelector<HTMLInputElement>('input[type="file"]')!;
     await act(async () => {
       Object.defineProperty(element, "files", {
         value: [new File(["image"], "image.png", { type: "image/png" })],
@@ -262,7 +237,7 @@ describe("desktop template editing", () => {
     await render();
     await click("新建模板");
     expect(
-      container.querySelector("#template-form-store")?.textContent,
+      document.body.querySelector("#template-form-store")?.textContent,
     ).toContain("二号店");
     await fill("template-form-barcode", template.barcode);
     await fill("template-form-title", "矿泉水");
@@ -272,7 +247,7 @@ describe("desktop template editing", () => {
       expect.anything(),
     );
     expect(router.replace).toHaveBeenCalledWith("/group/templates?store=3002");
-    expect(container.textContent).not.toContain("最新矿泉水");
+    expect(document.body.textContent).not.toContain("最新矿泉水");
   });
   it("blocks duplicate saves synchronously and keeps the dialog while writing", async () => {
     const save = deferred<ProductTemplate>();
@@ -282,10 +257,16 @@ describe("desktop template editing", () => {
       button("保存").click();
       button("保存").click();
     });
-    await click("关闭模板弹层");
-    expect(container.querySelector("#desktop-template-form")).not.toBeNull();
+    await act(async () => {
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+      );
+    });
+    expect(
+      document.body.querySelector("#desktop-template-form"),
+    ).not.toBeNull();
     expect(updateProductTemplate).toHaveBeenCalledOnce();
     await act(async () => save.resolve(template));
-    expect(container.querySelector("#desktop-template-form")).toBeNull();
+    expect(document.body.querySelector("#desktop-template-form")).toBeNull();
   });
 });

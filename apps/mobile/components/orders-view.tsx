@@ -878,6 +878,7 @@ function OrderThumbnails({ order }: { order: RenderableOrder }) {
   if (imageUrls.length <= 1) {
     return (
       <ManagedImage
+        fit="contain"
         src={imageUrls[0]}
         alt={order.title}
         className="size-16 shrink-0 rounded-lg"
@@ -889,6 +890,7 @@ function OrderThumbnails({ order }: { order: RenderableOrder }) {
     <div className="flex shrink-0 -space-x-3" aria-label="商品图片">
       {imageUrls.map((src, index) => (
         <ManagedImage
+          fit="contain"
           key={`${src}-${index}`}
           src={src}
           alt={`${order.title} 商品 ${index + 1}`}

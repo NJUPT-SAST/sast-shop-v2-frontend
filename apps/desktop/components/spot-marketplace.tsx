@@ -294,6 +294,7 @@ export function SpotMarketplace({
               <ManagedImage
                 src={product.imageUrl}
                 alt={product.title}
+                fit="contain"
                 className="aspect-[16/9] w-full"
               />
               <CardContent className="min-w-0 space-y-3 px-5 pt-4">
@@ -378,6 +379,8 @@ export function SpotMarketplace({
                     <ManagedImage
                       src={selected.imageUrl}
                       alt={selected.title}
+                      fit="contain"
+                      preview
                       className="aspect-square w-full rounded-lg"
                     />
                     <div className="min-w-0 space-y-4">

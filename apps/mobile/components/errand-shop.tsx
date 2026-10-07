@@ -388,6 +388,7 @@ export function ErrandShop({
                     aria-label={`查看${template.title}详情`}
                   >
                     <ManagedImage
+                      fit="contain"
                       src={template.mainImageUrl}
                       alt={template.title}
                       className="size-20 rounded-lg"
@@ -501,9 +502,11 @@ export function ErrandShop({
             <div className="min-h-0 overflow-y-auto">
               <div className="flex flex-col gap-4 pb-2">
                 <ManagedImage
+                  preview
+                  fit="contain"
                   src={selectedTemplate.mainImageUrl}
                   alt={selectedTemplate.title}
-                  className="aspect-video rounded-lg"
+                  className="h-[min(17.5rem,32dvh)] w-full shrink-0 rounded-lg"
                 />
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -568,6 +571,7 @@ export function ErrandShop({
                     >
                       <div className="flex items-start gap-3">
                         <ManagedImage
+                          fit="contain"
                           src={item.template.mainImageUrl}
                           alt={item.template.title}
                           className="size-14 shrink-0 rounded-lg"

@@ -350,6 +350,8 @@ export function SpotOrderDetail({
               <ManagedImage
                 src={resolvedOrder.productImageUrl}
                 alt={resolvedOrder.productTitle}
+                fit="contain"
+                preview
                 className="size-28 shrink-0 rounded-lg"
               />
               <div className="min-w-0 flex-1">

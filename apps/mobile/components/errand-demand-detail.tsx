@@ -337,6 +337,8 @@ function DemandProductGroup({
     <Card className="overflow-hidden rounded-lg">
       <div className="flex items-start gap-3 p-3">
         <ManagedImage
+          preview
+          fit="contain"
           src={productImageUrl}
           alt={title}
           className={cn(

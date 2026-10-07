@@ -85,6 +85,7 @@ export function ErrandTaskCard({
                 key={item.id}
                 src={item.productImageUrl}
                 alt={item.productTitle}
+                fit="contain"
                 className="size-8 rounded-md"
               />
             ))}

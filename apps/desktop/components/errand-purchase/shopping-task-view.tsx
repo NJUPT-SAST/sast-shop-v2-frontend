@@ -509,6 +509,7 @@ function ShoppingItemCard({
           <ManagedImage
             src={item.productImageUrl}
             alt={item.productTitle}
+            fit="contain"
             className="size-16 shrink-0 rounded-lg border"
           />
           <span className="min-w-0 flex-1">

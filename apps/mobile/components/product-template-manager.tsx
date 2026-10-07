@@ -944,6 +944,7 @@ function TemplateItem({
         onClick={onEdit}
       >
         <ManagedImage
+          fit="contain"
           src={template.mainImageUrl}
           alt={template.title}
           className="size-10 shrink-0 rounded-lg"
@@ -1239,28 +1240,30 @@ function ProductImageField({
     <Field data-invalid={invalid}>
       <FieldLabel htmlFor="product-template-image">商品图片</FieldLabel>
       <div className="relative overflow-hidden rounded-lg border bg-muted/30">
-        <button
-          type="button"
-          className="relative flex aspect-video w-full items-center justify-center overflow-hidden outline-none transition-colors hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50"
-          aria-label={value ? "更换商品图片" : "上传商品图片"}
-          disabled={uploading}
-          onClick={() => inputRef.current?.click()}
-        >
-          {value ? (
-            <ManagedImage
-              src={value}
-              alt="商品图片预览"
-              className="absolute inset-0 size-full rounded-none transition-opacity duration-200 motion-reduce:transition-none"
-            />
-          ) : (
+        {value ? (
+          <ManagedImage
+            fit="contain"
+            preview={!uploading}
+            src={value}
+            alt="商品图片预览"
+            className="h-[min(15rem,32dvh)] w-full rounded-none"
+          />
+        ) : (
+          <button
+            type="button"
+            className="relative flex h-[min(15rem,32dvh)] w-full items-center justify-center overflow-hidden outline-none transition-colors hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50"
+            aria-label="上传商品图片"
+            disabled={uploading}
+            onClick={() => inputRef.current?.click()}
+          >
             <RiImageAddLine className="size-8 text-muted-foreground" />
-          )}
-          {uploading ? (
-            <span className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm">
-              <Spinner className="size-6" />
-            </span>
-          ) : null}
-        </button>
+          </button>
+        )}
+        {uploading ? (
+          <span className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm">
+            <Spinner className="size-6" />
+          </span>
+        ) : null}
 
         {value && !uploading ? (
           <div className="absolute top-2 right-2 flex gap-2">

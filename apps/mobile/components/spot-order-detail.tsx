@@ -709,6 +709,8 @@ function OrderInfoCard({
         <Separator />
         <div className="flex items-start gap-3">
           <ManagedImage
+            preview
+            fit="contain"
             src={order.productImageUrl}
             alt={order.productTitle}
             className="size-16 shrink-0 rounded-md"

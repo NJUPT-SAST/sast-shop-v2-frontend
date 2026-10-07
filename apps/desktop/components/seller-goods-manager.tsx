@@ -202,6 +202,7 @@ function SellerGoodsList({
               <ManagedImage
                 src={goods.product.mainImageUrl}
                 alt={goods.product.title}
+                fit="contain"
                 className="size-16 shrink-0 rounded-lg"
               />
               <div className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -296,6 +297,7 @@ function SellerGoodsList({
                 <ManagedImage
                   src={(detail ?? selected).product.mainImageUrl}
                   alt=""
+                  fit="contain"
                   className="size-12 shrink-0 rounded-lg"
                 />
                 <span className="flex min-w-0 flex-1 flex-col gap-1.5">

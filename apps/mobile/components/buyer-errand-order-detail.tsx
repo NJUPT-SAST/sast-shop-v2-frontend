@@ -359,6 +359,8 @@ function ProductItem({ item }: { item: BuyerErrandOrderProductItem }) {
     <div className="flex min-w-0 flex-col gap-2">
       <div className="flex min-w-0 gap-3">
         <ManagedImage
+          preview
+          fit="contain"
           src={item.productTemplate.mainImageUrl}
           alt={title}
           className="size-18 shrink-0 rounded-lg"

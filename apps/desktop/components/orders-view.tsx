@@ -816,6 +816,7 @@ function OrderThumbnails({ order }: { order: RenderableOrder }) {
       <ManagedImage
         src={imageUrls[0]}
         alt={order.title}
+        fit="contain"
         className="size-14 shrink-0 rounded-lg"
       />
     );
@@ -828,6 +829,7 @@ function OrderThumbnails({ order }: { order: RenderableOrder }) {
           key={`${src}-${index}`}
           src={src}
           alt={`${order.title} 商品 ${index + 1}`}
+          fit="contain"
           className="size-12 rounded-lg border-2 border-card"
         />
       ))}

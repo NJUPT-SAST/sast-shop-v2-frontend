@@ -82,6 +82,7 @@ export function ErrandTaskCard({
           <div className="flex shrink-0 gap-1" aria-label="商品摘要">
             {images.map((item) => (
               <ManagedImage
+                fit="contain"
                 key={item.id}
                 src={item.productImageUrl}
                 alt={item.productTitle}

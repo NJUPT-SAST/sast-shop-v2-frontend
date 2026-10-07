@@ -202,6 +202,7 @@ function SellerGoodsList({
               onClick={() => void openEditor(goods)}
             >
               <ManagedImage
+                fit="contain"
                 src={goods.product.mainImageUrl}
                 alt={goods.product.title}
                 className="size-16 shrink-0 rounded-lg"
@@ -290,6 +291,7 @@ function SellerGoodsList({
                 }}
               >
                 <ManagedImage
+                  fit="contain"
                   src={(detail ?? selected).product.mainImageUrl}
                   alt=""
                   className="size-12 shrink-0 rounded-lg"

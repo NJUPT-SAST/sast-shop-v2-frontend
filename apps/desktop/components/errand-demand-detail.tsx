@@ -312,6 +312,8 @@ function DemandGroupCard({
         <ManagedImage
           src={product.mainImageUrl}
           alt={title}
+          fit="contain"
+          preview
           className="size-20 shrink-0 rounded-lg border"
         />
         <div className="min-w-0 flex-1">

@@ -608,6 +608,7 @@ export function SpotMarketplace({
             >
               <Card className="h-full overflow-hidden rounded-lg transition-colors hover:bg-muted/30">
                 <ManagedImage
+                  fit="contain"
                   src={product.imageUrl}
                   alt={product.title}
                   className="aspect-square"
@@ -722,9 +723,11 @@ export function SpotMarketplace({
                 <div className="app-scrollbar min-h-0 flex-1 overflow-y-auto pr-1">
                   <div className="flex flex-col gap-4">
                     <ManagedImage
+                      preview
+                      fit="contain"
                       src={selectedProduct.imageUrl}
                       alt={selectedProduct.title}
-                      className="aspect-video rounded-lg"
+                      className="h-[min(17.5rem,32dvh)] w-full shrink-0 rounded-lg"
                     />
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex min-w-0 items-baseline gap-2">

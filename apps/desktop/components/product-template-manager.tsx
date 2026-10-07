@@ -556,6 +556,7 @@ export function ProductTemplateManager({
                     <ManagedImage
                       src={template.mainImageUrl}
                       alt={template.title}
+                      fit="contain"
                       className="size-20 shrink-0 rounded-lg border"
                     />
                     <div className="min-w-0 flex-1">
@@ -836,45 +837,58 @@ export function ProductTemplateManager({
                       className="hidden"
                       onChange={(event) => void handleImage(event)}
                     />
-                    <button
-                      type="button"
-                      className="flex min-h-28 w-full items-center justify-center overflow-hidden rounded-lg border border-dashed bg-muted/30 transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      disabled={uploading || submitting}
-                      aria-label={
-                        draft.mainImageUrl ? "更改商品图片" : "上传商品图片"
-                      }
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      {uploading ? (
-                        <Spinner />
-                      ) : draft.mainImageUrl ? (
+                    {draft.mainImageUrl ? (
+                      <>
                         <ManagedImage
                           src={draft.mainImageUrl}
                           alt="商品图片预览"
-                          className="h-40 w-full"
+                          fit="contain"
+                          preview
+                          className="h-[min(15rem,32dvh)] w-full rounded-lg border"
                         />
-                      ) : (
-                        <RiImageAddLine className="size-7 text-muted-foreground" />
-                      )}
-                    </button>
-                    {draft.mainImageUrl ? (
-                      <Button
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={uploading || submitting}
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            {uploading ? <Spinner /> : <RiImageAddLine />}
+                            更改商品图片
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            disabled={uploading || submitting}
+                            onClick={() =>
+                              setDraft((current) => ({
+                                ...current,
+                                mainImageUrl: "",
+                              }))
+                            }
+                          >
+                            <RiDeleteBinLine data-icon="inline-start" />
+                            移除图片
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <button
                         type="button"
-                        variant="destructive"
-                        size="sm"
-                        className="w-fit"
+                        className="flex min-h-28 w-full items-center justify-center overflow-hidden rounded-lg border border-dashed bg-muted/30 transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         disabled={uploading || submitting}
-                        onClick={() =>
-                          setDraft((current) => ({
-                            ...current,
-                            mainImageUrl: "",
-                          }))
-                        }
+                        aria-label="上传商品图片"
+                        onClick={() => fileInputRef.current?.click()}
                       >
-                        <RiDeleteBinLine data-icon="inline-start" />
-                        移除图片
-                      </Button>
-                    ) : null}
+                        {uploading ? (
+                          <Spinner />
+                        ) : (
+                          <RiImageAddLine className="size-7 text-muted-foreground" />
+                        )}
+                      </button>
+                    )}
                   </Field>
                   {formError ? (
                     <FieldError className="sm:col-span-2">

@@ -548,6 +548,7 @@ function ShoppingItemCard({
         onClick={onEdit}
       >
         <ManagedImage
+          fit="contain"
           src={item.productImageUrl}
           alt=""
           className="size-12 shrink-0 rounded-lg"

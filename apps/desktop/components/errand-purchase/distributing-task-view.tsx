@@ -689,6 +689,7 @@ export function DistributingTaskView({
                     <ManagedImage
                       src={item.imageUrl}
                       alt={item.title}
+                      fit="contain"
                       className="size-20 shrink-0 rounded-lg border"
                     />
                     <div className="min-w-0 flex-1">
