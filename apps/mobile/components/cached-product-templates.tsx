@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   listProductTemplatesPage,
   listStores,
@@ -11,12 +12,17 @@ import { useCachedResource } from "@workspace/ui/hooks/use-cached-resource";
 import { LoadFailure } from "@/components/load-failure";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { ProductTemplateManager } from "./product-template-manager";
+import {
+  readTemplateStoreId,
+  resolveTemplateStoreId,
+} from "@/lib/template-store-preference";
 
 export function CachedProductTemplates({
   dataSource,
   connectBaseUrl,
   refreshKey,
   requestedStoreId,
+  requestedTemplateId,
   prefillBarcode,
   startCreating,
 }: {
@@ -24,26 +30,32 @@ export function CachedProductTemplates({
   connectBaseUrl: string;
   refreshKey: string;
   requestedStoreId?: string;
+  requestedTemplateId?: string;
   prefillBarcode: string;
   startCreating: boolean;
 }) {
+  const [rememberedStoreId] = useState(readTemplateStoreId);
   const { data, error, refresh } = useCachedResource({
     cacheKey: JSON.stringify([
       "mobile:templates",
       dataSource,
       connectBaseUrl,
       requestedStoreId ?? "",
+      rememberedStoreId ?? "",
     ]),
     staleTime: 300_000,
     refreshKey,
     load: async () => {
       const options = { dataSource, connectBaseUrl };
       const stores = await listStores(options);
-      const selectedStoreId = stores.some(
-        (store) => store.id === requestedStoreId,
-      )
-        ? requestedStoreId!
-        : (stores[0]?.id ?? null);
+      const selectedStoreId = resolveTemplateStoreId(
+        {
+          stores,
+          requestedStoreId,
+          fallbackStoreId: stores[0]?.id ?? null,
+        },
+        { getItem: () => rememberedStoreId },
+      );
       const templatePage: PageResult<ProductTemplate> = selectedStoreId
         ? await listProductTemplatesPage({
             ...options,
@@ -95,6 +107,8 @@ export function CachedProductTemplates({
         stores={data.stores}
         initialPage={data.templatePage}
         selectedStoreId={data.selectedStoreId}
+        requestedStoreId={requestedStoreId}
+        requestedTemplateId={requestedTemplateId}
         prefillBarcode={prefillBarcode}
         startCreating={startCreating}
         error={null}

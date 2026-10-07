@@ -71,18 +71,29 @@ export { getProfileOverview, type ProfileOverview } from "./services/profile";
 export {
   createStore,
   listStores,
+  updateStore,
   type CreateStoreInput,
   type Store,
+  type UpdateStoreInput,
+  type UpdateStorePatch,
 } from "./services/catalog";
 export {
   createSpotGoods,
   getSpotGoods,
   listSpotGoods,
+  listSellerSpotGoods,
+  updateSpotGoodsPrice,
+  updateSpotGoodsStock,
+  UpdatedSpotGoodsRefreshError,
   type CreateSpotGoodsInput,
   type ListSpotGoodsResult,
+  type ListSellerSpotGoodsInput,
+  type ListSellerSpotGoodsResult,
   type SpotGoods,
   type SpotGoodsBrief,
   type SpotProductTemplate,
+  type UpdateSpotGoodsPriceInput,
+  type UpdateSpotGoodsStockInput,
 } from "./services/spot-goods";
 export {
   cancelSpotOrder,
@@ -166,6 +177,7 @@ export {
 export {
   createProductTemplate,
   deleteProductTemplate,
+  getProductTemplate,
   getProductTemplatesByBarcode,
   listProductTemplates,
   listProductTemplatesPage,

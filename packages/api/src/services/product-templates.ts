@@ -4,7 +4,11 @@ import type { ProductTemplate as ProtoProductTemplate } from "../gen/sast/sastsh
 import { ProductTemplateService } from "../gen/sast/sastshopv2/catalog/v1/product_template_service_pb";
 import type { Store as ProtoStore } from "../gen/sast/sastshopv2/catalog/v1/store_pb";
 import { resolveDataSource, type ServiceOptions } from "../data-source";
-import { FeatureUnavailableError, ValidationError } from "../errors";
+import {
+  FeatureUnavailableError,
+  ResourceNotFoundError,
+  ValidationError,
+} from "../errors";
 import { createPageResult, type PageResult } from "../pagination";
 import { createLocalTransport, requestLocal } from "../local-connect";
 import { formatProtoTimestamp, parseProtoTimestamp } from "../proto-timestamp";
@@ -59,6 +63,38 @@ export interface UpdateProductTemplateInput {
 
 export interface DeleteProductTemplateInput {
   id: string;
+}
+
+export async function getProductTemplate(
+  id: string,
+  options: ServiceOptions = {},
+): Promise<ProductTemplate> {
+  const productTemplateId = parseInt64(id, "商品模板 ID 不正确");
+  const dataSource = resolveDataSource(options);
+  if (dataSource !== "mock" && dataSource !== "local") {
+    throw new FeatureUnavailableError("getProductTemplate");
+  }
+  const client = createClient(
+    ProductTemplateService,
+    createLocalTransport(options),
+  );
+  const response = await requestLocal("getProductTemplate", () =>
+    client.getProductTemplate({ productTemplateId }),
+  );
+  if (!response.productTemplate)
+    throw new ResourceNotFoundError("productTemplate");
+  const template = response.productTemplate;
+  if (
+    template.id !== productTemplateId ||
+    template.storeId <= 0n ||
+    !template.title.trim() ||
+    !template.updatedAt ||
+    !Number.isInteger(template.priceCents) ||
+    template.priceCents < 0
+  ) {
+    throw new FeatureUnavailableError("getProductTemplate");
+  }
+  return mapTemplate(template);
 }
 
 export async function listProductTemplates(

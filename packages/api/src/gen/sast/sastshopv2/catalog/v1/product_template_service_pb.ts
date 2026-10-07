@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file sast/sastshopv2/catalog/v1/product_template_service.proto.
  */
 export const file_sast_sastshopv2_catalog_v1_product_template_service: GenFile = /*@__PURE__*/
-  fileDesc("CjlzYXN0L3Nhc3RzaG9wdjIvY2F0YWxvZy92MS9wcm9kdWN0X3RlbXBsYXRlX3NlcnZpY2UucHJvdG8SGnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxImMKHUdldFByb2R1Y3RUZW1wbGF0ZUxpc3RSZXF1ZXN0EhAKCHN0b3JlX2lkGAEgASgDEgwKBHBhZ2UYAiABKAUSEQoJcGFnZV9zaXplGAMgASgFEg8KB2tleXdvcmQYBCABKAkikwEKHkdldFByb2R1Y3RUZW1wbGF0ZUxpc3RSZXNwb25zZRJGChFwcm9kdWN0X3RlbXBsYXRlcxgBIAMoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZRIUCgxjdXJyZW50X3BhZ2UYAiABKAUSEwoLdG90YWxfY291bnQYAyABKAUikgEKHENyZWF0ZVByb2R1Y3RUZW1wbGF0ZVJlcXVlc3QSEAoIc3RvcmVfaWQYASABKAMSDQoFdGl0bGUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSEwoLcHJpY2VfY2VudHMYBCABKAUSFgoObWFpbl9pbWFnZV91cmwYBSABKAkSDwoHYmFyY29kZRgGIAEoCSJmCh1DcmVhdGVQcm9kdWN0VGVtcGxhdGVSZXNwb25zZRJFChBwcm9kdWN0X3RlbXBsYXRlGAEgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlIpYBChxVcGRhdGVQcm9kdWN0VGVtcGxhdGVSZXF1ZXN0EkUKEHByb2R1Y3RfdGVtcGxhdGUYASABKAsyKy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5Qcm9kdWN0VGVtcGxhdGUSLwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrImYKHVVwZGF0ZVByb2R1Y3RUZW1wbGF0ZVJlc3BvbnNlEkUKEHByb2R1Y3RfdGVtcGxhdGUYASABKAsyKy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5Qcm9kdWN0VGVtcGxhdGUiNQoiR2V0UHJvZHVjdFRlbXBsYXRlQnlCYXJjb2RlUmVxdWVzdBIPCgdiYXJjb2RlGAIgASgJIvsBCiNHZXRQcm9kdWN0VGVtcGxhdGVCeUJhcmNvZGVSZXNwb25zZRJTCgVpdGVtcxgBIAMoCzJELnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkdldFByb2R1Y3RUZW1wbGF0ZUJ5QmFyY29kZVJlc3BvbnNlLkl0ZW0afwoESXRlbRJFChBwcm9kdWN0X3RlbXBsYXRlGAEgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlEjAKBXN0b3JlGAIgASgLMiEuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuU3RvcmUiOwocRGVsZXRlUHJvZHVjdFRlbXBsYXRlUmVxdWVzdBIbChNwcm9kdWN0X3RlbXBsYXRlX2lkGAEgASgDIh8KHURlbGV0ZVByb2R1Y3RUZW1wbGF0ZVJlc3BvbnNlMvgFChZQcm9kdWN0VGVtcGxhdGVTZXJ2aWNlEo8BChZHZXRQcm9kdWN0VGVtcGxhdGVMaXN0Ejkuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuR2V0UHJvZHVjdFRlbXBsYXRlTGlzdFJlcXVlc3QaOi5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRQcm9kdWN0VGVtcGxhdGVMaXN0UmVzcG9uc2USjAEKFUNyZWF0ZVByb2R1Y3RUZW1wbGF0ZRI4LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkNyZWF0ZVByb2R1Y3RUZW1wbGF0ZVJlcXVlc3QaOS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5DcmVhdGVQcm9kdWN0VGVtcGxhdGVSZXNwb25zZRKMAQoVVXBkYXRlUHJvZHVjdFRlbXBsYXRlEjguc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuVXBkYXRlUHJvZHVjdFRlbXBsYXRlUmVxdWVzdBo5LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlVwZGF0ZVByb2R1Y3RUZW1wbGF0ZVJlc3BvbnNlEp4BChtHZXRQcm9kdWN0VGVtcGxhdGVCeUJhcmNvZGUSPi5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRQcm9kdWN0VGVtcGxhdGVCeUJhcmNvZGVSZXF1ZXN0Gj8uc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuR2V0UHJvZHVjdFRlbXBsYXRlQnlCYXJjb2RlUmVzcG9uc2USjAEKFURlbGV0ZVByb2R1Y3RUZW1wbGF0ZRI4LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkRlbGV0ZVByb2R1Y3RUZW1wbGF0ZVJlcXVlc3QaOS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5EZWxldGVQcm9kdWN0VGVtcGxhdGVSZXNwb25zZWIGcHJvdG8z", [file_google_protobuf_field_mask, file_sast_sastshopv2_catalog_v1_product_template, file_sast_sastshopv2_catalog_v1_store]);
+  fileDesc("CjlzYXN0L3Nhc3RzaG9wdjIvY2F0YWxvZy92MS9wcm9kdWN0X3RlbXBsYXRlX3NlcnZpY2UucHJvdG8SGnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxImMKHUdldFByb2R1Y3RUZW1wbGF0ZUxpc3RSZXF1ZXN0EhAKCHN0b3JlX2lkGAEgASgDEgwKBHBhZ2UYAiABKAUSEQoJcGFnZV9zaXplGAMgASgFEg8KB2tleXdvcmQYBCABKAkikwEKHkdldFByb2R1Y3RUZW1wbGF0ZUxpc3RSZXNwb25zZRJGChFwcm9kdWN0X3RlbXBsYXRlcxgBIAMoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZRIUCgxjdXJyZW50X3BhZ2UYAiABKAUSEwoLdG90YWxfY291bnQYAyABKAUiTgovUHJvZHVjdFRlbXBsYXRlU2VydmljZUdldFByb2R1Y3RUZW1wbGF0ZVJlcXVlc3QSGwoTcHJvZHVjdF90ZW1wbGF0ZV9pZBgBIAEoAyJ5CjBQcm9kdWN0VGVtcGxhdGVTZXJ2aWNlR2V0UHJvZHVjdFRlbXBsYXRlUmVzcG9uc2USRQoQcHJvZHVjdF90ZW1wbGF0ZRgBIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZSKSAQocQ3JlYXRlUHJvZHVjdFRlbXBsYXRlUmVxdWVzdBIQCghzdG9yZV9pZBgBIAEoAxINCgV0aXRsZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRITCgtwcmljZV9jZW50cxgEIAEoBRIWCg5tYWluX2ltYWdlX3VybBgFIAEoCRIPCgdiYXJjb2RlGAYgASgJImYKHUNyZWF0ZVByb2R1Y3RUZW1wbGF0ZVJlc3BvbnNlEkUKEHByb2R1Y3RfdGVtcGxhdGUYASABKAsyKy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5Qcm9kdWN0VGVtcGxhdGUilgEKHFVwZGF0ZVByb2R1Y3RUZW1wbGF0ZVJlcXVlc3QSRQoQcHJvZHVjdF90ZW1wbGF0ZRgBIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZRIvCgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2siZgodVXBkYXRlUHJvZHVjdFRlbXBsYXRlUmVzcG9uc2USRQoQcHJvZHVjdF90ZW1wbGF0ZRgBIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZSI1CiJHZXRQcm9kdWN0VGVtcGxhdGVCeUJhcmNvZGVSZXF1ZXN0Eg8KB2JhcmNvZGUYAiABKAki+wEKI0dldFByb2R1Y3RUZW1wbGF0ZUJ5QmFyY29kZVJlc3BvbnNlElMKBWl0ZW1zGAEgAygLMkQuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuR2V0UHJvZHVjdFRlbXBsYXRlQnlCYXJjb2RlUmVzcG9uc2UuSXRlbRp/CgRJdGVtEkUKEHByb2R1Y3RfdGVtcGxhdGUYASABKAsyKy5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5Qcm9kdWN0VGVtcGxhdGUSMAoFc3RvcmUYAiABKAsyIS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5TdG9yZSI7ChxEZWxldGVQcm9kdWN0VGVtcGxhdGVSZXF1ZXN0EhsKE3Byb2R1Y3RfdGVtcGxhdGVfaWQYASABKAMiHwodRGVsZXRlUHJvZHVjdFRlbXBsYXRlUmVzcG9uc2UyqgcKFlByb2R1Y3RUZW1wbGF0ZVNlcnZpY2USjwEKFkdldFByb2R1Y3RUZW1wbGF0ZUxpc3QSOS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRQcm9kdWN0VGVtcGxhdGVMaXN0UmVxdWVzdBo6LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkdldFByb2R1Y3RUZW1wbGF0ZUxpc3RSZXNwb25zZRKvAQoSR2V0UHJvZHVjdFRlbXBsYXRlEksuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlU2VydmljZUdldFByb2R1Y3RUZW1wbGF0ZVJlcXVlc3QaTC5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5Qcm9kdWN0VGVtcGxhdGVTZXJ2aWNlR2V0UHJvZHVjdFRlbXBsYXRlUmVzcG9uc2USjAEKFUNyZWF0ZVByb2R1Y3RUZW1wbGF0ZRI4LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkNyZWF0ZVByb2R1Y3RUZW1wbGF0ZVJlcXVlc3QaOS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5DcmVhdGVQcm9kdWN0VGVtcGxhdGVSZXNwb25zZRKMAQoVVXBkYXRlUHJvZHVjdFRlbXBsYXRlEjguc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuVXBkYXRlUHJvZHVjdFRlbXBsYXRlUmVxdWVzdBo5LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlVwZGF0ZVByb2R1Y3RUZW1wbGF0ZVJlc3BvbnNlEp4BChtHZXRQcm9kdWN0VGVtcGxhdGVCeUJhcmNvZGUSPi5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRQcm9kdWN0VGVtcGxhdGVCeUJhcmNvZGVSZXF1ZXN0Gj8uc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuR2V0UHJvZHVjdFRlbXBsYXRlQnlCYXJjb2RlUmVzcG9uc2USjAEKFURlbGV0ZVByb2R1Y3RUZW1wbGF0ZRI4LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkRlbGV0ZVByb2R1Y3RUZW1wbGF0ZVJlcXVlc3QaOS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5EZWxldGVQcm9kdWN0VGVtcGxhdGVSZXNwb25zZWIGcHJvdG8z", [file_google_protobuf_field_mask, file_sast_sastshopv2_catalog_v1_product_template, file_sast_sastshopv2_catalog_v1_store]);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.GetProductTemplateListRequest
@@ -82,6 +82,40 @@ export const GetProductTemplateListResponseSchema: GenMessage<GetProductTemplate
   messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 1);
 
 /**
+ * @generated from message sast.sastshopv2.catalog.v1.ProductTemplateServiceGetProductTemplateRequest
+ */
+export type ProductTemplateServiceGetProductTemplateRequest = Message<"sast.sastshopv2.catalog.v1.ProductTemplateServiceGetProductTemplateRequest"> & {
+  /**
+   * @generated from field: int64 product_template_id = 1;
+   */
+  productTemplateId: bigint;
+};
+
+/**
+ * Describes the message sast.sastshopv2.catalog.v1.ProductTemplateServiceGetProductTemplateRequest.
+ * Use `create(ProductTemplateServiceGetProductTemplateRequestSchema)` to create a new message.
+ */
+export const ProductTemplateServiceGetProductTemplateRequestSchema: GenMessage<ProductTemplateServiceGetProductTemplateRequest> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 2);
+
+/**
+ * @generated from message sast.sastshopv2.catalog.v1.ProductTemplateServiceGetProductTemplateResponse
+ */
+export type ProductTemplateServiceGetProductTemplateResponse = Message<"sast.sastshopv2.catalog.v1.ProductTemplateServiceGetProductTemplateResponse"> & {
+  /**
+   * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplate product_template = 1;
+   */
+  productTemplate?: ProductTemplate | undefined;
+};
+
+/**
+ * Describes the message sast.sastshopv2.catalog.v1.ProductTemplateServiceGetProductTemplateResponse.
+ * Use `create(ProductTemplateServiceGetProductTemplateResponseSchema)` to create a new message.
+ */
+export const ProductTemplateServiceGetProductTemplateResponseSchema: GenMessage<ProductTemplateServiceGetProductTemplateResponse> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 3);
+
+/**
  * @generated from message sast.sastshopv2.catalog.v1.CreateProductTemplateRequest
  */
 export type CreateProductTemplateRequest = Message<"sast.sastshopv2.catalog.v1.CreateProductTemplateRequest"> & {
@@ -121,7 +155,7 @@ export type CreateProductTemplateRequest = Message<"sast.sastshopv2.catalog.v1.C
  * Use `create(CreateProductTemplateRequestSchema)` to create a new message.
  */
 export const CreateProductTemplateRequestSchema: GenMessage<CreateProductTemplateRequest> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 2);
+  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 4);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.CreateProductTemplateResponse
@@ -138,7 +172,7 @@ export type CreateProductTemplateResponse = Message<"sast.sastshopv2.catalog.v1.
  * Use `create(CreateProductTemplateResponseSchema)` to create a new message.
  */
 export const CreateProductTemplateResponseSchema: GenMessage<CreateProductTemplateResponse> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 3);
+  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 5);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.UpdateProductTemplateRequest
@@ -160,7 +194,7 @@ export type UpdateProductTemplateRequest = Message<"sast.sastshopv2.catalog.v1.U
  * Use `create(UpdateProductTemplateRequestSchema)` to create a new message.
  */
 export const UpdateProductTemplateRequestSchema: GenMessage<UpdateProductTemplateRequest> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 4);
+  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 6);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.UpdateProductTemplateResponse
@@ -177,7 +211,7 @@ export type UpdateProductTemplateResponse = Message<"sast.sastshopv2.catalog.v1.
  * Use `create(UpdateProductTemplateResponseSchema)` to create a new message.
  */
 export const UpdateProductTemplateResponseSchema: GenMessage<UpdateProductTemplateResponse> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 5);
+  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 7);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.GetProductTemplateByBarcodeRequest
@@ -194,7 +228,7 @@ export type GetProductTemplateByBarcodeRequest = Message<"sast.sastshopv2.catalo
  * Use `create(GetProductTemplateByBarcodeRequestSchema)` to create a new message.
  */
 export const GetProductTemplateByBarcodeRequestSchema: GenMessage<GetProductTemplateByBarcodeRequest> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 6);
+  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 8);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.GetProductTemplateByBarcodeResponse
@@ -211,7 +245,7 @@ export type GetProductTemplateByBarcodeResponse = Message<"sast.sastshopv2.catal
  * Use `create(GetProductTemplateByBarcodeResponseSchema)` to create a new message.
  */
 export const GetProductTemplateByBarcodeResponseSchema: GenMessage<GetProductTemplateByBarcodeResponse> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 7);
+  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 9);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.GetProductTemplateByBarcodeResponse.Item
@@ -233,7 +267,7 @@ export type GetProductTemplateByBarcodeResponse_Item = Message<"sast.sastshopv2.
  * Use `create(GetProductTemplateByBarcodeResponse_ItemSchema)` to create a new message.
  */
 export const GetProductTemplateByBarcodeResponse_ItemSchema: GenMessage<GetProductTemplateByBarcodeResponse_Item> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 7, 0);
+  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 9, 0);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.DeleteProductTemplateRequest
@@ -250,7 +284,7 @@ export type DeleteProductTemplateRequest = Message<"sast.sastshopv2.catalog.v1.D
  * Use `create(DeleteProductTemplateRequestSchema)` to create a new message.
  */
 export const DeleteProductTemplateRequestSchema: GenMessage<DeleteProductTemplateRequest> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 8);
+  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 10);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.DeleteProductTemplateResponse
@@ -263,7 +297,7 @@ export type DeleteProductTemplateResponse = Message<"sast.sastshopv2.catalog.v1.
  * Use `create(DeleteProductTemplateResponseSchema)` to create a new message.
  */
 export const DeleteProductTemplateResponseSchema: GenMessage<DeleteProductTemplateResponse> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 9);
+  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 11);
 
 /**
  * @generated from service sast.sastshopv2.catalog.v1.ProductTemplateService
@@ -278,6 +312,16 @@ export const ProductTemplateService: GenService<{
     methodKind: "unary";
     input: typeof GetProductTemplateListRequestSchema;
     output: typeof GetProductTemplateListResponseSchema;
+  },
+  /**
+   * 按 ID 获取商品模板的当前信息
+   *
+   * @generated from rpc sast.sastshopv2.catalog.v1.ProductTemplateService.GetProductTemplate
+   */
+  getProductTemplate: {
+    methodKind: "unary";
+    input: typeof ProductTemplateServiceGetProductTemplateRequestSchema;
+    output: typeof ProductTemplateServiceGetProductTemplateResponseSchema;
   },
   /**
    * 创建商品模板

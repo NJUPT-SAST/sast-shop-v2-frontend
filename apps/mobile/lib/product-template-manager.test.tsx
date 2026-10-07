@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   withLarkPageJsapi,
   createProductTemplate,
+  getProductTemplate,
   deleteProductTemplate,
   LarkClientError,
   listProductTemplatesPage,
@@ -18,14 +19,22 @@ import { ProductTemplateManager } from "../components/product-template-manager";
 import { uploadProductImage } from "./product-image-upload";
 import { toast } from "sonner";
 import { clearResourceCache } from "@workspace/ui/lib/resource-cache";
+import { TEMPLATE_STORE_STORAGE_KEY } from "./template-store-preference";
+import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
+
+const router = vi.hoisted(() => ({ refresh: vi.fn(), replace: vi.fn() }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh: vi.fn(), replace: vi.fn() }),
+  useRouter: () => router,
+}));
+vi.mock("@workspace/ui/lib/drawer-history", () => ({
+  waitForDrawerHistoryCleanup: vi.fn(),
 }));
 vi.mock("@sast-shop/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@sast-shop/api")>()),
   withLarkPageJsapi: vi.fn(),
   createProductTemplate: vi.fn(),
+  getProductTemplate: vi.fn(),
   deleteProductTemplate: vi.fn(),
   listProductTemplatesPage: vi.fn(),
   scanLarkBarcode: vi.fn(),
@@ -48,10 +57,18 @@ vi.mock("@workspace/ui/components/drawer", () => {
     Drawer: ({
       open,
       children,
+      onOpenChange,
     }: {
       open: boolean;
       children: React.ReactNode;
-    }) => (open ? <div>{children}</div> : null),
+      onOpenChange?: (open: boolean) => void;
+    }) =>
+      open ? (
+        <div>
+          <button onClick={() => onOpenChange?.(false)}>关闭模板弹层</button>
+          {children}
+        </div>
+      ) : null,
     DrawerContent: Content,
     DrawerDescription: Content,
     DrawerFooter: Content,
@@ -73,12 +90,37 @@ const template: ProductTemplate = {
 
 let container: HTMLDivElement;
 let root: Root;
+const scrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
+  HTMLElement.prototype,
+  "scrollIntoView",
+);
 
 beforeEach(() => {
   clearResourceCache();
+  vi.mocked(waitForDrawerHistoryCleanup)
+    .mockReset()
+    .mockResolvedValue(undefined);
+  const values = new Map<string, string>();
+  vi.stubGlobal("localStorage", {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => values.set(key, value),
+  });
   vi.mocked(listProductTemplatesPage).mockReset();
+  vi.mocked(getProductTemplate).mockReset().mockResolvedValue(template);
   vi.stubGlobal("React", React);
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+    configurable: true,
+    value: vi.fn(),
+  });
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
   vi.stubGlobal("h5sdk", undefined);
   vi.stubGlobal("tt", undefined);
   vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
@@ -102,9 +144,23 @@ afterEach(async () => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.useRealTimers();
+  if (scrollIntoViewDescriptor) {
+    Object.defineProperty(
+      HTMLElement.prototype,
+      "scrollIntoView",
+      scrollIntoViewDescriptor,
+    );
+  } else {
+    Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
+  }
 });
 
-async function renderManager(items: ProductTemplate[], startCreating = false) {
+async function renderManager(
+  items: ProductTemplate[],
+  startCreating = false,
+  requestedStoreId?: string,
+  requestedTemplateId?: string,
+) {
   await act(async () => {
     root.render(
       <ProductTemplateManager
@@ -118,6 +174,13 @@ async function renderManager(items: ProductTemplate[], startCreating = false) {
             logoUrl: "",
             themeColor: "#0071e3",
           },
+          {
+            id: "3002",
+            name: "二号店铺",
+            address: "南邮三牌楼校区",
+            logoUrl: "",
+            themeColor: "#0071e3",
+          },
         ]}
         initialPage={{
           items,
@@ -127,6 +190,8 @@ async function renderManager(items: ProductTemplate[], startCreating = false) {
           hasMore: false,
         }}
         selectedStoreId="3001"
+        requestedStoreId={requestedStoreId}
+        requestedTemplateId={requestedTemplateId}
         prefillBarcode="690000000001"
         startCreating={startCreating}
         error={null}
@@ -155,13 +220,375 @@ async function enterTemplateTitle(value: string) {
   });
 }
 
+async function chooseProductImage() {
+  const input = container.querySelector<HTMLInputElement>(
+    "#product-template-image",
+  )!;
+  Object.defineProperty(input, "files", {
+    configurable: true,
+    value: [new File(["image"], "product.png", { type: "image/png" })],
+  });
+  await act(async () =>
+    input.dispatchEvent(new Event("change", { bubbles: true })),
+  );
+}
+
 function submitTemplate() {
   container
     .querySelector<HTMLFormElement>("#product-template-form")!
     .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
 }
 
+async function selectStore(selector: string, name: string) {
+  const trigger = container.querySelector<HTMLElement>(selector)!;
+  await act(async () => {
+    trigger.focus();
+    trigger.dispatchEvent(
+      new KeyboardEvent("keydown", { bubbles: true, key: "Enter" }),
+    );
+  });
+  const option = Array.from(
+    document.querySelectorAll<HTMLElement>('[role="option"]'),
+  ).find((element) => element.textContent === name);
+  expect(option).toBeDefined();
+  await act(async () => option!.click());
+}
+
 describe("product template drawer failures", () => {
+  it("opens a requested template that is absent from the list using its full detail and actual store", async () => {
+    const requested = {
+      ...template,
+      id: "4007",
+      storeId: "3002",
+      title: "直达模板",
+      mainImageUrl: "https://example.test/direct-edit.png",
+    };
+    let finishDetail!: (value: ProductTemplate) => void;
+    vi.mocked(getProductTemplate).mockReturnValue(
+      new Promise((resolve) => {
+        finishDetail = resolve;
+      }),
+    );
+    await renderManager([], false, "3001", "4007");
+    expect(container.textContent).toContain("编辑商品模板");
+    expect(
+      container.querySelector('[aria-label="正在加载商品模板详情"]'),
+    ).not.toBeNull();
+    expect(container.querySelector("#title")).toBeNull();
+    expect(getProductTemplate).toHaveBeenCalledWith(
+      "4007",
+      expect.objectContaining({ dataSource: "mock" }),
+    );
+    await act(async () => finishDetail(requested));
+    expect(
+      container.querySelector('[aria-label="正在加载商品模板详情"]'),
+    ).toBeNull();
+    expect(container.querySelector<HTMLInputElement>("#title")?.value).toBe(
+      "直达模板",
+    );
+    expect(container.querySelector("#storeId")?.textContent).toContain(
+      "二号店铺",
+    );
+    expect(
+      container.querySelector<HTMLButtonElement>("#storeId")?.disabled,
+    ).toBe(true);
+    expect(
+      container.querySelector('img[alt="商品图片预览"]')?.getAttribute("src"),
+    ).toBe(requested.mainImageUrl);
+  });
+
+  it("keeps a failed direct edit local to its drawer and retries the requested template", async () => {
+    vi.mocked(getProductTemplate)
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({ ...template, id: "4007" });
+    await renderManager([template], false, "3001", "4007");
+    expect(container.textContent).toContain("商品模板详情加载失败");
+    expect(container.textContent).toContain("矿泉水");
+    expect(container.querySelector("#product-template-form")).toBeNull();
+    await click("重新加载");
+    expect(getProductTemplate).toHaveBeenCalledTimes(2);
+    expect(container.querySelector<HTMLInputElement>("#title")?.value).toBe(
+      "矿泉水",
+    );
+    expect(container.textContent).not.toContain("商品模板详情加载失败");
+  });
+
+  it("consumes a direct edit request once and does not reopen it after closing", async () => {
+    vi.mocked(getProductTemplate).mockResolvedValue({
+      ...template,
+      id: "4007",
+    });
+    await renderManager([], false, "3001", "4007");
+    await click("关闭模板弹层");
+    await renderManager([], false, "3001", "4007");
+    expect(getProductTemplate).toHaveBeenCalledOnce();
+    expect(container.querySelector("#product-template-form")).toBeNull();
+    expect(container.textContent).not.toContain("编辑商品模板");
+  });
+
+  it("ignores a requested template response after its drawer was closed", async () => {
+    let finishDetail!: (value: ProductTemplate) => void;
+    vi.mocked(getProductTemplate).mockReturnValue(
+      new Promise((resolve) => {
+        finishDetail = resolve;
+      }),
+    );
+    await renderManager([], false, "3001", "4007");
+    await click("返回模板列表");
+    await act(async () => finishDetail({ ...template, id: "4007" }));
+    expect(container.querySelector("#product-template-form")).toBeNull();
+    expect(container.textContent).not.toContain("编辑商品模板");
+  });
+
+  it("keeps the newest requested template when an older detail response arrives later", async () => {
+    let finishOld!: (value: ProductTemplate) => void;
+    vi.mocked(getProductTemplate)
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishOld = resolve;
+        }),
+      )
+      .mockResolvedValueOnce({ ...template, id: "4008", title: "新请求模板" });
+    await renderManager([], false, "3001", "4007");
+    await renderManager([], false, "3001", "4008");
+    await act(async () =>
+      finishOld({ ...template, id: "4007", title: "旧请求模板" }),
+    );
+    expect(container.querySelector<HTMLInputElement>("#title")?.value).toBe(
+      "新请求模板",
+    );
+  });
+
+  it("cancels a requested edit when its URL request is removed", async () => {
+    let finishDetail!: (value: ProductTemplate) => void;
+    vi.mocked(getProductTemplate).mockReturnValue(
+      new Promise((resolve) => {
+        finishDetail = resolve;
+      }),
+    );
+    await renderManager([], false, "3001", "4007");
+    await renderManager([], false, "3001");
+    await act(async () => finishDetail({ ...template, id: "4007" }));
+    expect(container.querySelector("#product-template-form")).toBeNull();
+    expect(container.textContent).not.toContain("编辑商品模板");
+  });
+
+  it("ignores a requested detail response after the manager unmounts", async () => {
+    let finishDetail!: (value: ProductTemplate) => void;
+    vi.mocked(getProductTemplate).mockReturnValue(
+      new Promise((resolve) => {
+        finishDetail = resolve;
+      }),
+    );
+    await renderManager([], false, "3001", "4007");
+    await act(async () => root.unmount());
+    root = createRoot(container);
+    await act(async () => finishDetail({ ...template, id: "4007" }));
+    expect(container.querySelector("#product-template-form")).toBeNull();
+    expect(router.refresh).not.toHaveBeenCalled();
+  });
+
+  it("does not close a newer requested editor when an older template save completes", async () => {
+    let finishSave!: (value: ProductTemplate) => void;
+    vi.mocked(getProductTemplate)
+      .mockResolvedValueOnce({ ...template, id: "4007" })
+      .mockResolvedValueOnce({ ...template, id: "4008", title: "新请求模板" });
+    vi.mocked(updateProductTemplate).mockReturnValue(
+      new Promise((resolve) => {
+        finishSave = resolve;
+      }),
+    );
+    await renderManager([], false, "3001", "4007");
+    await enterTemplateTitle("旧模板新名称");
+    await act(async () => submitTemplate());
+    await renderManager([], false, "3001", "4008");
+    await act(async () =>
+      finishSave({ ...template, id: "4007", title: "旧模板新名称" }),
+    );
+    expect(container.querySelector<HTMLInputElement>("#title")?.value).toBe(
+      "新请求模板",
+    );
+    expect(container.textContent).toContain("编辑商品模板");
+    expect(router.refresh).not.toHaveBeenCalled();
+  });
+
+  it("ignores an old editor image upload and keeps the new editor locked until its own upload finishes", async () => {
+    let finishOldUpload!: (value: string) => void;
+    let finishNewUpload!: (value: string) => void;
+    vi.mocked(uploadProductImage)
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishOldUpload = resolve;
+        }),
+      )
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishNewUpload = resolve;
+        }),
+      );
+    vi.mocked(getProductTemplate).mockResolvedValue({
+      ...template,
+      id: "4008",
+    });
+    await renderManager([], true);
+    await chooseProductImage();
+    await renderManager([], false, "3001", "4008");
+    await chooseProductImage();
+    await act(async () =>
+      finishOldUpload("https://example.test/old-editor.png"),
+    );
+    expect(container.querySelector('img[alt="商品图片预览"]')).toBeNull();
+    expect(
+      container.querySelector<HTMLButtonElement>(
+        'button[form="product-template-form"]',
+      )?.disabled,
+    ).toBe(true);
+    await act(async () =>
+      finishNewUpload("https://example.test/new-editor.png"),
+    );
+    expect(
+      container.querySelector('img[alt="商品图片预览"]')?.getAttribute("src"),
+    ).toBe("https://example.test/new-editor.png");
+    expect(
+      container.querySelector<HTMLButtonElement>(
+        'button[form="product-template-form"]',
+      )?.disabled,
+    ).toBe(false);
+  });
+
+  it("waits for the closing drawer history cleanup before navigating to a newly selected store", async () => {
+    let finishCleanup!: () => void;
+    vi.mocked(waitForDrawerHistoryCleanup).mockReturnValue(
+      new Promise((resolve) => {
+        finishCleanup = resolve;
+      }),
+    );
+    vi.mocked(createProductTemplate).mockResolvedValue({
+      ...template,
+      storeId: "3002",
+    });
+    await renderManager([], true);
+    await selectStore("#storeId", "二号店铺");
+    await enterTemplateTitle("矿泉水");
+    await act(async () => submitTemplate());
+    expect(container.textContent).not.toContain("新建商品模板");
+    expect(waitForDrawerHistoryCleanup).toHaveBeenCalledOnce();
+    expect(router.replace).not.toHaveBeenCalled();
+    await act(async () => finishCleanup());
+    expect(router.replace).toHaveBeenCalledWith("/group/templates?store=3002");
+  });
+
+  it("does not navigate after unmounting while drawer history cleanup is pending", async () => {
+    let finishCleanup!: () => void;
+    vi.mocked(waitForDrawerHistoryCleanup).mockReturnValue(
+      new Promise((resolve) => {
+        finishCleanup = resolve;
+      }),
+    );
+    vi.mocked(createProductTemplate).mockResolvedValue({
+      ...template,
+      storeId: "3002",
+    });
+    await renderManager([], true);
+    await selectStore("#storeId", "二号店铺");
+    await enterTemplateTitle("矿泉水");
+    await act(async () => submitTemplate());
+    await act(async () => root.unmount());
+    root = createRoot(container);
+    await act(async () => finishCleanup());
+    expect(router.replace).not.toHaveBeenCalled();
+    expect(router.refresh).not.toHaveBeenCalled();
+  });
+
+  it("remembers a store selected in the create drawer", async () => {
+    await renderManager([], true);
+    await selectStore("#storeId", "二号店铺");
+    expect(container.querySelector("#storeId")?.textContent).toContain(
+      "二号店铺",
+    );
+    expect(window.localStorage.getItem(TEMPLATE_STORE_STORAGE_KEY)).toBe(
+      "3002",
+    );
+  });
+
+  it("remembers a store selected in the list before navigating to it", async () => {
+    await renderManager([]);
+    await selectStore("#template-store", "二号店铺");
+    expect(window.localStorage.getItem(TEMPLATE_STORE_STORAGE_KEY)).toBe(
+      "3002",
+    );
+    expect(router.replace).toHaveBeenCalledWith("/group/templates?store=3002");
+  });
+
+  it("restores the last store when creating and returns to its list after saving", async () => {
+    window.localStorage.setItem(TEMPLATE_STORE_STORAGE_KEY, "3002");
+    vi.mocked(createProductTemplate).mockResolvedValue({
+      ...template,
+      storeId: "3002",
+    });
+    await renderManager([]);
+    await act(async () =>
+      document
+        .querySelector<HTMLButtonElement>('[aria-label="新建模板"]')!
+        .click(),
+    );
+    expect(container.querySelector("#storeId")?.textContent).toContain(
+      "二号店铺",
+    );
+    await enterTemplateTitle("矿泉水");
+    await act(async () => submitTemplate());
+
+    expect(createProductTemplate).toHaveBeenCalledWith(
+      expect.objectContaining({ storeId: "3002" }),
+      expect.anything(),
+    );
+    expect(window.localStorage.getItem(TEMPLATE_STORE_STORAGE_KEY)).toBe(
+      "3002",
+    );
+    expect(router.replace).toHaveBeenCalledWith("/group/templates?store=3002");
+  });
+
+  it("lets the explicit store override the remembered create selection without replacing the preference on mount", async () => {
+    window.localStorage.setItem(TEMPLATE_STORE_STORAGE_KEY, "3002");
+    await renderManager([], false, "3001");
+    await act(async () =>
+      document
+        .querySelector<HTMLButtonElement>('[aria-label="新建模板"]')!
+        .click(),
+    );
+    expect(container.querySelector("#storeId")?.textContent).toContain(
+      "SAST 小卖部",
+    );
+    expect(window.localStorage.getItem(TEMPLATE_STORE_STORAGE_KEY)).toBe(
+      "3002",
+    );
+  });
+
+  it("renders the list image before opening the editor and uses a fallback after failure", async () => {
+    const imageUrl = "https://example.test/template-list-image.png";
+    await renderManager([{ ...template, mainImageUrl: imageUrl }]);
+
+    const item = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("矿泉水"),
+    )!;
+    const image = item.querySelector("img")!;
+    expect(image).not.toBeNull();
+    expect(image.getAttribute("src")).toBe(imageUrl);
+    expect(image.getAttribute("alt")).toBe("矿泉水");
+    expect(container.textContent).not.toContain("编辑商品模板");
+
+    await act(async () => image.dispatchEvent(new Event("error")));
+    expect(item.querySelector("img")).toBeNull();
+    expect(item.querySelector('[data-slot="skeleton"]')).toBeNull();
+    expect(item.querySelector("svg")).not.toBeNull();
+
+    await act(async () => item.click());
+    expect(container.textContent).toContain("编辑商品模板");
+    expect(
+      container.querySelector('img[alt="商品图片预览"]')?.getAttribute("src"),
+    ).toBe(imageUrl);
+  });
+
   it("associates validation errors with their fields and clears the association after correction", async () => {
     await renderManager([], true);
     await act(async () => submitTemplate());
@@ -545,5 +972,27 @@ describe("product template barcode scan", () => {
   it("hides the scan button outside the Feishu mobile client", async () => {
     await renderManager([], true);
     expect(scanButton()).toBeNull();
+  });
+
+  it("does not fill a newly requested template with an old editor's scan result", async () => {
+    enterFeishu();
+    let finishScan!: (value: string) => void;
+    vi.mocked(scanLarkBarcode).mockReturnValue(
+      new Promise((resolve) => {
+        finishScan = resolve;
+      }),
+    );
+    vi.mocked(getProductTemplate).mockResolvedValue({
+      ...template,
+      id: "4008",
+      barcode: "690000000008",
+    });
+    await renderManager([], true);
+    await act(async () => scanButton().click());
+    await renderManager([], false, "3001", "4008");
+    await act(async () => finishScan("690000000001"));
+    expect(container.querySelector<HTMLInputElement>("#barcode")?.value).toBe(
+      "690000000008",
+    );
   });
 });

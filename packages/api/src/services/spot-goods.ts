@@ -10,6 +10,7 @@ import { resolveDataSource, type ServiceOptions } from "../data-source";
 import { FeatureUnavailableError, ValidationError } from "../errors";
 import { createLocalTransport, requestLocal } from "../local-connect";
 import { formatProtoTimestamp, parseProtoTimestamp } from "../proto-timestamp";
+import { createPageResult } from "../pagination";
 import { listStores, type Store } from "./catalog";
 
 const MAX_SIGNED_INT64 = 9223372036854775807n;
@@ -52,11 +53,142 @@ export interface ListSpotGoodsResult {
   pageSize: number;
 }
 
+export interface ListSellerSpotGoodsInput {
+  sellerId: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ListSellerSpotGoodsResult {
+  goods: SpotGoods[];
+  currentPage: number;
+  pageSize: number;
+  totalCount: number;
+}
+
+export async function listSellerSpotGoods(
+  input: ListSellerSpotGoodsInput,
+  options: ServiceOptions = {},
+): Promise<ListSellerSpotGoodsResult> {
+  const sellerId = parseInt64(input.sellerId, "卖家 ID 不正确").toString();
+  const page = parsePositiveInt32(input.page ?? 1, "页码不正确");
+  const pageSize = parsePositiveInt32(input.pageSize ?? 20, "每页数量不正确");
+  if (pageSize > 100) throw new ValidationError("每页数量不能超过 100");
+  const dataSource = resolveDataSource(options);
+  if (dataSource !== "mock" && dataSource !== "local") {
+    throw new FeatureUnavailableError("listSellerSpotGoods");
+  }
+  const client = createClient(SpotGoodsService, createLocalTransport(options));
+  const response = await requestLocal("listSellerSpotGoods", () =>
+    client.listMySpotGoods({ page, pageSize }),
+  );
+  const goods = response.spotGoodsList.map(mapSpotGoodsDetail);
+  if (goods.some((item) => item.sellerId !== sellerId)) {
+    throw new FeatureUnavailableError("listSellerSpotGoods.seller");
+  }
+  const result = createPageResult({
+    items: goods,
+    currentPage: response.currentPage,
+    pageSize,
+    totalCount: response.totalCount,
+    expectedPage: page,
+    feature: "listSellerSpotGoods",
+  });
+  return {
+    goods: result.items,
+    currentPage: result.currentPage,
+    pageSize: result.pageSize,
+    totalCount: result.totalCount,
+  };
+}
+
 export interface CreateSpotGoodsInput {
   productTemplateId: string;
   salePriceCents: number;
   stockTotal: number;
   productTemplateUpdatedAt: TimestampInput;
+}
+
+export interface UpdateSpotGoodsPriceInput {
+  spotGoodsId: string;
+  newSalePriceCents: number;
+  updatedAt: string;
+}
+
+export interface UpdateSpotGoodsStockInput {
+  spotGoodsId: string;
+  newStock: number;
+  updatedAt: string;
+}
+
+export class UpdatedSpotGoodsRefreshError extends Error {
+  readonly spotGoodsId: string;
+
+  constructor(spotGoodsId: string, cause: unknown) {
+    super("商品已保存，最新信息加载失败，请刷新后继续", { cause });
+    this.name = "UpdatedSpotGoodsRefreshError";
+    this.spotGoodsId = spotGoodsId;
+  }
+}
+
+export async function updateSpotGoodsPrice(
+  input: UpdateSpotGoodsPriceInput,
+  options: ServiceOptions = {},
+): Promise<SpotGoods> {
+  const spotGoodsId = parseInt64(input.spotGoodsId, "现货商品 ID 不正确");
+  const newSalePriceCents = parsePositiveInt32(
+    input.newSalePriceCents,
+    "现货售价不正确",
+  );
+  const updatedAt = parseProtoTimestamp(input.updatedAt, "商品更新时间不正确");
+  const dataSource = resolveDataSource(options);
+  if (dataSource !== "mock" && dataSource !== "local") {
+    throw new FeatureUnavailableError("updateSpotGoodsPrice");
+  }
+  const client = createClient(SpotGoodsService, createLocalTransport(options));
+  await requestLocal("updateSpotGoodsPrice", () =>
+    client.updateSpotGoodsPrice({ spotGoodsId, newSalePriceCents, updatedAt }),
+  );
+  return refreshUpdatedSpotGoods(input.spotGoodsId, options);
+}
+
+export async function updateSpotGoodsStock(
+  input: UpdateSpotGoodsStockInput,
+  options: ServiceOptions = {},
+): Promise<SpotGoods> {
+  const spotGoodsId = parseInt64(input.spotGoodsId, "现货商品 ID 不正确");
+  if (
+    !Number.isInteger(input.newStock) ||
+    input.newStock < 0 ||
+    input.newStock > MAX_SIGNED_INT32
+  ) {
+    throw new ValidationError("现货库存不正确");
+  }
+  const updatedAt = parseProtoTimestamp(input.updatedAt, "商品更新时间不正确");
+  const dataSource = resolveDataSource(options);
+  if (dataSource !== "mock" && dataSource !== "local") {
+    throw new FeatureUnavailableError("updateSpotGoodsStock");
+  }
+  const client = createClient(SpotGoodsService, createLocalTransport(options));
+  await requestLocal("updateSpotGoodsStock", () =>
+    client.updateSpotGoodsStock({
+      spotGoodsId,
+      newStock: input.newStock,
+      updatedAt,
+    }),
+  );
+  return refreshUpdatedSpotGoods(input.spotGoodsId, options);
+}
+
+async function refreshUpdatedSpotGoods(
+  id: string,
+  options: ServiceOptions,
+): Promise<SpotGoods> {
+  try {
+    return await getSpotGoods(id, options);
+  } catch (error) {
+    throw new UpdatedSpotGoodsRefreshError(id, error);
+  }
 }
 
 export async function listSpotGoods(

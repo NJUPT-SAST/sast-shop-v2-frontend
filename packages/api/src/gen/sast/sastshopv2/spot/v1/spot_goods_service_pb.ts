@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file sast/sastshopv2/spot/v1/spot_goods_service.proto.
  */
 export const file_sast_sastshopv2_spot_v1_spot_goods_service: GenFile = /*@__PURE__*/
-  fileDesc("CjBzYXN0L3Nhc3RzaG9wdjIvc3BvdC92MS9zcG90X2dvb2RzX3NlcnZpY2UucHJvdG8SF3Nhc3Quc2FzdHNob3B2Mi5zcG90LnYxIloKFExpc3RTcG90R29vZHNSZXF1ZXN0EhAKCHN0b3JlX2lkGAEgASgDEgwKBHBhZ2UYAiABKAUSEQoJcGFnZV9zaXplGAMgASgFEg8KB2tleXdvcmQYBCABKAkihAEKFUxpc3RTcG90R29vZHNSZXNwb25zZRJACg9zcG90X2dvb2RzX2xpc3QYASADKAsyJy5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5TcG90R29vZHNCcmllZhIUCgxjdXJyZW50X3BhZ2UYAiABKAUSEwoLdG90YWxfY291bnQYAyABKAUiLAoTR2V0U3BvdEdvb2RzUmVxdWVzdBIVCg1zcG90X2dvb2RzX2lkGAEgASgDIlsKFEdldFNwb3RHb29kc1Jlc3BvbnNlEkMKEXNwb3RfZ29vZHNfZGV0YWlsGAEgASgLMiguc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuU3BvdEdvb2RzRGV0YWlsIqUBChZDcmVhdGVTcG90R29vZHNSZXF1ZXN0EhsKE3Byb2R1Y3RfdGVtcGxhdGVfaWQYASABKAMSGAoQc2FsZV9wcmljZV9jZW50cxgCIAEoBRITCgtzdG9ja190b3RhbBgDIAEoBRI/Chtwcm9kdWN0X3RlbXBsYXRlX3VwZGF0ZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIl4KF0NyZWF0ZVNwb3RHb29kc1Jlc3BvbnNlEkMKEXNwb3RfZ29vZHNfZGV0YWlsGAEgASgLMiguc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuU3BvdEdvb2RzRGV0YWlsIncKG1VwZGF0ZVNwb3RHb29kc1N0b2NrUmVxdWVzdBIVCg1zcG90X2dvb2RzX2lkGAEgASgDEhEKCW5ld19zdG9jaxgCIAEoBRIuCgp1cGRhdGVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCIeChxVcGRhdGVTcG90R29vZHNTdG9ja1Jlc3BvbnNlIoIBChtVcGRhdGVTcG90R29vZHNQcmljZVJlcXVlc3QSFQoNc3BvdF9nb29kc19pZBgBIAEoAxIcChRuZXdfc2FsZV9wcmljZV9jZW50cxgCIAEoBRIuCgp1cGRhdGVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCIeChxVcGRhdGVTcG90R29vZHNQcmljZVJlc3BvbnNlIl4KFUNsb3NlU3BvdEdvb2RzUmVxdWVzdBIVCg1zcG90X2dvb2RzX2lkGAEgASgDEi4KCnVwZGF0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIhgKFkNsb3NlU3BvdEdvb2RzUmVzcG9uc2Uy5AUKEFNwb3RHb29kc1NlcnZpY2USbgoNTGlzdFNwb3RHb29kcxItLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLkxpc3RTcG90R29vZHNSZXF1ZXN0Gi4uc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuTGlzdFNwb3RHb29kc1Jlc3BvbnNlEmsKDEdldFNwb3RHb29kcxIsLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLkdldFNwb3RHb29kc1JlcXVlc3QaLS5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5HZXRTcG90R29vZHNSZXNwb25zZRJ0Cg9DcmVhdGVTcG90R29vZHMSLy5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5DcmVhdGVTcG90R29vZHNSZXF1ZXN0GjAuc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuQ3JlYXRlU3BvdEdvb2RzUmVzcG9uc2USgwEKFFVwZGF0ZVNwb3RHb29kc1N0b2NrEjQuc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuVXBkYXRlU3BvdEdvb2RzU3RvY2tSZXF1ZXN0GjUuc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuVXBkYXRlU3BvdEdvb2RzU3RvY2tSZXNwb25zZRKDAQoUVXBkYXRlU3BvdEdvb2RzUHJpY2USNC5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5VcGRhdGVTcG90R29vZHNQcmljZVJlcXVlc3QaNS5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5VcGRhdGVTcG90R29vZHNQcmljZVJlc3BvbnNlEnEKDkNsb3NlU3BvdEdvb2RzEi4uc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuQ2xvc2VTcG90R29vZHNSZXF1ZXN0Gi8uc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuQ2xvc2VTcG90R29vZHNSZXNwb25zZWIGcHJvdG8z", [file_google_protobuf_timestamp, file_sast_sastshopv2_spot_v1_spot_goods]);
+  fileDesc("CjBzYXN0L3Nhc3RzaG9wdjIvc3BvdC92MS9zcG90X2dvb2RzX3NlcnZpY2UucHJvdG8SF3Nhc3Quc2FzdHNob3B2Mi5zcG90LnYxIloKFExpc3RTcG90R29vZHNSZXF1ZXN0EhAKCHN0b3JlX2lkGAEgASgDEgwKBHBhZ2UYAiABKAUSEQoJcGFnZV9zaXplGAMgASgFEg8KB2tleXdvcmQYBCABKAkihAEKFUxpc3RTcG90R29vZHNSZXNwb25zZRJACg9zcG90X2dvb2RzX2xpc3QYASADKAsyJy5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5TcG90R29vZHNCcmllZhIUCgxjdXJyZW50X3BhZ2UYAiABKAUSEwoLdG90YWxfY291bnQYAyABKAUiOQoWTGlzdE15U3BvdEdvb2RzUmVxdWVzdBIMCgRwYWdlGAEgASgFEhEKCXBhZ2Vfc2l6ZRgCIAEoBSKHAQoXTGlzdE15U3BvdEdvb2RzUmVzcG9uc2USQQoPc3BvdF9nb29kc19saXN0GAEgAygLMiguc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuU3BvdEdvb2RzRGV0YWlsEhQKDGN1cnJlbnRfcGFnZRgCIAEoBRITCgt0b3RhbF9jb3VudBgDIAEoBSIsChNHZXRTcG90R29vZHNSZXF1ZXN0EhUKDXNwb3RfZ29vZHNfaWQYASABKAMiWwoUR2V0U3BvdEdvb2RzUmVzcG9uc2USQwoRc3BvdF9nb29kc19kZXRhaWwYASABKAsyKC5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5TcG90R29vZHNEZXRhaWwipQEKFkNyZWF0ZVNwb3RHb29kc1JlcXVlc3QSGwoTcHJvZHVjdF90ZW1wbGF0ZV9pZBgBIAEoAxIYChBzYWxlX3ByaWNlX2NlbnRzGAIgASgFEhMKC3N0b2NrX3RvdGFsGAMgASgFEj8KG3Byb2R1Y3RfdGVtcGxhdGVfdXBkYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiXgoXQ3JlYXRlU3BvdEdvb2RzUmVzcG9uc2USQwoRc3BvdF9nb29kc19kZXRhaWwYASABKAsyKC5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5TcG90R29vZHNEZXRhaWwidwobVXBkYXRlU3BvdEdvb2RzU3RvY2tSZXF1ZXN0EhUKDXNwb3RfZ29vZHNfaWQYASABKAMSEQoJbmV3X3N0b2NrGAIgASgFEi4KCnVwZGF0ZWRfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIh4KHFVwZGF0ZVNwb3RHb29kc1N0b2NrUmVzcG9uc2UiggEKG1VwZGF0ZVNwb3RHb29kc1ByaWNlUmVxdWVzdBIVCg1zcG90X2dvb2RzX2lkGAEgASgDEhwKFG5ld19zYWxlX3ByaWNlX2NlbnRzGAIgASgFEi4KCnVwZGF0ZWRfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIh4KHFVwZGF0ZVNwb3RHb29kc1ByaWNlUmVzcG9uc2UiXgoVQ2xvc2VTcG90R29vZHNSZXF1ZXN0EhUKDXNwb3RfZ29vZHNfaWQYASABKAMSLgoKdXBkYXRlZF9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiGAoWQ2xvc2VTcG90R29vZHNSZXNwb25zZTLaBgoQU3BvdEdvb2RzU2VydmljZRJuCg1MaXN0U3BvdEdvb2RzEi0uc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuTGlzdFNwb3RHb29kc1JlcXVlc3QaLi5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5MaXN0U3BvdEdvb2RzUmVzcG9uc2USdAoPTGlzdE15U3BvdEdvb2RzEi8uc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuTGlzdE15U3BvdEdvb2RzUmVxdWVzdBowLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLkxpc3RNeVNwb3RHb29kc1Jlc3BvbnNlEmsKDEdldFNwb3RHb29kcxIsLnNhc3Quc2FzdHNob3B2Mi5zcG90LnYxLkdldFNwb3RHb29kc1JlcXVlc3QaLS5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5HZXRTcG90R29vZHNSZXNwb25zZRJ0Cg9DcmVhdGVTcG90R29vZHMSLy5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5DcmVhdGVTcG90R29vZHNSZXF1ZXN0GjAuc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuQ3JlYXRlU3BvdEdvb2RzUmVzcG9uc2USgwEKFFVwZGF0ZVNwb3RHb29kc1N0b2NrEjQuc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuVXBkYXRlU3BvdEdvb2RzU3RvY2tSZXF1ZXN0GjUuc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuVXBkYXRlU3BvdEdvb2RzU3RvY2tSZXNwb25zZRKDAQoUVXBkYXRlU3BvdEdvb2RzUHJpY2USNC5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5VcGRhdGVTcG90R29vZHNQcmljZVJlcXVlc3QaNS5zYXN0LnNhc3RzaG9wdjIuc3BvdC52MS5VcGRhdGVTcG90R29vZHNQcmljZVJlc3BvbnNlEnEKDkNsb3NlU3BvdEdvb2RzEi4uc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuQ2xvc2VTcG90R29vZHNSZXF1ZXN0Gi8uc2FzdC5zYXN0c2hvcHYyLnNwb3QudjEuQ2xvc2VTcG90R29vZHNSZXNwb25zZWIGcHJvdG8z", [file_google_protobuf_timestamp, file_sast_sastshopv2_spot_v1_spot_goods]);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.ListSpotGoodsRequest
@@ -86,6 +86,61 @@ export const ListSpotGoodsResponseSchema: GenMessage<ListSpotGoodsResponse> = /*
   messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 1);
 
 /**
+ * @generated from message sast.sastshopv2.spot.v1.ListMySpotGoodsRequest
+ */
+export type ListMySpotGoodsRequest = Message<"sast.sastshopv2.spot.v1.ListMySpotGoodsRequest"> & {
+  /**
+   * 页码，从 1 开始
+   *
+   * @generated from field: int32 page = 1;
+   */
+  page: number;
+
+  /**
+   * 每页数量，1 到 100
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+};
+
+/**
+ * Describes the message sast.sastshopv2.spot.v1.ListMySpotGoodsRequest.
+ * Use `create(ListMySpotGoodsRequestSchema)` to create a new message.
+ */
+export const ListMySpotGoodsRequestSchema: GenMessage<ListMySpotGoodsRequest> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 2);
+
+/**
+ * @generated from message sast.sastshopv2.spot.v1.ListMySpotGoodsResponse
+ */
+export type ListMySpotGoodsResponse = Message<"sast.sastshopv2.spot.v1.ListMySpotGoodsResponse"> & {
+  /**
+   * 当前登录卖家尚未下架的现货商品，包含库存为零的商品
+   *
+   * @generated from field: repeated sast.sastshopv2.spot.v1.SpotGoodsDetail spot_goods_list = 1;
+   */
+  spotGoodsList: SpotGoodsDetail[];
+
+  /**
+   * @generated from field: int32 current_page = 2;
+   */
+  currentPage: number;
+
+  /**
+   * @generated from field: int32 total_count = 3;
+   */
+  totalCount: number;
+};
+
+/**
+ * Describes the message sast.sastshopv2.spot.v1.ListMySpotGoodsResponse.
+ * Use `create(ListMySpotGoodsResponseSchema)` to create a new message.
+ */
+export const ListMySpotGoodsResponseSchema: GenMessage<ListMySpotGoodsResponse> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 3);
+
+/**
  * @generated from message sast.sastshopv2.spot.v1.GetSpotGoodsRequest
  */
 export type GetSpotGoodsRequest = Message<"sast.sastshopv2.spot.v1.GetSpotGoodsRequest"> & {
@@ -102,7 +157,7 @@ export type GetSpotGoodsRequest = Message<"sast.sastshopv2.spot.v1.GetSpotGoodsR
  * Use `create(GetSpotGoodsRequestSchema)` to create a new message.
  */
 export const GetSpotGoodsRequestSchema: GenMessage<GetSpotGoodsRequest> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 2);
+  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 4);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.GetSpotGoodsResponse
@@ -119,7 +174,7 @@ export type GetSpotGoodsResponse = Message<"sast.sastshopv2.spot.v1.GetSpotGoods
  * Use `create(GetSpotGoodsResponseSchema)` to create a new message.
  */
 export const GetSpotGoodsResponseSchema: GenMessage<GetSpotGoodsResponse> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 3);
+  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 5);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.CreateSpotGoodsRequest
@@ -159,7 +214,7 @@ export type CreateSpotGoodsRequest = Message<"sast.sastshopv2.spot.v1.CreateSpot
  * Use `create(CreateSpotGoodsRequestSchema)` to create a new message.
  */
 export const CreateSpotGoodsRequestSchema: GenMessage<CreateSpotGoodsRequest> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 4);
+  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 6);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.CreateSpotGoodsResponse
@@ -176,7 +231,7 @@ export type CreateSpotGoodsResponse = Message<"sast.sastshopv2.spot.v1.CreateSpo
  * Use `create(CreateSpotGoodsResponseSchema)` to create a new message.
  */
 export const CreateSpotGoodsResponseSchema: GenMessage<CreateSpotGoodsResponse> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 5);
+  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 7);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.UpdateSpotGoodsStockRequest
@@ -209,7 +264,7 @@ export type UpdateSpotGoodsStockRequest = Message<"sast.sastshopv2.spot.v1.Updat
  * Use `create(UpdateSpotGoodsStockRequestSchema)` to create a new message.
  */
 export const UpdateSpotGoodsStockRequestSchema: GenMessage<UpdateSpotGoodsStockRequest> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 6);
+  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 8);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.UpdateSpotGoodsStockResponse
@@ -222,7 +277,7 @@ export type UpdateSpotGoodsStockResponse = Message<"sast.sastshopv2.spot.v1.Upda
  * Use `create(UpdateSpotGoodsStockResponseSchema)` to create a new message.
  */
 export const UpdateSpotGoodsStockResponseSchema: GenMessage<UpdateSpotGoodsStockResponse> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 7);
+  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 9);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.UpdateSpotGoodsPriceRequest
@@ -255,7 +310,7 @@ export type UpdateSpotGoodsPriceRequest = Message<"sast.sastshopv2.spot.v1.Updat
  * Use `create(UpdateSpotGoodsPriceRequestSchema)` to create a new message.
  */
 export const UpdateSpotGoodsPriceRequestSchema: GenMessage<UpdateSpotGoodsPriceRequest> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 8);
+  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 10);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.UpdateSpotGoodsPriceResponse
@@ -268,7 +323,7 @@ export type UpdateSpotGoodsPriceResponse = Message<"sast.sastshopv2.spot.v1.Upda
  * Use `create(UpdateSpotGoodsPriceResponseSchema)` to create a new message.
  */
 export const UpdateSpotGoodsPriceResponseSchema: GenMessage<UpdateSpotGoodsPriceResponse> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 9);
+  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 11);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.CloseSpotGoodsRequest
@@ -294,7 +349,7 @@ export type CloseSpotGoodsRequest = Message<"sast.sastshopv2.spot.v1.CloseSpotGo
  * Use `create(CloseSpotGoodsRequestSchema)` to create a new message.
  */
 export const CloseSpotGoodsRequestSchema: GenMessage<CloseSpotGoodsRequest> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 10);
+  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 12);
 
 /**
  * @generated from message sast.sastshopv2.spot.v1.CloseSpotGoodsResponse
@@ -307,7 +362,7 @@ export type CloseSpotGoodsResponse = Message<"sast.sastshopv2.spot.v1.CloseSpotG
  * Use `create(CloseSpotGoodsResponseSchema)` to create a new message.
  */
 export const CloseSpotGoodsResponseSchema: GenMessage<CloseSpotGoodsResponse> = /*@__PURE__*/
-  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 11);
+  messageDesc(file_sast_sastshopv2_spot_v1_spot_goods_service, 13);
 
 /**
  * @generated from service sast.sastshopv2.spot.v1.SpotGoodsService
@@ -322,6 +377,16 @@ export const SpotGoodsService: GenService<{
     methodKind: "unary";
     input: typeof ListSpotGoodsRequestSchema;
     output: typeof ListSpotGoodsResponseSchema;
+  },
+  /**
+   * 获取当前登录卖家上架的现货商品，卖家身份由服务端会话确定
+   *
+   * @generated from rpc sast.sastshopv2.spot.v1.SpotGoodsService.ListMySpotGoods
+   */
+  listMySpotGoods: {
+    methodKind: "unary";
+    input: typeof ListMySpotGoodsRequestSchema;
+    output: typeof ListMySpotGoodsResponseSchema;
   },
   /**
    * 获取现货商品详情

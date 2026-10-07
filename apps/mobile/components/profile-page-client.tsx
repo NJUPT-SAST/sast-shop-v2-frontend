@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  AuthRequiredError,
-  getCurrentUser,
-  type CurrentUser,
-  type DataSource,
-  type ServiceOptions,
-} from "@sast-shop/api";
+import { type DataSource } from "@sast-shop/api";
 import { useCachedResource } from "@workspace/ui/hooks/use-cached-resource";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import {
@@ -16,42 +10,7 @@ import {
 } from "@workspace/ui/components/avatar";
 import { LoadFailure } from "@/components/load-failure";
 import { ProfileManagement } from "@/components/profile-management";
-
-async function loadProfileUser(
-  options: ServiceOptions,
-  authRequired: boolean,
-): Promise<CurrentUser> {
-  if (!authRequired) return getCurrentUser(options);
-  const response = await fetch("/api/auth/session", { cache: "no-store" });
-  if (!response.ok) throw new Error("个人资料暂不可用，请稍后再试");
-  const session: unknown = await response.json();
-  if (
-    !session ||
-    typeof session !== "object" ||
-    !("authenticated" in session) ||
-    session.authenticated !== true ||
-    !("user" in session)
-  ) {
-    window.dispatchEvent(new Event(AuthRequiredError.browserEventName));
-    throw new AuthRequiredError();
-  }
-  const user = session.user;
-  if (
-    !user ||
-    typeof user !== "object" ||
-    !("id" in user) ||
-    typeof user.id !== "string" ||
-    !user.id ||
-    !("name" in user) ||
-    typeof user.name !== "string" ||
-    !("avatarUrl" in user) ||
-    typeof user.avatarUrl !== "string"
-  ) {
-    window.dispatchEvent(new Event(AuthRequiredError.browserEventName));
-    throw new AuthRequiredError();
-  }
-  return { id: user.id, name: user.name, avatarUrl: user.avatarUrl };
-}
+import { loadCurrentUser } from "@/lib/current-user";
 
 export function ProfilePageClient({
   dataSource,
@@ -68,7 +27,7 @@ export function ProfilePageClient({
 }) {
   const resource = useCachedResource({
     cacheKey: `profile:user:${JSON.stringify([dataSource, connectBaseUrl, authRequired])}`,
-    load: () => loadProfileUser({ dataSource, connectBaseUrl }, authRequired),
+    load: () => loadCurrentUser({ dataSource, connectBaseUrl }, authRequired),
     staleTime: Infinity,
     invalidateOnWrite: false,
     refreshKey,

@@ -9,6 +9,7 @@ import {
 import {
   createProductTemplate,
   deleteProductTemplate,
+  getProductTemplate,
   getProductTemplatesByBarcode,
   listProductTemplates,
   listProductTemplatesPage,
@@ -40,6 +41,9 @@ describe("product template service", () => {
   });
 
   it("exposes stable mutation and barcode lookup types", () => {
+    expectTypeOf<typeof getProductTemplate>().returns.toEqualTypeOf<
+      Promise<ProductTemplate>
+    >();
     expectTypeOf<typeof createProductTemplate>().returns.toEqualTypeOf<
       Promise<ProductTemplate>
     >();
@@ -60,6 +64,117 @@ describe("product template service", () => {
     >();
   });
 
+  it("gets a template by ID using the public RPC and preserves precise version and money", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        productTemplate: {
+          id: "4001",
+          title: "矿泉水",
+          description: "550ml",
+          priceCents: 299,
+          storeId: "3001",
+          mainImageUrl: "https://example.test/water.png",
+          barcode: "690000000001",
+          updatedAt: "2026-07-18T02:00:00.123456789Z",
+        },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(getProductTemplate("4001", localOptions)).resolves.toEqual({
+      id: "4001",
+      title: "矿泉水",
+      description: "550ml",
+      priceCents: 299,
+      storeId: "3001",
+      mainImageUrl: "https://example.test/water.png",
+      barcode: "690000000001",
+      updatedAt: "2026-07-18T02:00:00.123456789Z",
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplate",
+      body: { productTemplateId: "4001" },
+    });
+  });
+
+  it.each(["", "0", "01", "-1", "9223372036854775808"])(
+    "rejects an invalid template ID before requesting: %s",
+    async (id) => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+      await expect(getProductTemplate(id, localOptions)).rejects.toBeInstanceOf(
+        ValidationError,
+      );
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("reports a missing template and a not-found RPC as resource errors", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(stubJsonResponse({}))
+      .mockResolvedValueOnce(
+        stubJsonResponse(
+          { code: "not_found", message: "template missing" },
+          { status: 404 },
+        ),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      getProductTemplate("4001", localOptions),
+    ).rejects.toBeInstanceOf(ResourceNotFoundError);
+    await expect(
+      getProductTemplate("4001", localOptions),
+    ).rejects.toBeInstanceOf(ResourceNotFoundError);
+  });
+
+  it.each([
+    { id: "4002" },
+    { storeId: "0" },
+    { title: "" },
+    { updatedAt: null },
+    { priceCents: -1 },
+  ])(
+    "rejects incomplete or mismatched template details: %j",
+    async (partial) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () =>
+          stubJsonResponse({
+            productTemplate: {
+              id: "4001",
+              title: "矿泉水",
+              priceCents: 200,
+              storeId: "3001",
+              updatedAt: "2026-07-18T02:00:00Z",
+              ...partial,
+            },
+          }),
+        ),
+      );
+      await expect(
+        getProductTemplate("4001", localOptions),
+      ).rejects.toBeInstanceOf(FeatureUnavailableError);
+    },
+  );
+
+  it("surfaces detail request failures and keeps remote mode unavailable", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse(
+        { code: "unavailable", message: "catalog unavailable" },
+        { status: 503 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      getProductTemplate("4001", localOptions),
+    ).rejects.toBeInstanceOf(ApiRequestError);
+    await expect(
+      getProductTemplate("4001", { dataSource: "remote" }),
+    ).rejects.toBeInstanceOf(FeatureUnavailableError);
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
   it("lists a product template page with preserved metadata", async () => {
     const fetchMock = vi.fn(async () =>
       stubJsonResponse({
@@ -70,6 +185,7 @@ describe("product template service", () => {
             priceCents: 200,
             storeId: "3001",
             barcode: "690000000001",
+            mainImageUrl: "https://example.test/water.png",
           },
         ],
         currentPage: 1,
@@ -92,6 +208,7 @@ describe("product template service", () => {
       hasMore: true,
     });
     expect(page.items.map((template) => template.id)).toEqual(["4001"]);
+    expect(page.items[0]?.mainImageUrl).toBe("https://example.test/water.png");
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateList",
       body: { storeId: "3001", page: 1, pageSize: 20 },

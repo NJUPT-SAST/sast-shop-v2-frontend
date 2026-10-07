@@ -9,6 +9,10 @@ import {
   createSpotGoods,
   getSpotGoods,
   listSpotGoods,
+  listSellerSpotGoods,
+  updateSpotGoodsPrice,
+  updateSpotGoodsStock,
+  UpdatedSpotGoodsRefreshError,
   type CreateSpotGoodsInput,
   type SpotGoods,
   type SpotGoodsBrief,
@@ -144,6 +148,146 @@ describe("spot goods service", () => {
     });
     expect(requests).toEqual([{ page: 2, pageSize: 30, keyword: "ABC_%" }]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("lists the authenticated seller in one paginated RPC and keeps zero stock", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        spotGoodsList: [
+          {
+            id: "6001",
+            productTemplate: { id: "4001", storeId: "3001" },
+            seller: { id: "42" },
+            stock: 0,
+            salePriceCents: 299,
+            updatedAt: "2026-07-18T02:00:00.123456789Z",
+          },
+        ],
+        currentPage: 2,
+        totalCount: 21,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const page = await listSellerSpotGoods(
+      { sellerId: "42", page: 2, pageSize: 20 },
+      localOptions,
+    );
+    expect(page).toMatchObject({
+      currentPage: 2,
+      pageSize: 20,
+      totalCount: 21,
+      goods: [
+        {
+          id: "6001",
+          sellerId: "42",
+          stock: 0,
+          updatedAt: "2026-07-18T02:00:00.123456789Z",
+        },
+      ],
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.spot.v1.SpotGoodsService/ListMySpotGoods",
+      body: { page: 2, pageSize: 20 },
+    });
+  });
+
+  it("rejects another seller's response rather than displaying it", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        stubJsonResponse({
+          spotGoodsList: [
+            {
+              id: "6001",
+              productTemplate: { id: "4001" },
+              seller: { id: "43" },
+              updatedAt: "2026-07-18T02:00:00Z",
+            },
+          ],
+          currentPage: 1,
+          totalCount: 1,
+        }),
+      ),
+    );
+    await expect(
+      listSellerSpotGoods({ sellerId: "42" }, localOptions),
+    ).rejects.toBeInstanceOf(FeatureUnavailableError);
+  });
+
+  it("accepts a page past the last owned listing", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        stubJsonResponse({ spotGoodsList: [], currentPage: 2, totalCount: 2 }),
+      ),
+    );
+    await expect(
+      listSellerSpotGoods({ sellerId: "42", page: 2 }, localOptions),
+    ).resolves.toEqual({
+      goods: [],
+      currentPage: 2,
+      pageSize: 20,
+      totalCount: 2,
+    });
+  });
+
+  it.each([
+    { sellerId: "0" },
+    { sellerId: "01" },
+    { sellerId: "9223372036854775808" },
+    { sellerId: "42", page: 0 },
+    { sellerId: "42", pageSize: 0 },
+    { sellerId: "42", pageSize: 101 },
+  ])("rejects invalid seller list inputs before RPC: %j", async (input) => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      listSellerSpotGoods(input, localOptions),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { currentPage: 2, totalCount: 0 },
+    { currentPage: 1, totalCount: -1 },
+    {
+      currentPage: 1,
+      totalCount: 0,
+      spotGoodsList: [
+        {
+          id: "6001",
+          productTemplate: { id: "4001" },
+          seller: { id: "42" },
+          updatedAt: "2026-07-18T02:00:00Z",
+        },
+      ],
+    },
+  ])("rejects invalid seller pagination: %j", async (response) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => stubJsonResponse(response)),
+    );
+    await expect(
+      listSellerSpotGoods({ sellerId: "42" }, localOptions),
+    ).rejects.toBeInstanceOf(FeatureUnavailableError);
+  });
+
+  it("surfaces a seller list failure and leaves remote mode unavailable", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse(
+        { code: "unavailable", message: "seller list failed" },
+        { status: 503 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      listSellerSpotGoods({ sellerId: "42" }, localOptions),
+    ).rejects.toBeInstanceOf(ApiRequestError);
+    await expect(
+      listSellerSpotGoods({ sellerId: "42" }, { dataSource: "remote" }),
+    ).rejects.toBeInstanceOf(FeatureUnavailableError);
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 
   it("rejects an oversized keyword before requesting", async () => {
@@ -642,6 +786,216 @@ describe("spot goods service", () => {
   it("throws for remote create mode before backend client is wired", async () => {
     await expect(
       createSpotGoods(validInput, { dataSource: "remote" }),
+    ).rejects.toBeInstanceOf(FeatureUnavailableError);
+  });
+
+  it("updates the price with the full version and reloads the next stock version", async () => {
+    const requests: Array<{ path: string; body: unknown }> = [];
+    const fetchMock = vi.fn(
+      async (input: string | Request, init?: RequestInit) => {
+        const path = new URL(typeof input === "string" ? input : input.url)
+          .pathname;
+        requests.push({ path, body: await readRequestBody(input, init) });
+        if (path.endsWith("GetSpotGoods"))
+          return stubJsonResponse({
+            spotGoodsDetail: {
+              id: "6001",
+              productTemplate: { id: "4001" },
+              seller: { id: "42" },
+              salePriceCents: 299,
+              stock: 7,
+              updatedAt: "2026-07-18T02:00:01.987654321Z",
+            },
+          });
+        return stubJsonResponse({});
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const goods = await updateSpotGoodsPrice(
+      {
+        spotGoodsId: "6001",
+        newSalePriceCents: 299,
+        updatedAt: "2026-07-18T02:00:00.123456789Z",
+      },
+      localOptions,
+    );
+    expect(goods).toMatchObject({
+      salePriceCents: 299,
+      stock: 7,
+      updatedAt: "2026-07-18T02:00:01.987654321Z",
+    });
+    await updateSpotGoodsStock(
+      { spotGoodsId: goods.id, newStock: 0, updatedAt: goods.updatedAt },
+      localOptions,
+    );
+    expect(requests).toEqual([
+      {
+        path: "/sast.sastshopv2.spot.v1.SpotGoodsService/UpdateSpotGoodsPrice",
+        body: {
+          spotGoodsId: "6001",
+          newSalePriceCents: 299,
+          updatedAt: "2026-07-18T02:00:00.123456789Z",
+        },
+      },
+      {
+        path: "/sast.sastshopv2.spot.v1.SpotGoodsService/GetSpotGoods",
+        body: { spotGoodsId: "6001" },
+      },
+      {
+        path: "/sast.sastshopv2.spot.v1.SpotGoodsService/UpdateSpotGoodsStock",
+        body: {
+          spotGoodsId: "6001",
+          updatedAt: "2026-07-18T02:00:01.987654321Z",
+        },
+      },
+      {
+        path: "/sast.sastshopv2.spot.v1.SpotGoodsService/GetSpotGoods",
+        body: { spotGoodsId: "6001" },
+      },
+    ]);
+  });
+
+  it.each(["price", "stock"] as const)(
+    "distinguishes confirmed %s writes with a failed refresh",
+    async (kind) => {
+      const fetchMock = vi.fn(async (input: string | Request) => {
+        const path = new URL(typeof input === "string" ? input : input.url)
+          .pathname;
+        if (path.endsWith("GetSpotGoods"))
+          return stubJsonResponse(
+            { code: "unavailable", message: "read failed" },
+            { status: 503 },
+          );
+        return stubJsonResponse({});
+      });
+      vi.stubGlobal("fetch", fetchMock);
+      const common = {
+        spotGoodsId: "6001",
+        updatedAt: "2026-07-18T02:00:00.123456789Z",
+      };
+      const promise =
+        kind === "price"
+          ? updateSpotGoodsPrice(
+              { ...common, newSalePriceCents: 299 },
+              localOptions,
+            )
+          : updateSpotGoodsStock({ ...common, newStock: 7 }, localOptions);
+      await expect(promise).rejects.toBeInstanceOf(
+        UpdatedSpotGoodsRefreshError,
+      );
+      await expect(promise).rejects.toMatchObject({
+        spotGoodsId: "6001",
+        cause: expect.any(ApiRequestError),
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it.each(["permission_denied", "aborted", "unavailable"])(
+    "does not refresh or retry a rejected or uncertain write: %s",
+    async (code) => {
+      const fetchMock = vi.fn(async () =>
+        stubJsonResponse(
+          { code, message: "write failed" },
+          {
+            status:
+              code === "permission_denied"
+                ? 403
+                : code === "aborted"
+                  ? 409
+                  : 503,
+          },
+        ),
+      );
+      vi.stubGlobal("fetch", fetchMock);
+      await expect(
+        updateSpotGoodsPrice(
+          {
+            spotGoodsId: "6001",
+            newSalePriceCents: 299,
+            updatedAt: "2026-07-18T02:00:00Z",
+          },
+          localOptions,
+        ),
+      ).rejects.toBeInstanceOf(ApiRequestError);
+      expect(fetchMock).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("reports a malformed refresh after a confirmed write separately", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => stubJsonResponse({})),
+    );
+    await expect(
+      updateSpotGoodsStock(
+        { spotGoodsId: "6001", newStock: 0, updatedAt: "2026-07-18T02:00:00Z" },
+        localOptions,
+      ),
+    ).rejects.toMatchObject({
+      name: "UpdatedSpotGoodsRefreshError",
+      cause: expect.any(FeatureUnavailableError),
+    });
+  });
+
+  it("validates both mutation inputs before requesting", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const common = { spotGoodsId: "6001", updatedAt: "2026-07-18T02:00:00Z" };
+    for (const newSalePriceCents of [0, -1, 1.5, NaN, 2147483648]) {
+      await expect(
+        updateSpotGoodsPrice({ ...common, newSalePriceCents }, localOptions),
+      ).rejects.toBeInstanceOf(ValidationError);
+    }
+    for (const newStock of [-1, 1.5, NaN, 2147483648]) {
+      await expect(
+        updateSpotGoodsStock({ ...common, newStock }, localOptions),
+      ).rejects.toBeInstanceOf(ValidationError);
+    }
+    for (const spotGoodsId of ["0", "01", "9223372036854775808"]) {
+      await expect(
+        updateSpotGoodsPrice(
+          { ...common, spotGoodsId, newSalePriceCents: 1 },
+          localOptions,
+        ),
+      ).rejects.toBeInstanceOf(ValidationError);
+      await expect(
+        updateSpotGoodsStock(
+          { ...common, spotGoodsId, newStock: 1 },
+          localOptions,
+        ),
+      ).rejects.toBeInstanceOf(ValidationError);
+    }
+    for (const updatedAt of ["", "not-a-date", "2026-02-30T00:00:00Z"]) {
+      await expect(
+        updateSpotGoodsPrice(
+          { ...common, updatedAt, newSalePriceCents: 1 },
+          localOptions,
+        ),
+      ).rejects.toBeInstanceOf(ValidationError);
+      await expect(
+        updateSpotGoodsStock(
+          { ...common, updatedAt, newStock: 1 },
+          localOptions,
+        ),
+      ).rejects.toBeInstanceOf(ValidationError);
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("leaves remote updates unavailable", async () => {
+    const common = { spotGoodsId: "6001", updatedAt: "2026-07-18T02:00:00Z" };
+    await expect(
+      updateSpotGoodsPrice(
+        { ...common, newSalePriceCents: 1 },
+        { dataSource: "remote" },
+      ),
+    ).rejects.toBeInstanceOf(FeatureUnavailableError);
+    await expect(
+      updateSpotGoodsStock(
+        { ...common, newStock: 0 },
+        { dataSource: "remote" },
+      ),
     ).rejects.toBeInstanceOf(FeatureUnavailableError);
   });
 });

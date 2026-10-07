@@ -16,7 +16,6 @@ import {
   RiDeleteBinLine,
   RiEditLine,
   RiImageAddLine,
-  RiImageLine,
   RiQrScan2Line,
   RiSearchLine,
   RiStore2Line,
@@ -27,6 +26,7 @@ import * as z from "zod";
 import {
   withLarkPageJsapi,
   createProductTemplate,
+  getProductTemplate,
   deleteProductTemplate,
   isLarkScanCancelledError,
   listProductTemplatesPage,
@@ -95,6 +95,11 @@ import { useMobileKeyboard } from "@/hooks/use-mobile-keyboard";
 import { MobileFixedFooter } from "./mobile-fixed-footer";
 import { isJsapiAuthConfig } from "@/lib/jsapi-config";
 import { uploadProductImage } from "@/lib/product-image-upload";
+import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
+import {
+  rememberTemplateStoreId,
+  resolveTemplateStoreId,
+} from "@/lib/template-store-preference";
 
 const templateSchema = z.object({
   storeId: z.string().min(1, "请选择店铺"),
@@ -128,6 +133,8 @@ type ProductTemplateManagerProps = {
   stores: Store[];
   initialPage: PageResult<ProductTemplate>;
   selectedStoreId: string | null;
+  requestedStoreId?: string;
+  requestedTemplateId?: string;
   prefillBarcode: string;
   startCreating: boolean;
   error: string | null;
@@ -139,14 +146,26 @@ export function ProductTemplateManager({
   stores,
   initialPage,
   selectedStoreId,
+  requestedStoreId,
+  requestedTemplateId,
   prefillBarcode,
   startCreating,
   error,
 }: ProductTemplateManagerProps) {
   const router = useRouter();
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   const isKeyboardOpen = useMobileKeyboard();
   const [storeCreateOpen, setStoreCreateOpen] = useState(false);
-  const serviceOptions: ServiceOptions = { dataSource, connectBaseUrl };
+  const serviceOptions = useMemo<ServiceOptions>(
+    () => ({ dataSource, connectBaseUrl }),
+    [dataSource, connectBaseUrl],
+  );
   const [query, setQuery] = useState("");
   const [keyword, setKeyword] = useState("");
   const normalizedQuery = query.trim();
@@ -242,14 +261,23 @@ export function ProductTemplateManager({
   const [editingTemplate, setEditingTemplate] =
     useState<ProductTemplate | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(
-    startCreating && Boolean(selectedStoreId),
+    Boolean(requestedTemplateId) || (startCreating && Boolean(selectedStoreId)),
   );
+  const [requestedEditId, setRequestedEditId] = useState<string | null>(
+    requestedTemplateId || null,
+  );
+  const [editLoadStatus, setEditLoadStatus] = useState<
+    "idle" | "loading" | "error"
+  >(requestedTemplateId ? "loading" : "idle");
+  const editRequestGeneration = useRef(0);
+  const consumedEditRequest = useRef<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
   const [imageUploading, setImageUploading] = useState(false);
   const imageUploadingRef = useRef(false);
+  const imageUploadCountRef = useRef(0);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [scanningBarcode, setScanningBarcode] = useState(false);
@@ -264,19 +292,96 @@ export function ProductTemplateManager({
     defaultValues: createDefaultValues(selectedStoreId, prefillBarcode),
   });
   const handleImageUploadingChange = useCallback((uploading: boolean) => {
-    imageUploadingRef.current = uploading;
-    setImageUploading(uploading);
+    imageUploadCountRef.current = Math.max(
+      0,
+      imageUploadCountRef.current + (uploading ? 1 : -1),
+    );
+    imageUploadingRef.current = imageUploadCountRef.current > 0;
+    if (mountedRef.current) setImageUploading(imageUploadingRef.current);
   }, []);
 
+  const loadRequestedTemplate = useCallback(
+    async (id: string) => {
+      const generation = ++editRequestGeneration.current;
+      setRequestedEditId(id);
+      setEditLoadStatus("loading");
+      setEditingTemplate(null);
+      setDeleteConfirmOpen(false);
+      setSaveError(null);
+      setDeleteError(null);
+      setDrawerOpen(true);
+      try {
+        const template = await getProductTemplate(id, serviceOptions);
+        if (!mountedRef.current || generation !== editRequestGeneration.current)
+          return;
+        if (template.id !== id) throw new Error("商品模板身份已变化");
+        setEditingTemplate(template);
+        form.reset({
+          storeId: template.storeId,
+          barcode: template.barcode,
+          title: template.title,
+          description: template.description,
+          price: template.priceCents / 100,
+          mainImageUrl: template.mainImageUrl,
+        });
+        setEditLoadStatus("idle");
+      } catch {
+        if (!mountedRef.current || generation !== editRequestGeneration.current)
+          return;
+        setEditLoadStatus("error");
+      }
+    },
+    [form, serviceOptions],
+  );
+
+  useEffect(() => {
+    if (!requestedTemplateId) {
+      if (consumedEditRequest.current !== null) {
+        consumedEditRequest.current = null;
+        editRequestGeneration.current += 1;
+        setRequestedEditId(null);
+        setEditLoadStatus("idle");
+        setEditingTemplate(null);
+        setDrawerOpen(false);
+      }
+      return;
+    }
+    const request = JSON.stringify([
+      dataSource,
+      connectBaseUrl,
+      requestedTemplateId,
+    ]);
+    if (consumedEditRequest.current === request) return;
+    consumedEditRequest.current = request;
+    void loadRequestedTemplate(requestedTemplateId);
+  }, [connectBaseUrl, dataSource, loadRequestedTemplate, requestedTemplateId]);
+
+  function clearRequestedEdit() {
+    editRequestGeneration.current += 1;
+    setRequestedEditId(null);
+    setEditLoadStatus("idle");
+  }
+
   function openCreateDrawer() {
+    clearRequestedEdit();
     setSaveError(null);
     setDeleteError(null);
     setEditingTemplate(null);
-    form.reset(createDefaultValues(selectedStoreId, prefillBarcode));
+    form.reset(
+      createDefaultValues(
+        resolveTemplateStoreId({
+          stores,
+          requestedStoreId,
+          fallbackStoreId: selectedStoreId,
+        }),
+        prefillBarcode,
+      ),
+    );
     setDrawerOpen(true);
   }
 
   function openEditDrawer(template: ProductTemplate) {
+    clearRequestedEdit();
     setSaveError(null);
     setDeleteError(null);
     setEditingTemplate(template);
@@ -301,6 +406,7 @@ export function ProductTemplateManager({
     scanningBarcodeRef.current = true;
     setScanningBarcode(true);
     const client = window.tt;
+    const generation = editRequestGeneration.current;
     try {
       const barcode = await withLarkPageJsapi(
         window.h5sdk,
@@ -321,6 +427,8 @@ export function ProductTemplateManager({
         },
         () => scanLarkBarcode(client),
       );
+      if (!mountedRef.current || generation !== editRequestGeneration.current)
+        return;
       form.setValue("barcode", barcode, {
         shouldDirty: true,
         shouldTouch: true,
@@ -328,13 +436,15 @@ export function ProductTemplateManager({
       });
       toast.success("已识别商品条码");
     } catch (reason) {
+      if (!mountedRef.current || generation !== editRequestGeneration.current)
+        return;
       if (isLarkScanCancelledError(reason)) return;
       toast.error(
         reason instanceof Error ? reason.message : "扫码失败，请手动输入条码",
       );
     } finally {
       scanningBarcodeRef.current = false;
-      setScanningBarcode(false);
+      if (mountedRef.current) setScanningBarcode(false);
     }
   }
 
@@ -349,6 +459,7 @@ export function ProductTemplateManager({
     submittingRef.current = true;
     setSubmitting(true);
     setSaveError(null);
+    const generation = editRequestGeneration.current;
 
     try {
       const payload = {
@@ -362,6 +473,9 @@ export function ProductTemplateManager({
       const saved = editingTemplate
         ? await updateExistingTemplate(editingTemplate, payload, serviceOptions)
         : await createProductTemplate(payload, serviceOptions);
+      if (!mountedRef.current || generation !== editRequestGeneration.current)
+        return;
+      if (!editingTemplate) rememberTemplateStoreId(saved.storeId);
 
       if (keyword) {
         void search.refresh();
@@ -373,37 +487,57 @@ export function ProductTemplateManager({
         );
       }
       setDrawerOpen(false);
+      clearRequestedEdit();
       setEditingTemplate(null);
       toast.success(editingTemplate ? "商品模板已更新" : "商品模板已创建");
-      router.refresh();
+      if (!editingTemplate && saved.storeId !== selectedStoreId) {
+        const navigationGeneration = editRequestGeneration.current;
+        await waitForDrawerHistoryCleanup();
+        if (
+          !mountedRef.current ||
+          navigationGeneration !== editRequestGeneration.current
+        )
+          return;
+        router.replace(
+          `/group/templates?store=${encodeURIComponent(saved.storeId)}`,
+        );
+      } else {
+        router.refresh();
+      }
     } catch (caught) {
-      setSaveError(readErrorMessage(caught));
+      if (mountedRef.current && generation === editRequestGeneration.current)
+        setSaveError(readErrorMessage(caught));
     } finally {
       submittingRef.current = false;
-      setSubmitting(false);
+      if (mountedRef.current) setSubmitting(false);
     }
   }
 
   async function deleteTemplate() {
     if (!editingTemplate || deleting) return;
+    const generation = editRequestGeneration.current;
     setDeleting(true);
     setDeleteError(null);
     try {
       await deleteProductTemplate({ id: editingTemplate.id }, serviceOptions);
+      if (!mountedRef.current || generation !== editRequestGeneration.current)
+        return;
       setTemplates((current) =>
         current.filter((template) => template.id !== editingTemplate.id),
       );
       setDeleteConfirmOpen(false);
       setDrawerOpen(false);
+      clearRequestedEdit();
       setEditingTemplate(null);
       toast.success("商品模板已删除");
       router.refresh();
     } catch (caught) {
-      setDeleteError(
-        caught instanceof Error ? caught.message : "商品模板删除失败",
-      );
+      if (mountedRef.current && generation === editRequestGeneration.current)
+        setDeleteError(
+          caught instanceof Error ? caught.message : "商品模板删除失败",
+        );
     } finally {
-      setDeleting(false);
+      if (mountedRef.current) setDeleting(false);
     }
   }
 
@@ -430,6 +564,7 @@ export function ProductTemplateManager({
             <Select
               value={selectedStoreId ?? undefined}
               onValueChange={(value) => {
+                rememberTemplateStoreId(value);
                 router.replace(
                   `/group/templates?store=${encodeURIComponent(value)}`,
                 );
@@ -579,87 +714,127 @@ export function ProductTemplateManager({
             !submittingRef.current &&
             !imageUploadingRef.current &&
             !scanningBarcodeRef.current
-          )
+          ) {
+            if (!open) clearRequestedEdit();
             setDrawerOpen(open);
+          }
         }}
       >
         <DrawerContent className="max-h-[88dvh] overflow-clip">
           <DrawerHeader className="shrink-0 text-left">
             <DrawerTitle>
-              {editingTemplate ? "编辑商品模板" : "新建商品模板"}
+              {editingTemplate || requestedEditId
+                ? "编辑商品模板"
+                : "新建商品模板"}
             </DrawerTitle>
             <DrawerDescription className="sr-only">
               填写并保存商品模板
             </DrawerDescription>
           </DrawerHeader>
 
-          {editingTemplate && !editingTemplate.updatedAt ? (
-            <p className="px-4 text-sm text-destructive">
-              缺少模板版本，刷新页面后再编辑。
-            </p>
-          ) : null}
+          {editLoadStatus !== "idle" ? (
+            <>
+              {editLoadStatus === "loading" ? (
+                <TemplateEditorSkeleton />
+              ) : (
+                <LoadFailure
+                  surface="plain"
+                  title="商品模板详情加载失败"
+                  description="暂时无法读取这个商品模板，请重新加载"
+                  onRetry={() => {
+                    if (requestedEditId)
+                      void loadRequestedTemplate(requestedEditId);
+                  }}
+                />
+              )}
+              <DrawerFooter className="border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => {
+                    clearRequestedEdit();
+                    setDrawerOpen(false);
+                  }}
+                >
+                  返回模板列表
+                </Button>
+              </DrawerFooter>
+            </>
+          ) : (
+            <>
+              {editingTemplate && !editingTemplate.updatedAt ? (
+                <p className="px-4 text-sm text-destructive">
+                  缺少模板版本，刷新页面后再编辑。
+                </p>
+              ) : null}
 
-          <form
-            id="product-template-form"
-            className="app-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-4"
-            noValidate
-            onSubmit={(event) => void form.handleSubmit(saveTemplate)(event)}
-          >
-            <TemplateFields
-              form={form}
-              stores={stores}
-              lockStore={Boolean(editingTemplate)}
-              scanEnabled={showFeishuEntry}
-              submitting={submitting}
-              scanningBarcode={scanningBarcode}
-              onScanBarcode={() => void scanTemplateBarcode()}
-              onImageUploadingChange={handleImageUploadingChange}
-            />
-          </form>
-
-          {saveError ? (
-            <p role="alert" className="px-4 pb-4 text-sm text-destructive">
-              {saveError}
-            </p>
-          ) : null}
-
-          <DrawerFooter className="border-t">
-            {editingTemplate ? (
-              <Button
-                type="button"
-                variant="destructive"
-                size="lg"
-                aria-label="删除商品模板"
-                disabled={submitting || imageUploading || scanningBarcode}
-                onClick={() => {
-                  setDeleteError(null);
-                  setDeleteConfirmOpen(true);
-                }}
+              <form
+                id="product-template-form"
+                className="app-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-4"
+                noValidate
+                onSubmit={(event) =>
+                  void form.handleSubmit(saveTemplate)(event)
+                }
               >
-                <RiDeleteBinLine data-icon="inline-start" />
-                删除模板
-              </Button>
-            ) : null}
-            <Button
-              type="submit"
-              form="product-template-form"
-              size="lg"
-              disabled={
-                submitting ||
-                imageUploading ||
-                scanningBarcode ||
-                (Boolean(editingTemplate) && !editingTemplate?.updatedAt)
-              }
-            >
-              {submitting
-                ? "保存中"
-                : imageUploading
-                  ? "图片上传中"
-                  : editingTemplate
-                    ? "保存修改"
-                    : "创建模板"}
-            </Button>
-          </DrawerFooter>
+                <TemplateFields
+                  form={form}
+                  stores={stores}
+                  lockStore={Boolean(editingTemplate)}
+                  scanEnabled={showFeishuEntry}
+                  submitting={submitting}
+                  scanningBarcode={scanningBarcode}
+                  onScanBarcode={() => void scanTemplateBarcode()}
+                  onImageUploadingChange={handleImageUploadingChange}
+                  onStoreChange={rememberTemplateStoreId}
+                />
+              </form>
+
+              {saveError ? (
+                <p role="alert" className="px-4 pb-4 text-sm text-destructive">
+                  {saveError}
+                </p>
+              ) : null}
+
+              <DrawerFooter className="border-t">
+                {editingTemplate ? (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="lg"
+                    aria-label="删除商品模板"
+                    disabled={submitting || imageUploading || scanningBarcode}
+                    onClick={() => {
+                      setDeleteError(null);
+                      setDeleteConfirmOpen(true);
+                    }}
+                  >
+                    <RiDeleteBinLine data-icon="inline-start" />
+                    删除模板
+                  </Button>
+                ) : null}
+                <Button
+                  type="submit"
+                  form="product-template-form"
+                  size="lg"
+                  disabled={
+                    submitting ||
+                    imageUploading ||
+                    scanningBarcode ||
+                    (Boolean(editingTemplate) && !editingTemplate?.updatedAt)
+                  }
+                >
+                  {submitting
+                    ? "保存中"
+                    : imageUploading
+                      ? "图片上传中"
+                      : editingTemplate
+                        ? "保存修改"
+                        : "创建模板"}
+                </Button>
+              </DrawerFooter>
+            </>
+          )}
         </DrawerContent>
       </Drawer>
 
@@ -728,6 +903,25 @@ function TemplateLoadingSkeletons() {
   );
 }
 
+function TemplateEditorSkeleton() {
+  return (
+    <div
+      className="app-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-4"
+      role="status"
+      aria-label="正在加载商品模板详情"
+    >
+      <div className="flex flex-col gap-5">
+        {Array.from({ length: 4 }, (_, index) => (
+          <div key={index} className="flex flex-col gap-3">
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-11 w-full" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function getTemplateKey(template: ProductTemplate) {
   return template.id;
 }
@@ -746,9 +940,11 @@ function TemplateItem({
         className="min-w-0 cursor-pointer items-start hover:bg-muted/30"
         onClick={onEdit}
       >
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-          {template.mainImageUrl ? <RiImageLine /> : <RiBarcodeLine />}
-        </span>
+        <ManagedImage
+          src={template.mainImageUrl}
+          alt={template.title}
+          className="size-10 shrink-0 rounded-lg"
+        />
         <ItemContent className="min-w-0 gap-1.5">
           <div className="flex min-w-0 items-start justify-between gap-2">
             <ItemTitle className="min-w-0 truncate leading-5">
@@ -787,6 +983,7 @@ function TemplateFields({
   scanningBarcode,
   onScanBarcode,
   onImageUploadingChange,
+  onStoreChange,
 }: {
   form: ReturnType<typeof useForm<TemplateFormValues>>;
   stores: Store[];
@@ -796,6 +993,7 @@ function TemplateFields({
   scanningBarcode: boolean;
   onScanBarcode: () => void;
   onImageUploadingChange: (uploading: boolean) => void;
+  onStoreChange: (storeId: string) => void;
 }) {
   return (
     <FieldGroup className="gap-5">
@@ -808,7 +1006,10 @@ function TemplateFields({
             <Select
               value={field.value}
               disabled={lockStore}
-              onValueChange={field.onChange}
+              onValueChange={(value) => {
+                field.onChange(value);
+                if (!lockStore) onStoreChange(value);
+              }}
             >
               <SelectTrigger
                 id={field.name}
@@ -822,7 +1023,7 @@ function TemplateFields({
               >
                 <span className="truncate">
                   {stores.find((store) => store.id === field.value)?.name ??
-                    "选择店铺"}
+                    (lockStore ? `店铺 ${field.value}` : "选择店铺")}
                 </span>
               </SelectTrigger>
               <SelectContent>
@@ -837,7 +1038,7 @@ function TemplateFields({
             </Select>
             {lockStore ? (
               <FieldDescription>
-                编辑时不能更换店铺；请在目标店铺新建模板。
+                编辑时不能更换店铺；请在目标店铺新建模板
               </FieldDescription>
             ) : null}
             <FieldError
@@ -999,6 +1200,13 @@ function ProductImageField({
   onUploadingChange: (uploading: boolean) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -1010,11 +1218,15 @@ function ProductImageField({
     onUploadingChange(true);
     setUploadError(null);
     try {
-      onChange(await uploadProductImage(file));
+      const url = await uploadProductImage(file);
+      if (mountedRef.current) onChange(url);
     } catch (caught) {
-      setUploadError(caught instanceof Error ? caught.message : "图片上传失败");
+      if (mountedRef.current)
+        setUploadError(
+          caught instanceof Error ? caught.message : "图片上传失败",
+        );
     } finally {
-      setUploading(false);
+      if (mountedRef.current) setUploading(false);
       onUploadingChange(false);
       event.target.value = "";
     }

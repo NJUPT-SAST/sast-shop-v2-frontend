@@ -5,8 +5,9 @@ import Link from "next/link";
 import { RiArrowRightSLine } from "@remixicon/react";
 import { isLarkClientEnvironment } from "@sast-shop/api";
 import { Button } from "@workspace/ui/components/button";
-import { cn } from "@workspace/ui/lib/utils";
+import { Separator } from "@workspace/ui/components/separator";
 import { BrandIllustration } from "./brand-illustration";
+import { ListedGoodsIcon } from "./listed-goods-icon";
 import { useProfileDialogs } from "./profile-dialogs-provider";
 import { useTransactionAgreement } from "./transaction-agreement-provider";
 
@@ -21,44 +22,54 @@ export function ProfileManagementClient({
 
   return (
     <div className="overflow-hidden rounded-xl border bg-card">
-      <ProfileMenuButton
-        title="地址簿"
-        icon={<BrandIllustration name="address" size={32} />}
-        onClick={openAddressDialog}
-        border
-        first
-      />
-      <ProfileNavigationLink
-        title="人脸录入"
-        icon={<BrandIllustration name="face" size={32} />}
-        href="/profile/face"
-      />
-      <ProfileMenuButton
-        title="收款码"
-        icon={<BrandIllustration name="collection" size={32} />}
-        onClick={openQrCodeDialog}
-        border
-      />
-      <ProfileMenuButton
-        title="默认支付方式"
-        icon={<BrandIllustration name="wallet" size={32} />}
-        onClick={openPaymentPreferenceDialog}
-        border
-      />
-      <ProfileMenuButton
-        title="交易协议"
-        icon={<BrandIllustration name="transaction-agreement" size={32} />}
-        onClick={openAgreement}
-        border={Boolean(feedbackFormUrl)}
-        last={!feedbackFormUrl}
-      />
-      {feedbackFormUrl ? (
-        <ProfileMenuLink
-          title="帮助与反馈"
-          icon={<BrandIllustration name="help" size={32} />}
-          href={feedbackFormUrl}
+      <div role="group" aria-label="个人资料">
+        <ProfileMenuButton
+          title="地址簿"
+          icon={<BrandIllustration name="address" size={32} />}
+          onClick={openAddressDialog}
         />
-      ) : null}
+        <ProfileNavigationLink
+          title="人脸录入"
+          icon={<BrandIllustration name="face" size={32} />}
+          href="/profile/face"
+        />
+      </div>
+      <Separator className="my-1" />
+      <div role="group" aria-label="支付与收款">
+        <ProfileMenuButton
+          title="默认支付方式"
+          icon={<BrandIllustration name="wallet" size={32} />}
+          onClick={openPaymentPreferenceDialog}
+        />
+        <ProfileMenuButton
+          title="收款码"
+          icon={<BrandIllustration name="collection" size={32} />}
+          onClick={openQrCodeDialog}
+        />
+      </div>
+      <Separator className="my-1" />
+      <div role="group" aria-label="商品管理">
+        <ProfileNavigationLink
+          title="我上架的商品"
+          icon={<ListedGoodsIcon />}
+          href="/profile/goods"
+        />
+      </div>
+      <Separator className="my-1" />
+      <div role="group" aria-label="协议与帮助">
+        <ProfileMenuButton
+          title="交易协议"
+          icon={<BrandIllustration name="transaction-agreement" size={32} />}
+          onClick={openAgreement}
+        />
+        {feedbackFormUrl ? (
+          <ProfileMenuLink
+            title="帮助与反馈"
+            icon={<BrandIllustration name="help" size={32} />}
+            href={feedbackFormUrl}
+          />
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -76,7 +87,7 @@ function ProfileNavigationLink({
     <Button
       variant="ghost"
       size="lg"
-      className="h-auto min-h-16 w-full justify-start gap-4 rounded-none border-b px-4 py-3"
+      className="h-auto min-h-16 w-full justify-start gap-4 rounded-none px-4 py-3"
       asChild
     >
       <Link href={href}>
@@ -103,7 +114,7 @@ function ProfileMenuLink({
     <Button
       variant="ghost"
       size="lg"
-      className="h-auto min-h-16 w-full justify-start gap-4 rounded-t-none rounded-b-xl px-4 py-3"
+      className="h-auto min-h-16 w-full justify-start gap-4 rounded-none px-4 py-3"
       asChild
     >
       <a
@@ -134,28 +145,17 @@ function ProfileMenuButton({
   title,
   icon,
   onClick,
-  border = false,
-  first = false,
-  last = false,
 }: {
   title: string;
   icon: ReactNode;
   onClick: () => void;
-  border?: boolean;
-  first?: boolean;
-  last?: boolean;
 }) {
   return (
     <Button
       type="button"
       variant="ghost"
       size="lg"
-      className={cn(
-        "h-auto min-h-16 w-full justify-start gap-4 px-4 py-3",
-        first && "rounded-t-xl rounded-b-none",
-        last && "rounded-t-none rounded-b-xl",
-        border && "border-b",
-      )}
+      className="h-auto min-h-16 w-full justify-start gap-4 rounded-none px-4 py-3"
       onClick={onClick}
     >
       <span className="flex size-10 shrink-0 items-center justify-center">

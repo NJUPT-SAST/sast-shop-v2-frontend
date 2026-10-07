@@ -51,6 +51,8 @@ import { calculateErrandCartTotal } from "@/lib/errand-cart-total";
 import { ManagedImage } from "./managed-image";
 import { MobileFixedFooter } from "./mobile-fixed-footer";
 import { useTransactionAgreement } from "./transaction-agreement-provider";
+import { StoreEditDialog } from "./store-edit-dialog";
+import { EditActionLabel } from "./edit-action-label";
 
 type ErrandShopProps = {
   dataSource: DataSource;
@@ -111,6 +113,9 @@ export function ErrandShop({
   );
   const minimumDeadlineValue = toDateTimeLocalValue(getMinimumErrandDeadline());
   const [submitting, setSubmitting] = useState(false);
+  const [storeEditOpen, setStoreEditOpen] = useState(false);
+  const [savedStore, setSavedStore] = useState<Store | null>(null);
+  const displayedStore = savedStore?.id === store.id ? savedStore : store;
 
   const cartByTemplateId = useMemo(
     () => new Map(items.map((item) => [item.template.id, item])),
@@ -313,20 +318,41 @@ export function ErrandShop({
     <div className="flex flex-1 flex-col gap-5 py-5">
       <section className="flex items-start gap-3 rounded-lg border bg-card p-3">
         <ManagedImage
-          src={store.logoUrl}
-          alt={store.name}
+          src={displayedStore.logoUrl}
+          alt={displayedStore.name}
           className="size-14 shrink-0 rounded-lg"
         />
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg font-semibold leading-7">
-            {store.name}
+            {displayedStore.name}
           </h1>
           <p className="mt-0.5 flex items-start gap-1.5 text-sm leading-5 text-muted-foreground">
-            <RiMapPinLine className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            <span className="line-clamp-2">{store.address}</span>
+            <RiMapPinLine
+              className="mt-0.5 size-4 shrink-0"
+              aria-hidden="true"
+            />
+            <span className="line-clamp-2">{displayedStore.address}</span>
           </p>
         </div>
+        <Button
+          type="button"
+          variant="text"
+          size="touch"
+          disabled={submitting}
+          onClick={() => setStoreEditOpen(true)}
+        >
+          <EditActionLabel>编辑店铺</EditActionLabel>
+        </Button>
       </section>
+
+      <StoreEditDialog
+        open={storeEditOpen}
+        onOpenChange={setStoreEditOpen}
+        storeId={store.id}
+        dataSource={dataSource}
+        connectBaseUrl={connectBaseUrl}
+        onSaved={setSavedStore}
+      />
 
       <section className="flex flex-1 flex-col gap-3">
         <h2 className="text-base font-semibold">选择商品</h2>

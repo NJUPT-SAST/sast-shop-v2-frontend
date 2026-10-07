@@ -6,6 +6,7 @@ import { listProductTemplates } from "./product-templates";
 import {
   createStore,
   listStores,
+  updateStore,
   type CreateStoreInput,
   type Store,
 } from "./catalog";
@@ -122,6 +123,118 @@ describe("catalog service", () => {
         mockOptions,
       ),
     ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it("updates only selected store fields and permits clearing the logo", async () => {
+    let requestBody: unknown;
+    const fetchMock = vi.fn(
+      async (input: string | Request, init?: RequestInit) => {
+        const url = typeof input === "string" ? input : input.url;
+        expect(new URL(url).pathname).toBe(
+          "/sast.sastshopv2.catalog.v1.CatalogService/UpdateStore",
+        );
+        const body =
+          typeof input === "string" ? init?.body : await input.clone().text();
+        requestBody = JSON.parse(
+          body instanceof Uint8Array
+            ? new TextDecoder().decode(body)
+            : String(body),
+        );
+        return stubJsonResponse({
+          store: {
+            id: "3001",
+            name: "新名称",
+            address: "原地址",
+            logoUrl: "",
+            themeColor: "#c9431f",
+          },
+        });
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      updateStore(
+        { id: "3001", patch: { name: " 新名称 ", logoUrl: "" } },
+        mockOptions,
+      ),
+    ).resolves.toEqual({
+      id: "3001",
+      name: "新名称",
+      address: "原地址",
+      logoUrl: "",
+      themeColor: "#c9431f",
+    });
+    expect(requestBody).toEqual({
+      store: { id: "3001", name: "新名称" },
+      updateMask: "name,logoUrl",
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("serializes address and theme color using the store field mask", async () => {
+    let requestBody: unknown;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | Request, init?: RequestInit) => {
+        const body =
+          typeof input === "string" ? init?.body : await input.clone().text();
+        requestBody = JSON.parse(
+          body instanceof Uint8Array
+            ? new TextDecoder().decode(body)
+            : String(body),
+        );
+        return stubJsonResponse({
+          store: { id: "3001", address: "新地址", themeColor: "#112233" },
+        });
+      }),
+    );
+    await updateStore(
+      { id: "3001", patch: { address: " 新地址 ", themeColor: " #112233 " } },
+      mockOptions,
+    );
+    expect(requestBody).toEqual({
+      store: { id: "3001", address: "新地址", themeColor: "#112233" },
+      updateMask: "address,themeColor",
+    });
+  });
+
+  it.each([
+    { id: "0", patch: { name: "新名称" } },
+    { id: "01", patch: { name: "新名称" } },
+    { id: "9223372036854775808", patch: { name: "新名称" } },
+    { id: "3001", patch: {} },
+    { id: "3001", patch: { name: " " } },
+    { id: "3001", patch: { name: "店".repeat(101) } },
+    { id: "3001", patch: { address: " " } },
+    { id: "3001", patch: { address: "址".repeat(201) } },
+    { id: "3001", patch: { logoUrl: "http://example.test/logo.png" } },
+    { id: "3001", patch: { themeColor: "red" } },
+    { id: "3001", patch: { name: undefined } },
+    { id: "3001", patch: { unsupported: "value" } },
+  ])(
+    "rejects invalid store update input before requesting: %j",
+    async (input) => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+      await expect(updateStore(input, mockOptions)).rejects.toBeInstanceOf(
+        ValidationError,
+      );
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects incomplete store update responses and unavailable remote mode", async () => {
+    const fetchMock = vi.fn(async () => stubJsonResponse({}));
+    vi.stubGlobal("fetch", fetchMock);
+    const input = { id: "3001", patch: { name: "新名称" } };
+    await expect(updateStore(input, mockOptions)).rejects.toBeInstanceOf(
+      FeatureUnavailableError,
+    );
+    await expect(
+      updateStore(input, { dataSource: "remote" }),
+    ).rejects.toBeInstanceOf(FeatureUnavailableError);
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 
   it("keeps store creation unavailable for the remote data source", async () => {
