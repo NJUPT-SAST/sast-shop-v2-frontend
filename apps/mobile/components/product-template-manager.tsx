@@ -814,6 +814,11 @@ function TemplateFields({
                 id={field.name}
                 aria-label="店铺"
                 aria-invalid={fieldState.invalid}
+                aria-describedby={
+                  fieldState.invalid
+                    ? `template-${field.name}-error`
+                    : undefined
+                }
               >
                 <span className="truncate">
                   {stores.find((store) => store.id === field.value)?.name ??
@@ -835,7 +840,10 @@ function TemplateFields({
                 编辑时不能更换店铺；请在目标店铺新建模板。
               </FieldDescription>
             ) : null}
-            <FieldError errors={[fieldState.error]} />
+            <FieldError
+              id={`template-${field.name}-error`}
+              errors={[fieldState.error]}
+            />
           </Field>
         )}
       />
@@ -854,6 +862,11 @@ function TemplateFields({
                 autoComplete="off"
                 placeholder="输入条码编号"
                 aria-invalid={fieldState.invalid}
+                aria-describedby={
+                  fieldState.invalid
+                    ? `template-${field.name}-error`
+                    : undefined
+                }
                 disabled={scanningBarcode || submitting}
               />
               {scanEnabled ? (
@@ -870,7 +883,10 @@ function TemplateFields({
                 </InputGroupAddon>
               ) : null}
             </InputGroup>
-            <FieldError errors={[fieldState.error]} />
+            <FieldError
+              id={`template-${field.name}-error`}
+              errors={[fieldState.error]}
+            />
           </Field>
         )}
       />
@@ -885,8 +901,14 @@ function TemplateFields({
               {...field}
               id={field.name}
               aria-invalid={fieldState.invalid}
+              aria-describedby={
+                fieldState.invalid ? `template-${field.name}-error` : undefined
+              }
             />
-            <FieldError errors={[fieldState.error]} />
+            <FieldError
+              id={`template-${field.name}-error`}
+              errors={[fieldState.error]}
+            />
           </Field>
         )}
       />
@@ -903,8 +925,14 @@ function TemplateFields({
               rows={3}
               placeholder="例如：550ml 瓶装"
               aria-invalid={fieldState.invalid}
+              aria-describedby={
+                fieldState.invalid ? `template-${field.name}-error` : undefined
+              }
             />
-            <FieldError errors={[fieldState.error]} />
+            <FieldError
+              id={`template-${field.name}-error`}
+              errors={[fieldState.error]}
+            />
           </Field>
         )}
       />
@@ -925,9 +953,17 @@ function TemplateFields({
                 step={0.01}
                 inputMode="decimal"
                 aria-invalid={fieldState.invalid}
+                aria-describedby={
+                  fieldState.invalid
+                    ? `template-${field.name}-error`
+                    : undefined
+                }
               />
             </InputGroup>
-            <FieldError errors={[fieldState.error]} />
+            <FieldError
+              id={`template-${field.name}-error`}
+              errors={[fieldState.error]}
+            />
           </Field>
         )}
       />

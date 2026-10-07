@@ -28,6 +28,7 @@ import {
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "@workspace/ui/components/field";
@@ -559,10 +560,15 @@ function DraftPocketForm({
   const amount = amountDraft ?? (pocket.totalCents / 100).toFixed(2);
   const title = titleDraft ?? pocket.title;
   let amountCents: number | null = null;
+  let amountError = "";
   try {
+    if (!amount.trim()) throw new Error("请输入总金额");
     amountCents = parsePocketAmount(amount);
-  } catch {}
+  } catch (reason) {
+    amountError = reason instanceof Error ? reason.message : "请输入正确的金额";
+  }
   const dirty = amountDraft !== null && amountCents !== pocket.totalCents;
+  const invalidAmount = dirty && !focused && amountCents === null;
   const action = usePocketAction({
     transaction: true,
     reconcile: async () => {
@@ -651,7 +657,7 @@ function DraftPocketForm({
   return (
     <div className="flex flex-col gap-3 border-t border-border/70 py-3">
       <FieldGroup className="gap-3">
-        <Field data-invalid={dirty && !focused && amountCents === null}>
+        <Field data-invalid={invalidAmount}>
           <div className="flex min-w-0 items-center justify-between gap-3">
             <FieldLabel
               htmlFor="draft-amount"
@@ -675,7 +681,10 @@ function DraftPocketForm({
                   setAmountDraft(event.target.value);
                 }}
                 disabled={action.busy || titleOpen || paused}
-                aria-invalid={dirty && !focused && amountCents === null}
+                aria-invalid={invalidAmount}
+                aria-describedby={
+                  invalidAmount ? "draft-amount-error" : undefined
+                }
               />
               <InputGroupAddon>
                 <InputGroupText aria-hidden="true">¥</InputGroupText>
@@ -685,12 +694,12 @@ function DraftPocketForm({
               </InputGroupAddon>
             </InputGroup>
           </div>
-          {dirty && !focused && amountCents === null ? (
-            <FieldDescription>请输入有效金额，最多两位小数</FieldDescription>
+          {invalidAmount ? (
+            <FieldError id="draft-amount-error">{amountError}</FieldError>
           ) : null}
           {action.busy ? (
             <FieldDescription>正在保存或核实修改</FieldDescription>
-          ) : dirty && !attemptedAmount ? (
+          ) : dirty && amountCents !== null && !attemptedAmount ? (
             <FieldDescription>离开金额输入框后自动保存</FieldDescription>
           ) : null}
         </Field>

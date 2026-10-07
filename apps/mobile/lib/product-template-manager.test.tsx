@@ -162,6 +162,25 @@ function submitTemplate() {
 }
 
 describe("product template drawer failures", () => {
+  it("associates validation errors with their fields and clears the association after correction", async () => {
+    await renderManager([], true);
+    await act(async () => submitTemplate());
+
+    const title = container.querySelector<HTMLInputElement>("#title")!;
+    expect(title.getAttribute("aria-invalid")).toBe("true");
+    const errorId = title.getAttribute("aria-describedby")!;
+    expect(document.getElementById(errorId)?.textContent).toBe(
+      "请输入商品名称",
+    );
+    expect(container.querySelectorAll(`[id="${errorId}"]`)).toHaveLength(1);
+    expect(createProductTemplate).not.toHaveBeenCalled();
+
+    await enterTemplateTitle("矿泉水");
+    expect(title.getAttribute("aria-invalid")).toBe("false");
+    expect(title.hasAttribute("aria-describedby")).toBe(false);
+    expect(document.getElementById(errorId)).toBeNull();
+  });
+
   it("searches the selected store on the server and loads only its matching next page", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     let enterViewport!: (entries: { isIntersecting: boolean }[]) => void;

@@ -279,6 +279,48 @@ describe("publish spot scan recovery", () => {
 });
 
 describe("barcode lookup feedback", () => {
+  it("associates invalid barcode feedback with the input and removes it after correction", async () => {
+    await renderForm("manual", "690000000001");
+    await enterBarcode("invalid");
+
+    const input = container.querySelector<HTMLInputElement>("#barcode")!;
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    const errorId = input.getAttribute("aria-describedby")!;
+    expect(document.getElementById(errorId)?.textContent).toContain("数字");
+    expect(container.querySelectorAll(`[id="${errorId}"]`)).toHaveLength(1);
+
+    await enterBarcode("690000000002");
+    expect(input.getAttribute("aria-invalid")).toBe("false");
+    expect(input.hasAttribute("aria-describedby")).toBe(false);
+    expect(document.getElementById(errorId)).toBeNull();
+  });
+
+  it("associates invalid price feedback with the price input before publishing", async () => {
+    vi.mocked(getProductTemplatesByBarcode).mockResolvedValue([match]);
+    await renderForm("manual", "690000000001");
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 350));
+    });
+    const input = container.querySelector<HTMLInputElement>("#price")!;
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )!.set!;
+      setter.call(input, "0");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await click("上架商品");
+
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    const errorId = input.getAttribute("aria-describedby")!;
+    expect(document.getElementById(errorId)?.textContent).toBe(
+      "售价至少为 0.01 元",
+    );
+    expect(ensureAgreement).not.toHaveBeenCalled();
+    expect(createSpotGoods).not.toHaveBeenCalled();
+  });
+
   it("keeps the barcode and retries a failed lookup without publishing", async () => {
     vi.mocked(getProductTemplatesByBarcode)
       .mockRejectedValueOnce(new Error("connection unavailable"))

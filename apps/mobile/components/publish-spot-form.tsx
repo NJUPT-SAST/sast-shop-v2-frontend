@@ -512,6 +512,11 @@ export function PublishSpotForm({
                     autoComplete="off"
                     placeholder="输入商品条码编号"
                     aria-invalid={fieldState.invalid}
+                    aria-describedby={
+                      fieldState.invalid
+                        ? `publish-${field.name}-error`
+                        : undefined
+                    }
                     onBlur={field.onBlur}
                     onChange={(event) => {
                       field.onChange(event);
@@ -521,7 +526,10 @@ export function PublishSpotForm({
                     ref={field.ref}
                   />
                 </InputGroup>
-                <FieldError errors={[fieldState.error]} />
+                <FieldError
+                  id={`publish-${field.name}-error`}
+                  errors={[fieldState.error]}
+                />
               </Field>
             )}
           />
@@ -617,12 +625,20 @@ export function PublishSpotForm({
                       step={0.01}
                       inputMode="decimal"
                       aria-invalid={fieldState.invalid}
+                      aria-describedby={
+                        fieldState.invalid
+                          ? `publish-${field.name}-error`
+                          : undefined
+                      }
                       onBlur={field.onBlur}
                       onChange={field.onChange}
                       ref={field.ref}
                     />
                   </InputGroup>
-                  <FieldError errors={[fieldState.error]} />
+                  <FieldError
+                    id={`publish-${field.name}-error`}
+                    errors={[fieldState.error]}
+                  />
                 </Field>
               )}
             />
@@ -635,6 +651,11 @@ export function PublishSpotForm({
                   <QuantityStepper
                     id={field.name}
                     aria-invalid={fieldState.invalid}
+                    aria-describedby={
+                      fieldState.invalid
+                        ? `publish-${field.name}-error`
+                        : undefined
+                    }
                     className="w-full"
                     valueClassName="min-w-0 flex-1"
                     label="初始库存"
@@ -642,7 +663,10 @@ export function PublishSpotForm({
                     max={2147483647}
                     onValueChange={field.onChange}
                   />
-                  <FieldError errors={[fieldState.error]} />
+                  <FieldError
+                    id={`publish-${field.name}-error`}
+                    errors={[fieldState.error]}
+                  />
                 </Field>
               )}
             />

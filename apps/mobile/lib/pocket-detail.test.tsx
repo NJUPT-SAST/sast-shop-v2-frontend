@@ -335,6 +335,39 @@ describe("Pocket draft editing", () => {
     expect(rpc.updatePocket).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["", "请输入总金额"],
+    ["1.234", "请输入正确的金额，最多两位小数"],
+    ["0", "金额需大于 0 且不超过 21474836.47 元"],
+    ["21474836.48", "金额需大于 0 且不超过 21474836.47 元"],
+  ])(
+    "announces the field error for draft amount %j after blur",
+    async (value, message) => {
+      await mountDraft();
+      const input = await inputValue("draft-amount", value);
+      expect(container.querySelector("#draft-amount-error")).toBeNull();
+      await act(async () => input.blur());
+      const error = container.querySelector("#draft-amount-error")!;
+      expect(error.textContent).toBe(message);
+      expect(error.getAttribute("role")).toBe("alert");
+      expect(input.getAttribute("aria-invalid")).toBe("true");
+      expect(input.getAttribute("aria-describedby")).toBe(error.id);
+      expect(container.textContent).not.toContain("离开金额输入框后自动保存");
+      await advance(1000);
+      expect(rpc.updatePocket).not.toHaveBeenCalled();
+      expect(rpc.ensureAgreement).not.toHaveBeenCalled();
+      expect(button("选择分摊人").disabled).toBe(true);
+
+      await inputValue("draft-amount", "75.55");
+      expect(container.querySelector("#draft-amount-error")).toBeNull();
+      expect(input.getAttribute("aria-invalid")).toBe("false");
+      await act(async () => input.blur());
+      await advance(700);
+      expect(rpc.updatePocket).toHaveBeenCalledOnce();
+      expect(button("选择分摊人").disabled).toBe(false);
+    },
+  );
+
   it("offers explicit retry after agreement refusal without repeatedly opening the agreement", async () => {
     rpc.ensureAgreement.mockResolvedValue(false);
     await mountDraft();
