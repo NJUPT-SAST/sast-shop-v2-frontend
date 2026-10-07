@@ -44,6 +44,7 @@ export function PocketCreate() {
   const [title, setTitle] = useState("");
   const [created, setCreated] = useState(false);
   const [validationError, setValidationError] = useState("");
+  const amountInputRef = useRef<HTMLInputElement>(null);
   const checkingCapabilities = !capabilities.data && !capabilities.error;
   const mounted = useRef(true);
   const attempt = useRef<{
@@ -77,12 +78,14 @@ export function PocketCreate() {
     if (created || !capabilities.data || capabilities.error) return;
     let totalCents: number;
     try {
+      if (!amount.trim()) throw new Error("请输入总金额");
       totalCents = parsePocketAmount(amount);
       setValidationError("");
     } catch (reason) {
       setValidationError(
         reason instanceof Error ? reason.message : "请输入正确的金额",
       );
+      amountInputRef.current?.focus();
       return;
     }
     void run(`create:${title.trim()}:${totalCents}`, async (requestId) => {
@@ -94,7 +97,7 @@ export function PocketCreate() {
     <div className="flex min-w-0 flex-col gap-4 py-3">
       <PocketHeading title="发起 Pocket" />
       <PocketError message={capabilities.error} retry={capabilities.refresh} />
-      <form onSubmit={submit} className="flex flex-col gap-4">
+      <form noValidate onSubmit={submit} className="flex flex-col gap-4">
         <FieldGroup className="gap-4">
           <Field data-invalid={Boolean(validationError)}>
             <FieldLabel htmlFor="pocket-total">总金额（元）</FieldLabel>
@@ -103,12 +106,16 @@ export function PocketCreate() {
                 <InputGroupText aria-hidden="true">¥</InputGroupText>
               </InputGroupAddon>
               <InputGroupInput
+                ref={amountInputRef}
                 id="pocket-total"
                 inputMode="decimal"
                 placeholder="0.00"
                 required
                 value={amount}
-                onChange={(event) => setAmount(event.target.value)}
+                onChange={(event) => {
+                  setAmount(event.target.value);
+                  setValidationError("");
+                }}
                 disabled={busy || created}
                 aria-invalid={Boolean(validationError)}
                 aria-describedby={
@@ -118,14 +125,14 @@ export function PocketCreate() {
                 }
               />
             </InputGroup>
-            <FieldDescription id="pocket-amount-help">
-              发起收款前可修改金额
-            </FieldDescription>
             {validationError ? (
               <FieldError id="pocket-amount-error">
                 {validationError}
               </FieldError>
             ) : null}
+            <FieldDescription id="pocket-amount-help">
+              发起收款前可修改金额
+            </FieldDescription>
           </Field>
           <Field>
             <FieldLabel htmlFor="pocket-title">聚餐名称（选填）</FieldLabel>

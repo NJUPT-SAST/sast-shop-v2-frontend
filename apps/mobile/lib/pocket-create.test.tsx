@@ -56,6 +56,18 @@ function submit() {
     .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
 }
 
+async function changeAmount(value: string) {
+  const input = container.querySelector<HTMLInputElement>("#pocket-total")!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )!.set!.call(input, value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  return input;
+}
+
 beforeEach(() => {
   vi.stubGlobal("React", React);
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
@@ -84,6 +96,42 @@ afterEach(async () => {
 });
 
 describe("Pocket create transaction flow", () => {
+  it.each([
+    ["", "请输入总金额"],
+    ["  ", "请输入总金额"],
+    ["1.234", "请输入正确的金额，最多两位小数"],
+    ["0", "金额需大于 0 且不超过 21474836.47 元"],
+    ["21474836.48", "金额需大于 0 且不超过 21474836.47 元"],
+  ])(
+    "shows an inline error for invalid amount %j and allows correction",
+    async (value, message) => {
+      await mount();
+      const amount = await changeAmount(value);
+      await act(async () => {
+        container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+      });
+      const error = container.querySelector("#pocket-amount-error")!;
+      expect(error.textContent).toBe(message);
+      expect(error.getAttribute("role")).toBe("alert");
+      expect(amount.getAttribute("aria-invalid")).toBe("true");
+      expect(amount.getAttribute("aria-describedby")).toContain(error.id);
+      expect(document.activeElement).toBe(amount);
+      expect(ensureAgreement).not.toHaveBeenCalled();
+      expect(createPocket).not.toHaveBeenCalled();
+
+      await changeAmount("12.50");
+      expect(container.querySelector("#pocket-amount-error")).toBeNull();
+      expect(amount.getAttribute("aria-invalid")).toBe("false");
+      await act(async () => {
+        container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+      });
+      expect(createPocket).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ totalCents: 1250 }),
+        expect.anything(),
+      );
+    },
+  );
+
   it("does not create an activity when the transaction agreement is rejected", async () => {
     ensureAgreement.mockResolvedValue(false);
     await mount();
