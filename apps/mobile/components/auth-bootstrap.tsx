@@ -22,6 +22,10 @@ import { Button } from "@workspace/ui/components/button";
 import { Spinner } from "@workspace/ui/components/spinner";
 import { BrandIllustration } from "@/components/brand-illustration";
 import { getFeishuLoginRedirect } from "../../../config/feishu-redirect-uri";
+import {
+  getFeishuAppLink,
+  openFeishuAppOnce,
+} from "../../../config/feishu-app-link";
 
 type AuthState =
   "checking" | "authenticating" | "authenticated" | "unsupported" | "error";
@@ -67,6 +71,13 @@ export function AuthBootstrap({
     () => true,
   );
   const unsupported = enabled && (state === "unsupported" || !isInLark);
+  const feishuAppLink =
+    enabled && !isInLark ? getFeishuAppLink(appId, window.location.href) : null;
+
+  useEffect(() => {
+    if (!enabled || isInLark || isLarkClientEnvironment(window.h5sdk)) return;
+    openFeishuAppOnce(appId, window);
+  }, [appId, enabled, isInLark, pathname]);
 
   const verifyCurrentSession = useCallback(() => {
     if (sessionCheckRef.current) return sessionCheckRef.current;
@@ -295,6 +306,16 @@ export function AuthBootstrap({
             size={176}
             className="mt-6 size-40 sm:size-44"
           />
+          <p className="mt-4 text-sm leading-6 text-muted-foreground">
+            {appId.trim()
+              ? "通过飞书打开 SAST 商城，继续访问当前页面"
+              : "应用暂时无法打开，请联系管理员"}
+          </p>
+          {feishuAppLink && (
+            <Button asChild className="mt-5" size="touch">
+              <a href={feishuAppLink}>在飞书中打开</a>
+            </Button>
+          )}
         </section>
       </main>
     );

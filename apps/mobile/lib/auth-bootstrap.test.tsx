@@ -40,8 +40,38 @@ const missingSession = {
 let container: HTMLDivElement;
 let root: Root;
 let fetchMock: ReturnType<typeof vi.fn>;
+let locationAssign: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
+  window.sessionStorage.clear();
+  window.history.replaceState(null, "", "/");
+  locationAssign = vi.fn();
+  const originalWindow = window;
+  const location = new Proxy(
+    {},
+    {
+      get(_target, key) {
+        if (key === "assign") return locationAssign;
+        const value = Reflect.get(
+          originalWindow.location,
+          key,
+          originalWindow.location,
+        );
+        return typeof value === "function"
+          ? value.bind(originalWindow.location)
+          : value;
+      },
+    },
+  );
+  vi.stubGlobal(
+    "window",
+    new Proxy(originalWindow, {
+      get(target, key) {
+        if (key === "location") return location;
+        return Reflect.get(target, key, target);
+      },
+    }),
+  );
   vi.stubGlobal("React", React);
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.stubGlobal("h5sdk", undefined);
@@ -71,12 +101,13 @@ async function renderBootstrap(
   enabled = true,
   children = <div data-testid="app-content">商城内容</div>,
   redirectUri?: string,
+  appId = "cli_test",
 ) {
   await act(async () =>
     root.render(
       <AuthBootstrap
         enabled={enabled}
-        appId="cli_test"
+        appId={appId}
         redirectUri={redirectUri}
         dataSource="local"
         connectBaseUrl="http://127.0.0.1:1323"
@@ -88,6 +119,101 @@ async function renderBootstrap(
 }
 
 describe("mobile auth bootstrap client gate", () => {
+  it("opens the configured app with the current deep link and retains a manual link", async () => {
+    window.history.replaceState(null, "", "/orders/spot/42?view=buyer#bill");
+    const targetHref = window.location.href;
+    await renderBootstrap();
+    expect(locationAssign).toHaveBeenCalledOnce();
+    const link = container.querySelector<HTMLAnchorElement>("a");
+    expect(link?.textContent).toBe("在飞书中打开");
+    const appLink = new URL(link!.href);
+    expect(appLink.origin + appLink.pathname).toBe(
+      "https://applink.feishu.cn/client/web_app/open",
+    );
+    expect(appLink.searchParams.get("appId")).toBe("cli_test");
+    expect(appLink.searchParams.get("lk_target_url")).toBe(targetHref);
+    expect(locationAssign).toHaveBeenCalledWith(link!.href);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps the manual link after returning or remounting in the same tab", async () => {
+    await renderBootstrap();
+    await act(async () => root.unmount());
+    root = createRoot(container);
+    window.history.replaceState(null, "", "/shop?view=seller");
+    await renderBootstrap();
+    await act(async () => window.dispatchEvent(new Event("focus")));
+    expect(locationAssign).toHaveBeenCalledOnce();
+    const link = container.querySelector<HTMLAnchorElement>("a");
+    expect(link).not.toBeNull();
+    expect(new URL(link!.href).searchParams.get("lk_target_url")).toBe(
+      window.location.href,
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each(["getItem", "setItem"] as const)(
+    "keeps manual opening available when session storage %s fails",
+    async (method) => {
+      vi.spyOn(
+        Object.getPrototypeOf(window.sessionStorage),
+        method,
+      ).mockImplementation(() => {
+        throw new DOMException("Storage is disabled", "SecurityError");
+      });
+      await renderBootstrap();
+      expect(locationAssign).not.toHaveBeenCalled();
+      expect(container.querySelector("a")?.textContent).toBe("在飞书中打开");
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not launch without an app ID and displays a recoverable configuration message", async () => {
+    await renderBootstrap(true, undefined, undefined, " ");
+    expect(locationAssign).not.toHaveBeenCalled();
+    expect(container.querySelector("a")).toBeNull();
+    expect(container.textContent).toContain("应用暂时无法打开，请联系管理员");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not launch from a Feishu UA while the SDK is still loading", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 Lark/7.35.0",
+    );
+    await renderBootstrap();
+    expect(locationAssign).not.toHaveBeenCalled();
+    expect(
+      container.querySelector('[data-testid="app-content"]'),
+    ).not.toBeNull();
+  });
+
+  it("does not launch a local preview with authentication disabled", async () => {
+    await renderBootstrap(false);
+    expect(locationAssign).not.toHaveBeenCalled();
+    expect(
+      container.querySelector('[data-testid="app-content"]'),
+    ).not.toBeNull();
+  });
+
+  it("opens only once when StrictMode replays mount effects", async () => {
+    await act(async () =>
+      root.render(
+        <React.StrictMode>
+          <AuthBootstrap
+            enabled
+            appId="cli_test"
+            dataSource="local"
+            connectBaseUrl="http://localhost/api/connect"
+          >
+            <div>商城内容</div>
+          </AuthBootstrap>
+        </React.StrictMode>,
+      ),
+    );
+    expect(locationAssign).toHaveBeenCalledOnce();
+    expect(container.querySelector("a")?.textContent).toBe("在飞书中打开");
+  });
+
   it("checks the initial session once and merges concurrent focus probes", async () => {
     vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
       "Mozilla/5.0 Lark/7.35.0",
@@ -378,6 +504,7 @@ describe("mobile auth bootstrap client gate", () => {
       container.querySelector('[data-testid="app-content"]'),
     ).not.toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(locationAssign).not.toHaveBeenCalled();
   });
 
   it("removes the login retry when the client environment becomes unsupported", async () => {
