@@ -8,7 +8,7 @@ import {
   type Store,
 } from "@sast-shop/api";
 import { RiFileList3Line, RiStore2Line } from "@remixicon/react";
-import Link from "next/link";
+import Link from "@/components/mobile-link";
 import { Button } from "@workspace/ui/components/button";
 import {
   Collapsible,

@@ -8,9 +8,11 @@ import { useMobileFooter } from "./mobile-scroll-context";
 export function MobileFixedFooter({
   children,
   className,
+  reserveSpace = true,
 }: {
   children: ReactNode;
   className?: string;
+  reserveSpace?: boolean;
 }) {
   const isClient = useIsClient();
   const footerRef = useRef<HTMLElement>(null);
@@ -18,7 +20,7 @@ export function MobileFixedFooter({
 
   useEffect(() => {
     const element = footerRef.current;
-    if (!element || !setFooterHeight) return;
+    if (!element || !setFooterHeight || !reserveSpace) return;
 
     const updateHeight = () =>
       setFooterHeight(element.getBoundingClientRect().height);
@@ -29,7 +31,7 @@ export function MobileFixedFooter({
       observer.disconnect();
       setFooterHeight(0);
     };
-  }, [isClient, setFooterHeight]);
+  }, [isClient, setFooterHeight, reserveSpace]);
 
   const footer = (
     <footer

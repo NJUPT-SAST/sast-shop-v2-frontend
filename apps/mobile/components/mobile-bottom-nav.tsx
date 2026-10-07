@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from "@/components/mobile-link";
+import { useMobilePathname as usePathname } from "./mobile-navigation-feedback";
 import { useRef, type MouseEvent } from "react";
 import { SastShopMark } from "@workspace/ui/components/sast-shop-mark";
 import {

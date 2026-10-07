@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useRouter } from "next/navigation";
+import { useMobileRouter as useRouter } from "@/components/mobile-navigation-feedback";
 import {
   RiCheckboxCircleLine,
   RiStore2Line,

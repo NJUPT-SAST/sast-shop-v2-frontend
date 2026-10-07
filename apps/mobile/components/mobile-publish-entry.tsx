@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useMobileRouter as useRouter } from "@/components/mobile-navigation-feedback";
 import { useEffect, useRef, useState } from "react";
 import { RiAddLine } from "@remixicon/react";
 import { toast } from "sonner";

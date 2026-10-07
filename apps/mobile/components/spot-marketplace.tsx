@@ -4,7 +4,7 @@ import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
 import { BrandIllustration } from "@/components/brand-illustration";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useMobileRouter as useRouter } from "@/components/mobile-navigation-feedback";
 import {
   RiCheckboxCircleLine,
   RiSearchLine,

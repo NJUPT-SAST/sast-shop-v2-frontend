@@ -3,7 +3,7 @@
 import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useMobileRouter as useRouter } from "@/components/mobile-navigation-feedback";
 import { RiArrowDownSLine, RiEditLine, RiForbidLine } from "@remixicon/react";
 import {
   compareUpdatedAt,

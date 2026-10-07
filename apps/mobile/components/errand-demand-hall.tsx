@@ -15,7 +15,7 @@ import {
   type ErrandDemandStoreSummary,
   type PageResult,
 } from "@sast-shop/api";
-import Link from "next/link";
+import Link from "@/components/mobile-link";
 import Image from "next/image";
 import {
   Avatar,

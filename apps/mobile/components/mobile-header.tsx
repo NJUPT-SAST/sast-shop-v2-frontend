@@ -1,6 +1,10 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import {
+  useMobilePathname as usePathname,
+  useMobileNavigation,
+} from "./mobile-navigation-feedback";
+import { useMobileRouter as useRouter } from "@/components/mobile-navigation-feedback";
 import { RiArrowLeftLine, RiHomeLine } from "@remixicon/react";
 import { Button } from "@workspace/ui/components/button";
 import { useSecondaryScrollTitle } from "@/hooks/use-secondary-scroll-title";
@@ -12,8 +16,9 @@ export function MobileHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const { titleText, showTitle, headerRef } = useSecondaryScrollTitle();
+  const pendingPath = useMobileNavigation()?.pendingPath;
   const isMainRoute = mainRoutes.some((route) => route === pathname);
-  const showScrollTitle = showTitle && titleText.length > 0;
+  const showScrollTitle = !pendingPath && showTitle && titleText.length > 0;
 
   if (isMainRoute) {
     return null;

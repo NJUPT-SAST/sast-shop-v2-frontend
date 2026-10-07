@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Link from "next/link";
+import Link from "@/components/mobile-link";
 import { RiArrowRightSLine } from "@remixicon/react";
 import { isLarkClientEnvironment } from "@sast-shop/api";
 import { Button } from "@workspace/ui/components/button";

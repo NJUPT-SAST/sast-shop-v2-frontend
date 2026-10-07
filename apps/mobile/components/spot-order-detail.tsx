@@ -340,10 +340,7 @@ export function SpotOrderDetail({
             bill={bill}
             onSupplement={
               canSupplementSerialNumber
-                ? () =>
-                    void ensureAgreement().then((agreed) => {
-                      if (agreed) setSupplementOpen(true);
-                    })
+                ? () => setSupplementOpen(true)
                 : undefined
             }
           />
@@ -415,11 +412,7 @@ export function SpotOrderDetail({
               type="button"
               className="flex-1"
               disabled={lifecyclePending !== null || lifecycleUnverified}
-              onClick={() =>
-                void ensureAgreement().then((agreed) => {
-                  if (agreed) setPaymentDrawerOpen(true);
-                })
-              }
+              onClick={() => setPaymentDrawerOpen(true)}
             >
               去支付
             </Button>
@@ -429,11 +422,7 @@ export function SpotOrderDetail({
               type="button"
               className="flex-1"
               disabled={lifecyclePending !== null || lifecycleUnverified}
-              onClick={() =>
-                void ensureAgreement().then((agreed) => {
-                  if (agreed) setConfirmPaymentDialogOpen(true);
-                })
-              }
+              onClick={() => setConfirmPaymentDialogOpen(true)}
             >
               确认收款
             </Button>

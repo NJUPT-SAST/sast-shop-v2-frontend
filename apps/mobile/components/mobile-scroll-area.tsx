@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
@@ -22,9 +23,11 @@ const MAX_PULL_DISTANCE = 72;
 export function MobileScrollArea({
   children,
   hasBottomNav,
+  pendingPath,
 }: {
   children: ReactNode;
   hasBottomNav: boolean;
+  pendingPath?: string | null;
 }) {
   const viewportRef = useRef<HTMLElement>(null);
   const touchStartXRef = useRef<number | null>(null);
@@ -41,6 +44,12 @@ export function MobileScrollArea({
     syncScrollState,
     refresh,
   } = useMobileScroll();
+
+  useLayoutEffect(() => {
+    if (!pendingPath || !viewportRef.current) return;
+    viewportRef.current.scrollTop = 0;
+    syncScrollState();
+  }, [pendingPath, syncScrollState]);
 
   const handleViewportRef = useCallback(
     (viewport: HTMLElement | null) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useMobileRouter as useRouter } from "@/components/mobile-navigation-feedback";
 import { RiSearchLine } from "@remixicon/react";
 import {
   getPocket,

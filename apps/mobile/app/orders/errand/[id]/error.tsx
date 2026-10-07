@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/mobile-link";
 import { Button } from "@workspace/ui/components/button";
 import { LoadFailure } from "@/components/load-failure";
 

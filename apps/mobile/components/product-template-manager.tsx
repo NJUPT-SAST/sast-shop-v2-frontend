@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useRouter } from "next/navigation";
+import { useMobileRouter as useRouter } from "@/components/mobile-navigation-feedback";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   RiAddLine,
@@ -694,7 +694,10 @@ export function ProductTemplateManager({
       ) : null}
 
       {selectedStoreId && !drawerOpen && !storeCreateOpen && !isKeyboardOpen ? (
-        <MobileFixedFooter className="pointer-events-none border-0 bg-transparent px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur-none md:border-0 [&>div]:justify-end">
+        <MobileFixedFooter
+          reserveSpace={false}
+          className="pointer-events-none border-0 bg-transparent px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur-none md:border-0 [&>div]:justify-end"
+        >
           <Button
             type="button"
             size="icon-touch"

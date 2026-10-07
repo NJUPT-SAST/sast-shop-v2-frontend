@@ -90,14 +90,20 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 
-function Page({ footer }: { footer: boolean }) {
+function Page({
+  footer,
+  reserveSpace = true,
+}: {
+  footer: boolean;
+  reserveSpace?: boolean;
+}) {
   return (
     <MobileScrollProvider>
       <MobileScrollArea hasBottomNav={false}>
         <h1>订单详情</h1>
       </MobileScrollArea>
       {footer ? (
-        <MobileFixedFooter>
+        <MobileFixedFooter reserveSpace={reserveSpace}>
           <button>付款</button>
         </MobileFixedFooter>
       ) : null}
@@ -299,6 +305,18 @@ describe("mobile layout", () => {
     expect(scrollContainer.style.marginBottom).toBe("132px");
     await act(async () => root.render(<Page footer={false} />));
     expect(scrollContainer.style.marginBottom).toBe("");
+  });
+
+  it("keeps the full scroll viewport for a floating action and releases previous bar space", async () => {
+    await act(async () => root.render(<Page footer />));
+    const scrollContainer = container.querySelector("main")!.parentElement!;
+    expect(scrollContainer.style.marginBottom).toBe("80px");
+    await act(async () => root.render(<Page footer reserveSpace={false} />));
+    expect(scrollContainer.style.marginBottom).toBe("");
+    expect(document.querySelector("footer")?.textContent).toBe("付款");
+    expect(scrollContainer.contains(document.querySelector("footer"))).toBe(
+      false,
+    );
   });
 
   it("discovers a secondary title rendered after loading without hiding the page heading", async () => {

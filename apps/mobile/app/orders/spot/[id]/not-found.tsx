@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/mobile-link";
 import { Button } from "@workspace/ui/components/button";
 import { BrandIllustration } from "@/components/brand-illustration";
 import { Empty } from "@workspace/ui/components/empty";

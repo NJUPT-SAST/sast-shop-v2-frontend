@@ -68,9 +68,15 @@ export default function RootLayout({
             overview={null}
             error={null}
           >
-            <TransactionAgreementProvider requireUserIdentity={authRequired}>
-              <MobileShell>{children}</MobileShell>
-            </TransactionAgreementProvider>
+            <MobileShell
+              dataSource={mobileAppConfig.dataSource}
+              connectBaseUrl={mobileAppConfig.connectBaseUrl}
+              authRequired={authRequired}
+            >
+              <TransactionAgreementProvider requireUserIdentity={authRequired}>
+                {children}
+              </TransactionAgreementProvider>
+            </MobileShell>
           </ProfileDialogsProvider>
         </AuthBootstrap>
         <Toaster position="top-center" />

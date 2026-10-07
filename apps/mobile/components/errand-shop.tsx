@@ -3,8 +3,8 @@
 import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useMobileRouter as useRouter } from "@/components/mobile-navigation-feedback";
+import Link from "@/components/mobile-link";
 import { RiAddLine, RiMapPinLine, RiShoppingCartLine } from "@remixicon/react";
 import {
   createErrandDemand,

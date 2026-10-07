@@ -1,6 +1,6 @@
 "use client";
 import { useCallback } from "react";
-import Link from "next/link";
+import Link from "@/components/mobile-link";
 import { listMyPockets } from "@sast-shop/api";
 import { Badge } from "@workspace/ui/components/badge";
 import {

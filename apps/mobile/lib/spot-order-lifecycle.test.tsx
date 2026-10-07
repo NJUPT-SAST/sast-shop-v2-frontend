@@ -56,8 +56,10 @@ vi.mock("../components/managed-image", () => ({
   ManagedImage: ({ alt }: { alt: string }) => <span aria-label={alt} />,
 }));
 vi.mock("../components/payment-flow", () => ({
-  PaymentSection: () => null,
-  SupplementSerialNumberDialog: () => null,
+  PaymentSection: ({ open }: { open: boolean }) =>
+    open ? <div role="dialog">支付方式</div> : null,
+  SupplementSerialNumberDialog: ({ open }: { open: boolean }) =>
+    open ? <div role="dialog">补充流水号</div> : null,
 }));
 vi.mock("@workspace/ui/components/payment-code-help", () => ({
   PaymentCodeHelp: () => null,
@@ -114,6 +116,63 @@ afterEach(async () => {
 });
 
 describe("spot order lifecycle recovery", () => {
+  it.each([
+    ["unpaid", "去支付", "支付方式"],
+    ["submitted", "忘记备注？补充流水号", "补充流水号"],
+  ] as const)(
+    "opens the buyer %s drawer without waiting for agreement",
+    async (status, entry, content) => {
+      ensureAgreement.mockImplementation(() => new Promise(() => {}));
+      await renderOrder(makeOrder({ bill: makeBill({ status }) }));
+
+      await click(entry);
+
+      expect(container.querySelector('[role="dialog"]')?.textContent).toBe(
+        content,
+      );
+      expect(ensureAgreement).not.toHaveBeenCalled();
+    },
+  );
+
+  it("opens collection confirmation immediately and waits for agreement before writing", async () => {
+    let resolveAgreement!: (accepted: boolean) => void;
+    ensureAgreement.mockImplementation(
+      () =>
+        new Promise<boolean>((resolve) => {
+          resolveAgreement = resolve;
+        }),
+    );
+    await renderOrder(
+      makeOrder({ bill: makeBill({ status: "submitted" }) }),
+      "seller",
+    );
+
+    await click("确认收款");
+    expect(button("确认已到账")).toBeDefined();
+    expect(ensureAgreement).not.toHaveBeenCalled();
+
+    await clickDialog("确认已到账");
+    expect(ensureAgreement).toHaveBeenCalledTimes(1);
+    expect(confirmBill).not.toHaveBeenCalled();
+    await act(async () => resolveAgreement(false));
+    expect(confirmBill).not.toHaveBeenCalled();
+  });
+
+  it("does not confirm collection when agreement verification rejects", async () => {
+    ensureAgreement.mockRejectedValue(new Error("身份确认失败"));
+    await renderOrder(
+      makeOrder({ bill: makeBill({ status: "submitted" }) }),
+      "seller",
+    );
+
+    await click("确认收款");
+    expect(ensureAgreement).not.toHaveBeenCalled();
+    await clickDialog("确认已到账");
+
+    expect(confirmBill).not.toHaveBeenCalled();
+    expect(toastError).toHaveBeenCalledWith("协议确认失败，请稍后重试");
+  });
+
   it("locks cancellation at the old version when the response and readback fail", async () => {
     cancelSpotOrder.mockRejectedValue(new Error("响应丢失"));
     getSpotOrderDetail.mockRejectedValue(new Error("读取失败"));
