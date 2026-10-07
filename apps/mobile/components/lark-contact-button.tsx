@@ -3,7 +3,7 @@
 import { useRef, useState, useSyncExternalStore } from "react";
 import { RiMessage3Line } from "@remixicon/react";
 import {
-  configureLarkPageJsapi,
+  withLarkPageJsapi,
   enterLarkChat,
   getBuyerErrandOrderCaptainContact,
   getSpotOrderSellerContact,
@@ -51,6 +51,7 @@ export function LarkContactButton({
     pendingRef.current = true;
     setPending(true);
 
+    const client = window.tt;
     try {
       const contactOpenId = await loadContactOpenId({
         target,
@@ -58,7 +59,7 @@ export function LarkContactButton({
         dataSource,
         connectBaseUrl,
       });
-      await configureLarkPageJsapi(
+      await withLarkPageJsapi(
         window.h5sdk,
         async (signingUrl) => {
           const response = await fetch(
@@ -75,9 +76,9 @@ export function LarkContactButton({
           }
           return body;
         },
+        () => enterLarkChat(client, contactOpenId),
         ["tt.enterChat"],
       );
-      await enterLarkChat(window.tt, contactOpenId);
     } catch (reason) {
       toast.error(
         reason instanceof Error

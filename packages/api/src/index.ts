@@ -24,6 +24,7 @@ export {
 export {
   configureLarkJsapi,
   configureLarkPageJsapi,
+  withLarkPageJsapi,
   enterLarkChat,
   isLarkClientEnvironment,
   isLarkMobileClientEnvironment,

@@ -7,19 +7,13 @@ import { AuthRequiredError } from "@sast-shop/api";
 import { AuthBootstrap } from "../components/auth-bootstrap";
 import Home from "../app/page";
 
-const {
-  refresh,
-  replace,
-  validateSessionUser,
-  waitForLarkReady,
-  requestLarkAuthorizationCode,
-} = vi.hoisted(() => ({
-  refresh: vi.fn(),
-  replace: vi.fn(),
-  validateSessionUser: vi.fn(),
-  waitForLarkReady: vi.fn(),
-  requestLarkAuthorizationCode: vi.fn(),
-}));
+const { refresh, replace, validateSessionUser, requestLarkAuthorizationCode } =
+  vi.hoisted(() => ({
+    refresh: vi.fn(),
+    replace: vi.fn(),
+    validateSessionUser: vi.fn(),
+    requestLarkAuthorizationCode: vi.fn(),
+  }));
 
 vi.mock("next/navigation", async (importOriginal) => ({
   ...(await importOriginal<typeof import("next/navigation")>()),
@@ -30,7 +24,6 @@ vi.mock("next/navigation", async (importOriginal) => ({
 vi.mock("@sast-shop/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@sast-shop/api")>()),
   validateSessionUser,
-  waitForLarkReady,
   requestLarkAuthorizationCode,
 }));
 
@@ -61,7 +54,6 @@ beforeEach(() => {
   refresh.mockReset();
   replace.mockReset();
   validateSessionUser.mockReset().mockResolvedValue(undefined);
-  waitForLarkReady.mockReset().mockResolvedValue(undefined);
   requestLarkAuthorizationCode.mockReset().mockResolvedValue("auth-code");
   container = document.createElement("div");
   document.body.append(container);
@@ -96,6 +88,61 @@ async function renderBootstrap(
 }
 
 describe("mobile auth bootstrap client gate", () => {
+  it("checks the initial session once and merges concurrent focus probes", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 Lark/7.35.0",
+    );
+    await renderBootstrap();
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(validateSessionUser).toHaveBeenCalledOnce();
+    let finish!: (response: typeof currentSession) => void;
+    fetchMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+      window.dispatchEvent(new Event("sast-shop:probe-session"));
+      window.dispatchEvent(new Event("focus"));
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await act(async () => finish(currentSession));
+    expect(validateSessionUser).toHaveBeenCalledTimes(2);
+  });
+
+  it("ignores a stale session probe after recovery starts", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 Lark/7.35.0",
+    );
+    vi.stubGlobal("tt", { requestAccess: vi.fn() });
+    await renderBootstrap();
+    let finish!: (response: typeof missingSession) => void;
+    fetchMock.mockImplementation(
+      async (_url: string, options?: { method?: string }) =>
+        options?.method
+          ? { ok: true, status: 200 }
+          : new Promise((resolve) => {
+              finish = resolve;
+            }),
+    );
+    await act(async () => window.dispatchEvent(new Event("focus")));
+    await act(async () =>
+      window.dispatchEvent(new Event(AuthRequiredError.browserEventName)),
+    );
+    await act(async () => finish(missingSession));
+    expect(requestLarkAuthorizationCode).toHaveBeenCalledOnce();
+    expect(
+      container.querySelector('[data-testid="app-content"]'),
+    ).not.toBeNull();
+    expect(
+      fetchMock.mock.calls.filter(
+        ([, options]) => options?.method === "DELETE",
+      ),
+    ).toHaveLength(1);
+  });
+
   it("invalidates private caches only when the validated session user changes", async () => {
     vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
       "Mozilla/5.0 Lark/7.35.0",
@@ -130,7 +177,7 @@ describe("mobile auth bootstrap client gate", () => {
       "Mozilla/5.0 Lark/7.35.0",
     );
     vi.stubGlobal("h5sdk", { ready: vi.fn() });
-    vi.stubGlobal("tt", {});
+    vi.stubGlobal("tt", { requestAccess: vi.fn() });
     let authorize!: (code: string) => void;
     requestLarkAuthorizationCode.mockImplementation(
       () =>
@@ -195,7 +242,7 @@ describe("mobile auth bootstrap client gate", () => {
       "Mozilla/5.0 (iPhone) Lark/7.35.0",
     );
     vi.stubGlobal("h5sdk", { ready: vi.fn() });
-    vi.stubGlobal("tt", {});
+    vi.stubGlobal("tt", { requestAccess: vi.fn() });
     let authorize!: (code: string) => void;
     requestLarkAuthorizationCode.mockImplementation(
       () => new Promise<string>((resolve) => (authorize = resolve)),
@@ -227,7 +274,7 @@ describe("mobile auth bootstrap client gate", () => {
       "Mozilla/5.0 (iPhone) Lark/7.35.0",
     );
     vi.stubGlobal("h5sdk", { ready: vi.fn() });
-    vi.stubGlobal("tt", {});
+    vi.stubGlobal("tt", { requestAccess: vi.fn() });
     let authorize!: (code: string) => void;
     requestLarkAuthorizationCode.mockImplementation(
       () => new Promise<string>((resolve) => (authorize = resolve)),
@@ -254,7 +301,7 @@ describe("mobile auth bootstrap client gate", () => {
       "Mozilla/5.0 (iPhone) Lark/7.35.0",
     );
     vi.stubGlobal("h5sdk", { ready: vi.fn() });
-    vi.stubGlobal("tt", {});
+    vi.stubGlobal("tt", { requestAccess: vi.fn() });
     fetchMock.mockResolvedValue(missingSession);
     requestLarkAuthorizationCode.mockRejectedValue(
       new Error("invalid redirect uri"),
@@ -270,7 +317,7 @@ describe("mobile auth bootstrap client gate", () => {
       "Mozilla/5.0 Lark/7.35.0",
     );
     vi.stubGlobal("h5sdk", { ready: vi.fn() });
-    vi.stubGlobal("tt", {});
+    vi.stubGlobal("tt", { requestAccess: vi.fn() });
     fetchMock.mockResolvedValue(missingSession);
     const locationReplace = vi.fn();
     const originalWindow = window;
@@ -371,9 +418,9 @@ describe("mobile auth bootstrap client gate", () => {
     vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
       "Mozilla/5.0 (Linux; Android 15) Mobile Feishu/7.35.0",
     );
-    const sdk = { ready: vi.fn((callback: () => void) => callback()) };
+    const sdk = { ready: vi.fn(), config: vi.fn() };
     vi.stubGlobal("h5sdk", sdk);
-    vi.stubGlobal("tt", {});
+    vi.stubGlobal("tt", { requestAccess: vi.fn() });
     fetchMock
       .mockReset()
       .mockResolvedValueOnce(missingSession)
@@ -381,7 +428,8 @@ describe("mobile auth bootstrap client gate", () => {
       .mockResolvedValue(currentSession);
 
     await renderBootstrap();
-    expect(waitForLarkReady).toHaveBeenCalledWith(sdk);
+    expect(sdk.ready).not.toHaveBeenCalled();
+    expect(sdk.config).not.toHaveBeenCalled();
     expect(requestLarkAuthorizationCode).toHaveBeenCalledWith(
       window.tt,
       "cli_test",
@@ -414,11 +462,11 @@ describe("mobile auth bootstrap client gate", () => {
     const sdk = { ready: vi.fn((callback: () => void) => callback()) };
     await act(async () => {
       vi.stubGlobal("h5sdk", sdk);
-      vi.stubGlobal("tt", {});
+      vi.stubGlobal("tt", { requestAccess: vi.fn() });
       script.dispatchEvent(new Event("load"));
     });
     script.remove();
-    expect(waitForLarkReady).toHaveBeenCalledWith(sdk);
+    expect(sdk.ready).not.toHaveBeenCalled();
     expect(
       container.querySelector('[data-testid="app-content"]'),
     ).not.toBeNull();
@@ -446,7 +494,7 @@ describe("mobile auth bootstrap client gate", () => {
       "Mozilla/5.0 (Linux; Android 15) Mobile Feishu/7.35.0",
     );
     vi.stubGlobal("h5sdk", { ready: vi.fn() });
-    vi.stubGlobal("tt", {});
+    vi.stubGlobal("tt", { requestAccess: vi.fn() });
     fetchMock.mockImplementation(
       async (_url: string, options?: { method?: string }) =>
         options?.method ? { ok: true, status: 200 } : currentSession,

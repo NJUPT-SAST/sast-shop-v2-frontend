@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   configureLarkJsapi,
   configureLarkPageJsapi,
+  withLarkPageJsapi,
   enterLarkChat,
   isLarkClientEnvironment,
   isLarkMobileClientEnvironment,
@@ -112,6 +113,183 @@ describe("Lark client adapter", () => {
       "H5 可信域名",
     );
     expect(getConfig).toHaveBeenCalledTimes(1);
+  });
+
+  it("shares concurrent page authorization and reuses it without caching signatures", async () => {
+    stubPage();
+    const getConfig = vi.fn(async () => authConfig);
+    let succeed!: () => void;
+    const config = vi.fn<NonNullable<LarkH5Sdk["config"]>>((options) => {
+      succeed = () => options.onSuccess?.({});
+    });
+    const sdk = { config };
+    const first = configureLarkPageJsapi(sdk, getConfig);
+    const second = configureLarkPageJsapi(sdk, getConfig);
+    await vi.waitFor(() => expect(config).toHaveBeenCalledOnce());
+    succeed();
+    await Promise.all([first, second]);
+    await configureLarkPageJsapi(sdk, getConfig);
+    expect(getConfig).toHaveBeenCalledOnce();
+    expect(config).toHaveBeenCalledOnce();
+  });
+
+  it("preserves existing API authorization when expanding the list and signs a changed page", async () => {
+    stubPage();
+    const getConfig = vi.fn(async () => authConfig);
+    const config = vi.fn<NonNullable<LarkH5Sdk["config"]>>((options) =>
+      options.onSuccess?.({}),
+    );
+    const sdk = { config };
+    await configureLarkPageJsapi(sdk, getConfig);
+    await configureLarkPageJsapi(sdk, getConfig, ["tt.enterChat"]);
+    await configureLarkPageJsapi(sdk, getConfig);
+    expect(config).toHaveBeenCalledTimes(2);
+    expect(config).toHaveBeenLastCalledWith(
+      expect.objectContaining({ jsApiList: ["tt.scanCode", "tt.enterChat"] }),
+    );
+    window.location.href = "https://shop.example.com/profile";
+    await configureLarkPageJsapi(sdk, getConfig);
+    expect(getConfig).toHaveBeenLastCalledWith(
+      "https://shop.example.com/profile",
+    );
+    expect(config).toHaveBeenCalledTimes(3);
+    await configureLarkPageJsapi({ config }, getConfig);
+    expect(config).toHaveBeenCalledTimes(4);
+  });
+
+  it("does not cache failed authorization", async () => {
+    stubPage();
+    const getConfig = vi.fn(async () => authConfig);
+    const config = vi
+      .fn<NonNullable<LarkH5Sdk["config"]>>()
+      .mockImplementationOnce((options) => options.onFail?.({ errno: 333444 }))
+      .mockImplementationOnce((options) => options.onSuccess?.({}));
+    const sdk = { config };
+    await expect(configureLarkPageJsapi(sdk, getConfig)).rejects.toThrow(
+      "已过期",
+    );
+    await configureLarkPageJsapi(sdk, getConfig);
+    expect(getConfig).toHaveBeenCalledTimes(2);
+  });
+
+  it("serializes concurrent expansion of different API permissions", async () => {
+    stubPage();
+    const getConfig = vi.fn(async () => authConfig);
+    let finish!: () => void;
+    const config = vi
+      .fn<NonNullable<LarkH5Sdk["config"]>>()
+      .mockImplementationOnce((options) => {
+        finish = () => options.onSuccess?.({});
+      })
+      .mockImplementation((options) => options.onSuccess?.({}));
+    const sdk = { config };
+    const scan = configureLarkPageJsapi(sdk, getConfig);
+    const chat = configureLarkPageJsapi(sdk, getConfig, ["tt.enterChat"]);
+    await vi.waitFor(() => expect(config).toHaveBeenCalledOnce());
+    finish();
+    await Promise.all([scan, chat]);
+    expect(config).toHaveBeenCalledTimes(2);
+    expect(config).toHaveBeenLastCalledWith(
+      expect.objectContaining({ jsApiList: ["tt.scanCode", "tt.enterChat"] }),
+    );
+  });
+
+  it("shares reauthorization when two native operations reject the same cached authorization", async () => {
+    stubPage();
+    const getConfig = vi.fn(async () => authConfig);
+    const config = vi.fn<NonNullable<LarkH5Sdk["config"]>>((options) =>
+      options.onSuccess?.({}),
+    );
+    const failures: Array<() => void> = [];
+    const enterChat = vi
+      .fn<NonNullable<LarkClientApi["enterChat"]>>()
+      .mockImplementationOnce((options) => {
+        failures.push(() => options.fail({ errno: 105 }));
+      })
+      .mockImplementationOnce((options) => {
+        failures.push(() => options.fail({ errno: 105 }));
+      })
+      .mockImplementation((options) => options.success({}));
+    const sdk = { config };
+    const operation = () => enterLarkChat({ enterChat }, "ou_test");
+    const first = withLarkPageJsapi(sdk, getConfig, operation, [
+      "tt.enterChat",
+    ]);
+    const second = withLarkPageJsapi(sdk, getConfig, operation, [
+      "tt.enterChat",
+    ]);
+    await vi.waitFor(() => expect(failures).toHaveLength(2));
+    failures.forEach((fail) => fail());
+    await Promise.all([first, second]);
+    expect(getConfig).toHaveBeenCalledTimes(2);
+    expect(enterChat).toHaveBeenCalledTimes(4);
+  });
+
+  it.each([105, 333442, 333444, 333445])(
+    "refreshes authorization once after native API auth failure %s",
+    async (errno) => {
+      stubPage();
+      const getConfig = vi.fn(async () => ({
+        ...authConfig,
+        nonceStr: String(getConfig.mock.calls.length),
+      }));
+      const config = vi.fn<NonNullable<LarkH5Sdk["config"]>>((options) =>
+        options.onSuccess?.({}),
+      );
+      const scanCode = vi
+        .fn<NonNullable<LarkClientApi["scanCode"]>>()
+        .mockImplementationOnce((options) =>
+          options.fail({ errorCode: String(errno) }),
+        )
+        .mockImplementationOnce((options) =>
+          options.success({ result: "0690001" }),
+        );
+      const sdk = { config };
+      await configureLarkPageJsapi(sdk, getConfig);
+      await expect(
+        withLarkPageJsapi(sdk, getConfig, () => scanLarkBarcode({ scanCode })),
+      ).resolves.toBe("0690001");
+      expect(getConfig).toHaveBeenCalledTimes(2);
+      expect(scanCode).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it.each([1505002, 333448, 123])(
+    "does not reauthorize or repeat native operations after error %s",
+    async (errno) => {
+      stubPage();
+      const getConfig = vi.fn(async () => authConfig);
+      const config: NonNullable<LarkH5Sdk["config"]> = (options) =>
+        options.onSuccess?.({});
+      const scanCode = vi.fn<NonNullable<LarkClientApi["scanCode"]>>(
+        (options) => options.fail({ errno }),
+      );
+      await expect(
+        withLarkPageJsapi({ config }, getConfig, () =>
+          scanLarkBarcode({ scanCode }),
+        ),
+      ).rejects.toMatchObject({ errno });
+      expect(getConfig).toHaveBeenCalledOnce();
+      expect(scanCode).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("stops after one native authorization retry", async () => {
+    stubPage();
+    const getConfig = vi.fn(async () => authConfig);
+    const config: NonNullable<LarkH5Sdk["config"]> = (options) =>
+      options.onSuccess?.({});
+    const scanCode = vi.fn<NonNullable<LarkClientApi["scanCode"]>>((options) =>
+      options.fail({ errno: 333444 }),
+    );
+    const sdk = { config };
+    await expect(
+      withLarkPageJsapi(sdk, getConfig, () => scanLarkBarcode({ scanCode })),
+    ).rejects.toMatchObject({ errno: 333444 });
+    expect(getConfig).toHaveBeenCalledTimes(2);
+    expect(scanCode).toHaveBeenCalledTimes(2);
+    await configureLarkPageJsapi(sdk, getConfig);
+    expect(getConfig).toHaveBeenCalledTimes(3);
   });
 
   it("handles the SDK config promise rejection without exposing its diagnostics", async () => {

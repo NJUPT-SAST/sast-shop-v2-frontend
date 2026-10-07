@@ -24,7 +24,7 @@ import { toast } from "sonner";
 import * as z from "zod";
 import {
   createSpotGoods,
-  configureLarkPageJsapi,
+  withLarkPageJsapi,
   getProductTemplatesByBarcode,
   isLarkScanCancelledError,
   listPaymentQrCodes,
@@ -277,23 +277,27 @@ export function PublishSpotForm({
     scanningRef.current = true;
     setScanning(true);
     setScanFeedback(null);
+    const client = window.tt;
     try {
-      await configureLarkPageJsapi(window.h5sdk, async (signingUrl) => {
-        const response = await fetch(
-          `/api/auth/jsapi-config?url=${encodeURIComponent(signingUrl)}`,
-          { cache: "no-store" },
-        );
-        const body: unknown = await response.json().catch(() => null);
-        if (!response.ok || !isJsapiAuthConfig(body)) {
-          throw new Error(
-            response.status === 401
-              ? "登录已失效，请重新打开应用"
-              : "扫码鉴权暂不可用，请稍后再试",
+      const scannedBarcode = await withLarkPageJsapi(
+        window.h5sdk,
+        async (signingUrl) => {
+          const response = await fetch(
+            `/api/auth/jsapi-config?url=${encodeURIComponent(signingUrl)}`,
+            { cache: "no-store" },
           );
-        }
-        return body;
-      });
-      const scannedBarcode = await scanLarkBarcode(window.tt);
+          const body: unknown = await response.json().catch(() => null);
+          if (!response.ok || !isJsapiAuthConfig(body)) {
+            throw new Error(
+              response.status === 401
+                ? "登录已失效，请重新打开应用"
+                : "扫码鉴权暂不可用，请稍后再试",
+            );
+          }
+          return body;
+        },
+        () => scanLarkBarcode(client),
+      );
       setBarcodeEditable(true);
       const previousBarcode = form.getValues("barcode");
       form.setValue("barcode", scannedBarcode, {

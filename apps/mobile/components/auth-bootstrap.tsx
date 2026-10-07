@@ -17,7 +17,6 @@ import {
   subscribeLarkEnvironment,
   type DataSource,
   validateSessionUser,
-  waitForLarkReady,
 } from "@sast-shop/api";
 import { Button } from "@workspace/ui/components/button";
 import { Spinner } from "@workspace/ui/components/spinner";
@@ -59,6 +58,9 @@ export function AuthBootstrap({
   const recoveredAtRef = useRef(0);
   const retryAfterRef = useRef(0);
   const sessionUserIdRef = useRef<string | null>(null);
+  const sessionCheckRef = useRef<Promise<boolean> | null>(null);
+  const sessionGenerationRef = useRef(0);
+  const verifiedPathRef = useRef(pathname);
   const isInLark = useSyncExternalStore(
     subscribeLarkEnvironment,
     () => !enabled || isLarkClientEnvironment(window.h5sdk),
@@ -66,19 +68,38 @@ export function AuthBootstrap({
   );
   const unsupported = enabled && (state === "unsupported" || !isInLark);
 
-  const verifyCurrentSession = useCallback(async () => {
-    const status = await fetch("/api/auth/session", { cache: "no-store" });
-    const current = (await status.json()) as {
-      authenticated?: boolean;
-      user?: { id?: string } | null;
-    };
-    if (!status.ok || !current.authenticated || !current.user?.id) return false;
-    await validateSessionUser(current.user.id, { dataSource, connectBaseUrl });
-    if (sessionUserIdRef.current !== current.user.id) {
-      sessionUserIdRef.current = current.user.id;
-      window.dispatchEvent(new Event("sast-shop:session-changed"));
-    }
-    return true;
+  const verifyCurrentSession = useCallback(() => {
+    if (sessionCheckRef.current) return sessionCheckRef.current;
+    const generation = sessionGenerationRef.current;
+    const check = (async () => {
+      const status = await fetch("/api/auth/session", { cache: "no-store" });
+      const current = (await status.json()) as {
+        authenticated?: boolean;
+        user?: { id?: string } | null;
+      };
+      if (generation !== sessionGenerationRef.current) return true;
+      if (!status.ok || !current.authenticated || !current.user?.id)
+        return false;
+      await validateSessionUser(current.user.id, {
+        dataSource,
+        connectBaseUrl,
+      });
+      if (generation !== sessionGenerationRef.current) return true;
+      if (sessionUserIdRef.current !== current.user.id) {
+        sessionUserIdRef.current = current.user.id;
+        window.dispatchEvent(new Event("sast-shop:session-changed"));
+      }
+      return true;
+    })()
+      .catch((reason: unknown) => {
+        if (generation !== sessionGenerationRef.current) return true;
+        throw reason;
+      })
+      .finally(() => {
+        if (sessionCheckRef.current === check) sessionCheckRef.current = null;
+      });
+    sessionCheckRef.current = check;
+    return check;
   }, [connectBaseUrl, dataSource]);
 
   const authenticate = useCallback(
@@ -95,6 +116,8 @@ export function AuthBootstrap({
           return false;
         }
         if (clearSession) {
+          sessionGenerationRef.current += 1;
+          sessionCheckRef.current = null;
           sessionUserIdRef.current = null;
           window.dispatchEvent(new Event("sast-shop:session-changing"));
           const cleared = await fetch("/api/auth/session", {
@@ -125,14 +148,12 @@ export function AuthBootstrap({
 
         if (!appId)
           throw new Error("缺少飞书应用 ID，请联系管理员完成部署配置");
-        if (!window.h5sdk?.ready || !window.tt) {
+        if (!window.tt?.requestAccess && !window.tt?.requestAuthCode) {
           throw new Error(sdkNotReadyMessage);
         }
 
         setState("authenticating");
-        const sdk = window.h5sdk;
         const client = window.tt;
-        await waitForLarkReady(sdk);
         const code = await requestLarkAuthorizationCode(client, appId);
         const response = await fetch("/api/auth/session", {
           method: "POST",
@@ -191,8 +212,7 @@ export function AuthBootstrap({
     const retryWhenReady = () => {
       if (
         isLarkClientEnvironment(window.h5sdk) &&
-        window.h5sdk?.ready &&
-        window.tt
+        (window.tt?.requestAccess || window.tt?.requestAuthCode)
       )
         void authenticate();
     };
@@ -217,7 +237,10 @@ export function AuthBootstrap({
         window.dispatchEvent(new Event(AuthRequiredError.browserEventName));
       }
     };
-    void verify();
+    if (verifiedPathRef.current !== pathname) {
+      verifiedPathRef.current = pathname;
+      void verify();
+    }
     const handleVisibility = () => {
       if (document.visibilityState === "visible") void verify();
     };
@@ -333,7 +356,10 @@ export function AuthBootstrap({
 
 function SearchParamsSessionProbe() {
   const searchParams = useSearchParams().toString();
+  const previousRef = useRef(searchParams);
   useEffect(() => {
+    if (previousRef.current === searchParams) return;
+    previousRef.current = searchParams;
     window.dispatchEvent(new Event(sessionProbeEventName));
   }, [searchParams]);
   return null;

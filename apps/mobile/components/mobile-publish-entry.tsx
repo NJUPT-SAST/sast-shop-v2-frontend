@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { RiAddLine } from "@remixicon/react";
 import { toast } from "sonner";
 import {
-  configureLarkPageJsapi,
+  withLarkPageJsapi,
   isLarkScanCancelledError,
   scanLarkBarcode,
 } from "@sast-shop/api";
@@ -53,24 +53,29 @@ export function MobilePublishEntry() {
     pendingScanRef.current = request;
     setScanning(true);
     try {
-      await configureLarkPageJsapi(sdk, async (signingUrl) => {
-        const response = await fetch(
-          `/api/auth/jsapi-config?url=${encodeURIComponent(signingUrl)}`,
-          { cache: "no-store" },
-        );
-        const body: unknown = await response.json().catch(() => null);
-        if (!response.ok || !isJsapiAuthConfig(body)) {
-          throw new Error(
-            response.status === 401
-              ? "登录已失效，请重新打开应用"
-              : "扫码鉴权暂不可用，请稍后再试",
+      const scannedBarcode = await withLarkPageJsapi(
+        sdk,
+        async (signingUrl) => {
+          const response = await fetch(
+            `/api/auth/jsapi-config?url=${encodeURIComponent(signingUrl)}`,
+            { cache: "no-store" },
           );
-        }
-        return body;
-      });
-      if (pendingScanRef.current !== request) return;
-      const scannedBarcode = await scanLarkBarcode(client);
-      if (pendingScanRef.current !== request) return;
+          const body: unknown = await response.json().catch(() => null);
+          if (!response.ok || !isJsapiAuthConfig(body)) {
+            throw new Error(
+              response.status === 401
+                ? "登录已失效，请重新打开应用"
+                : "扫码鉴权暂不可用，请稍后再试",
+            );
+          }
+          return body;
+        },
+        () =>
+          pendingScanRef.current === request
+            ? scanLarkBarcode(client)
+            : Promise.resolve(null),
+      );
+      if (pendingScanRef.current !== request || scannedBarcode === null) return;
       setOpen(false);
       await waitForDrawerHistoryCleanup();
       if (pendingScanRef.current !== request) return;

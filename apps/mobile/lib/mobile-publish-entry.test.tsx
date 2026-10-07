@@ -280,6 +280,8 @@ describe("mobile publish entry", () => {
     expect(getButton("发起 Pocket").disabled).toBe(false);
     await clickButton("上架现货");
     expect(scanCode).toHaveBeenCalledTimes(2);
+    expect(fetchConfig).toHaveBeenCalledOnce();
+    expect(configure).toHaveBeenCalledOnce();
     expect(push).toHaveBeenCalledExactlyOnceWith(
       "/publish/spot?entry=scan&barcode=0012345",
     );

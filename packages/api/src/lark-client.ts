@@ -4,6 +4,8 @@ export interface LarkCallbackResult {
   code?: string;
   result?: string;
   errno?: number;
+  errCode?: number | string;
+  errorCode?: number | string;
   errString?: string;
   errMsg?: string;
 }
@@ -12,6 +14,22 @@ type LarkCallback = (result: LarkCallbackResult) => void;
 export type LarkJsapiName = "tt.enterChat" | "tt.scanCode";
 const larkClientTimeoutMs = 15_000;
 const scanCancelledErrno = 1_505_002;
+interface PageAuthorization {
+  url: string;
+  apis: LarkJsapiName[];
+}
+interface PageAuthorizationCache {
+  authorization?: PageAuthorization;
+  pending: Promise<void>;
+}
+const pageAuthorizations = new WeakMap<LarkH5Sdk, PageAuthorizationCache>();
+
+function isJsapiAuthorizationExpired(reason: unknown): boolean {
+  return (
+    reason instanceof LarkClientError &&
+    [105, 333442, 333444, 333445].includes(reason.errno ?? 0)
+  );
+}
 
 export class LarkClientError extends Error {
   constructor(
@@ -174,6 +192,71 @@ export async function configureLarkPageJsapi(
   jsApiList: LarkJsapiName[] = ["tt.scanCode"],
 ): Promise<void> {
   const signingUrl = window.location.href.split("#", 1)[0] ?? "";
+  let cache = pageAuthorizations.get(sdk);
+  if (!cache) {
+    cache = { pending: Promise.resolve() };
+    pageAuthorizations.set(sdk, cache);
+  }
+  const currentCache = cache;
+  const configuring = cache.pending
+    .catch(() => undefined)
+    .then(async () => {
+      const previous = currentCache.authorization;
+      if (
+        previous?.url === signingUrl &&
+        jsApiList.every((api) => previous.apis.includes(api))
+      )
+        return;
+      const apis = [
+        ...new Set([
+          ...(previous?.url === signingUrl ? previous.apis : []),
+          ...jsApiList,
+        ]),
+      ];
+      currentCache.authorization = undefined;
+      await authorizeLarkPage(sdk, getConfig, signingUrl, apis);
+      // Cache successful authorization, never the short-lived signature.
+      currentCache.authorization = { url: signingUrl, apis };
+    });
+  cache.pending = configuring;
+  await configuring;
+}
+
+export async function withLarkPageJsapi<T>(
+  sdk: LarkH5Sdk,
+  getConfig: (signingUrl: string) => Promise<JSAPIAuthConfig>,
+  operation: () => Promise<T>,
+  jsApiList: LarkJsapiName[] = ["tt.scanCode"],
+): Promise<T> {
+  await configureLarkPageJsapi(sdk, getConfig, jsApiList);
+  const cache = pageAuthorizations.get(sdk)!;
+  const authorization = cache.authorization;
+  try {
+    return await operation();
+  } catch (reason) {
+    if (!isJsapiAuthorizationExpired(reason)) throw reason;
+    if (cache.authorization === authorization) cache.authorization = undefined;
+    await configureLarkPageJsapi(sdk, getConfig, jsApiList);
+    const refreshedAuthorization = cache.authorization;
+    try {
+      return await operation();
+    } catch (retryReason) {
+      if (
+        isJsapiAuthorizationExpired(retryReason) &&
+        cache.authorization === refreshedAuthorization
+      )
+        cache.authorization = undefined;
+      throw retryReason;
+    }
+  }
+}
+
+async function authorizeLarkPage(
+  sdk: LarkH5Sdk,
+  getConfig: (signingUrl: string) => Promise<JSAPIAuthConfig>,
+  signingUrl: string,
+  jsApiList: LarkJsapiName[],
+): Promise<void> {
   const navigation = window.performance.getEntriesByType?.("navigation")[0];
   let entryUrl: string | undefined;
   if (navigation?.name) {
@@ -209,22 +292,13 @@ export async function configureLarkPageJsapi(
 }
 
 function createJsapiAuthError(result: unknown): LarkClientError {
-  const fields =
-    result && typeof result === "object"
-      ? (result as Record<string, unknown>)
-      : {};
-  const code = fields.errorCode ?? fields.errCode ?? fields.errno;
-  const errno =
-    (typeof code === "number" ||
-      (typeof code === "string" && /^\d+$/.test(code))) &&
-    Number.isSafeInteger(Number(code))
-      ? Number(code)
-      : undefined;
+  const errno = getLarkErrorCode(result);
   const messages: Record<number, string> = {
     333441: "飞书 JSAPI 签名校验失败，请重新打开应用",
     333442: "飞书 JSAPI 票据无效，请稍后重试",
     333443: "飞书 JSAPI 签名已使用，请重试",
     333444: "飞书 JSAPI 签名已过期，请重试",
+    333445: "飞书 JSAPI 尚未授权，请重试",
     333447: "飞书应用尚未配置 H5 可信域名，请联系管理员",
     333448: "当前地址不在飞书应用的 H5 可信域名内，请联系管理员",
     333449: "当前账号不在飞书应用的可用范围内，请联系管理员",
@@ -236,6 +310,19 @@ function createJsapiAuthError(result: unknown): LarkClientError {
     errno === undefined ? message : `${message}（错误码：${errno}）`,
     errno,
   );
+}
+
+function getLarkErrorCode(result: unknown): number | undefined {
+  const fields =
+    result && typeof result === "object"
+      ? (result as Record<string, unknown>)
+      : {};
+  const code = fields.errorCode ?? fields.errCode ?? fields.errno;
+  return (typeof code === "number" ||
+    (typeof code === "string" && /^\d+$/.test(code))) &&
+    Number.isSafeInteger(Number(code))
+    ? Number(code)
+    : undefined;
 }
 
 export function enterLarkChat(
@@ -339,9 +426,13 @@ function settleAuthorization(
 }
 
 function createLarkError(result: LarkCallbackResult, fallback: string) {
+  const errno = getLarkErrorCode(result);
+  if (errno !== undefined && errno >= 333441 && errno <= 333449) {
+    return createJsapiAuthError(result);
+  }
   return new LarkClientError(
     result.errString?.trim() || result.errMsg?.trim() || fallback,
-    result.errno,
+    errno,
   );
 }
 
