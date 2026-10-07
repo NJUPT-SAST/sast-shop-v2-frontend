@@ -28,6 +28,8 @@ import {
   toDateTimeLocalValue,
 } from "@sast-shop/domain";
 import { Button } from "@workspace/ui/components/button";
+import { EditActionLabel } from "@workspace/ui/components/edit-action-label";
+import { StoreEditDialog } from "./store-edit-dialog";
 // 展示商品列表，订单摘要，价格汇总面板
 import {
   Card,
@@ -141,6 +143,8 @@ export function ErrandShop({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [needsVerification, setNeedsVerification] = useState(false);
+  const [storeEditOpen, setStoreEditOpen] = useState(false);
+  const [savedStore, setSavedStore] = useState<Store | null>(null);
 
   const cartById = useMemo(
     () => new Map(items.map((item) => [item.template.id, item])),
@@ -212,6 +216,7 @@ export function ErrandShop({
   }
 
   const storeId = store.id;
+  const displayedStore = savedStore?.id === store.id ? savedStore : store;
 
   function updateQuantity(template: ProductTemplate, nextQuantity: number) {
     setItems((current) => {
@@ -346,28 +351,50 @@ export function ErrandShop({
       <section className="flex min-w-0 flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-4">
           <ManagedImage
-            src={store.logoUrl}
-            alt={store.name}
+            src={displayedStore.logoUrl}
+            alt={displayedStore.name}
             className="size-16 shrink-0 rounded-xl border"
           />
           <div className="min-w-0">
             <h1 className="truncate text-3xl font-semibold tracking-tight">
-              {store.name}
+              {displayedStore.name}
             </h1>
-            {store.address ? (
+            {displayedStore.address ? (
               <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                {store.address}
+                {displayedStore.address}
               </p>
             ) : null}
           </div>
         </div>
-        <Button asChild variant="outline">
-          <Link href="/group">
-            <RiArrowLeftLine data-icon="inline-start" />
-            返回团购工作台
-          </Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            type="button"
+            variant="text"
+            size="touch"
+            onClick={() => setStoreEditOpen(true)}
+          >
+            <EditActionLabel>编辑店铺</EditActionLabel>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/group">
+              <RiArrowLeftLine data-icon="inline-start" />
+              返回团购工作台
+            </Link>
+          </Button>
+        </div>
       </section>
+
+      <StoreEditDialog
+        open={storeEditOpen}
+        onOpenChange={setStoreEditOpen}
+        storeId={storeId}
+        dataSource={dataSource}
+        connectBaseUrl={connectBaseUrl}
+        onSaved={(nextStore) => {
+          setSavedStore(nextStore);
+          router.refresh();
+        }}
+      />
 
       <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
         <section className="min-w-0 space-y-4">

@@ -2,6 +2,7 @@
 
 import {
   type ChangeEvent,
+  type MouseEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -13,7 +14,6 @@ import {
   RiAddLine,
   RiBarcodeLine,
   RiDeleteBinLine,
-  RiEditLine,
   RiImageAddLine,
   RiSearchLine,
   RiStore2Line,
@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import {
   createProductTemplate,
   deleteProductTemplate,
+  getProductTemplate,
   listProductTemplatesPage,
   updateProductTemplate,
   ValidationError,
@@ -33,6 +34,7 @@ import {
 } from "@sast-shop/api";
 import { formatPrice, parseYuanToCents } from "@sast-shop/domain";
 import { Button } from "@workspace/ui/components/button";
+import { EditActionLabel } from "@workspace/ui/components/edit-action-label";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import {
   Dialog,
@@ -45,7 +47,13 @@ import {
 import { Empty } from "@workspace/ui/components/empty";
 import { InfiniteListStatus } from "@workspace/ui/components/infinite-list-status";
 import { LoadFailure } from "@workspace/ui/components/load-failure";
-import { Field, FieldError, FieldLabel } from "@workspace/ui/components/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import {
   InputGroup,
@@ -68,6 +76,10 @@ import { useCachedResource } from "@workspace/ui/hooks/use-cached-resource";
 import { ManagedImage } from "@/components/managed-image";
 import { StoreCreateDialog } from "@/components/store-create-dialog";
 import { uploadProductImage } from "@/lib/product-image-upload";
+import {
+  rememberTemplateStoreId,
+  resolveTemplateStoreId,
+} from "@/lib/template-store-preference";
 
 type TemplateDraft = {
   storeId: string;
@@ -84,6 +96,8 @@ export function ProductTemplateManager({
   stores,
   initialPage,
   selectedStoreId,
+  requestedStoreId,
+  requestedTemplateId,
   prefillBarcode,
   startCreating,
   error,
@@ -93,11 +107,28 @@ export function ProductTemplateManager({
   stores: Store[];
   initialPage: PageResult<ProductTemplate>;
   selectedStoreId: string | null;
+  requestedStoreId?: string;
+  requestedTemplateId?: string;
   prefillBarcode: string;
   startCreating: boolean;
   error: string | null;
 }) {
   const router = useRouter();
+  const mounted = useRef(true);
+  const dialogOpenerRef = useRef<HTMLElement | null>(null);
+  const createButtonRef = useRef<HTMLButtonElement>(null);
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
+  const editGeneration = useRef(0);
+  const consumedEdit = useRef<string | null>(null);
+  const submittingRef = useRef(false);
+  const uploadingRef = useRef(false);
+  const deletingRef = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const serviceOptions: ServiceOptions = useMemo(
     () => ({ dataSource, connectBaseUrl }),
     [connectBaseUrl, dataSource],
@@ -198,8 +229,14 @@ export function ProductTemplateManager({
     useState<ProductTemplate | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(
-    startCreating && Boolean(selectedStoreId),
+    Boolean(requestedTemplateId) || (startCreating && Boolean(selectedStoreId)),
   );
+  const [requestedEditId, setRequestedEditId] = useState<string | null>(
+    requestedTemplateId ?? null,
+  );
+  const [editLoadStatus, setEditLoadStatus] = useState<
+    "idle" | "loading" | "error"
+  >(requestedTemplateId ? "loading" : "idle");
   const [draft, setDraft] = useState<TemplateDraft>(() =>
     createDraft(selectedStoreId, prefillBarcode),
   );
@@ -211,51 +248,135 @@ export function ProductTemplateManager({
     startCreating,
   );
 
-  function openCreate() {
+  const loadTemplate = useCallback(
+    async (id: string) => {
+      const generation = ++editGeneration.current;
+      setRequestedEditId(id);
+      setEditLoadStatus("loading");
+      setEditing(null);
+      setFormError(null);
+      setDialogOpen(true);
+      try {
+        const template = await getProductTemplate(id, serviceOptions);
+        if (!mounted.current || generation !== editGeneration.current) return;
+        if (template.id !== id) throw new Error("商品模板身份已变化");
+        setEditing(template);
+        setDraft({
+          storeId: template.storeId,
+          barcode: template.barcode,
+          title: template.title,
+          description: template.description,
+          price: (template.priceCents / 100).toFixed(2),
+          mainImageUrl: template.mainImageUrl,
+        });
+        setEditLoadStatus("idle");
+      } catch {
+        if (mounted.current && generation === editGeneration.current)
+          setEditLoadStatus("error");
+      }
+    },
+    [serviceOptions],
+  );
+
+  useEffect(() => {
+    if (!requestedTemplateId) {
+      if (consumedEdit.current !== null) {
+        consumedEdit.current = null;
+        editGeneration.current += 1;
+        setDialogOpen(false);
+        setRequestedEditId(null);
+        setEditing(null);
+        setEditLoadStatus("idle");
+      }
+      return;
+    }
+    const request = JSON.stringify([
+      dataSource,
+      connectBaseUrl,
+      requestedTemplateId,
+    ]);
+    if (consumedEdit.current === request) return;
+    consumedEdit.current = request;
+    dialogOpenerRef.current = null;
+    void loadTemplate(requestedTemplateId);
+  }, [connectBaseUrl, dataSource, loadTemplate, requestedTemplateId]);
+
+  useEffect(() => {
+    if (dialogOpen && editLoadStatus === "idle")
+      barcodeInputRef.current?.focus();
+  }, [dialogOpen, editLoadStatus]);
+
+  function closeDialog() {
+    if (submittingRef.current || uploadingRef.current) return;
+    editGeneration.current += 1;
+    setDialogOpen(false);
+    setRequestedEditId(null);
+    setEditLoadStatus("idle");
+  }
+
+  function openCreate(event: MouseEvent<HTMLButtonElement>) {
+    if (submittingRef.current || uploadingRef.current) return;
+    dialogOpenerRef.current = event.currentTarget;
+    editGeneration.current += 1;
+    setRequestedEditId(null);
+    setEditLoadStatus("idle");
     setEditing(null);
-    setDraft(createDraft(selectedStoreId, prefillBarcode));
+    setDraft(
+      createDraft(
+        resolveTemplateStoreId({
+          stores,
+          requestedStoreId,
+          fallbackStoreId: selectedStoreId,
+        }),
+        prefillBarcode,
+      ),
+    );
     setFormError(null);
     setDialogOpen(true);
   }
 
-  function openEdit(template: ProductTemplate) {
-    setEditing(template);
-    setDraft({
-      storeId: template.storeId,
-      barcode: template.barcode,
-      title: template.title,
-      description: template.description,
-      price: (template.priceCents / 100).toFixed(2),
-      mainImageUrl: template.mainImageUrl,
-    });
-    setFormError(null);
-    setDialogOpen(true);
+  function openEdit(template: ProductTemplate, opener: HTMLButtonElement) {
+    if (submittingRef.current || uploadingRef.current) return;
+    dialogOpenerRef.current = opener;
+    void loadTemplate(template.id);
   }
 
   async function handleImage(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
-    if (!file) return;
+    if (!file || uploadingRef.current || submittingRef.current) return;
+    const generation = editGeneration.current;
+    uploadingRef.current = true;
     setUploading(true);
     setFormError(null);
     try {
       const mainImageUrl = await uploadProductImage(file);
+      if (!mounted.current || generation !== editGeneration.current) return;
       setDraft((current) => ({ ...current, mainImageUrl }));
       toast.success("商品图片已上传");
     } catch (caught) {
-      setFormError(caught instanceof Error ? caught.message : "图片上传失败");
+      if (mounted.current && generation === editGeneration.current)
+        setFormError(caught instanceof Error ? caught.message : "图片上传失败");
     } finally {
-      setUploading(false);
+      uploadingRef.current = false;
+      if (mounted.current) setUploading(false);
     }
   }
 
   async function save() {
-    if (submitting) return;
+    if (
+      submittingRef.current ||
+      uploadingRef.current ||
+      editLoadStatus !== "idle"
+    )
+      return;
     const validation = validateDraft(draft);
     if (!validation.ok) {
       setFormError(validation.message);
       return;
     }
+    const generation = editGeneration.current;
+    submittingRef.current = true;
     setSubmitting(true);
     setFormError(null);
     try {
@@ -272,42 +393,68 @@ export function ProductTemplateManager({
             {
               id: editing.id,
               updatedAt: requireUpdatedAt(editing),
-              patch: payload,
+              patch: {
+                barcode: payload.barcode,
+                title: payload.title,
+                description: payload.description,
+                priceCents: payload.priceCents,
+                mainImageUrl: payload.mainImageUrl,
+              },
             },
             serviceOptions,
           )
         : await createProductTemplate(payload, serviceOptions);
 
+      if (!mounted.current || generation !== editGeneration.current) return;
+      if (!editing) rememberTemplateStoreId(saved.storeId);
       if (query) void search.refresh();
-      else setTemplates((current) => upsertTemplate(current, saved));
+      else if (saved.storeId === selectedStoreId)
+        setTemplates((current) => upsertTemplate(current, saved));
+      else
+        setTemplates((current) =>
+          current.filter((item) => item.id !== saved.id),
+        );
       setDialogOpen(false);
       setEditing(null);
+      setRequestedEditId(null);
+      editGeneration.current += 1;
       toast.success(editing ? "商品模板已更新" : "商品模板已创建");
-      router.refresh();
+      if (!editing && saved.storeId !== selectedStoreId)
+        router.replace(
+          `/group/templates?store=${encodeURIComponent(saved.storeId)}`,
+        );
+      else router.refresh();
     } catch (caught) {
-      setFormError(readErrorMessage(caught));
+      if (mounted.current && generation === editGeneration.current)
+        setFormError(readErrorMessage(caught));
     } finally {
-      setSubmitting(false);
+      submittingRef.current = false;
+      if (mounted.current) setSubmitting(false);
     }
   }
 
   async function removeTemplate() {
-    if (!deletingTemplate || deleting) return;
+    if (!deletingTemplate || deletingRef.current) return;
+    const target = deletingTemplate;
+    deletingRef.current = true;
     setDeleting(true);
     try {
-      await deleteProductTemplate({ id: deletingTemplate.id }, serviceOptions);
+      await deleteProductTemplate({ id: target.id }, serviceOptions);
+      if (!mounted.current) return;
       setTemplates((current) =>
-        current.filter((template) => template.id !== deletingTemplate.id),
+        current.filter((template) => template.id !== target.id),
       );
       setDeletingTemplate(null);
       toast.success("商品模板已删除");
       router.refresh();
     } catch (caught) {
+      if (!mounted.current) return;
       toast.error(
         caught instanceof Error ? caught.message : "商品模板删除失败",
       );
     } finally {
-      setDeleting(false);
+      deletingRef.current = false;
+      if (mounted.current) setDeleting(false);
     }
   }
 
@@ -327,7 +474,7 @@ export function ProductTemplateManager({
             </Button>
           </StoreCreateDialog>
           {selectedStoreId ? (
-            <Button type="button" onClick={openCreate}>
+            <Button ref={createButtonRef} type="button" onClick={openCreate}>
               <RiAddLine data-icon="inline-start" />
               新建模板
             </Button>
@@ -353,6 +500,7 @@ export function ProductTemplateManager({
                 <Select
                   value={selectedStoreId ?? undefined}
                   onValueChange={(value) => {
+                    rememberTemplateStoreId(value);
                     setKeyword("");
                     router.replace(
                       `/group/templates?store=${encodeURIComponent(value)}`,
@@ -412,7 +560,7 @@ export function ProductTemplateManager({
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <h2 className="truncate font-semibold">
                             {template.title}
                           </h2>
@@ -424,12 +572,15 @@ export function ProductTemplateManager({
                         </div>
                         <Button
                           type="button"
-                          size="icon-sm"
-                          variant="ghost"
+                          size="sm"
+                          variant="text"
+                          className="shrink-0"
                           aria-label={`编辑${template.title}`}
-                          onClick={() => openEdit(template)}
+                          onClick={(event) =>
+                            openEdit(template, event.currentTarget)
+                          }
                         >
-                          <RiEditLine />
+                          <EditActionLabel>编辑模板</EditActionLabel>
                         </Button>
                         <Button
                           type="button"
@@ -506,150 +657,248 @@ export function ProductTemplateManager({
         </>
       ) : null}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-2xl">
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
+        }}
+      >
+        <DialogContent
+          className="flex max-h-[calc(100dvh-3rem)] flex-col overflow-hidden sm:max-w-2xl"
+          showCloseButton={!submitting && !uploading}
+          onOpenAutoFocus={(event) => {
+            if (barcodeInputRef.current) {
+              event.preventDefault();
+              barcodeInputRef.current.focus();
+            }
+          }}
+          onCloseAutoFocus={(event) => {
+            const opener = dialogOpenerRef.current;
+            const target =
+              opener?.isConnected && opener !== document.body
+                ? opener
+                : createButtonRef.current;
+            if (target) {
+              event.preventDefault();
+              target.focus();
+            }
+          }}
+        >
           <DialogHeader>
             <DialogTitle>
-              {editing ? "编辑商品模板" : "新建商品模板"}
+              {editing || requestedEditId ? "编辑商品模板" : "新建商品模板"}
             </DialogTitle>
             <DialogDescription className="sr-only">
               填写商品模板资料
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid max-h-[65vh] gap-5 overflow-y-auto pr-1 sm:grid-cols-2">
-            <Field>
-              <FieldLabel htmlFor="template-form-store">店铺</FieldLabel>
-              <Select
-                value={draft.storeId}
-                disabled={Boolean(editing)}
-                onValueChange={(storeId) =>
-                  setDraft((current) => ({ ...current, storeId }))
-                }
-              >
-                <SelectTrigger id="template-form-store">
-                  <span className="truncate">
-                    {stores.find((store) => store.id === draft.storeId)?.name ??
-                      "选择店铺"}
-                  </span>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {stores.map((store) => (
-                      <SelectItem key={store.id} value={store.id}>
-                        {store.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="template-form-barcode">商品条码</FieldLabel>
-              <Input
-                id="template-form-barcode"
-                value={draft.barcode}
-                inputMode="numeric"
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    barcode: event.target.value,
-                  }))
-                }
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="template-form-title">商品名称</FieldLabel>
-              <Input
-                id="template-form-title"
-                value={draft.title}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    title: event.target.value,
-                  }))
-                }
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="template-form-price">参考价</FieldLabel>
-              <Input
-                id="template-form-price"
-                type="number"
-                min="0.01"
-                max="21474836.47"
-                step="0.01"
-                value={draft.price}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    price: event.target.value,
-                  }))
-                }
-              />
-            </Field>
-            <Field className="sm:col-span-2">
-              <FieldLabel htmlFor="template-form-description">
-                商品规格
-              </FieldLabel>
-              <Textarea
-                id="template-form-description"
-                rows={3}
-                maxLength={500}
-                value={draft.description}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    description: event.target.value,
-                  }))
-                }
-              />
-            </Field>
-            <Field className="sm:col-span-2">
-              <FieldLabel>商品图片</FieldLabel>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="hidden"
-                onChange={(event) => void handleImage(event)}
-              />
-              <button
-                type="button"
-                className="flex min-h-28 w-full items-center justify-center overflow-hidden rounded-lg border border-dashed bg-muted/30 transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                disabled={uploading}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {uploading ? (
-                  <Spinner />
-                ) : draft.mainImageUrl ? (
-                  <ManagedImage
-                    src={draft.mainImageUrl}
-                    alt="商品图片预览"
-                    className="h-40 w-full"
-                  />
-                ) : (
-                  <RiImageAddLine className="size-7 text-muted-foreground" />
-                )}
-              </button>
-            </Field>
-            {formError ? (
-              <FieldError className="sm:col-span-2">{formError}</FieldError>
-            ) : null}
-          </div>
+          {editLoadStatus === "loading" ? (
+            <div
+              role="status"
+              aria-label="正在加载商品模板详情"
+              className="grid min-h-0 flex-1 gap-5 overflow-y-auto sm:grid-cols-2"
+            >
+              {Array.from({ length: 6 }, (_, index) => (
+                <div key={index} className="flex flex-col gap-3">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ))}
+            </div>
+          ) : editLoadStatus === "error" ? (
+            <LoadFailure
+              title="商品模板加载失败"
+              description="商品模板暂不可用，请稍后再试"
+              onRetry={() => {
+                if (requestedEditId) void loadTemplate(requestedEditId);
+              }}
+            />
+          ) : (
+            <form
+              id="desktop-template-form"
+              noValidate
+              onSubmit={(event) => {
+                event.preventDefault();
+                void save();
+              }}
+              className="min-h-0 overflow-y-auto pr-1"
+            >
+              <fieldset disabled={submitting || uploading} className="min-w-0">
+                <FieldGroup className="grid gap-5 sm:grid-cols-2">
+                  <Field>
+                    <FieldLabel htmlFor="template-form-store">店铺</FieldLabel>
+                    <Select
+                      value={draft.storeId}
+                      disabled={Boolean(editing) || submitting || uploading}
+                      onValueChange={(storeId) => {
+                        rememberTemplateStoreId(storeId);
+                        setDraft((current) => ({ ...current, storeId }));
+                      }}
+                    >
+                      <SelectTrigger id="template-form-store">
+                        <span className="truncate">
+                          {stores.find((store) => store.id === draft.storeId)
+                            ?.name ??
+                            (editing ? `店铺 ${draft.storeId}` : "选择店铺")}
+                        </span>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {stores.map((store) => (
+                            <SelectItem key={store.id} value={store.id}>
+                              {store.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    {editing ? (
+                      <FieldDescription>
+                        编辑时不能更换店铺；请在目标店铺新建模板
+                      </FieldDescription>
+                    ) : null}
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="template-form-barcode">
+                      商品条码
+                    </FieldLabel>
+                    <Input
+                      ref={barcodeInputRef}
+                      id="template-form-barcode"
+                      value={draft.barcode}
+                      inputMode="numeric"
+                      onChange={(event) =>
+                        setDraft((current) => ({
+                          ...current,
+                          barcode: event.target.value,
+                        }))
+                      }
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="template-form-title">
+                      商品名称
+                    </FieldLabel>
+                    <Input
+                      id="template-form-title"
+                      value={draft.title}
+                      onChange={(event) =>
+                        setDraft((current) => ({
+                          ...current,
+                          title: event.target.value,
+                        }))
+                      }
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="template-form-price">
+                      参考价
+                    </FieldLabel>
+                    <Input
+                      id="template-form-price"
+                      type="number"
+                      min="0.01"
+                      max="21474836.47"
+                      step="0.01"
+                      value={draft.price}
+                      onChange={(event) =>
+                        setDraft((current) => ({
+                          ...current,
+                          price: event.target.value,
+                        }))
+                      }
+                    />
+                  </Field>
+                  <Field className="sm:col-span-2">
+                    <FieldLabel htmlFor="template-form-description">
+                      商品规格
+                    </FieldLabel>
+                    <Textarea
+                      id="template-form-description"
+                      rows={3}
+                      maxLength={500}
+                      value={draft.description}
+                      onChange={(event) =>
+                        setDraft((current) => ({
+                          ...current,
+                          description: event.target.value,
+                        }))
+                      }
+                    />
+                  </Field>
+                  <Field className="sm:col-span-2">
+                    <FieldLabel>商品图片</FieldLabel>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(event) => void handleImage(event)}
+                    />
+                    <button
+                      type="button"
+                      className="flex min-h-28 w-full items-center justify-center overflow-hidden rounded-lg border border-dashed bg-muted/30 transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      disabled={uploading || submitting}
+                      aria-label={
+                        draft.mainImageUrl ? "更改商品图片" : "上传商品图片"
+                      }
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {uploading ? (
+                        <Spinner />
+                      ) : draft.mainImageUrl ? (
+                        <ManagedImage
+                          src={draft.mainImageUrl}
+                          alt="商品图片预览"
+                          className="h-40 w-full"
+                        />
+                      ) : (
+                        <RiImageAddLine className="size-7 text-muted-foreground" />
+                      )}
+                    </button>
+                    {draft.mainImageUrl ? (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="w-fit"
+                        disabled={uploading || submitting}
+                        onClick={() =>
+                          setDraft((current) => ({
+                            ...current,
+                            mainImageUrl: "",
+                          }))
+                        }
+                      >
+                        <RiDeleteBinLine data-icon="inline-start" />
+                        移除图片
+                      </Button>
+                    ) : null}
+                  </Field>
+                  {formError ? (
+                    <FieldError className="sm:col-span-2">
+                      {formError}
+                    </FieldError>
+                  ) : null}
+                </FieldGroup>
+              </fieldset>
+            </form>
+          )}
 
-          <DialogFooter>
+          <DialogFooter className="shrink-0">
             <Button
               type="button"
               variant="outline"
-              onClick={() => setDialogOpen(false)}
+              disabled={submitting || uploading}
+              onClick={closeDialog}
             >
               取消
             </Button>
             <Button
-              type="button"
-              disabled={submitting || uploading}
-              onClick={() => void save()}
+              type="submit"
+              form="desktop-template-form"
+              disabled={submitting || uploading || editLoadStatus !== "idle"}
             >
               {submitting ? <Spinner /> : null}
               保存
@@ -660,7 +909,9 @@ export function ProductTemplateManager({
 
       <Dialog
         open={Boolean(deletingTemplate)}
-        onOpenChange={(open) => !open && setDeletingTemplate(null)}
+        onOpenChange={(open) => {
+          if (!open && !deletingRef.current) setDeletingTemplate(null);
+        }}
       >
         <DialogContent>
           <DialogHeader>
@@ -673,6 +924,7 @@ export function ProductTemplateManager({
             <Button
               type="button"
               variant="outline"
+              disabled={deleting}
               onClick={() => setDeletingTemplate(null)}
             >
               取消
@@ -748,6 +1000,7 @@ function validateDraft(
   if (priceCents === null || priceCents < 1) {
     return { ok: false, message: "参考价至少为 0.01 元" };
   }
+  if (priceCents > 2147483647) return { ok: false, message: "参考价过高" };
   return { ok: true, priceCents };
 }
 

@@ -2,7 +2,11 @@ import { Skeleton } from "@workspace/ui/components/skeleton";
 
 export default function ProfileLoading() {
   return (
-    <div className="space-y-6" role="status" aria-label="正在加载个人中心">
+    <div
+      className="flex flex-col gap-6"
+      role="status"
+      aria-label="正在加载个人中心"
+    >
       <div
         className="flex items-center justify-between gap-6"
         aria-hidden="true"
@@ -14,14 +18,14 @@ export default function ProfileLoading() {
         </div>
       </div>
       <div className="grid items-start gap-6 xl:grid-cols-2" aria-hidden="true">
-        {Array.from({ length: 2 }, (_, column) => (
-          <section key={column} className="space-y-3">
+        {[1, 2, 1, 2].map((rows, group) => (
+          <section key={group} className="flex flex-col gap-3">
             <Skeleton className="h-5 w-28" />
             <div className="divide-y rounded-xl border bg-card">
-              {Array.from({ length: column === 0 ? 3 : 2 }, (_, row) => (
+              {Array.from({ length: rows }, (_, row) => (
                 <div key={row} className="flex items-center gap-4 p-4">
                   <Skeleton className="size-8 shrink-0 rounded-lg" />
-                  <div className="flex-1 space-y-2">
+                  <div className="flex flex-1 flex-col gap-2">
                     <Skeleton className="h-5 w-1/2" />
                     <Skeleton className="h-4 w-3/4" />
                   </div>

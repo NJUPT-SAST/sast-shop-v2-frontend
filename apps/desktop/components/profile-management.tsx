@@ -8,6 +8,9 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ListedGoodsIcon } from "@workspace/ui/components/listed-goods-icon";
+import { Separator } from "@workspace/ui/components/separator";
 import {
   RiAddLine,
   RiAlipayLine,
@@ -423,13 +426,13 @@ export function ProfileManagement({
       <div className="grid items-start gap-6 xl:grid-cols-2">
         <section
           className="flex min-w-0 flex-col gap-3"
-          aria-labelledby="profile-settings-title"
+          aria-labelledby="profile-personal-title"
         >
-          <h2 id="profile-settings-title" className="text-base font-semibold">
-            账户设置
+          <h2 id="profile-personal-title" className="text-base font-semibold">
+            个人资料
           </h2>
           <Card>
-            <CardContent className="divide-y p-0">
+            <CardContent className="p-0">
               <ProfileEntry
                 name="address"
                 label="地址簿"
@@ -441,6 +444,27 @@ export function ProfileManagement({
                 disabled={!initialOverview}
                 onClick={() => setAddressListOpen(true)}
               />
+            </CardContent>
+          </Card>
+        </section>
+        <section
+          className="flex min-w-0 flex-col gap-3"
+          aria-labelledby="profile-payment-title"
+        >
+          <h2 id="profile-payment-title" className="text-base font-semibold">
+            支付与收款
+          </h2>
+          <Card>
+            <CardContent className="p-0">
+              <ProfileEntry
+                name="wallet"
+                label="默认支付方式"
+                description={
+                  defaultPlatform === "wechat" ? "微信支付" : "支付宝"
+                }
+                onClick={() => setPreferenceOpen(true)}
+              />
+              <Separator />
               <ProfileEntry
                 name="collection"
                 label="收款码"
@@ -450,16 +474,36 @@ export function ProfileManagement({
                 disabled={!initialOverview}
                 onClick={() => setQrOpen(true)}
               />
-              <ProfileEntry
-                name="wallet"
-                label="默认支付方式"
-                description={
-                  defaultPlatform === "wechat" ? "微信支付" : "支付宝"
-                }
-                onClick={() => {
-                  setPreferenceOpen(true);
-                }}
-              />
+            </CardContent>
+          </Card>
+        </section>
+        <section
+          className="flex min-w-0 flex-col gap-3"
+          aria-labelledby="profile-goods-title"
+        >
+          <h2 id="profile-goods-title" className="text-base font-semibold">
+            商品管理
+          </h2>
+          <Card>
+            <CardContent className="p-0">
+              <Button
+                variant="ghost"
+                className="h-auto min-h-20 w-full justify-start gap-3 rounded-xl px-4 py-3"
+                asChild
+              >
+                <Link href="/profile/goods">
+                  <span className="flex size-9 shrink-0 items-center justify-center">
+                    <ListedGoodsIcon />
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col gap-1 text-left">
+                    <span className="font-medium">我上架的商品</span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      管理现货售价与库存
+                    </span>
+                  </span>
+                  <RiArrowRightSLine className="text-muted-foreground" />
+                </Link>
+              </Button>
             </CardContent>
           </Card>
         </section>
@@ -468,16 +512,17 @@ export function ProfileManagement({
           aria-labelledby="profile-help-title"
         >
           <h2 id="profile-help-title" className="text-base font-semibold">
-            服务与规则
+            协议与帮助
           </h2>
           <Card>
-            <CardContent className="divide-y p-0">
+            <CardContent className="p-0">
               <ProfileEntry
                 name="transaction-agreement"
                 label="交易协议"
                 description="查看交易规则与双方责任"
                 onClick={openAgreement}
               />
+              {feedbackFormUrl ? <Separator /> : null}
               {feedbackFormUrl ? (
                 <Button
                   variant="ghost"

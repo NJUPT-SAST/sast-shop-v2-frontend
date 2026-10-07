@@ -21,6 +21,7 @@ export default async function ProductTemplatesPage({
       connectBaseUrl={desktopAppConfig.connectBaseUrl}
       refreshKey={randomUUID()}
       requestedStoreId={firstValue(query.store)}
+      requestedTemplateId={firstValue(query.edit)}
       prefillBarcode={firstValue(query.barcode) ?? ""}
       startCreating={firstValue(query.create) === "1"}
     />
