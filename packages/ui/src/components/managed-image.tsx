@@ -78,7 +78,7 @@ function ImageFrame({
   const [usingOriginal, setUsingOriginal] = useState(false);
   const displayKey = usingOriginal ? currentSrc : (cacheKey ?? currentSrc);
   const [state, setState] = useState<ImageState>(() =>
-    initialImageState(displayKey),
+    original && currentSrc ? "loading" : initialImageState(displayKey),
   );
   const [thumbnailState, setThumbnailState] = useState<ImageState>(() =>
     initialImageState(thumbnailSrc ?? null),
@@ -90,6 +90,8 @@ function ImageFrame({
   const loadDisplay =
     !thumbnailSrc || state === "loaded" || thumbnailState !== "loading";
   const visible = state === "loaded" || hasThumbnail;
+  const progressiveOriginal =
+    (original && Boolean(fallback)) || (usingOriginal && hasThumbnail);
 
   const updateState = (nextState: ImageState) => {
     if (
@@ -100,7 +102,7 @@ function ImageFrame({
     ) {
       if (displayKey) forgetLoadedImage(displayKey);
       setUsingOriginal(true);
-      setState(initialImageState(currentSrc));
+      setState(currentSrc ? "loading" : "empty");
       return;
     }
     if (displayKey) {
@@ -117,13 +119,14 @@ function ImageFrame({
     }
     setThumbnailState(nextState);
   };
-  const imageClasses = cn(
-    "absolute inset-0 size-full",
-    fit === "contain" ? "object-contain" : "object-cover",
-    imageClassName,
-  );
+  const imageClasses = (contentFit = fit) =>
+    cn(
+      "absolute inset-0 size-full",
+      contentFit === "contain" ? "object-contain" : "object-cover",
+      imageClassName,
+    );
   const Icon = state === "error" ? RiFileDamageLine : RiImageLine;
-  const renderContent = (includeOverlay: boolean) => (
+  const renderContent = (includeOverlay: boolean, contentFit = fit) => (
     <div
       aria-busy={state === "loading" && !hasThumbnail}
       className={cn(
@@ -151,7 +154,10 @@ function ImageFrame({
             sizes: "64px",
             stage: "thumbnail",
             loading,
-            className: cn(imageClasses, !hasThumbnail && "opacity-0"),
+            className: cn(
+              imageClasses(contentFit),
+              !hasThumbnail && "opacity-0",
+            ),
             onLoad: () => updateThumbnailState("loaded"),
             onError: () => updateThumbnailState("error"),
           })
@@ -163,7 +169,10 @@ function ImageFrame({
             sizes,
             stage: original || usingOriginal ? "original" : "display",
             loading: original || thumbnailSrc ? "eager" : loading,
-            className: cn(imageClasses, state !== "loaded" && "opacity-0"),
+            className: cn(
+              imageClasses(contentFit),
+              state !== "loaded" && !progressiveOriginal && "opacity-0",
+            ),
             onLoad: () => updateState("loaded"),
             onError: () => updateState("error"),
           })
@@ -193,9 +202,10 @@ function ImageFrame({
           src={currentSrc}
           alt={alt}
           fit="contain"
+          imageClassName={imageClassName}
           className="size-full"
           original
-          fallback={renderContent(false)}
+          fallback={renderContent(false, "contain")}
           onImageError={() => setOriginalFailed(true)}
           renderImage={renderImage}
         />

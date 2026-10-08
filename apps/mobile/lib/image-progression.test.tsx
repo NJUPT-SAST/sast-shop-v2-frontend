@@ -193,7 +193,7 @@ describe.each([
     await event(image(imageThumbnailSrc(src)), "load");
     await event(image(src), "error");
     expect(image(src)?.dataset.unoptimized).toBe("true");
-    expect(image(src)?.classList.contains("opacity-0")).toBe(true);
+    expect(image(src)?.classList.contains("opacity-0")).toBe(false);
     expect(image(imageThumbnailSrc(src))?.classList.contains("opacity-0")).toBe(
       false,
     );
@@ -220,6 +220,8 @@ describe.each([
     expect(image(src, dialog, true)?.classList.contains("opacity-0")).toBe(
       false,
     );
+    expect(image(src, dialog, true)).toBeDefined();
+    await event(image(src, dialog, true), "load");
     expect(dialog.querySelector('[aria-label="已售罄"]')).toBeNull();
   });
 
@@ -288,14 +290,55 @@ describe.each([
     const dialog = await openPreview();
     const original = image(src, dialog, true)!;
     expect(original).toBeDefined();
-    expect(original.classList.contains("opacity-0")).toBe(true);
+    expect(original.classList.contains("opacity-0")).toBe(false);
     expect(image(src, dialog, false)?.classList.contains("opacity-0")).toBe(
       false,
     );
+    for (const layer of dialog.querySelectorAll("img")) {
+      expect(layer.classList.contains("object-contain")).toBe(true);
+    }
     await event(original, "load");
     expect(original.classList.contains("opacity-0")).toBe(false);
     expect(image(src, dialog, false)).toBeUndefined();
     expect(hasLoadedImage(src)).toBe(true);
+  });
+
+  it("progressively overlays the original while keeping the display image despite a previous original load", async () => {
+    rememberLoadedImage(src);
+    rememberLoadedImage(imageDisplayCacheKey(src, "96px"));
+    await render(src, "96px", true, true);
+
+    const dialog = await openPreview();
+    const original = image(src, dialog, true)!;
+    expect(original.classList.contains("opacity-0")).toBe(false);
+    expect(Array.from(dialog.querySelectorAll("img")).at(-1)).toBe(original);
+    expect(image(src, dialog, false)?.classList.contains("opacity-0")).toBe(
+      false,
+    );
+    expect(dialog.querySelector('[aria-label="已售罄"]')).toBeNull();
+
+    await event(original, "load");
+    expect(original.classList.contains("opacity-0")).toBe(false);
+    expect(image(src, dialog, false)).toBeUndefined();
+  });
+
+  it("keeps the thumbnail during an original retry despite a previous successful original load", async () => {
+    rememberLoadedImage(src);
+    await render();
+    await event(image(imageThumbnailSrc(src)), "load");
+    const optimized = image(src)!;
+    await event(optimized, "error");
+
+    expect(optimized.isConnected).toBe(false);
+    expect(image(src)?.dataset.unoptimized).toBe("true");
+    expect(image(src)?.classList.contains("opacity-0")).toBe(false);
+    expect(image(imageThumbnailSrc(src))?.classList.contains("opacity-0")).toBe(
+      false,
+    );
+
+    await event(image(src), "load");
+    expect(image(src)?.classList.contains("opacity-0")).toBe(false);
+    expect(image(imageThumbnailSrc(src))).toBeUndefined();
   });
 
   it("preserves a display fallback after an original failure and removes preview until the source changes", async () => {
@@ -347,7 +390,7 @@ describe.each([
     await event(image(imageThumbnailSrc(src)), "load");
     const dialog = await openPreview();
     expect(image(src, dialog, true)?.classList.contains("opacity-0")).toBe(
-      true,
+      false,
     );
     expect(
       image(imageThumbnailSrc(src), dialog)?.classList.contains("opacity-0"),

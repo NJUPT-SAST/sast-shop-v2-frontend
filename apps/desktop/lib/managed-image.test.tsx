@@ -387,7 +387,10 @@ describe("ManagedImage original image preview", () => {
     let original = previewDialog().querySelector<HTMLImageElement>(
       'img[data-unoptimized="true"]',
     )!;
-    expect(original.classList.contains("opacity-0")).toBe(true);
+    expect(original.classList.contains("opacity-0")).toBe(false);
+    expect(
+      previewDialog().querySelector('img[data-unoptimized="false"]'),
+    ).not.toBeNull();
     await act(async () => original.dispatchEvent(new Event("load")));
     expect(previewDialog().querySelector('[aria-label="已售罄"]')).toBeNull();
     await act(async () => dialogButton("关闭图片预览").click());

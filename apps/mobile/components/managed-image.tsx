@@ -16,6 +16,7 @@ import {
 
 const renderImage: ManagedImageRenderer = ({ stage, ...props }) => (
   <Image
+    key={stage}
     {...props}
     src={stage === "display" ? imageOptimizationSrc(props.src) : props.src}
     alt={props.alt}
