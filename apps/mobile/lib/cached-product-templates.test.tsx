@@ -16,13 +16,29 @@ vi.mock("../components/product-template-manager", () => ({
   ProductTemplateManager: ({
     selectedStoreId,
     requestedTemplateId,
+    templatesLoading,
+    initialPage,
+    error,
+    onRetry,
   }: {
     selectedStoreId: string;
     requestedTemplateId?: string;
+    templatesLoading: boolean;
+    initialPage: { items: Array<{ title: string }> };
+    error: string | null;
+    onRetry: () => void;
   }) => (
-    <div data-selected-store data-requested-template={requestedTemplateId}>
-      {selectedStoreId}
-    </div>
+    <>
+      <div data-selected-store data-requested-template={requestedTemplateId}>
+        {selectedStoreId}
+      </div>
+      <input aria-label="搜索模板" />
+      {templatesLoading ? <div role="status">列表加载中</div> : null}
+      {initialPage.items.map((item) => (
+        <p key={item.title}>{item.title}</p>
+      ))}
+      {error ? <button onClick={onRetry}>重试模板</button> : null}
+    </>
   ),
 }));
 
@@ -90,6 +106,100 @@ async function render(requestedStoreId?: string, requestedTemplateId?: string) {
 }
 
 describe("cached template store selection", () => {
+  it("keeps the controls mounted while only the new store's templates load", async () => {
+    await render("3001");
+    const search = container.querySelector("input")!;
+    search.value = "保留搜索";
+    let resolvePage!: (
+      page: Awaited<ReturnType<typeof listProductTemplatesPage>>,
+    ) => void;
+    vi.mocked(listProductTemplatesPage).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolvePage = resolve;
+        }),
+    );
+    await render("3002");
+    expect(container.querySelector("input")).toBe(search);
+    expect(search.value).toBe("保留搜索");
+    expect(container.querySelector("[data-selected-store]")?.textContent).toBe(
+      "3002",
+    );
+    expect(container.textContent).toContain("列表加载中");
+    expect(
+      container.querySelector('[aria-label="正在加载商品模板"]'),
+    ).toBeNull();
+    expect(listStores).toHaveBeenCalledOnce();
+    await act(async () =>
+      resolvePage({
+        items: [],
+        currentPage: 1,
+        pageSize: 20,
+        totalCount: 0,
+        hasMore: false,
+      }),
+    );
+    expect(container.textContent).not.toContain("列表加载中");
+    expect(container.querySelector("input")).toBe(search);
+  });
+
+  it("ignores a previous store's late response after switching back", async () => {
+    await render("3001");
+    let resolvePage!: (
+      page: Awaited<ReturnType<typeof listProductTemplatesPage>>,
+    ) => void;
+    vi.mocked(listProductTemplatesPage).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolvePage = resolve;
+        }),
+    );
+    await render("3002");
+    await render("3001");
+    await act(async () =>
+      resolvePage({
+        items: [
+          {
+            id: "late",
+            title: "过期店铺商品",
+            description: "",
+            priceCents: 100,
+            storeId: "3002",
+            barcode: "123",
+            mainImageUrl: "",
+            updatedAt: "2026-10-08T00:00:00Z",
+          },
+        ],
+        currentPage: 1,
+        pageSize: 20,
+        totalCount: 1,
+        hasMore: false,
+      }),
+    );
+    expect(container.querySelector("[data-selected-store]")?.textContent).toBe(
+      "3001",
+    );
+    expect(container.textContent).not.toContain("过期店铺商品");
+  });
+
+  it("keeps controls on template failure and retries only the selected list", async () => {
+    await render("3001");
+    const search = container.querySelector("input");
+    vi.mocked(listProductTemplatesPage).mockRejectedValueOnce(
+      new Error("offline"),
+    );
+    await render("3002");
+    expect(container.querySelector("input")).toBe(search);
+    const retry = container.querySelector<HTMLButtonElement>("button")!;
+    expect(retry.textContent).toBe("重试模板");
+    await act(async () => retry.click());
+    expect(container.querySelector("button")).toBeNull();
+    expect(listStores).toHaveBeenCalledOnce();
+    expect(listProductTemplatesPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ storeId: "3002" }),
+    );
+  });
+
   it("passes a requested template to the editor without changing the cached list query", async () => {
     await render("3001", "4007");
     expect(

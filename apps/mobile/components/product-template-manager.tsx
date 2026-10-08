@@ -138,6 +138,8 @@ type ProductTemplateManagerProps = {
   prefillBarcode: string;
   startCreating: boolean;
   error: string | null;
+  templatesLoading?: boolean;
+  onRetry?: () => void;
 };
 
 export function ProductTemplateManager({
@@ -151,6 +153,8 @@ export function ProductTemplateManager({
   prefillBarcode,
   startCreating,
   error,
+  templatesLoading = false,
+  onRetry,
 }: ProductTemplateManagerProps) {
   const router = useRouter();
   const mountedRef = useRef(true);
@@ -199,6 +203,7 @@ export function ProductTemplateManager({
   const searching =
     normalizedQuery !== keyword ||
     Boolean(keyword && selectedStoreId && !search.data && !search.error);
+  const listLoading = searching || (!keyword && templatesLoading);
   const pageError =
     normalizedQuery !== keyword
       ? null
@@ -547,16 +552,6 @@ export function ProductTemplateManager({
         商品模板
       </h1>
 
-      {searching ? <TemplateLoadingSkeletons /> : null}
-      {pageError ? (
-        <LoadFailure
-          variant="section"
-          title="商品模板加载失败"
-          description={pageError}
-          onRetry={() => (keyword ? void search.refresh() : router.refresh())}
-        />
-      ) : null}
-
       {stores.length > 0 ? (
         <FieldGroup className="gap-4">
           <Field>
@@ -625,7 +620,23 @@ export function ProductTemplateManager({
         </FieldGroup>
       ) : null}
 
-      {!searching && !pageError && templates.length > 0 ? (
+      {listLoading ? <TemplateLoadingSkeletons /> : null}
+      {pageError ? (
+        <LoadFailure
+          variant="section"
+          title="商品模板加载失败"
+          description={pageError}
+          onRetry={() =>
+            keyword
+              ? void search.refresh()
+              : onRetry
+                ? onRetry()
+                : router.refresh()
+          }
+        />
+      ) : null}
+
+      {!listLoading && !pageError && templates.length > 0 ? (
         <section
           className="flex min-w-0 flex-col gap-3"
           aria-label="商品模板列表"
@@ -638,7 +649,7 @@ export function ProductTemplateManager({
             />
           ))}
         </section>
-      ) : !pageError && !searching && !loadingMore && !hasMore ? (
+      ) : !pageError && !listLoading && !loadingMore && !hasMore ? (
         <Empty
           className="flex-1"
           illustration={
@@ -676,7 +687,7 @@ export function ProductTemplateManager({
         />
       ) : null}
 
-      {!pageError && !searching && selectedStoreId ? (
+      {!pageError && !listLoading && selectedStoreId ? (
         <InfiniteListStatus
           hasMore={hasMore}
           loading={loadingMore}

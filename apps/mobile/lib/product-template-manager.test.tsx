@@ -160,6 +160,7 @@ async function renderManager(
   startCreating = false,
   requestedStoreId?: string,
   requestedTemplateId?: string,
+  listState: { loading?: boolean; error?: string; onRetry?: () => void } = {},
 ) {
   await act(async () => {
     root.render(
@@ -194,7 +195,9 @@ async function renderManager(
         requestedTemplateId={requestedTemplateId}
         prefillBarcode="690000000001"
         startCreating={startCreating}
-        error={null}
+        error={listState.error ?? null}
+        templatesLoading={listState.loading}
+        onRetry={listState.onRetry}
       />,
     );
   });
@@ -509,6 +512,39 @@ describe("product template drawer failures", () => {
     expect(window.localStorage.getItem(TEMPLATE_STORE_STORAGE_KEY)).toBe(
       "3002",
     );
+  });
+
+  it("shows loading below the controls while keeping the create entry available", async () => {
+    await renderManager([], false, undefined, undefined, { loading: true });
+    const store = container.querySelector("#template-store")!;
+    const search = container.querySelector("#template-search")!;
+    const loading = container.querySelector('[role="status"]')!;
+    expect(
+      search.compareDocumentPosition(loading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(container.textContent).not.toContain("暂无商品模板");
+    expect(document.querySelector('[aria-label="新建模板"]')).not.toBeNull();
+    await renderManager([template]);
+    expect(container.querySelector("#template-store")).toBe(store);
+    expect(container.querySelector("#template-search")).toBe(search);
+    expect(container.textContent).toContain("矿泉水");
+  });
+
+  it("retries a failed template list without navigating or hiding the controls", async () => {
+    const onRetry = vi.fn();
+    await renderManager([], false, undefined, undefined, {
+      error: "模板请求失败",
+      onRetry,
+    });
+    expect(container.querySelector("#template-store")).not.toBeNull();
+    expect(container.querySelector("#template-search")).not.toBeNull();
+    const retry = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("重新加载"),
+    )!;
+    await act(async () => retry.click());
+    expect(onRetry).toHaveBeenCalledOnce();
+    expect(router.refresh).not.toHaveBeenCalled();
   });
 
   it("remembers a store selected in the list before navigating to it", async () => {
