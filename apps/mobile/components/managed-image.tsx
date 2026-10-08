@@ -6,17 +6,37 @@ import {
   type ManagedImageProps,
   type ManagedImageRenderer,
 } from "@workspace/ui/components/managed-image";
+import {
+  canOptimizeImage,
+  imageDisplayCacheKey,
+  imageThumbnailSrc,
+} from "@workspace/ui/lib/image-variants";
 
-const renderImage: ManagedImageRenderer = (props) => (
+const renderImage: ManagedImageRenderer = ({ stage, ...props }) => (
   <Image
     {...props}
     alt={props.alt}
     fill
-    unoptimized
-    sizes="(max-width: 768px) 100vw, 50vw"
+    quality={75}
+    unoptimized={stage !== "display" || !canOptimizeImage(props.src)}
   />
 );
 
-export function ManagedImage(props: ManagedImageProps) {
-  return <ManagedImageFrame {...props} renderImage={renderImage} />;
+export function ManagedImage({
+  progressive = true,
+  sizes = "96px",
+  ...props
+}: ManagedImageProps) {
+  const optimized = Boolean(props.src && canOptimizeImage(props.src));
+  return (
+    <ManagedImageFrame
+      {...props}
+      sizes={sizes}
+      thumbnailSrc={
+        optimized && progressive ? imageThumbnailSrc(props.src!) : undefined
+      }
+      cacheKey={optimized ? imageDisplayCacheKey(props.src!, sizes) : undefined}
+      renderImage={renderImage}
+    />
+  );
 }

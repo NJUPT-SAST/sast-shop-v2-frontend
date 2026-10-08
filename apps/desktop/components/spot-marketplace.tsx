@@ -289,10 +289,12 @@ export function SpotMarketplace({
         />
       ) : (
         <section className="grid grid-cols-2 gap-4 xl:grid-cols-3">
-          {products.map((product) => (
+          {products.map((product, index) => (
             <Card key={product.id} className="min-w-0 overflow-hidden py-0">
               <ManagedImage
                 src={product.imageUrl}
+                loading={index < 4 ? "eager" : "lazy"}
+                sizes="(max-width: 1024px) 45vw, (max-width: 1280px) 30vw, 280px"
                 alt={product.title}
                 fit="contain"
                 className="aspect-[16/9] w-full"
@@ -378,6 +380,7 @@ export function SpotMarketplace({
                   <div className="grid grid-cols-[15rem_minmax(0,1fr)] gap-6">
                     <ManagedImage
                       src={selected.imageUrl}
+                      sizes="(max-width: 640px) calc(100vw - 48px), 320px"
                       alt={selected.title}
                       fit="contain"
                       preview

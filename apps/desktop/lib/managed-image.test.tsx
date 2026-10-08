@@ -4,6 +4,7 @@ import React, { act, useEffect, useId, useRef, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ManagedImage } from "../components/managed-image";
+import { imageDisplayCacheKey } from "@workspace/ui/lib/image-variants";
 import {
   forgetLoadedImage,
   hasLoadedImage,
@@ -41,6 +42,8 @@ beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   forgetLoadedImage(src);
   forgetLoadedImage(secondSrc);
+  forgetLoadedImage(imageDisplayCacheKey(src, "96px"));
+  forgetLoadedImage(imageDisplayCacheKey(secondSrc, "96px"));
   window.history.replaceState({ page: "shop" }, "", "/shop");
   container = document.createElement("div");
   document.body.append(container);
@@ -56,7 +59,9 @@ afterEach(async () => {
 
 async function render(value: string | null = src) {
   await act(async () =>
-    root.render(<ManagedImage src={value} alt="商品图片" />),
+    root.render(
+      <ManagedImage progressive={false} src={value} alt="商品图片" />,
+    ),
   );
 }
 
@@ -120,7 +125,7 @@ describe("ManagedImage loaded images", () => {
     await remount();
     expectVisibleImage();
     await imageEvent("error");
-    expect(hasLoadedImage(src)).toBe(false);
+    expect(hasLoadedImage(imageDisplayCacheKey(src, "96px"))).toBe(false);
     await remount();
     expect(container.querySelector('[data-slot="skeleton"]')).not.toBeNull();
   });
@@ -172,7 +177,13 @@ function dialogButton(name: string) {
 async function renderPreview(value: string | null = src) {
   await act(async () =>
     root.render(
-      <ManagedImage src={value} alt="商品图片" fit="contain" preview />,
+      <ManagedImage
+        progressive={false}
+        src={value}
+        alt="商品图片"
+        fit="contain"
+        preview
+      />,
     ),
   );
 }
@@ -324,7 +335,7 @@ describe("ManagedImage original image preview", () => {
     await doubleClick(configurePreviewGeometry());
     await renderPreview(secondSrc);
     expect(document.querySelector('[role="dialog"]')).toBeNull();
-    expect(previewTrigger().disabled).toBe(true);
+    expect(previewTrigger().disabled).toBe(false);
     await openPreview();
     expect(previewDialog().querySelector("img")?.getAttribute("src")).toBe(
       secondSrc,
@@ -332,15 +343,22 @@ describe("ManagedImage original image preview", () => {
     expect(previewTransform().scale).toBe(1);
   });
 
-  it("cannot preview loading, failed, or empty images", async () => {
+  it("can recover loading or failed images in the original preview and disables empty images", async () => {
     await renderPreview();
-    expect(previewTrigger().disabled).toBe(true);
+    expect(previewTrigger().disabled).toBe(false);
     await act(async () => previewTrigger().click());
-    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(previewDialog().querySelector("img")?.getAttribute("src")).toBe(src);
+    await act(async () => dialogButton("关闭图片预览").click());
+
     await imageEvent("error");
-    expect(previewTrigger().disabled).toBe(true);
+    expect(previewTrigger().disabled).toBe(false);
     await act(async () => previewTrigger().click());
-    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    const original = previewDialog().querySelector("img")!;
+    expect(original.getAttribute("src")).toBe(src);
+    await act(async () => original.dispatchEvent(new Event("load")));
+    expect(original.classList.contains("opacity-0")).toBe(false);
+    await act(async () => dialogButton("关闭图片预览").click());
+
     await renderPreview(null);
     expect(previewTrigger().disabled).toBe(true);
     await act(async () => previewTrigger().click());
@@ -352,7 +370,7 @@ describe("ManagedImage original image preview", () => {
     await act(async () =>
       root.render(
         <div onClick={onCardClick}>
-          <ManagedImage src={src} alt="商品图片" preview />
+          <ManagedImage progressive={false} src={src} alt="商品图片" preview />
         </div>,
       ),
     );
@@ -395,7 +413,9 @@ function PurchaseHistoryProbe({ onBack }: { onBack: () => void }) {
       <button onClick={() => setQuantity((value) => value + 1)}>
         增加数量
       </button>
-      {open ? <ManagedImage src={src} alt="商品图片" preview /> : null}
+      {open ? (
+        <ManagedImage progressive={false} src={src} alt="商品图片" preview />
+      ) : null}
     </section>
   );
 }

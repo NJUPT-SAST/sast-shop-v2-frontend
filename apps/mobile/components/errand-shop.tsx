@@ -108,6 +108,7 @@ export function ErrandShop({
   const [cartOpen, setCartOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] =
     useState<ProductTemplate | null>(null);
+  const [templateDetailOpen, setTemplateDetailOpen] = useState(false);
   const [deadlineValue, setDeadlineValue] = useState(() =>
     toDateTimeLocalValue(getDefaultErrandDeadline()),
   );
@@ -384,7 +385,10 @@ export function ErrandShop({
                     type="button"
                     disabled={submitting}
                     className="block shrink-0 rounded-lg text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                    onClick={() => setSelectedTemplate(template)}
+                    onClick={() => {
+                      setSelectedTemplate(template);
+                      setTemplateDetailOpen(true);
+                    }}
                     aria-label={`查看${template.title}详情`}
                   >
                     <ManagedImage
@@ -484,9 +488,9 @@ export function ErrandShop({
       ) : null}
 
       <ResponsiveDialog
-        open={selectedTemplate !== null}
+        open={templateDetailOpen}
         onOpenChange={(open) => {
-          if (!open) setSelectedTemplate(null);
+          if (!open) setTemplateDetailOpen(false);
         }}
       >
         {selectedTemplate ? (
@@ -506,6 +510,7 @@ export function ErrandShop({
                   fit="contain"
                   src={selectedTemplate.mainImageUrl}
                   alt={selectedTemplate.title}
+                  sizes="(max-width: 640px) calc(100vw - 32px), 608px"
                   className="h-[min(17.5rem,32dvh)] w-full shrink-0 rounded-lg"
                 />
                 <div className="flex items-start justify-between gap-3">
@@ -526,9 +531,10 @@ export function ErrandShop({
             <ResponsiveDialogFooter>
               <Button
                 type="button"
+                disabled={!templateDetailOpen}
                 onClick={() => {
                   addItem(selectedTemplate);
-                  setSelectedTemplate(null);
+                  setTemplateDetailOpen(false);
                 }}
               >
                 <RiAddLine data-icon="inline-start" />

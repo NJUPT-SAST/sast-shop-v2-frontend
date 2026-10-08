@@ -180,6 +180,7 @@ export function PocketAlbum({
                 >
                   <ManagedImage
                     src={photo.previewUrl}
+                    sizes="(max-width: 640px) calc((100vw - 48px) / 2), 288px"
                     alt={`聚餐留念 ${index + 1}`}
                     className="aspect-[4/3] rounded-lg"
                     imageClassName="object-contain"

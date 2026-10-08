@@ -225,6 +225,7 @@ export function SpotMarketplace({
   const [selectedBrief, setSelectedBrief] = useState<SpotProductBrief | null>(
     null,
   );
+  const [detailOpen, setDetailOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<SpotProduct | null>(
     null,
   );
@@ -265,10 +266,7 @@ export function SpotMarketplace({
 
   function closeDetail() {
     detailRequestRef.current += 1;
-    setSelectedBrief(null);
-    setSelectedProduct(null);
-    setDetailStatus("idle");
-    setQuantity(1);
+    setDetailOpen(false);
   }
 
   function closeCheckout() {
@@ -280,6 +278,7 @@ export function SpotMarketplace({
     const requestId = detailRequestRef.current + 1;
     detailRequestRef.current = requestId;
     setSelectedBrief(product);
+    setDetailOpen(true);
     setSelectedProduct(null);
     setDetailStatus("loading");
     setQuantity(1);
@@ -302,7 +301,7 @@ export function SpotMarketplace({
   }
 
   async function startCheckout() {
-    if (!selectedProduct) return;
+    if (!detailOpen || !selectedProduct) return;
 
     await beginCheckout(selectedProduct, quantity);
   }
@@ -597,7 +596,7 @@ export function SpotMarketplace({
 
       {!pageError && !searching && spotGoods.length > 0 ? (
         <section className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-          {spotGoods.map((product) => (
+          {spotGoods.map((product, index) => (
             <button
               key={product.id}
               type="button"
@@ -610,6 +609,8 @@ export function SpotMarketplace({
                 <ManagedImage
                   fit="contain"
                   src={product.imageUrl}
+                  loading={index < 4 ? "eager" : "lazy"}
+                  sizes="(max-width: 640px) calc((100vw - 48px) / 2), 288px"
                   alt={product.title}
                   className="aspect-square"
                 />
@@ -691,7 +692,7 @@ export function SpotMarketplace({
       ) : null}
 
       <ResponsiveDialog
-        open={selectedBrief !== null}
+        open={detailOpen}
         onOpenChange={(open) => {
           if (!open) closeDetail();
         }}
@@ -726,6 +727,7 @@ export function SpotMarketplace({
                       preview
                       fit="contain"
                       src={selectedProduct.imageUrl}
+                      sizes="(max-width: 640px) calc(100vw - 32px), 608px"
                       alt={selectedProduct.title}
                       className="h-[min(17.5rem,32dvh)] w-full shrink-0 rounded-lg"
                     />
@@ -781,7 +783,7 @@ export function SpotMarketplace({
                 <ResponsiveDialogFooter>
                   <Button
                     type="button"
-                    disabled={isOutOfStock || submitting}
+                    disabled={!detailOpen || isOutOfStock || submitting}
                     onClick={() => {
                       void startCheckout();
                     }}

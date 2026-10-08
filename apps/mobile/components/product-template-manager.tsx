@@ -1257,6 +1257,7 @@ function ProductImageField({
             preview={!uploading}
             src={value}
             alt="商品图片预览"
+            sizes="(max-width: 640px) calc(100vw - 32px), 608px"
             className="h-[min(15rem,32dvh)] w-full rounded-none"
           />
         ) : (

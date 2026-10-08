@@ -20,76 +20,142 @@ export type ManagedImageProps = {
   imageClassName?: string;
   fit?: "cover" | "contain";
   preview?: boolean;
+  sizes?: string;
+  progressive?: boolean;
+  loading?: "lazy" | "eager";
 };
 
 export type ManagedImageRenderer = (props: {
   src: string;
   alt: string;
   className: string;
+  sizes: string;
+  stage: "thumbnail" | "display" | "original";
+  loading: "lazy" | "eager";
   onLoad: () => void;
   onError: () => void;
 }) => ReactNode;
 
-export function ManagedImageFrame({
+type FrameProps = ManagedImageProps & {
+  renderImage: ManagedImageRenderer;
+  thumbnailSrc?: string;
+  cacheKey?: string;
+  original?: boolean;
+  fallback?: ReactNode;
+};
+
+export function ManagedImageFrame(props: FrameProps) {
+  return (
+    <ImageFrame
+      key={`${props.src ?? ""}:${props.cacheKey ?? ""}:${props.thumbnailSrc ?? ""}`}
+      {...props}
+    />
+  );
+}
+
+function ImageFrame({
   src,
   alt,
   className,
   imageClassName,
   fit = "cover",
   preview = false,
+  sizes = "96px",
+  loading = "lazy",
   renderImage,
-}: ManagedImageProps & { renderImage: ManagedImageRenderer }) {
+  thumbnailSrc,
+  cacheKey,
+  original = false,
+  fallback,
+}: FrameProps) {
   const currentSrc = src || null;
-  const [imageState, setImageState] = useState<{
-    src: string | null;
-    state: ImageState;
-  }>(() => ({ src: currentSrc, state: initialImageState(currentSrc) }));
-  const state =
-    imageState.src === currentSrc
-      ? imageState.state
-      : initialImageState(currentSrc);
-
-  if (imageState.src !== currentSrc) {
-    setImageState({ src: currentSrc, state });
-  }
+  const displayKey = cacheKey ?? currentSrc;
+  const [state, setState] = useState<ImageState>(() =>
+    initialImageState(displayKey),
+  );
+  const [thumbnailState, setThumbnailState] = useState<ImageState>(() =>
+    initialImageState(thumbnailSrc ?? null),
+  );
+  const hasThumbnail = thumbnailState === "loaded";
+  const showThumbnail =
+    Boolean(thumbnailSrc) && state !== "loaded" && thumbnailState !== "error";
+  const loadDisplay =
+    !thumbnailSrc || state === "loaded" || thumbnailState !== "loading";
+  const visible = state === "loaded" || hasThumbnail;
 
   const updateState = (nextState: ImageState) => {
-    if (currentSrc) {
-      if (nextState === "loaded") rememberLoadedImage(currentSrc);
-      if (nextState === "error") forgetLoadedImage(currentSrc);
+    if (displayKey) {
+      if (nextState === "loaded") rememberLoadedImage(displayKey);
+      if (nextState === "error") forgetLoadedImage(displayKey);
     }
-    setImageState({ src: currentSrc, state: nextState });
+    setState(nextState);
   };
+  const updateThumbnailState = (nextState: ImageState) => {
+    if (thumbnailSrc) {
+      if (nextState === "loaded") rememberLoadedImage(thumbnailSrc);
+      if (nextState === "error") forgetLoadedImage(thumbnailSrc);
+    }
+    setThumbnailState(nextState);
+  };
+  const imageClasses = cn(
+    "absolute inset-0 size-full",
+    fit === "contain" ? "object-contain" : "object-cover",
+    imageClassName,
+  );
   const Icon = state === "error" ? RiFileDamageLine : RiImageLine;
   const content = (
     <div
+      aria-busy={state === "loading" && !hasThumbnail}
       className={cn(
         "relative flex items-center justify-center overflow-hidden bg-image-surface text-muted-foreground",
         preview ? "size-full" : className,
       )}
     >
-      {state === "loading" ? (
+      {fallback && state !== "loaded" ? fallback : null}
+      {!visible && !fallback && state === "loading" ? (
         <Skeleton className="absolute inset-0 rounded-none" />
       ) : null}
-      {state !== "loaded" ? (
-        <span className="relative z-10 flex size-11 items-center justify-center rounded-md bg-card/70">
+      {!visible && !fallback && state !== "loading" ? (
+        <span
+          role="img"
+          aria-label={state === "error" ? "图片加载失败" : "暂无图片"}
+          className="relative z-10 flex size-11 items-center justify-center rounded-md bg-card/70"
+        >
           <Icon className="size-6" aria-hidden="true" />
         </span>
       ) : null}
-      {currentSrc && state !== "error"
+      {showThumbnail
+        ? renderImage({
+            src: thumbnailSrc!,
+            alt: "",
+            sizes: "64px",
+            stage: "thumbnail",
+            loading,
+            className: cn(imageClasses, !hasThumbnail && "opacity-0"),
+            onLoad: () => updateThumbnailState("loaded"),
+            onError: () => updateThumbnailState("error"),
+          })
+        : null}
+      {currentSrc && loadDisplay && state !== "error"
         ? renderImage({
             src: currentSrc,
             alt,
-            className: cn(
-              "absolute inset-0 size-full",
-              fit === "contain" ? "object-contain" : "object-cover",
-              state !== "loaded" && "opacity-0",
-              imageClassName,
-            ),
+            sizes,
+            stage: original ? "original" : "display",
+            loading: original || thumbnailSrc ? "eager" : loading,
+            className: cn(imageClasses, state !== "loaded" && "opacity-0"),
             onLoad: () => updateState("loaded"),
             onError: () => updateState("error"),
           })
         : null}
+      {state === "error" && fallback ? (
+        <span
+          role="status"
+          className="absolute bottom-2 rounded-md bg-card/90 px-2 py-1 text-xs"
+        >
+          原图加载失败，请关闭后重试
+        </span>
+      ) : null}
     </div>
   );
 
@@ -97,16 +163,17 @@ export function ManagedImageFrame({
 
   return (
     <ImagePreview
-      key={currentSrc}
       alt={alt}
       className={className}
-      disabled={state !== "loaded"}
+      disabled={!currentSrc}
       image={
         <ManagedImageFrame
           src={currentSrc}
           alt={alt}
           fit="contain"
           className="size-full"
+          original
+          fallback={content}
           renderImage={renderImage}
         />
       }

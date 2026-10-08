@@ -24,6 +24,7 @@ const {
   waitForDrawerHistoryCleanup,
   toastError,
   toastInfo,
+  dialogBehavior,
 } = vi.hoisted(() => ({
   createSpotOrders: vi.fn(),
   getBill: vi.fn(),
@@ -37,6 +38,7 @@ const {
   waitForDrawerHistoryCleanup: vi.fn(),
   toastError: vi.fn(),
   toastInfo: vi.fn(),
+  dialogBehavior: { retainClosedContent: false },
 }));
 
 vi.mock("next/navigation", () => ({
@@ -73,10 +75,22 @@ vi.mock("@workspace/ui/components/responsive-dialog", () => {
     ResponsiveDialog: ({
       open,
       children,
+      onOpenChange,
     }: {
       open: boolean;
       children: React.ReactNode;
-    }) => (open ? <div>{children}</div> : null),
+      onOpenChange: (open: boolean) => void;
+    }) =>
+      open || dialogBehavior.retainClosedContent ? (
+        <div data-testid="detail-dialog" data-state={open ? "open" : "closed"}>
+          {children}
+          {open ? (
+            <button type="button" onClick={() => onOpenChange(false)}>
+              收起详情
+            </button>
+          ) : null}
+        </div>
+      ) : null,
     ResponsiveDialogContent: Content,
     ResponsiveDialogDescription: Content,
     ResponsiveDialogFooter: Content,
@@ -178,6 +192,7 @@ let root: Root;
 let container: HTMLDivElement;
 
 beforeEach(() => {
+  dialogBehavior.retainClosedContent = false;
   clearResourceCache();
   listSpotGoods.mockReset();
   push.mockReset();
@@ -236,6 +251,74 @@ async function openPayment() {
 }
 
 describe("new spot order payment recovery", () => {
+  it("keeps the selected detail content through dismissal and resets it on reopening", async () => {
+    dialogBehavior.retainClosedContent = true;
+    await act(async () =>
+      root.render(
+        <SpotMarketplace
+          dataSource="local"
+          connectBaseUrl="http://127.0.0.1:1323"
+          initialPage={initialPage}
+          error={null}
+        />,
+      ),
+    );
+    await click("矿泉水");
+    const detailDialog = container.querySelector(
+      '[data-testid="detail-dialog"]',
+    )!;
+    expect(detailDialog.textContent).toContain("库存 5");
+    await act(async () =>
+      detailDialog
+        .querySelector<HTMLButtonElement>('[aria-label="增加购买数量"]')!
+        .click(),
+    );
+
+    await click("收起详情");
+    expect(detailDialog.getAttribute("data-state")).toBe("closed");
+    expect(detailDialog.textContent).toContain("库存 5");
+    expect(detailDialog.textContent).toContain("南邮仙林校区");
+    expect(detailDialog.textContent).not.toContain("商品详情加载失败");
+    const checkoutButton = Array.from(
+      detailDialog.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("创建订单"));
+    expect(checkoutButton?.disabled).toBe(true);
+    expect(checkoutButton?.textContent).toContain("创建订单 · ¥4");
+
+    await click("矿泉水");
+    expect(detailDialog.getAttribute("data-state")).toBe("open");
+    expect(getSpotGoods).toHaveBeenCalledTimes(2);
+    expect(detailDialog.textContent).toContain("创建订单 · ¥2");
+  });
+
+  it("ignores a detail response received after dismissal", async () => {
+    dialogBehavior.retainClosedContent = true;
+    let resolveDetail!: (goods: SpotGoods) => void;
+    getSpotGoods.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveDetail = resolve;
+      }),
+    );
+    await act(async () =>
+      root.render(
+        <SpotMarketplace
+          dataSource="local"
+          connectBaseUrl="http://127.0.0.1:1323"
+          initialPage={initialPage}
+          error={null}
+        />,
+      ),
+    );
+    await click("矿泉水");
+    await click("收起详情");
+    await act(async () => resolveDetail(detail));
+    const detailDialog = container.querySelector(
+      '[data-testid="detail-dialog"]',
+    )!;
+    expect(detailDialog.getAttribute("data-state")).toBe("closed");
+    expect(detailDialog.textContent).not.toContain("库存 5");
+  });
+
   it("debounces server search and loads only matching pages when the list reaches the viewport", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     let enterViewport!: (entries: { isIntersecting: boolean }[]) => void;

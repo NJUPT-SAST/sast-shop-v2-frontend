@@ -842,6 +842,7 @@ export function ProductTemplateManager({
                         <ManagedImage
                           src={draft.mainImageUrl}
                           alt="商品图片预览"
+                          sizes="(max-width: 640px) calc(100vw - 48px), 560px"
                           fit="contain"
                           preview
                           className="h-[min(15rem,32dvh)] w-full rounded-lg border"

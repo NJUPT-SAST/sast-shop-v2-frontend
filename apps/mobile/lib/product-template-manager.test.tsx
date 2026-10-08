@@ -21,8 +21,32 @@ import { toast } from "sonner";
 import { clearResourceCache } from "@workspace/ui/lib/resource-cache";
 import { TEMPLATE_STORE_STORAGE_KEY } from "./template-store-preference";
 import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
+import { imageThumbnailSrc } from "@workspace/ui/lib/image-variants";
 
 const router = vi.hoisted(() => ({ refresh: vi.fn(), replace: vi.fn() }));
+
+vi.mock("next/image", () => ({
+  default: ({
+    src,
+    alt,
+    className,
+    onLoad,
+    onError,
+  }: {
+    src: string | { src: string };
+    alt: string;
+    className?: string;
+    onLoad?: React.ReactEventHandler<HTMLImageElement>;
+    onError?: React.ReactEventHandler<HTMLImageElement>;
+  }) =>
+    React.createElement("img", {
+      src: typeof src === "string" ? src : src.src,
+      alt,
+      className,
+      onLoad,
+      onError,
+    }),
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => router,
@@ -257,6 +281,17 @@ async function selectStore(selector: string, name: string) {
   await act(async () => option!.click());
 }
 
+async function loadImageThumbnail(
+  source: string,
+  scope: ParentNode = container,
+) {
+  const thumbnail = Array.from(scope.querySelectorAll("img")).find(
+    (image) => image.getAttribute("src") === imageThumbnailSrc(source),
+  );
+  expect(thumbnail).toBeDefined();
+  await act(async () => thumbnail!.dispatchEvent(new Event("load")));
+}
+
 describe("product template drawer failures", () => {
   it("opens a requested template that is absent from the list using its full detail and actual store", async () => {
     const requested = {
@@ -295,6 +330,7 @@ describe("product template drawer failures", () => {
     expect(
       container.querySelector<HTMLButtonElement>("#storeId")?.disabled,
     ).toBe(true);
+    await loadImageThumbnail(requested.mainImageUrl);
     expect(
       container.querySelector('img[alt="商品图片预览"]')?.getAttribute("src"),
     ).toBe(requested.mainImageUrl);
@@ -449,6 +485,7 @@ describe("product template drawer failures", () => {
     await act(async () =>
       finishNewUpload("https://example.test/new-editor.png"),
     );
+    await loadImageThumbnail("https://example.test/new-editor.png");
     expect(
       container.querySelector('img[alt="商品图片预览"]')?.getAttribute("src"),
     ).toBe("https://example.test/new-editor.png");
@@ -607,16 +644,21 @@ describe("product template drawer failures", () => {
     const item = Array.from(container.querySelectorAll("button")).find(
       (button) => button.textContent?.includes("矿泉水"),
     )!;
-    const image = item.querySelector("img")!;
-    expect(image).not.toBeNull();
-    expect(image.getAttribute("src")).toBe(imageUrl);
-    expect(image.getAttribute("alt")).toBe("矿泉水");
+    const thumbnail = item.querySelector("img")!;
+    expect(thumbnail).not.toBeNull();
+    expect(thumbnail.getAttribute("src")).toBe(imageThumbnailSrc(imageUrl));
+    expect(thumbnail.getAttribute("alt")).toBe("");
     expect(container.textContent).not.toContain("编辑商品模板");
 
-    await act(async () => image.dispatchEvent(new Event("error")));
-    expect(item.querySelector("img")).toBeNull();
+    await loadImageThumbnail(imageUrl, item);
+    const display = item.querySelector('img[alt="矿泉水"]')!;
+    expect(display).not.toBeNull();
+    expect(display.getAttribute("src")).toBe(imageUrl);
+    await act(async () => display.dispatchEvent(new Event("error")));
+    expect(item.querySelector('img[alt="矿泉水"]')).toBeNull();
+    expect(item.querySelector("img")).toBe(thumbnail);
+    expect(thumbnail.classList.contains("opacity-0")).toBe(false);
     expect(item.querySelector('[data-slot="skeleton"]')).toBeNull();
-    expect(item.querySelector("svg")).not.toBeNull();
 
     await act(async () => item.click());
     expect(container.textContent).toContain("编辑商品模板");

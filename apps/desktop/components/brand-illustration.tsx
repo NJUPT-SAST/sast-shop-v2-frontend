@@ -1,5 +1,27 @@
+"use client";
+
 import Image from "next/image";
-import { cn } from "@workspace/ui/lib/utils";
+import {
+  RiBarcodeLine,
+  RiBillLine,
+  RiChat3Line,
+  RiEditLine,
+  RiFileList3Line,
+  RiLoginBoxLine,
+  RiMapPinLine,
+  RiMoneyCnyCircleLine,
+  RiPriceTag3Line,
+  RiQrScanLine,
+  RiQuestionLine,
+  RiRefreshLine,
+  RiSearchLine,
+  RiShoppingBagLine,
+  RiShoppingCartLine,
+  RiStore2Line,
+  RiTruckLine,
+  RiWallet3Line,
+} from "@remixicon/react";
+import { IllustrationFrame } from "@workspace/ui/components/illustration-frame";
 import errand from "../public/brand/errand.webp";
 import errandCompact from "../public/brand/errand-compact.webp";
 import template from "../public/brand/template.webp";
@@ -67,6 +89,27 @@ const illustrations = {
 
 type BrandElement = keyof typeof illustrations;
 
+const fallbackIcons = {
+  "load-error": RiRefreshLine,
+  "barcode-empty": RiBarcodeLine,
+  "spot-empty": RiShoppingBagLine,
+  "search-empty": RiSearchLine,
+  "cart-empty": RiShoppingCartLine,
+  errand: RiTruckLine,
+  template: RiPriceTag3Line,
+  "transaction-agreement": RiFileList3Line,
+  "feishu-required": RiChat3Line,
+  login: RiLoginBoxLine,
+  manual: RiEditLine,
+  scan: RiQrScanLine,
+  address: RiMapPinLine,
+  collection: RiMoneyCnyCircleLine,
+  wallet: RiWallet3Line,
+  help: RiQuestionLine,
+  orders: RiBillLine,
+  store: RiStore2Line,
+} satisfies Record<BrandElement, typeof RiWallet3Line>;
+
 export function BrandIllustration({
   name,
   size = 48,
@@ -76,15 +119,25 @@ export function BrandIllustration({
   size?: number;
   className?: string;
 }) {
+  const image = illustrations[name][size <= 64 ? "compact" : "regular"];
+  const FallbackIcon = fallbackIcons[name];
   return (
-    <Image
-      src={illustrations[name][size <= 64 ? "compact" : "regular"]}
-      width={size}
-      height={size}
-      alt=""
-      aria-hidden="true"
-      unoptimized
-      className={cn("shrink-0 object-contain", className)}
+    <IllustrationFrame
+      src={image.src}
+      size={size}
+      className={className}
+      fallback={<FallbackIcon aria-hidden="true" />}
+      renderImage={(imageProps) => (
+        <Image
+          {...imageProps}
+          src={image}
+          width={size}
+          height={size}
+          alt=""
+          aria-hidden="true"
+          unoptimized
+        />
+      )}
     />
   );
 }

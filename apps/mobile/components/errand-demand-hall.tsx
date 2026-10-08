@@ -16,7 +16,6 @@ import {
   type PageResult,
 } from "@sast-shop/api";
 import Link from "@/components/mobile-link";
-import Image from "next/image";
 import {
   Avatar,
   AvatarFallback,
@@ -45,7 +44,6 @@ import { useCachedResource } from "@workspace/ui/hooks/use-cached-resource";
 import { formatErrandDisplayPrice } from "@/lib/errand-display";
 import { sanitizeImageSrc } from "@/lib/image-src";
 import { isValidRouteId } from "@/lib/route-id";
-import errandEmpty from "../public/brand/errand-empty.webp";
 
 type ErrandDemandHallProps = {
   dataSource: DataSource;
@@ -196,15 +194,7 @@ export function ErrandDemandHall({
           className="flex-1"
           illustration={
             !hasKeyword ? (
-              <Image
-                src={errandEmpty}
-                width={128}
-                height={128}
-                alt=""
-                aria-hidden="true"
-                unoptimized
-                className="size-32 object-contain"
-              />
+              <BrandIllustration name="errand-empty" size={128} />
             ) : (
               <BrandIllustration name="search-empty" size={112} />
             )
