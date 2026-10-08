@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { clearResourceCache } from "@workspace/ui/lib/resource-cache";
 import { SellerGoodsManager } from "../components/seller-goods-manager";
 
+vi.mock("../components/managed-image", () => ({ ManagedImage: () => null }));
+
 const { getSpotGoods, ensureAgreement, updateSpotGoodsStock } = vi.hoisted(
   () => ({
     getSpotGoods: vi.fn(),

@@ -74,6 +74,7 @@ function goods(id: string, title: string) {
     id,
     product: template(id, title),
     salePriceCents: 100,
+    stock: 5,
     updatedAt: "2026-10-06T00:00:00Z",
     store: {
       id: "3001",

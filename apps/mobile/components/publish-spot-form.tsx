@@ -106,7 +106,7 @@ const formSchema = z.object({
     .number<number>()
     .int("库存必须是整数")
     .positive("库存必须大于 0")
-    .max(2147483647, "库存过高"),
+    .max(999, "库存不能超过 999"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -660,7 +660,7 @@ export function PublishSpotForm({
                     valueClassName="min-w-0 flex-1"
                     label="初始库存"
                     value={Number(field.value)}
-                    max={2147483647}
+                    max={999}
                     onValueChange={field.onChange}
                   />
                   <FieldError

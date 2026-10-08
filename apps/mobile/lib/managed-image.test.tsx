@@ -21,15 +21,25 @@ vi.mock("next/image", () => ({
     src,
     alt,
     className,
+    unoptimized,
     onLoad,
     onError,
   }: {
-    src: string;
+    src: string | { src: string };
     alt: string;
     className?: string;
-    onLoad: React.ReactEventHandler<HTMLImageElement>;
-    onError: React.ReactEventHandler<HTMLImageElement>;
-  }) => React.createElement("img", { src, alt, className, onLoad, onError }),
+    unoptimized?: boolean;
+    onLoad?: React.ReactEventHandler<HTMLImageElement>;
+    onError?: React.ReactEventHandler<HTMLImageElement>;
+  }) =>
+    React.createElement("img", {
+      src: typeof src === "string" ? src : src.src,
+      alt,
+      className,
+      onLoad,
+      onError,
+      "data-unoptimized": String(unoptimized),
+    }),
 }));
 
 let root: Root;
@@ -174,7 +184,7 @@ function dialogButton(name: string) {
   return button!;
 }
 
-async function renderPreview(value: string | null = src) {
+async function renderPreview(value: string | null = src, soldOut = false) {
   await act(async () =>
     root.render(
       <ManagedImage
@@ -183,6 +193,7 @@ async function renderPreview(value: string | null = src) {
         alt="商品图片"
         fit="contain"
         preview
+        soldOut={soldOut}
       />,
     ),
   );
@@ -343,7 +354,7 @@ describe("ManagedImage original image preview", () => {
     expect(previewTransform().scale).toBe(1);
   });
 
-  it("can recover loading or failed images in the original preview and disables empty images", async () => {
+  it("allows a loading image preview and removes its trigger for failed or empty sources", async () => {
     await renderPreview();
     expect(previewTrigger().disabled).toBe(false);
     await act(async () => previewTrigger().click());
@@ -351,18 +362,69 @@ describe("ManagedImage original image preview", () => {
     await act(async () => dialogButton("关闭图片预览").click());
 
     await imageEvent("error");
-    expect(previewTrigger().disabled).toBe(false);
-    await act(async () => previewTrigger().click());
-    const original = previewDialog().querySelector("img")!;
-    expect(original.getAttribute("src")).toBe(src);
-    await act(async () => original.dispatchEvent(new Event("load")));
-    expect(original.classList.contains("opacity-0")).toBe(false);
-    await act(async () => dialogButton("关闭图片预览").click());
+    expect(
+      container.querySelector('[aria-label="查看商品图片大图"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[aria-label="图片加载失败"]'),
+    ).not.toBeNull();
 
     await renderPreview(null);
-    expect(previewTrigger().disabled).toBe(true);
-    await act(async () => previewTrigger().click());
+    expect(
+      container.querySelector('[aria-label="查看商品图片大图"]'),
+    ).toBeNull();
+    expect(container.querySelector('[aria-label="暂无图片"]')).not.toBeNull();
     expect(document.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  it("keeps the sold-out illustration on the main image and out of loading, successful, and failed previews", async () => {
+    await renderPreview(src, true);
+    await openPreview();
+    expect(container.querySelector('[aria-label="已售罄"]')).not.toBeNull();
+    expect(previewDialog().querySelector('[aria-label="已售罄"]')).toBeNull();
+    let original = previewDialog().querySelector<HTMLImageElement>(
+      'img[data-unoptimized="true"]',
+    )!;
+    expect(original.classList.contains("opacity-0")).toBe(true);
+    await act(async () => original.dispatchEvent(new Event("load")));
+    expect(previewDialog().querySelector('[aria-label="已售罄"]')).toBeNull();
+    await act(async () => dialogButton("关闭图片预览").click());
+    await act(async () => previewTrigger().click());
+    original = previewDialog().querySelector<HTMLImageElement>(
+      'img[data-unoptimized="true"]',
+    )!;
+    await act(async () => original.dispatchEvent(new Event("error")));
+    expect(previewDialog().querySelector('[aria-label="已售罄"]')).toBeNull();
+    expect(
+      previewDialog().querySelector('[role="status"]')?.textContent,
+    ).toContain("原图加载失败");
+    expect(container.querySelector('[aria-label="已售罄"]')).not.toBeNull();
+  });
+
+  it("removes the preview entry after an original failure and restores it for another source", async () => {
+    await renderPreview();
+    await openPreview();
+    const original = previewDialog().querySelector<HTMLImageElement>(
+      'img[data-unoptimized="true"]',
+    )!;
+    await act(async () => original.dispatchEvent(new Event("error")));
+    expect(
+      previewDialog().querySelector('[role="status"]')?.textContent,
+    ).toContain("原图加载失败");
+    await act(async () => dialogButton("关闭图片预览").click());
+    expect(
+      container.querySelector('[aria-label="查看商品图片大图"]'),
+    ).toBeNull();
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expectVisibleImage();
+    await renderPreview(secondSrc);
+    expect(previewTrigger().disabled).toBe(false);
+    await openPreview();
+    expect(
+      previewDialog()
+        .querySelector('img[data-unoptimized="true"]')
+        ?.getAttribute("src"),
+    ).toBe(secondSrc);
   });
 
   it("closes an image preview without activating the surrounding card", async () => {

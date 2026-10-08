@@ -174,6 +174,25 @@ async function saveStock(value: string) {
 }
 
 describe("seller goods management", () => {
+  it("keeps delisted goods manageable, confirms in the existing layer, and updates their status", async () => {
+    vi.mocked(updateSpotGoodsStock).mockResolvedValue({ ...goods, stock: -1 });
+    await render();
+    await openGoods();
+    await act(async () => button("下架商品").click());
+    expect(container.textContent).toContain("确认下架商品");
+    expect(button("编辑商品模板")).toBeUndefined();
+    expect(button("关闭弹层")).toBeDefined();
+    await act(async () => button("确认下架").click());
+    expect(container.textContent).toContain("已下架");
+    expect(container.textContent).not.toContain("库存 -1");
+    await act(async () => button("关闭弹层").click());
+    expect(container.textContent).toContain("已下架");
+    vi.mocked(getSpotGoods).mockResolvedValue({ ...goods, stock: -1 });
+    await openGoods();
+    expect(container.textContent).toContain("当前已下架");
+    expect(container.querySelector("#spot-edit-stock")).not.toBeNull();
+    expect(button("下架商品")).toBeUndefined();
+  });
   it("shows the loading skeleton initially and reuses the visible cached list on a return within 60 seconds", async () => {
     let now = Date.now();
     vi.spyOn(Date, "now").mockImplementation(() => now);

@@ -20,6 +20,7 @@ export type ManagedImageProps = {
   imageClassName?: string;
   fit?: "cover" | "contain";
   preview?: boolean;
+  overlay?: ReactNode;
   sizes?: string;
   progressive?: boolean;
   loading?: "lazy" | "eager";
@@ -42,6 +43,7 @@ type FrameProps = ManagedImageProps & {
   cacheKey?: string;
   original?: boolean;
   fallback?: ReactNode;
+  onImageError?: () => void;
 };
 
 export function ManagedImageFrame(props: FrameProps) {
@@ -60,6 +62,7 @@ function ImageFrame({
   imageClassName,
   fit = "cover",
   preview = false,
+  overlay,
   sizes = "96px",
   loading = "lazy",
   renderImage,
@@ -67,6 +70,7 @@ function ImageFrame({
   cacheKey,
   original = false,
   fallback,
+  onImageError,
 }: FrameProps) {
   const currentSrc = src || null;
   const displayKey = cacheKey ?? currentSrc;
@@ -76,6 +80,7 @@ function ImageFrame({
   const [thumbnailState, setThumbnailState] = useState<ImageState>(() =>
     initialImageState(thumbnailSrc ?? null),
   );
+  const [originalFailed, setOriginalFailed] = useState(false);
   const hasThumbnail = thumbnailState === "loaded";
   const showThumbnail =
     Boolean(thumbnailSrc) && state !== "loaded" && thumbnailState !== "error";
@@ -89,6 +94,7 @@ function ImageFrame({
       if (nextState === "error") forgetLoadedImage(displayKey);
     }
     setState(nextState);
+    if (nextState === "error") onImageError?.();
   };
   const updateThumbnailState = (nextState: ImageState) => {
     if (thumbnailSrc) {
@@ -103,7 +109,7 @@ function ImageFrame({
     imageClassName,
   );
   const Icon = state === "error" ? RiFileDamageLine : RiImageLine;
-  const content = (
+  const renderContent = (includeOverlay: boolean) => (
     <div
       aria-busy={state === "loading" && !hasThumbnail}
       className={cn(
@@ -156,8 +162,10 @@ function ImageFrame({
           原图加载失败，请关闭后重试
         </span>
       ) : null}
+      {includeOverlay ? overlay : null}
     </div>
   );
+  const content = renderContent(true);
 
   if (!preview) return content;
 
@@ -165,7 +173,7 @@ function ImageFrame({
     <ImagePreview
       alt={alt}
       className={className}
-      disabled={!currentSrc}
+      disabled={!currentSrc || state === "error" || originalFailed}
       image={
         <ManagedImageFrame
           src={currentSrc}
@@ -173,7 +181,8 @@ function ImageFrame({
           fit="contain"
           className="size-full"
           original
-          fallback={content}
+          fallback={renderContent(false)}
+          onImageError={() => setOriginalFailed(true)}
           renderImage={renderImage}
         />
       }

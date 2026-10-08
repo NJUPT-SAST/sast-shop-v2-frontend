@@ -476,7 +476,11 @@ export function SpotOrderDetail({
                 ) : null}
               </dl>
             ) : (
-              <p className="text-sm text-muted-foreground">账单尚未生成。</p>
+              <p className="text-sm text-muted-foreground">
+                {resolvedOrder.status === "completed" && !resolvedOrder.billId
+                  ? "无需支付，订单已完成"
+                  : "账单尚未生成。"}
+              </p>
             )}
             <div className="flex flex-wrap gap-2">
               {actions.canPay ? (

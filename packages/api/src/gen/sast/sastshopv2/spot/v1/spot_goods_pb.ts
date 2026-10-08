@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file sast/sastshopv2/spot/v1/spot_goods.proto.
  */
 export const file_sast_sastshopv2_spot_v1_spot_goods: GenFile = /*@__PURE__*/
-  fileDesc("CihzYXN0L3Nhc3RzaG9wdjIvc3BvdC92MS9zcG90X2dvb2RzLnByb3RvEhdzYXN0LnNhc3RzaG9wdjIuc3BvdC52MSLdAQoOU3BvdEdvb2RzQnJpZWYSCgoCaWQYASABKAMSRQoQcHJvZHVjdF90ZW1wbGF0ZRgCIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZRIYChBzYWxlX3ByaWNlX2NlbnRzGAMgASgFEi4KCmNyZWF0ZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIqACCg9TcG90R29vZHNEZXRhaWwSCgoCaWQYASABKAMSRQoQcHJvZHVjdF90ZW1wbGF0ZRgCIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZRIYChBzYWxlX3ByaWNlX2NlbnRzGAMgASgFEi4KCmNyZWF0ZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg0KBXN0b2NrGAYgASgFEjEKBnNlbGxlchgHIAEoCzIhLnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLlVzZXJJbmZvYgZwcm90bzM", [file_google_protobuf_timestamp, file_sast_sastshopv2_catalog_v1_product_template, file_sast_sastshopv2_user_v1_user_info]);
+  fileDesc("CihzYXN0L3Nhc3RzaG9wdjIvc3BvdC92MS9zcG90X2dvb2RzLnByb3RvEhdzYXN0LnNhc3RzaG9wdjIuc3BvdC52MSLsAQoOU3BvdEdvb2RzQnJpZWYSCgoCaWQYASABKAMSRQoQcHJvZHVjdF90ZW1wbGF0ZRgCIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZRIYChBzYWxlX3ByaWNlX2NlbnRzGAMgASgFEi4KCmNyZWF0ZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg0KBXN0b2NrGAYgASgFIqACCg9TcG90R29vZHNEZXRhaWwSCgoCaWQYASABKAMSRQoQcHJvZHVjdF90ZW1wbGF0ZRgCIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZRIYChBzYWxlX3ByaWNlX2NlbnRzGAMgASgFEi4KCmNyZWF0ZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg0KBXN0b2NrGAYgASgFEjEKBnNlbGxlchgHIAEoCzIhLnNhc3Quc2FzdHNob3B2Mi51c2VyLnYxLlVzZXJJbmZvYgZwcm90bzM", [file_google_protobuf_timestamp, file_sast_sastshopv2_catalog_v1_product_template, file_sast_sastshopv2_user_v1_user_info]);
 
 /**
  * 现货商品列表项，商品描述实时读取 catalog 商品模板
@@ -58,6 +58,13 @@ export type SpotGoodsBrief = Message<"sast.sastshopv2.spot.v1.SpotGoodsBrief"> &
    * @generated from field: google.protobuf.Timestamp updated_at = 5;
    */
   updatedAt?: Timestamp | undefined;
+
+  /**
+   * 当前剩余库存：-1 为已下架，0 为售罄，正数为可购买数量
+   *
+   * @generated from field: int32 stock = 6;
+   */
+  stock: number;
 };
 
 /**
@@ -68,7 +75,7 @@ export const SpotGoodsBriefSchema: GenMessage<SpotGoodsBrief> = /*@__PURE__*/
   messageDesc(file_sast_sastshopv2_spot_v1_spot_goods, 0);
 
 /**
- * 现货商品详情，包含详情页额外展示的库存和卖家信息
+ * 现货商品详情，包含详情页额外展示的卖家信息
  *
  * @generated from message sast.sastshopv2.spot.v1.SpotGoodsDetail
  */
@@ -99,7 +106,7 @@ export type SpotGoodsDetail = Message<"sast.sastshopv2.spot.v1.SpotGoodsDetail">
   updatedAt?: Timestamp | undefined;
 
   /**
-   * 当前剩余库存
+   * 当前剩余库存：-1 为已下架，0 为售罄，正数为可购买数量
    *
    * @generated from field: int32 stock = 6;
    */

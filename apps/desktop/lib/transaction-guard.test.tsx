@@ -147,6 +147,7 @@ const initialPage: ListSpotGoodsResult = {
       id: "5001",
       product,
       salePriceCents: 200,
+      stock: 5,
       updatedAt: "2026-07-18T01:00:00Z",
       store,
     },

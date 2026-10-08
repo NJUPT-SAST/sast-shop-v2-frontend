@@ -92,11 +92,11 @@ afterEach(async () => {
   container.remove();
   vi.unstubAllGlobals();
 });
-async function render() {
+async function render(initialGoods = goods) {
   await act(async () =>
     root!.render(
       <SpotGoodsEditor
-        goods={goods}
+        goods={initialGoods}
         serviceOptions={{
           dataSource: "mock",
           connectBaseUrl: "http://localhost",
@@ -136,6 +136,190 @@ async function changeBoth() {
 }
 
 describe("seller spot goods combined editing", () => {
+  it.each([0, 5])(
+    "allows a listed item with stock %s to be saved as sold out",
+    async (initialStock) => {
+      const saved = { ...goods, stock: 0 };
+      vi.mocked(updateSpotGoodsStock).mockResolvedValue(saved);
+      await render({ ...goods, stock: initialStock });
+      if (initialStock === 0) await enter("spot-edit-stock", "2");
+      await enter("spot-edit-stock", "0");
+      if (initialStock === 0) await enter("spot-edit-price", "3");
+      if (initialStock === 0)
+        vi.mocked(updateSpotGoodsPrice).mockResolvedValue({
+          ...saved,
+          salePriceCents: 300,
+        });
+      await submit();
+      if (initialStock > 0) {
+        expect(updateSpotGoodsStock).toHaveBeenCalledExactlyOnceWith(
+          { spotGoodsId: goods.id, newStock: 0, updatedAt: goods.updatedAt },
+          expect.anything(),
+        );
+      } else {
+        expect(updateSpotGoodsStock).not.toHaveBeenCalled();
+      }
+      expect(ensureAgreement).toHaveBeenCalledOnce();
+      expect(value("spot-edit-stock")).toBe("0");
+      expect(success).toHaveBeenCalledWith("修改已保存");
+    },
+  );
+
+  it("rejects zero inventory when relisting a delisted item", async () => {
+    await render({ ...goods, stock: -1 });
+    await enter("spot-edit-stock", "0");
+    await submit();
+    expect(updateSpotGoodsStock).not.toHaveBeenCalled();
+    expect(updateSpotGoodsPrice).not.toHaveBeenCalled();
+    expect(ensureAgreement).not.toHaveBeenCalled();
+    expect(success).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("重新上架请输入 1 至 999");
+  });
+
+  it("confirms delisting, writes only minus-one stock, and retains an unsaved price", async () => {
+    vi.mocked(updateSpotGoodsStock).mockResolvedValue({ ...goods, stock: -1 });
+    await render();
+    await changeBoth();
+    await act(async () => button("下架商品").click());
+    expect(container.textContent).toContain("下架后商品将不在商城展示");
+    expect(updateSpotGoodsStock).not.toHaveBeenCalled();
+    expect(ensureAgreement).not.toHaveBeenCalled();
+    await act(async () => button("取消").click());
+    expect(value("spot-edit-price")).toBe("3");
+    expect(value("spot-edit-stock")).toBe("7");
+    await act(async () => button("下架商品").click());
+    await act(async () => button("确认下架").click());
+    expect(updateSpotGoodsStock).toHaveBeenCalledExactlyOnceWith(
+      { spotGoodsId: goods.id, newStock: -1, updatedAt: goods.updatedAt },
+      expect.anything(),
+    );
+    expect(updateSpotGoodsPrice).not.toHaveBeenCalled();
+    expect(ensureAgreement).toHaveBeenCalledOnce();
+    expect(value("spot-edit-price")).toBe("3");
+    expect(value("spot-edit-stock")).toBe("");
+    expect(success).toHaveBeenCalledExactlyOnceWith("商品已下架");
+    expect(button("下架商品")).toBeUndefined();
+  });
+
+  it("does not relist a delisted item when only its price is saved", async () => {
+    const delisted = { ...goods, stock: -1 };
+    vi.mocked(updateSpotGoodsPrice).mockResolvedValue({
+      ...afterPrice,
+      stock: -1,
+    });
+    await render(delisted);
+    expect(value("spot-edit-stock")).toBe("");
+    expect(button("保存修改").disabled).toBe(true);
+    await enter("spot-edit-price", "3");
+    await submit();
+    expect(updateSpotGoodsPrice).toHaveBeenCalledOnce();
+    expect(updateSpotGoodsStock).not.toHaveBeenCalled();
+    expect(value("spot-edit-stock")).toBe("");
+    expect(container.textContent).toContain("当前已下架");
+  });
+
+  it.each([1, 999])(
+    "relists a delisted item with explicit inventory %s",
+    async (stock) => {
+      const saved = { ...goods, stock };
+      vi.mocked(updateSpotGoodsStock).mockResolvedValue(saved);
+      await render({ ...goods, stock: -1 });
+      await enter("spot-edit-stock", String(stock));
+      await submit();
+      expect(updateSpotGoodsStock).toHaveBeenCalledExactlyOnceWith(
+        { spotGoodsId: goods.id, newStock: stock, updatedAt: goods.updatedAt },
+        expect.anything(),
+      );
+      expect(ensureAgreement).toHaveBeenCalledOnce();
+      expect(onUpdated).toHaveBeenLastCalledWith(saved);
+      expect(value("spot-edit-stock")).toBe(String(stock));
+      expect(success).toHaveBeenCalledWith("修改已保存");
+    },
+  );
+
+  it.each(["1000", "-1"])(
+    "rejects manually entered stock %s before any write",
+    async (stock) => {
+      await render();
+      await enter("spot-edit-stock", stock);
+      await submit();
+      expect(container.textContent).toContain("请输入 0 至 999 的整数");
+      expect(ensureAgreement).not.toHaveBeenCalled();
+      expect(updateSpotGoodsStock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("verifies an ambiguous delisting before allowing another write", async () => {
+    vi.mocked(updateSpotGoodsStock).mockRejectedValue(
+      new Error("response lost"),
+    );
+    vi.mocked(getSpotGoods)
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValue({ ...goods, stock: -1 });
+    await render();
+    await act(async () => button("下架商品").click());
+    await act(async () => button("确认下架").click());
+    expect(button("下架商品").disabled).toBe(true);
+    expect(onBusyChange).toHaveBeenLastCalledWith(true);
+    await act(async () => button("刷新核实").click());
+    expect(updateSpotGoodsStock).toHaveBeenCalledOnce();
+    expect(value("spot-edit-stock")).toBe("");
+    expect(onBusyChange).toHaveBeenLastCalledWith(false);
+    expect(success).toHaveBeenCalledExactlyOnceWith("商品已下架");
+  });
+
+  it("does not report delisting success when the write readback already shows relisted stock", async () => {
+    const relisted = { ...goods, stock: 3, updatedAt: afterBoth.updatedAt };
+    vi.mocked(updateSpotGoodsStock).mockResolvedValue(relisted);
+    await render();
+    await act(async () => button("下架商品").click());
+    await act(async () => button("确认下架").click());
+    expect(updateSpotGoodsStock).toHaveBeenCalledOnce();
+    expect(success).not.toHaveBeenCalled();
+    expect(value("spot-edit-stock")).toBe("3");
+    expect(onUpdated).toHaveBeenLastCalledWith(relisted);
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+    expect(button("下架商品").disabled).toBe(false);
+  });
+
+  it("does not report delisting success after a confirmed write recovers relisted stock", async () => {
+    const relisted = { ...goods, stock: 3, updatedAt: afterBoth.updatedAt };
+    vi.mocked(updateSpotGoodsStock).mockRejectedValue(
+      new UpdatedSpotGoodsRefreshError(goods.id, new Error("offline")),
+    );
+    vi.mocked(getSpotGoods).mockResolvedValue(relisted);
+    await render();
+    await act(async () => button("下架商品").click());
+    await act(async () => button("确认下架").click());
+    expect(updateSpotGoodsStock).toHaveBeenCalledOnce();
+    expect(getSpotGoods).toHaveBeenCalledOnce();
+    expect(success).not.toHaveBeenCalled();
+    expect(value("spot-edit-stock")).toBe("3");
+    expect(onUpdated).toHaveBeenLastCalledWith(relisted);
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+  });
+
+  it("unlocks pending delisting recovery without claiming success when another writer has relisted it", async () => {
+    const relisted = { ...goods, stock: 3, updatedAt: afterBoth.updatedAt };
+    vi.mocked(updateSpotGoodsStock).mockRejectedValue(
+      new UpdatedSpotGoodsRefreshError(goods.id, new Error("offline")),
+    );
+    vi.mocked(getSpotGoods)
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValue(relisted);
+    await render();
+    await act(async () => button("下架商品").click());
+    await act(async () => button("确认下架").click());
+    expect(onBusyChange).toHaveBeenLastCalledWith(true);
+    await act(async () => button("刷新核实").click());
+    expect(updateSpotGoodsStock).toHaveBeenCalledOnce();
+    expect(success).not.toHaveBeenCalled();
+    expect(value("spot-edit-stock")).toBe("3");
+    expect(onUpdated).toHaveBeenLastCalledWith(relisted);
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+    expect(onBusyChange).toHaveBeenLastCalledWith(false);
+    expect(button("刷新核实")).toBeUndefined();
+  });
   it("keeps one unchanged save action outside the scrolling form and submits only dirty fields", async () => {
     await render();
     expect(button("保存修改").disabled).toBe(true);

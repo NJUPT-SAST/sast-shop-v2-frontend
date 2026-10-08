@@ -15,7 +15,7 @@ import {
   MAX_INT32_CENTS,
   parseYuanToCents,
 } from "@sast-shop/domain";
-import { RiSaveLine } from "@remixicon/react";
+import { RiSaveLine, RiSubtractLine } from "@remixicon/react";
 import { Alert, AlertDescription } from "@workspace/ui/components/alert";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -54,11 +54,13 @@ export function SpotGoodsEditor({
   serviceOptions,
   onUpdated,
   onBusyChange,
+  onConfirmDelistChange,
 }: {
   goods: SpotGoods;
   serviceOptions: ServiceOptions;
   onUpdated: (goods: SpotGoods) => void;
   onBusyChange: (busy: boolean) => void;
+  onConfirmDelistChange?: (confirming: boolean) => void;
 }) {
   const { ensureAgreement } = useTransactionAgreement();
   const [latest, setLatest] = useState(goods);
@@ -69,11 +71,17 @@ export function SpotGoodsEditor({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingUpdate | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmingDelist, setConfirmingDelist] = useState(false);
   const busyRef = useRef(false);
   const pendingRef = useRef<PendingUpdate | null>(null);
   const mountedRef = useRef(true);
   const priceRef = useRef<HTMLInputElement>(null);
   const stockRef = useRef<HTMLInputElement>(null);
+  const cancelDelistRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (confirmingDelist) cancelDelistRef.current?.focus();
+  }, [confirmingDelist]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -163,21 +171,27 @@ export function SpotGoodsEditor({
       "已读取最新售价 " +
       formatPrice(result.salePriceCents) +
       "、库存 " +
-      result.stock +
-      " 件，请核对后重新保存"
+      (result.stock === -1 ? "已下架" : `${result.stock} 件`) +
+      "，请核对后重新保存"
     );
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busyRef.current || pendingRef.current) return;
+    if (busyRef.current || pendingRef.current || confirmingDelist) return;
     const priceValue = parseYuanToCents(price.trim());
-    const stockValue = /^\d{1,10}$/.test(stock.trim())
-      ? Number(stock.trim())
-      : null;
+    const stockValue =
+      stock.trim() === "-1" && latest.stock === -1
+        ? -1
+        : /^\d{1,10}$/.test(stock.trim())
+          ? Number(stock.trim())
+          : null;
     const invalidPrice =
       priceValue === null || priceValue <= 0 || priceValue > MAX_INT32_CENTS;
-    const invalidStock = stockValue === null || stockValue > MAX_INT32_CENTS;
+    const invalidStock =
+      stockValue === null ||
+      stockValue > 999 ||
+      (latest.stock === -1 && stockValue === 0);
     setPriceError(
       invalidPrice
         ? price.trim()
@@ -188,7 +202,9 @@ export function SpotGoodsEditor({
     setStockError(
       invalidStock
         ? stock.trim()
-          ? "请输入 0 至 2147483647 的整数"
+          ? latest.stock === -1
+            ? "重新上架请输入 1 至 999 的整数"
+            : "请输入 0 至 999 的整数"
           : "请输入库存"
         : null,
     );
@@ -205,6 +221,16 @@ export function SpotGoodsEditor({
     const changePrice = priceValue !== latest.salePriceCents;
     const changeStock = stockValue !== latest.stock;
     if (!changePrice && !changeStock) return;
+    await saveChanges(changePrice, priceValue, changeStock, stockValue);
+  }
+
+  async function saveChanges(
+    changePrice: boolean,
+    priceValue: number,
+    changeStock: boolean,
+    stockValue: number,
+  ) {
+    if (busyRef.current || pendingRef.current) return;
     beginOperation();
     setError(null);
     let current = latest;
@@ -272,7 +298,13 @@ export function SpotGoodsEditor({
         current = saved;
         if (change.field === "price") priceSaved = true;
       }
-      toast.success("修改已保存");
+      if (changeStock && stockValue === -1 && current.stock !== -1) {
+        setError("最新商品仍在上架，请核对库存后重新操作");
+        return;
+      }
+      toast.success(
+        changeStock && stockValue === -1 ? "商品已下架" : "修改已保存",
+      );
     } finally {
       finishOperation();
     }
@@ -298,13 +330,25 @@ export function SpotGoodsEditor({
       }
       applySavedField(verification.goods, latest, update);
       if (
+        update.field === "stock" &&
+        update.value === -1 &&
+        verification.goods.stock !== -1
+      ) {
+        setError("最新商品仍在上架，请核对库存后重新操作");
+        return;
+      }
+      if (
         update.remainingStock !== undefined &&
         verification.goods.stock !== update.remainingStock
       ) {
         setError("售价已保存，库存修改尚未保存，请核对后保存修改");
       } else {
         setError(null);
-        toast.success("修改已保存");
+        toast.success(
+          update.field === "stock" && update.value === -1
+            ? "商品已下架"
+            : "修改已保存",
+        );
       }
     } finally {
       finishOperation();
@@ -314,8 +358,44 @@ export function SpotGoodsEditor({
   const locked = busy || pending !== null;
   const unchanged =
     parseYuanToCents(price.trim()) === latest.salePriceCents &&
-    /^\d{1,10}$/.test(stock.trim()) &&
+    (/^\d{1,10}$/.test(stock.trim()) ||
+      (stock.trim() === "-1" && latest.stock === -1)) &&
     Number(stock.trim()) === latest.stock;
+
+  function changeDelistConfirmation(confirming: boolean) {
+    setConfirmingDelist(confirming);
+    onConfirmDelistChange?.(confirming);
+  }
+
+  if (confirmingDelist) {
+    return (
+      <>
+        <p className="pb-4 text-sm text-muted-foreground">
+          下架后商品将不在商城展示，可在这里重新上架
+        </p>
+        <ResponsiveDialogFooter className="shrink-0 border-t pb-0">
+          <Button
+            ref={cancelDelistRef}
+            type="button"
+            variant="outline"
+            onClick={() => changeDelistConfirmation(false)}
+          >
+            取消
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={() => {
+              changeDelistConfirmation(false);
+              void saveChanges(false, latest.salePriceCents, true, -1);
+            }}
+          >
+            确认下架
+          </Button>
+        </ResponsiveDialogFooter>
+      </>
+    );
+  }
 
   return (
     <>
@@ -352,9 +432,12 @@ export function SpotGoodsEditor({
               ref={stockRef}
               id="spot-edit-stock"
               inputMode="numeric"
-              value={stock}
+              min={latest.stock === -1 ? 1 : 0}
+              max={999}
+              value={stock === "-1" ? "" : stock}
+              placeholder={latest.stock === -1 ? "填写库存重新上架" : undefined}
               disabled={locked}
-              maxLength={10}
+              maxLength={3}
               aria-invalid={Boolean(stockError)}
               aria-describedby={
                 stockError ? "spot-edit-stock-error" : "spot-edit-stock-help"
@@ -366,7 +449,9 @@ export function SpotGoodsEditor({
             />
             <FieldError id="spot-edit-stock-error">{stockError}</FieldError>
             <FieldDescription id="spot-edit-stock-help">
-              填写剩余可售件数，设为 0 后暂停购买
+              {latest.stock === -1
+                ? "当前已下架，填写 1 至 999 的库存后重新上架"
+                : "填写剩余可售件数，设为 0 后暂停购买"}
             </FieldDescription>
           </Field>
           {error ? (
@@ -386,6 +471,17 @@ export function SpotGoodsEditor({
         </FieldGroup>
       </form>
       <ResponsiveDialogFooter className="shrink-0 border-t pb-0">
+        {latest.stock !== -1 ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={locked}
+            onClick={() => changeDelistConfirmation(true)}
+          >
+            <RiSubtractLine data-icon="inline-start" />
+            下架商品
+          </Button>
+        ) : null}
         <Button
           type="submit"
           form="spot-goods-edit-form"

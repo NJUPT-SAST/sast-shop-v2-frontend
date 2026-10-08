@@ -6,6 +6,7 @@ import type {
 
 export interface SpotProductBrief {
   id: string;
+  stock: number;
   title: string;
   description: string;
   imageUrl: string;
@@ -30,6 +31,7 @@ export function mapSpotProductBriefs(
 ): SpotProductBrief[] {
   return goods.map((item) => ({
     id: item.id,
+    stock: item.stock,
     title: item.product.title,
     description: item.product.description,
     imageUrl: item.product.mainImageUrl,

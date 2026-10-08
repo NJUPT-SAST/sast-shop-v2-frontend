@@ -167,6 +167,7 @@ const initialPage: ListSpotGoodsResult = {
   goods: [
     {
       id: "5001",
+      stock: 5,
       product,
       salePriceCents: 200,
       updatedAt: "2026-07-18T01:00:00Z",
@@ -186,6 +187,13 @@ const detail: SpotGoods = {
   sellerName: "卖家",
   sellerAvatarUrl: "",
   updatedAt: "2026-07-18T01:00:00Z",
+};
+const selfPurchaseOrder = {
+  id: "5002",
+  status: "completed",
+  bill: null,
+  billId: null,
+  seller: null,
 };
 
 let root: Root;
@@ -233,6 +241,14 @@ async function click(text: string) {
 }
 
 async function openPayment() {
+  await openDetail();
+  await click("创建订单");
+  expect(
+    container.querySelector('[data-testid="payment-status"]')?.textContent,
+  ).toBe("ready");
+}
+
+async function openDetail() {
   await act(async () => {
     root.render(
       <SpotMarketplace
@@ -244,11 +260,120 @@ async function openPayment() {
     );
   });
   await click("矿泉水");
-  await click("创建订单");
-  expect(
-    container.querySelector('[data-testid="payment-status"]')?.textContent,
-  ).toBe("ready");
 }
+
+describe("spot self-purchase", () => {
+  it("accepts the backend's seller-free completed self-order and never opens payment while creating it or closing the detail", async () => {
+    let resolveOrder!: (orders: (typeof selfPurchaseOrder)[]) => void;
+    let finishCleanup!: () => void;
+    createSpotOrders.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveOrder = resolve;
+      }),
+    );
+    waitForDrawerHistoryCleanup.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishCleanup = resolve;
+      }),
+    );
+    await openDetail();
+    await click("创建订单");
+    expect(createSpotOrders).toHaveBeenCalledExactlyOnceWith(
+      [{ spotGoodsId: "5001", quantity: 1, updatedAt: detail.updatedAt }],
+      expect.anything(),
+    );
+    expect(
+      container.querySelector('[data-testid="payment-dialog"]'),
+    ).toBeNull();
+    expect(container.textContent).not.toContain("自购无需支付");
+    await click("正在创建订单");
+    expect(createSpotOrders).toHaveBeenCalledOnce();
+    await act(async () => resolveOrder([selfPurchaseOrder]));
+    expect(waitForDrawerHistoryCleanup).toHaveBeenCalledOnce();
+    expect(
+      container.querySelector('[data-testid="payment-dialog"]'),
+    ).toBeNull();
+    expect(container.textContent).not.toContain("自购无需支付");
+    expect(listPaymentQrCodes).not.toHaveBeenCalled();
+    await act(async () => finishCleanup());
+    expect(container.textContent).toContain("自购无需支付");
+    expect(container.textContent).toContain("这是你自己上架的商品，无需支付");
+    expect(
+      container.querySelector('[data-testid="payment-dialog"]'),
+    ).toBeNull();
+    expect(listPaymentQrCodes).not.toHaveBeenCalled();
+    expect(payBill).not.toHaveBeenCalled();
+    expect(getBill).not.toHaveBeenCalled();
+    expect(refresh).toHaveBeenCalledOnce();
+  });
+
+  it("waits for the self-purchase drawer cleanup before navigating to the completed order", async () => {
+    createSpotOrders.mockResolvedValueOnce([selfPurchaseOrder]);
+    await openDetail();
+    await click("创建订单");
+    let finishCleanup!: () => void;
+    waitForDrawerHistoryCleanup.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishCleanup = resolve;
+      }),
+    );
+    await click("查看订单");
+    expect(container.textContent).not.toContain("自购无需支付");
+    expect(waitForDrawerHistoryCleanup).toHaveBeenCalledTimes(2);
+    expect(push).not.toHaveBeenCalled();
+    await act(async () => finishCleanup());
+    expect(push).toHaveBeenCalledExactlyOnceWith(
+      "/orders/spot/5002?view=buyer",
+    );
+    expect(createSpotOrders).toHaveBeenCalledOnce();
+    expect(payBill).not.toHaveBeenCalled();
+  });
+
+  it("dismisses the self-purchase notice without creating another order or paying", async () => {
+    createSpotOrders.mockResolvedValueOnce([selfPurchaseOrder]);
+    await openDetail();
+    await click("创建订单");
+    await click("继续逛逛");
+    expect(container.textContent).not.toContain("自购无需支付");
+    expect(push).not.toHaveBeenCalled();
+    expect(createSpotOrders).toHaveBeenCalledOnce();
+    expect(listPaymentQrCodes).not.toHaveBeenCalled();
+    expect(payBill).not.toHaveBeenCalled();
+  });
+
+  it("does not create the self-order when the agreement is declined", async () => {
+    createSpotOrders.mockResolvedValueOnce([selfPurchaseOrder]);
+    ensureAgreement.mockResolvedValueOnce(false);
+    await openDetail();
+    await click("创建订单");
+    expect(ensureAgreement).toHaveBeenCalledOnce();
+    expect(createSpotOrders).not.toHaveBeenCalled();
+    expect(container.textContent).not.toContain("自购无需支付");
+    expect(
+      container.querySelector('[data-testid="payment-dialog"]'),
+    ).toBeNull();
+    expect(listPaymentQrCodes).not.toHaveBeenCalled();
+    expect(payBill).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { ...selfPurchaseOrder, status: "pending" },
+    { ...selfPurchaseOrder, billId: "9101" },
+  ])(
+    "treats an incomplete or inconsistent bill-free response as an error: %j",
+    async (order) => {
+      createSpotOrders.mockResolvedValueOnce([order]);
+      await openDetail();
+      await click("创建订单");
+      expect(container.textContent).not.toContain("自购无需支付");
+      expect(
+        container.querySelector('[data-testid="payment-status"]')?.textContent,
+      ).toBe("error");
+      expect(listPaymentQrCodes).not.toHaveBeenCalled();
+      expect(payBill).not.toHaveBeenCalled();
+    },
+  );
+});
 
 describe("new spot order payment recovery", () => {
   it("keeps the selected detail content through dismissal and resets it on reopening", async () => {

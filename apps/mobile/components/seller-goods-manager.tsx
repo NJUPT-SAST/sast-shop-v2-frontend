@@ -145,6 +145,7 @@ function SellerGoodsList({
   const [detail, setDetail] = useState<SpotGoods | null>(null);
   const [detailError, setDetailError] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [confirmingDelist, setConfirmingDelist] = useState(false);
   const busyRef = useRef(false);
   const detailGeneration = useRef(0);
   const mountedRef = useRef(true);
@@ -162,6 +163,7 @@ function SellerGoodsList({
     setSelected(null);
     setDetail(null);
     setDetailError(false);
+    setConfirmingDelist(false);
   }
 
   async function openEditor(goods: SpotGoods) {
@@ -170,6 +172,7 @@ function SellerGoodsList({
     setSelected(goods);
     setDetail(null);
     setDetailError(false);
+    setConfirmingDelist(false);
     try {
       const latest = await getSpotGoods(goods.id, serviceOptions);
       if (detailGeneration.current !== generation) return;
@@ -203,6 +206,7 @@ function SellerGoodsList({
             >
               <ManagedImage
                 fit="contain"
+                soldOut={goods.stock === 0}
                 src={goods.product.mainImageUrl}
                 alt={goods.product.title}
                 className="size-16 shrink-0 rounded-lg"
@@ -219,7 +223,11 @@ function SellerGoodsList({
                     {formatPrice(goods.salePriceCents)}
                   </span>
                   <Badge variant="secondary">
-                    {goods.stock === 0 ? "已售罄" : `库存 ${goods.stock}`}
+                    {goods.stock === -1
+                      ? "已下架"
+                      : goods.stock === 0
+                        ? "已售罄"
+                        : `库存 ${goods.stock}`}
                   </Badge>
                 </div>
               </div>
@@ -259,54 +267,59 @@ function SellerGoodsList({
         {selected ? (
           <ResponsiveDialogContent className="max-h-[88dvh] overflow-hidden px-4 pb-4">
             <ResponsiveDialogHeader className="px-0 text-left">
-              <ResponsiveDialogTitle>编辑现货商品</ResponsiveDialogTitle>
+              <ResponsiveDialogTitle>
+                {confirmingDelist ? "确认下架商品" : "编辑现货商品"}
+              </ResponsiveDialogTitle>
               <ResponsiveDialogDescription className="sr-only">
                 {detail?.product.title ?? selected.product.title}
               </ResponsiveDialogDescription>
             </ResponsiveDialogHeader>
-            <div className="flex flex-col gap-3 pb-2">
-              <p className="text-sm font-medium">商品模板</p>
-              <Button
-                type="button"
-                variant="ghost"
-                size="touch"
-                className="h-auto w-full min-w-0 justify-start gap-3 rounded-lg px-0 py-0 pr-1 text-left"
-                aria-label="编辑商品模板"
-                title="前往商品模板编辑"
-                disabled={busy || !detail}
-                onClick={() => {
-                  if (!detail || busyRef.current) return;
-                  closeEditor();
-                  const generation = detailGeneration.current;
-                  void waitForDrawerHistoryCleanup().then(() => {
-                    if (
-                      !mountedRef.current ||
-                      generation !== detailGeneration.current
-                    )
-                      return;
-                    router.push(
-                      `/group/templates?store=${encodeURIComponent(detail.product.storeId)}&edit=${encodeURIComponent(detail.product.id)}`,
-                    );
-                  });
-                }}
-              >
-                <ManagedImage
-                  fit="contain"
+            {!confirmingDelist ? (
+              <div className="flex flex-col gap-3 pb-2">
+                <p className="text-sm font-medium">商品模板</p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="touch"
+                  className="h-auto w-full min-w-0 justify-start gap-3 rounded-lg px-0 py-0 pr-1 text-left"
+                  aria-label="编辑商品模板"
+                  title="前往商品模板编辑"
+                  disabled={busy || !detail}
+                  onClick={() => {
+                    if (!detail || busyRef.current) return;
+                    closeEditor();
+                    const generation = detailGeneration.current;
+                    void waitForDrawerHistoryCleanup().then(() => {
+                      if (
+                        !mountedRef.current ||
+                        generation !== detailGeneration.current
+                      )
+                        return;
+                      router.push(
+                        `/group/templates?store=${encodeURIComponent(detail.product.storeId)}&edit=${encodeURIComponent(detail.product.id)}`,
+                      );
+                    });
+                  }}
+                >
+                  <ManagedImage
+                    fit="contain"
+                    soldOut={(detail ?? selected).stock === 0}
                   src={(detail ?? selected).product.mainImageUrl}
-                  alt=""
-                  className="size-12 shrink-0 rounded-lg"
-                />
-                <span className="flex min-w-0 flex-1 flex-col gap-1.5">
-                  <span className="truncate font-medium leading-5">
-                    {(detail ?? selected).product.title}
+                    alt=""
+                    className="size-12 shrink-0 rounded-lg"
+                  />
+                  <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <span className="truncate font-medium leading-5">
+                      {(detail ?? selected).product.title}
+                    </span>
+                    <span className="truncate text-xs leading-4 text-muted-foreground">
+                      {(detail ?? selected).product.description}
+                    </span>
                   </span>
-                  <span className="truncate text-xs leading-4 text-muted-foreground">
-                    {(detail ?? selected).product.description}
-                  </span>
-                </span>
-                <EditActionLabel>编辑模板</EditActionLabel>
-              </Button>
-            </div>
+                  <EditActionLabel>编辑模板</EditActionLabel>
+                </Button>
+              </div>
+            ) : null}
             {detailError ? (
               <LoadFailure
                 surface="plain"
@@ -318,6 +331,7 @@ function SellerGoodsList({
                 key={detail.id}
                 goods={detail}
                 serviceOptions={serviceOptions}
+                onConfirmDelistChange={setConfirmingDelist}
                 onBusyChange={(value) => {
                   busyRef.current = value;
                   setBusy(value);

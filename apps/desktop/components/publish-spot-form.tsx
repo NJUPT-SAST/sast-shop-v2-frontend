@@ -201,12 +201,8 @@ export function PublishSpotForm({
       setFormError("售卖单价应为不超过 21474836.47 元的两位小数");
       return;
     }
-    if (
-      !Number.isInteger(stockValue) ||
-      stockValue < 1 ||
-      stockValue > 2_147_483_647
-    ) {
-      setFormError("初始库存必须是 1 至 2147483647 的整数");
+    if (!Number.isInteger(stockValue) || stockValue < 1 || stockValue > 999) {
+      setFormError("初始库存必须是 1 至 999 的整数");
       return;
     }
     if (!selectedMatch.store) {
@@ -443,7 +439,7 @@ export function PublishSpotForm({
                         id="desktop-spot-stock"
                         type="number"
                         min="1"
-                        max="2147483647"
+                        max="999"
                         step="1"
                         value={stock}
                         onChange={(event) => setStock(event.target.value)}

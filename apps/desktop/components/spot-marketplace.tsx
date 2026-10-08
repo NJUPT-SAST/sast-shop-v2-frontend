@@ -166,6 +166,9 @@ export function SpotMarketplace({
   >("idle");
   const [quantity, setQuantity] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [selfPurchaseOrderId, setSelfPurchaseOrderId] = useState<string | null>(
+    null,
+  );
   const [unverifiedOrderVersion, setUnverifiedOrderVersion] = useState<
     string | null
   >(null);
@@ -233,6 +236,14 @@ export function SpotMarketplace({
       );
       const order = orders[0];
       if (!order?.id) throw new Error("订单创建结果为空");
+      if (order.status === "completed" && !order.bill && !order.billId) {
+        submittingRef.current = false;
+        setSubmitting(false);
+        setDialogOpen(false);
+        setSelfPurchaseOrderId(order.id);
+        router.refresh();
+        return;
+      }
       toast.success("订单已创建，请继续完成支付");
       router.push(
         `/orders/spot/${order.id}?view=buyer&returnTo=${encodeURIComponent("/shop")}`,
@@ -292,6 +303,7 @@ export function SpotMarketplace({
           {products.map((product, index) => (
             <Card key={product.id} className="min-w-0 overflow-hidden py-0">
               <ManagedImage
+                soldOut={product.stock === 0}
                 src={product.imageUrl}
                 loading={index < 4 ? "eager" : "lazy"}
                 sizes="(max-width: 1024px) 45vw, (max-width: 1280px) 30vw, 280px"
@@ -379,6 +391,7 @@ export function SpotMarketplace({
                 <>
                   <div className="grid grid-cols-[15rem_minmax(0,1fr)] gap-6">
                     <ManagedImage
+                      soldOut={selected.stock === 0}
                       src={selected.imageUrl}
                       sizes="(max-width: 640px) calc(100vw - 48px), 320px"
                       alt={selected.title}
@@ -467,14 +480,16 @@ export function SpotMarketplace({
                       onClick={createOrder}
                       disabled={
                         submitting ||
-                        selected.stock === 0 ||
+                        selected.stock <= 0 ||
                         unverifiedOrderVersion ===
                           `${selected.id}:${selected.updatedAt}`
                       }
                     >
                       {submitting ? <Spinner /> : null}
-                      {selected.stock === 0
-                        ? "暂时售罄"
+                      {selected.stock <= 0
+                        ? selected.stock === -1
+                          ? "已下架"
+                          : "暂时售罄"
                         : `创建订单 · ${formatPrice(selected.salePriceCents * quantity)}`}
                     </Button>
                   </DialogFooter>
@@ -482,6 +497,40 @@ export function SpotMarketplace({
               )}
             </>
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(selfPurchaseOrderId)}
+        onOpenChange={(open) => {
+          if (!open) setSelfPurchaseOrderId(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>无需支付</DialogTitle>
+            <DialogDescription>
+              这是你自己上架的商品，无需支付。订单已完成，库存已扣减
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSelfPurchaseOrderId(null)}
+            >
+              关闭
+            </Button>
+            <Button
+              onClick={() => {
+                if (!selfPurchaseOrderId) return;
+                router.push(
+                  `/orders/spot/${selfPurchaseOrderId}?view=buyer&returnTo=${encodeURIComponent("/shop")}`,
+                );
+              }}
+            >
+              查看订单
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

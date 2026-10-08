@@ -86,6 +86,7 @@ stubs:
             barcode: "690000000001"
             updatedAt: "2026-07-18T01:00:00Z"
           salePriceCents: 200
+          stock: 24
           updatedAt: "2026-07-18T02:00:00Z"
         - id: "6002"
           productTemplate:
@@ -98,6 +99,7 @@ stubs:
             barcode: "690000000003"
             updatedAt: "2026-07-18T01:00:00Z"
           salePriceCents: 600
+          stock: 0
           updatedAt: "2026-07-18T02:00:00Z"
         - id: "6003"
           productTemplate:
@@ -110,6 +112,7 @@ stubs:
             barcode: "690000000006"
             updatedAt: "2026-07-18T01:00:00Z"
           salePriceCents: 250
+          stock: 40
           updatedAt: "2026-07-18T02:00:00Z"
       currentPage: 1
       totalCount: 3
@@ -131,6 +134,7 @@ stubs:
             barcode: "690000000001"
             updatedAt: "2026-07-18T01:00:00Z"
           salePriceCents: 200
+          stock: 24
           updatedAt: "2026-07-18T02:00:00Z"
         - id: "6002"
           productTemplate:
@@ -143,6 +147,7 @@ stubs:
             barcode: "690000000003"
             updatedAt: "2026-07-18T01:00:00Z"
           salePriceCents: 600
+          stock: 0
           updatedAt: "2026-07-18T02:00:00Z"
         - id: "6003"
           productTemplate:
@@ -155,6 +160,7 @@ stubs:
             barcode: "690000000006"
             updatedAt: "2026-07-18T01:00:00Z"
           salePriceCents: 250
+          stock: 40
           updatedAt: "2026-07-18T02:00:00Z"
       currentPage: 1
       totalCount: 3
@@ -209,7 +215,7 @@ stubs:
           barcode: "690000000003"
           updatedAt: "2026-07-18T01:00:00Z"
         salePriceCents: 600
-        stock: 18
+        stock: 0
         seller:
           id: "42"
           name: SAST 小卖部

@@ -59,28 +59,31 @@ export function ImagePreview({
 
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      <DialogTrigger asChild>
-        <button
-          type="button"
-          disabled={disabled}
-          aria-label={`查看${alt || "商品图片"}大图`}
-          onClick={(event) => event.stopPropagation()}
-          className={cn(
-            "relative block overflow-hidden text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 enabled:cursor-zoom-in",
-            className,
-          )}
-        >
+      {disabled ? (
+        <div className={cn("relative overflow-hidden", className)}>
           {children}
-          {!disabled ? (
+        </div>
+      ) : (
+        <DialogTrigger asChild>
+          <button
+            type="button"
+            aria-label={`查看${alt || "商品图片"}大图`}
+            onClick={(event) => event.stopPropagation()}
+            className={cn(
+              "relative block overflow-hidden text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 enabled:cursor-zoom-in",
+              className,
+            )}
+          >
+            {children}
             <span
               className="pointer-events-none absolute right-1 bottom-1 rounded-md bg-card/90 p-1 text-foreground"
               aria-hidden="true"
             >
               <RiZoomInLine className="size-4" />
             </span>
-          ) : null}
-        </button>
-      </DialogTrigger>
+          </button>
+        </DialogTrigger>
+      )}
       <DialogContent
         showCloseButton={false}
         onClick={(event) => event.stopPropagation()}

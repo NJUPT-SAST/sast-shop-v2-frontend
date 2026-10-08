@@ -26,7 +26,14 @@ import {
   FieldLabel,
 } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
-import { DialogFooter } from "@workspace/ui/components/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@workspace/ui/components/dialog";
 import { Spinner } from "@workspace/ui/components/spinner";
 import { toast } from "sonner";
 import { useTransactionAgreement } from "./transaction-agreement-provider";
@@ -71,6 +78,7 @@ export function SpotGoodsEditor({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingUpdate | null>(null);
   const [busy, setBusy] = useState(false);
+  const [delistOpen, setDelistOpen] = useState(false);
   const busyRef = useRef(false);
   const pendingRef = useRef<PendingUpdate | null>(null);
   const mountedRef = useRef(true);
@@ -165,21 +173,30 @@ export function SpotGoodsEditor({
       "已读取最新售价 " +
       formatPrice(result.salePriceCents) +
       "、库存 " +
-      result.stock +
-      " 件，请核对后重新保存"
+      (result.stock === -1 ? "已下架" : `${result.stock} 件`) +
+      "，请核对后重新保存"
     );
   }
 
-  async function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (busyRef.current || pendingRef.current) return;
-    const priceValue = parseYuanToCents(price.trim());
-    const stockValue = /^\d{1,10}$/.test(stock.trim())
-      ? Number(stock.trim())
-      : null;
+  async function save(event?: FormEvent<HTMLFormElement>, delisting = false) {
+    event?.preventDefault();
+    if (busyRef.current || pendingRef.current || (delistOpen && !delisting))
+      return;
+    const priceValue = delisting
+      ? latest.salePriceCents
+      : parseYuanToCents(price.trim());
+    const stockValue = delisting
+      ? -1
+      : /^\d{1,10}$/.test(stock.trim()) ||
+          (latest.stock === -1 && stock === "-1")
+        ? Number(stock.trim())
+        : null;
     const invalidPrice =
       priceValue === null || priceValue <= 0 || priceValue > MAX_INT32_CENTS;
-    const invalidStock = stockValue === null || stockValue > MAX_INT32_CENTS;
+    const invalidStock =
+      stockValue === null ||
+      stockValue > 999 ||
+      (!delisting && latest.stock === -1 && stockValue === 0);
     setPriceError(
       invalidPrice
         ? price.trim()
@@ -190,7 +207,9 @@ export function SpotGoodsEditor({
     setStockError(
       invalidStock
         ? stock.trim()
-          ? "请输入 0 至 2147483647 的整数"
+          ? latest.stock === -1
+            ? "重新上架请输入 1 至 999 的整数"
+            : "请输入 0 至 999 的整数"
           : "请输入库存"
         : null,
     );
@@ -204,7 +223,7 @@ export function SpotGoodsEditor({
       else stockRef.current?.focus();
       return;
     }
-    const changePrice = priceValue !== latest.salePriceCents;
+    const changePrice = !delisting && priceValue !== latest.salePriceCents;
     const changeStock = stockValue !== latest.stock;
     if (!changePrice && !changeStock) return;
     beginOperation();
@@ -274,7 +293,11 @@ export function SpotGoodsEditor({
         current = saved;
         if (change.field === "price") priceSaved = true;
       }
-      toast.success("修改已保存");
+      if (delisting && current.stock !== -1) {
+        setError("最新商品仍在上架，请核对库存后重新操作");
+        return;
+      }
+      toast.success(delisting ? "商品已下架" : "修改已保存");
     } finally {
       finishOperation();
     }
@@ -300,6 +323,14 @@ export function SpotGoodsEditor({
       }
       applySavedField(verification.goods, latest, update);
       if (
+        update.field === "stock" &&
+        update.value === -1 &&
+        verification.goods.stock !== -1
+      ) {
+        setError("最新商品仍在上架，请核对库存后重新操作");
+        return;
+      }
+      if (
         update.remainingStock !== undefined &&
         verification.goods.stock !== update.remainingStock
       ) {
@@ -313,10 +344,11 @@ export function SpotGoodsEditor({
     }
   }
 
-  const locked = busy || pending !== null;
+  const locked = busy || pending !== null || delistOpen;
   const unchanged =
     parseYuanToCents(price.trim()) === latest.salePriceCents &&
-    /^\d{1,10}$/.test(stock.trim()) &&
+    (/^\d{1,10}$/.test(stock.trim()) ||
+      (latest.stock === -1 && stock === "-1")) &&
     Number(stock.trim()) === latest.stock;
 
   return (
@@ -354,8 +386,12 @@ export function SpotGoodsEditor({
             <Input
               ref={stockRef}
               id="spot-edit-stock"
+              type="number"
+              min={latest.stock === -1 ? 1 : 0}
+              max={999}
+              step={1}
               inputMode="numeric"
-              value={stock}
+              value={stock === "-1" ? "" : stock}
               disabled={locked}
               maxLength={10}
               aria-invalid={Boolean(stockError)}
@@ -369,7 +405,9 @@ export function SpotGoodsEditor({
             />
             <FieldError id="spot-edit-stock-error">{stockError}</FieldError>
             <FieldDescription id="spot-edit-stock-help">
-              填写剩余可售件数，设为 0 后暂停购买
+              {latest.stock === -1
+                ? "商品已下架，填写 1 至 999 的库存并保存即可重新上架"
+                : "填写剩余可售件数，设为 0 后暂停购买"}
             </FieldDescription>
           </Field>
           {error ? (
@@ -389,6 +427,16 @@ export function SpotGoodsEditor({
         </FieldGroup>
       </form>
       <DialogFooter className="shrink-0 border-t pt-4">
+        {latest.stock !== -1 ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={locked}
+            onClick={() => setDelistOpen(true)}
+          >
+            下架商品
+          </Button>
+        ) : null}
         {onCancel ? (
           <Button
             type="button"
@@ -412,6 +460,34 @@ export function SpotGoodsEditor({
           {busy ? "正在保存" : "保存修改"}
         </Button>
       </DialogFooter>
+      <Dialog
+        open={delistOpen}
+        onOpenChange={(open) => {
+          if (!busyRef.current) setDelistOpen(open);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>下架商品</DialogTitle>
+            <DialogDescription>
+              下架后商品将不在商城展示，可在这里重新上架
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDelistOpen(false)}>
+              取消
+            </Button>
+            <Button
+              onClick={() => {
+                setDelistOpen(false);
+                void save(undefined, true);
+              }}
+            >
+              确认下架
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -113,6 +113,7 @@ const moduleNames = [
   "orders",
   "store",
   "spot-empty",
+  "sold-out",
   "search-empty",
   "cart-empty",
   "load-error",

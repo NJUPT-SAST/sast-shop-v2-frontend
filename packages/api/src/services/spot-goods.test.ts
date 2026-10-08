@@ -80,6 +80,7 @@ describe("spot goods service", () => {
                   storeId: "3001",
                 },
                 salePriceCents: 200,
+                stock: 0,
               },
               {
                 id: "6002",
@@ -89,6 +90,7 @@ describe("spot goods service", () => {
                   storeId: "3002",
                 },
                 salePriceCents: 600,
+                stock: 9,
               },
             ],
             currentPage: 1,
@@ -113,7 +115,7 @@ describe("spot goods service", () => {
       id: "3001",
       name: "SAST 小卖部",
     });
-    expect(result.goods[0]).not.toHaveProperty("stock");
+    expect(result.goods.map((item) => item.stock)).toEqual([0, 9]);
     expect(result.goods[0]).not.toHaveProperty("sellerId");
     expect(listRequestBodies).toEqual([{ page: 1, pageSize: 30 }]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -714,6 +716,43 @@ describe("spot goods service", () => {
     });
   });
 
+  it("creates the maximum inventory of 999 and keeps the returned inventory", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        spotGoodsDetail: {
+          id: "2001",
+          productTemplate: { id: "1001" },
+          seller: { id: "42" },
+          salePriceCents: validInput.salePriceCents,
+          stock: 999,
+          updatedAt: "1970-01-01T00:00:02.123456789Z",
+        },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const goods = await createSpotGoods(
+      { ...validInput, stockTotal: 999 },
+      localOptions,
+    );
+
+    expect(goods).toMatchObject({
+      id: "2001",
+      stock: 999,
+      updatedAt: "1970-01-01T00:00:02.123456789Z",
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.spot.v1.SpotGoodsService/CreateSpotGoods",
+      body: {
+        productTemplateId: "1001",
+        salePriceCents: validInput.salePriceCents,
+        stockTotal: 999,
+        productTemplateUpdatedAt: "1970-01-01T00:00:01Z",
+      },
+    });
+  });
+
   it("validates create spot goods input before submitting requests", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
@@ -740,7 +779,7 @@ describe("spot goods service", () => {
       createSpotGoods({ ...validInput, stockTotal: 0 }, localOptions),
     ).rejects.toBeInstanceOf(ValidationError);
     await expect(
-      createSpotGoods({ ...validInput, stockTotal: 2147483648 }, localOptions),
+      createSpotGoods({ ...validInput, stockTotal: 1000 }, localOptions),
     ).rejects.toBeInstanceOf(ValidationError);
     await expect(
       createSpotGoods(
@@ -855,6 +894,57 @@ describe("spot goods service", () => {
     ]);
   });
 
+  it.each([-1, 999])(
+    "updates inventory to %s with the latest version and returns the refreshed goods",
+    async (newStock) => {
+      const requests: Array<{ path: string; body: unknown }> = [];
+      const updatedAt = "2026-10-08T02:00:00.123456789Z";
+      const nextUpdatedAt = "2026-10-08T02:00:01.987654321Z";
+      const fetchMock = vi.fn(
+        async (input: string | Request, init?: RequestInit) => {
+          const path = new URL(typeof input === "string" ? input : input.url)
+            .pathname;
+          requests.push({ path, body: await readRequestBody(input, init) });
+          if (path.endsWith("GetSpotGoods")) {
+            return stubJsonResponse({
+              spotGoodsDetail: {
+                id: "6001",
+                productTemplate: { id: "4001" },
+                seller: { id: "42" },
+                salePriceCents: 299,
+                stock: newStock,
+                updatedAt: nextUpdatedAt,
+              },
+            });
+          }
+          return stubJsonResponse({});
+        },
+      );
+      vi.stubGlobal("fetch", fetchMock);
+
+      const goods = await updateSpotGoodsStock(
+        { spotGoodsId: "6001", newStock, updatedAt },
+        localOptions,
+      );
+
+      expect(goods).toMatchObject({
+        id: "6001",
+        stock: newStock,
+        updatedAt: nextUpdatedAt,
+      });
+      expect(requests).toEqual([
+        {
+          path: "/sast.sastshopv2.spot.v1.SpotGoodsService/UpdateSpotGoodsStock",
+          body: { spotGoodsId: "6001", newStock, updatedAt },
+        },
+        {
+          path: "/sast.sastshopv2.spot.v1.SpotGoodsService/GetSpotGoods",
+          body: { spotGoodsId: "6001" },
+        },
+      ]);
+    },
+  );
+
   it.each(["price", "stock"] as const)(
     "distinguishes confirmed %s writes with a failed refresh",
     async (kind) => {
@@ -947,7 +1037,7 @@ describe("spot goods service", () => {
         updateSpotGoodsPrice({ ...common, newSalePriceCents }, localOptions),
       ).rejects.toBeInstanceOf(ValidationError);
     }
-    for (const newStock of [-1, 1.5, NaN, 2147483648]) {
+    for (const newStock of [-2, 1.5, NaN, 1000, 2147483648]) {
       await expect(
         updateSpotGoodsStock({ ...common, newStock }, localOptions),
       ).rejects.toBeInstanceOf(ValidationError);

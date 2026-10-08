@@ -59,6 +59,11 @@ vi.mock("@workspace/ui/components/dialog", () => {
 vi.mock("../components/brand-illustration", () => ({
   BrandIllustration: () => null,
 }));
+vi.mock("../components/managed-image", () => ({
+  ManagedImage: ({ alt, soldOut }: { alt: string; soldOut?: boolean }) => (
+    <div aria-label={alt} data-sold-out={soldOut || undefined} />
+  ),
+}));
 vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 
 const goods: SpotGoods = {
@@ -167,6 +172,26 @@ async function saveStock(value: string) {
 }
 
 describe("seller goods management", () => {
+  it("keeps delisted goods visible for editing and relisting", async () => {
+    const delisted = { ...goods, stock: -1 };
+    vi.mocked(listSellerSpotGoods).mockResolvedValue(page([delisted]));
+    vi.mocked(getSpotGoods).mockResolvedValue(delisted);
+    vi.mocked(updateSpotGoodsStock).mockResolvedValue({ ...goods, stock: 2 });
+    await render();
+    expect(container.textContent).toContain("已下架");
+    expect(container.textContent).not.toContain("库存 -1");
+    await openGoods();
+    expect(
+      container.querySelector<HTMLInputElement>("#spot-edit-stock")?.value,
+    ).toBe("");
+    await saveStock("2");
+    expect(container.textContent).toContain("库存 2");
+    expect(updateSpotGoodsStock).toHaveBeenCalledWith(
+      { spotGoodsId: goods.id, newStock: 2, updatedAt: goods.updatedAt },
+      expect.anything(),
+    );
+  });
+
   it("shows the loading skeleton initially and reuses the visible cached list on a return within 60 seconds", async () => {
     let now = Date.now();
     vi.spyOn(Date, "now").mockImplementation(() => now);

@@ -31,18 +31,19 @@ vi.mock("next/image", () => ({
     onLoad,
     onError,
   }: {
-    src: string;
+    src: string | { src: string };
     alt: string;
     className?: string;
     sizes: string;
     quality: number;
     unoptimized: boolean;
-    onLoad: () => void;
-    onError: () => void;
+    onLoad?: () => void;
+    onError?: () => void;
   }) => {
-    loadCallbacks.set(`${unoptimized}:${src}`, onLoad);
+    const source = typeof src === "string" ? src : src.src;
+    if (onLoad) loadCallbacks.set(`${unoptimized}:${source}`, onLoad);
     return React.createElement("img", {
-      src,
+      src: source,
       alt,
       className,
       "data-sizes": sizes,
@@ -119,7 +120,12 @@ describe.each([
   ["mobile", MobileManagedImage],
   ["desktop", DesktopManagedImage],
 ] as const)("%s image progression", (_name, ManagedImage) => {
-  async function render(value = src, sizes = "96px", preview = false) {
+  async function render(
+    value = src,
+    sizes = "96px",
+    preview = false,
+    soldOut = false,
+  ) {
     await act(async () =>
       root.render(
         <ManagedImage
@@ -127,6 +133,7 @@ describe.each([
           alt="商品图片"
           sizes={sizes}
           preview={preview}
+          soldOut={soldOut}
         />,
       ),
     );
@@ -232,7 +239,7 @@ describe.each([
     expect(hasLoadedImage(src)).toBe(true);
   });
 
-  it("preserves a display fallback when the original fails and retries it on reopening", async () => {
+  it("preserves a display fallback after an original failure and removes preview until the source changes", async () => {
     rememberLoadedImage(imageDisplayCacheKey(src, "96px"));
     await render(src, "96px", true);
     let dialog = await openPreview();
@@ -251,10 +258,47 @@ describe.each([
         .querySelector<HTMLButtonElement>('[aria-label="关闭图片预览"]')!
         .click(),
     );
+    expect(
+      container.querySelector('[aria-label="查看商品图片大图"]'),
+    ).toBeNull();
+    await render(nextSrc, "96px", true);
     dialog = await openPreview();
-    expect(image(src, dialog, true)).toBeDefined();
-    await event(image(src, dialog, true), "load");
+    expect(image(nextSrc, dialog, true)).toBeDefined();
+    await event(image(nextSrc, dialog, true), "load");
     expect(dialog.querySelector('[role="status"]')).toBeNull();
+  });
+
+  it("removes the preview entry after a display failure even when its thumbnail remains visible", async () => {
+    await render(src, "96px", true);
+    await event(image(imageThumbnailSrc(src)), "load");
+    await event(image(src), "error");
+    expect(image(imageThumbnailSrc(src))?.classList.contains("opacity-0")).toBe(
+      false,
+    );
+    expect(
+      container.querySelector('[aria-label="查看商品图片大图"]'),
+    ).toBeNull();
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  it("shows sold-out on the display image and omits it from every preview fallback stage", async () => {
+    await render(src, "96px", true, true);
+    expect(container.querySelector('[aria-label="已售罄"]')).not.toBeNull();
+    await event(image(imageThumbnailSrc(src)), "load");
+    const dialog = await openPreview();
+    expect(image(src, dialog, true)?.classList.contains("opacity-0")).toBe(
+      true,
+    );
+    expect(
+      image(imageThumbnailSrc(src), dialog)?.classList.contains("opacity-0"),
+    ).toBe(false);
+    expect(dialog.querySelector('[aria-label="已售罄"]')).toBeNull();
+    await event(image(src, dialog, true), "error");
+    expect(
+      image(imageThumbnailSrc(src), dialog)?.classList.contains("opacity-0"),
+    ).toBe(false);
+    expect(dialog.querySelector('[aria-label="已售罄"]')).toBeNull();
+    expect(container.querySelector('[aria-label="已售罄"]')).not.toBeNull();
   });
 
   it("leaves a local blob upload source untransformed", async () => {

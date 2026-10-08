@@ -279,6 +279,28 @@ describe("publish spot scan recovery", () => {
 });
 
 describe("barcode lookup feedback", () => {
+  it("stops increasing initial stock at 999", async () => {
+    vi.mocked(getProductTemplatesByBarcode).mockResolvedValue([match]);
+    await renderForm("manual", "690000000001");
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 350));
+    });
+    const increase = container.querySelector<HTMLButtonElement>(
+      '[aria-label="增加初始库存"]',
+    )!;
+    for (let stock = 1; stock < 999; stock += 1) {
+      await act(async () => increase.click());
+    }
+    expect(increase.disabled).toBe(true);
+    expect(
+      container.querySelector('#stock [aria-live="polite"]')?.textContent,
+    ).toBe("999");
+    await act(async () => increase.click());
+    expect(
+      container.querySelector('#stock [aria-live="polite"]')?.textContent,
+    ).toBe("999");
+  }, 20_000);
+
   it("associates invalid barcode feedback with the input and removes it after correction", async () => {
     await renderForm("manual", "690000000001");
     await enterBarcode("invalid");

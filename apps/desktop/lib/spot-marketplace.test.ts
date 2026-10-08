@@ -22,6 +22,7 @@ const goods: SpotGoodsBrief[] = [
       updatedAt: "2026-07-18T00:00:00Z",
     },
     salePriceCents: 180,
+    stock: 5,
     updatedAt: "2026-07-18T00:00:00Z",
     store: {
       id: "3001",
@@ -44,6 +45,7 @@ const goods: SpotGoodsBrief[] = [
       updatedAt: "2026-07-18T00:00:00Z",
     },
     salePriceCents: 990,
+    stock: 0,
     updatedAt: "2026-07-18T00:00:00Z",
     store: {
       id: "3001",
@@ -66,6 +68,7 @@ const goods: SpotGoodsBrief[] = [
       updatedAt: null,
     },
     salePriceCents: 600,
+    stock: 3,
     updatedAt: "2026-07-18T00:00:00Z",
     store: {
       id: "3002",
@@ -78,11 +81,11 @@ const goods: SpotGoodsBrief[] = [
 ];
 
 describe("desktop spot marketplace", () => {
-  it("maps brief goods without detail-only stock and seller fields", () => {
+  it("maps brief stock without detail-only seller fields", () => {
     const products = mapSpotProductBriefs(goods);
 
     expect(products.map((item) => item.id)).toEqual(["5001", "5002", "5003"]);
-    expect(products[0]).not.toHaveProperty("stock");
+    expect(products.map((item) => item.stock)).toEqual([5, 0, 3]);
     expect(products[0]).not.toHaveProperty("sellerName");
   });
 

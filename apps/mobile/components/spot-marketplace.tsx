@@ -72,6 +72,7 @@ import { useTransactionAgreement } from "./transaction-agreement-provider";
 
 type SpotProductBrief = {
   id: string;
+  stock: number;
   title: string;
   description: string;
   price: number;
@@ -210,6 +211,7 @@ export function SpotMarketplace({
     () =>
       loadedGoods.map((goods) => ({
         id: goods.id,
+        stock: goods.stock,
         title: goods.product.title,
         description: goods.product.description,
         price: goods.salePriceCents,
@@ -235,6 +237,9 @@ export function SpotMarketplace({
   const [checkoutDraft, setCheckoutDraft] = useState<CheckoutDraft | null>(
     null,
   );
+  const [selfPurchaseOrderId, setSelfPurchaseOrderId] = useState<string | null>(
+    null,
+  );
   const [quantity, setQuantity] = useState(1);
   const [defaultPlatform, setDefaultPlatform] =
     useState<PaymentPlatform>("wechat");
@@ -248,7 +253,7 @@ export function SpotMarketplace({
   const checkoutGenerationRef = useRef(0);
   const detailRequestRef = useRef(0);
   const maxQuantity = selectedProduct?.stock ?? 1;
-  const isOutOfStock = selectedProduct?.stock === 0;
+  const isOutOfStock = (selectedProduct?.stock ?? 1) <= 0;
 
   useEffect(() => {
     let isMounted = true;
@@ -320,13 +325,6 @@ export function SpotMarketplace({
 
     setDefaultPlatform(currentDefaultPlatform);
     setPaymentQrCodes({});
-    setCheckoutDraft({
-      product,
-      quantity: checkoutQuantity,
-      status: "loading",
-      bill: null,
-    });
-    closeDetail();
     setSubmitted(false);
     setSubmitting(true);
 
@@ -344,6 +342,20 @@ export function SpotMarketplace({
         serviceOptions,
       );
       const createdOrder = createdOrders[0];
+      if (generation !== checkoutGenerationRef.current) return;
+      if (
+        createdOrder?.id &&
+        createdOrder.status === "completed" &&
+        !createdOrder.bill &&
+        !createdOrder.billId
+      ) {
+        closeDetail();
+        await waitForDrawerHistoryCleanup();
+        if (generation !== checkoutGenerationRef.current) return;
+        setSelfPurchaseOrderId(createdOrder.id);
+        router.refresh();
+        return;
+      }
       const createdPayeeId = createdOrder?.bill?.payee?.id;
 
       if (!createdOrder?.bill?.updatedAt || !createdPayeeId) {
@@ -357,6 +369,13 @@ export function SpotMarketplace({
       }
 
       createdBill = createdOrder.bill;
+      closeDetail();
+      setCheckoutDraft({
+        product,
+        quantity: checkoutQuantity,
+        status: "loading",
+        bill: createdBill,
+      });
       const mappedQrCodes = await loadSellerPaymentQrCodes(payeeId);
 
       if (generation !== checkoutGenerationRef.current) return;
@@ -373,6 +392,7 @@ export function SpotMarketplace({
       });
     } catch {
       if (generation !== checkoutGenerationRef.current) return;
+      closeDetail();
       setCheckoutDraft({
         product,
         quantity: checkoutQuantity,
@@ -608,10 +628,11 @@ export function SpotMarketplace({
               <Card className="h-full overflow-hidden rounded-lg transition-colors hover:bg-muted/30">
                 <ManagedImage
                   fit="contain"
+                  soldOut={product.stock === 0}
                   src={product.imageUrl}
                   loading={index < 4 ? "eager" : "lazy"}
-                  sizes="(max-width: 640px) calc((100vw - 48px) / 2), 288px"
                   alt={product.title}
+                  sizes="(max-width: 640px) calc((100vw - 48px) / 2), 288px"
                   className="aspect-square"
                 />
                 <CardHeader className="gap-1 px-3 pt-3">
@@ -693,8 +714,9 @@ export function SpotMarketplace({
 
       <ResponsiveDialog
         open={detailOpen}
+        dismissible={!submitting}
         onOpenChange={(open) => {
-          if (!open) closeDetail();
+          if (!open && !checkoutRef.current) closeDetail();
         }}
       >
         {selectedBrief ? (
@@ -726,9 +748,10 @@ export function SpotMarketplace({
                     <ManagedImage
                       preview
                       fit="contain"
+                      soldOut={selectedProduct.stock === 0}
                       src={selectedProduct.imageUrl}
-                      sizes="(max-width: 640px) calc(100vw - 32px), 608px"
                       alt={selectedProduct.title}
+                      sizes="(max-width: 640px) calc(100vw - 32px), 608px"
                       className="h-[min(17.5rem,32dvh)] w-full shrink-0 rounded-lg"
                     />
                     <div className="flex items-center justify-between gap-4">
@@ -796,7 +819,9 @@ export function SpotMarketplace({
                     {submitting
                       ? "正在创建订单"
                       : isOutOfStock
-                        ? "暂时售罄"
+                        ? selectedProduct.stock === -1
+                          ? "已下架"
+                          : "暂时售罄"
                         : `创建订单 · ${formatPrice(selectedProduct.price * quantity)}`}
                   </Button>
                 </ResponsiveDialogFooter>
@@ -804,6 +829,41 @@ export function SpotMarketplace({
             )}
           </ResponsiveDialogContent>
         ) : null}
+      </ResponsiveDialog>
+
+      <ResponsiveDialog
+        open={selfPurchaseOrderId !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelfPurchaseOrderId(null);
+        }}
+      >
+        <ResponsiveDialogContent>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>自购无需支付</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
+              这是你自己上架的商品，无需支付。订单已完成，库存已扣减
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          <ResponsiveDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSelfPurchaseOrderId(null)}
+            >
+              继续逛逛
+            </Button>
+            <Button
+              onClick={async () => {
+                const orderId = selfPurchaseOrderId;
+                if (!orderId) return;
+                setSelfPurchaseOrderId(null);
+                await waitForDrawerHistoryCleanup();
+                router.push(`/orders/spot/${orderId}?view=buyer`);
+              }}
+            >
+              查看订单
+            </Button>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
       </ResponsiveDialog>
 
       <PaymentDialog

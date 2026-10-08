@@ -1,0 +1,8 @@
+Use case: illustration-story
+Asset type: production SAST Shop sold-out overlay illustration, displayed at 70 to 130 CSS pixels on product photos.
+Primary request: Draw one compact hanging retail sign displaying the exact Chinese text "售罄", centered, front-facing with a very slight playful tilt. A cream rounded rectangular plaque, thick friendly charcoal Chinese characters, one restrained coral clay tab and small charcoal hanging cord. Keep the design extremely simple and legible.
+Style: match the attached style reference of the SAST Shop empty shelf: friendly matte softly dimensional clay, warm cream #f6f3ef, single Action Coral #c9431f, charcoal details, bold simple rounded geometry, subtle self shading.
+Composition: sign occupies 85 percent of square canvas, no large margins, no shelf, no extra objects.
+Text (verbatim): "售罄". Exactly these two Chinese characters, large and readable.
+Constraints: genuinely transparent background including cord gaps. No backdrop, no ground, no cast shadow, no UI, no watermark, no English words, no other text. The application will apply semi-transparency; render the object solid with transparent surrounding canvas.
+Input image: style reference only, not an edit target.

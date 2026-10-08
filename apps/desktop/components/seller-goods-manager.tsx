@@ -200,6 +200,7 @@ function SellerGoodsList({
               onClick={(event) => void openEditor(goods, event.currentTarget)}
             >
               <ManagedImage
+                soldOut={goods.stock === 0}
                 src={goods.product.mainImageUrl}
                 alt={goods.product.title}
                 fit="contain"
@@ -217,7 +218,11 @@ function SellerGoodsList({
                     {formatPrice(goods.salePriceCents)}
                   </span>
                   <Badge variant="secondary">
-                    {goods.stock === 0 ? "已售罄" : `库存 ${goods.stock}`}
+                    {goods.stock === -1
+                      ? "已下架"
+                      : goods.stock === 0
+                        ? "已售罄"
+                        : `库存 ${goods.stock}`}
                   </Badge>
                 </div>
               </div>
@@ -295,6 +300,7 @@ function SellerGoodsList({
                 }}
               >
                 <ManagedImage
+                  soldOut={(detail ?? selected).stock === 0}
                   src={(detail ?? selected).product.mainImageUrl}
                   alt=""
                   fit="contain"

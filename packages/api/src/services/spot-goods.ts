@@ -15,6 +15,7 @@ import { listStores, type Store } from "./catalog";
 
 const MAX_SIGNED_INT64 = 9223372036854775807n;
 const MAX_SIGNED_INT32 = 2147483647;
+const MAX_SPOT_STOCK = 999;
 
 export interface SpotProductTemplate {
   id: string;
@@ -40,6 +41,7 @@ export interface SpotGoods {
 
 export interface SpotGoodsBrief {
   id: string;
+  stock: number;
   product: SpotProductTemplate;
   salePriceCents: number;
   updatedAt: string | null;
@@ -159,8 +161,8 @@ export async function updateSpotGoodsStock(
   const spotGoodsId = parseInt64(input.spotGoodsId, "现货商品 ID 不正确");
   if (
     !Number.isInteger(input.newStock) ||
-    input.newStock < 0 ||
-    input.newStock > MAX_SIGNED_INT32
+    input.newStock < -1 ||
+    input.newStock > MAX_SPOT_STOCK
   ) {
     throw new ValidationError("现货库存不正确");
   }
@@ -328,6 +330,7 @@ function mapSpotGoodsBrief(
     product,
     salePriceCents: goods.salePriceCents,
     updatedAt: formatProtoTimestamp(goods.updatedAt),
+    stock: goods.stock,
     store,
   };
 }
@@ -402,7 +405,7 @@ function validateCreateSpotGoodsInput(input: CreateSpotGoodsInput) {
   if (
     !Number.isInteger(input.stockTotal) ||
     input.stockTotal <= 0 ||
-    input.stockTotal > MAX_SIGNED_INT32
+    input.stockTotal > MAX_SPOT_STOCK
   ) {
     throw new ValidationError("现货库存不正确");
   }
