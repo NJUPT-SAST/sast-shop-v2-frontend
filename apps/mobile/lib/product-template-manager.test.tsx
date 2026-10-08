@@ -655,6 +655,10 @@ describe("product template drawer failures", () => {
     expect(display).not.toBeNull();
     expect(display.getAttribute("src")).toBe(imageUrl);
     await act(async () => display.dispatchEvent(new Event("error")));
+    const original = item.querySelector('img[alt="矿泉水"]')!;
+    expect(original.getAttribute("src")).toBe(imageUrl);
+    expect(thumbnail.classList.contains("opacity-0")).toBe(false);
+    await act(async () => original.dispatchEvent(new Event("error")));
     expect(item.querySelector('img[alt="矿泉水"]')).toBeNull();
     expect(item.querySelector("img")).toBe(thumbnail);
     expect(thumbnail.classList.contains("opacity-0")).toBe(false);

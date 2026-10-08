@@ -10,12 +10,14 @@ import {
 import {
   canOptimizeImage,
   imageDisplayCacheKey,
+  imageOptimizationSrc,
   imageThumbnailSrc,
 } from "@workspace/ui/lib/image-variants";
 
 const renderImage: ManagedImageRenderer = ({ stage, ...props }) => (
   <Image
     {...props}
+    src={stage === "display" ? imageOptimizationSrc(props.src) : props.src}
     alt={props.alt}
     fill
     quality={75}
@@ -59,6 +61,7 @@ export function ManagedImage({
         optimized && progressive ? imageThumbnailSrc(props.src!) : undefined
       }
       cacheKey={optimized ? imageDisplayCacheKey(props.src!, sizes) : undefined}
+      fallbackToOriginal={optimized}
       renderImage={renderImage}
     />
   );

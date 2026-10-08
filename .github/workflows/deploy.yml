@@ -186,6 +186,21 @@ jobs:
             done
           fi
 
+          printf '\nImage optimizer diagnostics\n'
+          for app in mobile desktop; do
+            container="sast-shop-$app"
+            docker inspect --format '{{.Name}} | revision={{index .Config.Labels "org.opencontainers.image.revision"}} | extra_hosts={{json .HostConfig.ExtraHosts}}' "$container" 2>&1 || true
+            printf '%s DNS lookup:\n' "$container"
+            docker exec "$container" node -e '
+              const dns = require("node:dns");
+              dns.lookup("api.sast.fun", { all: true, hints: dns.ADDRCONFIG }, (error, addresses) => {
+                console.log(JSON.stringify({ hostname: "api.sast.fun", addresses, error: error?.code }));
+              });
+            ' 2>&1 || true
+            printf '%s image address rejections:\n' "$container"
+            docker logs --tail 200 "$container" 2>&1 | awk 'match($0, /hostname resolved to private IP/) { print substr($0, RSTART) }' || true
+          done
+
           printf '\nCandidate frontend readiness ports\n'
           for port in 3001 3002 23001 23002; do
             printf '%s: ' "$port"

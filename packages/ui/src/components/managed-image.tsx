@@ -42,6 +42,7 @@ type FrameProps = ManagedImageProps & {
   thumbnailSrc?: string;
   cacheKey?: string;
   original?: boolean;
+  fallbackToOriginal?: boolean;
   fallback?: ReactNode;
   onImageError?: () => void;
 };
@@ -69,11 +70,13 @@ function ImageFrame({
   thumbnailSrc,
   cacheKey,
   original = false,
+  fallbackToOriginal = false,
   fallback,
   onImageError,
 }: FrameProps) {
   const currentSrc = src || null;
-  const displayKey = cacheKey ?? currentSrc;
+  const [usingOriginal, setUsingOriginal] = useState(false);
+  const displayKey = usingOriginal ? currentSrc : (cacheKey ?? currentSrc);
   const [state, setState] = useState<ImageState>(() =>
     initialImageState(displayKey),
   );
@@ -89,6 +92,17 @@ function ImageFrame({
   const visible = state === "loaded" || hasThumbnail;
 
   const updateState = (nextState: ImageState) => {
+    if (
+      nextState === "error" &&
+      fallbackToOriginal &&
+      !original &&
+      !usingOriginal
+    ) {
+      if (displayKey) forgetLoadedImage(displayKey);
+      setUsingOriginal(true);
+      setState(initialImageState(currentSrc));
+      return;
+    }
     if (displayKey) {
       if (nextState === "loaded") rememberLoadedImage(displayKey);
       if (nextState === "error") forgetLoadedImage(displayKey);
@@ -147,7 +161,7 @@ function ImageFrame({
             src: currentSrc,
             alt,
             sizes,
-            stage: original ? "original" : "display",
+            stage: original || usingOriginal ? "original" : "display",
             loading: original || thumbnailSrc ? "eager" : loading,
             className: cn(imageClasses, state !== "loaded" && "opacity-0"),
             onLoad: () => updateState("loaded"),

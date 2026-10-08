@@ -7,6 +7,7 @@ import { ManagedImage as MobileManagedImage } from "../components/managed-image"
 import { ManagedImage as DesktopManagedImage } from "../../desktop/components/managed-image";
 import {
   imageDisplayCacheKey,
+  imageOptimizationSrc,
   imageThumbnailSrc,
 } from "@workspace/ui/lib/image-variants";
 import {
@@ -58,13 +59,14 @@ vi.mock("next/image", () => ({
 const src = "https://example.com/progressive-product.png";
 const nextSrc = "https://example.com/progressive-product-next.png";
 const blobSrc = "blob:https://example.com/local-upload";
+const productSrc = `https://api.sast.fun/images/sast-shop/products/${"a".repeat(64)}.png`;
 let container: HTMLDivElement;
 let root: Root;
 
 beforeEach(() => {
   vi.stubGlobal("React", React);
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
-  for (const value of [src, nextSrc, blobSrc]) {
+  for (const value of [src, nextSrc, blobSrc, productSrc]) {
     forgetLoadedImage(value);
     forgetLoadedImage(imageThumbnailSrc(value));
     forgetLoadedImage(imageDisplayCacheKey(value, "96px"));
@@ -163,6 +165,20 @@ describe.each([
     expect(hasLoadedImage(src)).toBe(false);
   });
 
+  it("optimizes stored product images through the same origin and previews their original URL", async () => {
+    await render(productSrc, "320px", true);
+    await event(image(imageThumbnailSrc(productSrc)), "load");
+    const display = image(imageOptimizationSrc(productSrc))!;
+    expect(display.dataset.unoptimized).toBe("false");
+    await event(display, "load");
+    const dialog = await openPreview();
+    expect(image(productSrc, dialog, true)).toBeDefined();
+    await event(image(productSrc, dialog, true), "load");
+    expect(
+      image(productSrc, dialog, true)?.classList.contains("opacity-0"),
+    ).toBe(false);
+  });
+
   it("loads the display image even when the thumbnail fails", async () => {
     await render();
     await event(image(imageThumbnailSrc(src)), "error");
@@ -172,16 +188,59 @@ describe.each([
     expect(image(src)?.classList.contains("opacity-0")).toBe(false);
   });
 
-  it("keeps the loaded thumbnail visible when the display image fails", async () => {
+  it("keeps the thumbnail visible while falling back to the original after an optimization failure", async () => {
     await render();
     await event(image(imageThumbnailSrc(src)), "load");
     await event(image(src), "error");
-    expect(image(src)).toBeUndefined();
+    expect(image(src)?.dataset.unoptimized).toBe("true");
+    expect(image(src)?.classList.contains("opacity-0")).toBe(true);
     expect(image(imageThumbnailSrc(src))?.classList.contains("opacity-0")).toBe(
       false,
     );
     expect(container.querySelector('[data-slot="skeleton"]')).toBeNull();
     expect(hasLoadedImage(imageDisplayCacheKey(src, "96px"))).toBe(false);
+    await event(image(src), "load");
+    expect(image(src)?.classList.contains("opacity-0")).toBe(false);
+    expect(image(imageThumbnailSrc(src))).toBeUndefined();
+    expect(hasLoadedImage(src)).toBe(true);
+  });
+
+  it("loads the original when both optimized requests fail and preserves sold-out and preview behavior", async () => {
+    await render(src, "96px", true, true);
+    await event(image(imageThumbnailSrc(src)), "error");
+    await event(image(src), "error");
+    expect(image(src)?.dataset.unoptimized).toBe("true");
+    expect(container.querySelector('[aria-label="图片加载失败"]')).toBeNull();
+    await event(image(src), "load");
+    expect(image(src)?.classList.contains("opacity-0")).toBe(false);
+    expect(container.querySelector('[aria-label="已售罄"]')).not.toBeNull();
+    expect(hasLoadedImage(imageDisplayCacheKey(src, "96px"))).toBe(false);
+    expect(hasLoadedImage(src)).toBe(true);
+    const dialog = await openPreview();
+    expect(image(src, dialog, true)?.classList.contains("opacity-0")).toBe(
+      false,
+    );
+    expect(dialog.querySelector('[aria-label="已售罄"]')).toBeNull();
+  });
+
+  it("stops after an original failure and clears fallback when the source changes", async () => {
+    await render(src, "96px", true);
+    await event(image(imageThumbnailSrc(src)), "error");
+    await event(image(src), "error");
+    await event(image(src), "error");
+    expect(image(src)).toBeUndefined();
+    expect(
+      container.querySelector('[aria-label="图片加载失败"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[aria-label="查看商品图片大图"]'),
+    ).toBeNull();
+    await render(nextSrc, "96px", true);
+    expect(image(imageThumbnailSrc(nextSrc))).toBeDefined();
+    await event(image(imageThumbnailSrc(nextSrc)), "load");
+    expect(image(nextSrc)?.dataset.unoptimized).toBe("false");
+    await event(image(nextSrc), "load");
+    expect(image(nextSrc)?.classList.contains("opacity-0")).toBe(false);
   });
 
   it("ignores old thumbnail and display completions after switching sources", async () => {
@@ -268,9 +327,10 @@ describe.each([
     expect(dialog.querySelector('[role="status"]')).toBeNull();
   });
 
-  it("removes the preview entry after a display failure even when its thumbnail remains visible", async () => {
+  it("removes the preview entry after optimized and original failures even when its thumbnail remains visible", async () => {
     await render(src, "96px", true);
     await event(image(imageThumbnailSrc(src)), "load");
+    await event(image(src), "error");
     await event(image(src), "error");
     expect(image(imageThumbnailSrc(src))?.classList.contains("opacity-0")).toBe(
       false,

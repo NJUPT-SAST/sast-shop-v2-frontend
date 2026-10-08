@@ -120,6 +120,7 @@ describe("ManagedImage loaded images", () => {
   it("shows the error fallback and retries a failed source on the next visit", async () => {
     await render();
     await imageEvent("error");
+    await imageEvent("error");
     expect(container.querySelector("img")).toBeNull();
     expect(container.querySelector('[data-slot="skeleton"]')).toBeNull();
     expect(container.querySelector("svg")).not.toBeNull();
@@ -361,6 +362,7 @@ describe("ManagedImage original image preview", () => {
     expect(previewDialog().querySelector("img")?.getAttribute("src")).toBe(src);
     await act(async () => dialogButton("关闭图片预览").click());
 
+    await imageEvent("error");
     await imageEvent("error");
     expect(
       container.querySelector('[aria-label="查看商品图片大图"]'),

@@ -1,6 +1,7 @@
 export const imageConfig = {
   remotePatterns: [{ protocol: "https" as const, hostname: "**", port: "" }],
   localPatterns: [
+    { pathname: "/api/images/products/*", search: "" },
     { pathname: "/brand/**", search: "" },
     { pathname: "/_next/static/media/**", search: "" },
   ],
