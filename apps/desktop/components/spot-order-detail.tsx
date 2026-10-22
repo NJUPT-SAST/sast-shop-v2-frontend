@@ -143,8 +143,29 @@ export function SpotOrderDetail({
         );
         toast.success("订单已完成");
       } else if (billToConfirm?.updatedAt) {
+        // 如果账单状态是 unpaid，需要先调用 payBill 变为 submitted，再调用 confirmBill
+        let currentBill = billToConfirm;
+
+        if (billToConfirm.status === "unpaid") {
+          // 先支付（付款人操作）
+          const defaultChannel = readDefaultPaymentPlatform() ?? "wechat";
+          currentBill = await payBill(
+            {
+              billId: billToConfirm.id,
+              channel: defaultChannel,
+              updatedAt: billToConfirm.updatedAt
+            },
+            { dataSource, connectBaseUrl },
+          );
+        }
+
+        // 再确认收款（收款人操作）
+        if (!currentBill.updatedAt) {
+          throw new Error("账单更新时间不存在");
+        }
+
         const updatedBill = await confirmBill(
-          { billId: billToConfirm.id, updatedAt: billToConfirm.updatedAt },
+          { billId: currentBill.id, updatedAt: currentBill.updatedAt },
           { dataSource, connectBaseUrl },
         );
         setCurrentOrder((value) => ({ ...value, bill: updatedBill }));
