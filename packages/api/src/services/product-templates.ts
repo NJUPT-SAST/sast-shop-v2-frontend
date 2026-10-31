@@ -1,7 +1,10 @@
 import { createClient } from "@connectrpc/connect";
 
 import type { ProductTemplate as ProtoProductTemplate } from "../gen/sast/sastshopv2/catalog/v1/product_template_pb";
-import { ProductTemplateService } from "../gen/sast/sastshopv2/catalog/v1/product_template_service_pb";
+import {
+  ProductTemplateSearchMode as ProtoProductTemplateSearchMode,
+  ProductTemplateService,
+} from "../gen/sast/sastshopv2/catalog/v1/product_template_service_pb";
 import type { Store as ProtoStore } from "../gen/sast/sastshopv2/catalog/v1/store_pb";
 import { resolveDataSource, type ServiceOptions } from "../data-source";
 import {
@@ -20,6 +23,8 @@ const MAX_TITLE_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 500;
 const MAX_BARCODE_LENGTH = 64;
 const MAX_IMAGE_URL_LENGTH = 2048;
+
+export type ProductTemplateSearchMode = "literal" | "titleFullText";
 
 export interface ProductTemplate {
   id: string;
@@ -103,11 +108,29 @@ export async function listProductTemplates(
     page?: number;
     pageSize?: number;
     keyword?: string;
+    searchMode?: ProductTemplateSearchMode;
   } = {},
 ): Promise<ProductTemplate[]> {
   const result = await listProductTemplatesPage(options);
   return result.items;
 }
+
+function toProtoSearchMode(
+  mode?: ProductTemplateSearchMode,
+): ProtoProductTemplateSearchMode {
+  if (mode === undefined) {
+    return ProtoProductTemplateSearchMode.UNSPECIFIED;
+  }
+  return SEARCH_MODE_MAP[mode] ?? ProtoProductTemplateSearchMode.UNSPECIFIED;
+}
+
+const SEARCH_MODE_MAP: Record<
+  ProductTemplateSearchMode,
+  ProtoProductTemplateSearchMode
+> = {
+  literal: ProtoProductTemplateSearchMode.UNSPECIFIED,
+  titleFullText: ProtoProductTemplateSearchMode.TITLE_FULL_TEXT,
+};
 
 export async function listProductTemplatesPage(
   options: ServiceOptions & {
@@ -115,6 +138,7 @@ export async function listProductTemplatesPage(
     page?: number;
     pageSize?: number;
     keyword?: string;
+    searchMode?: ProductTemplateSearchMode;
   } = {},
 ): Promise<PageResult<ProductTemplate>> {
   const dataSource = resolveDataSource(options);
@@ -143,6 +167,7 @@ export async function listProductTemplatesPage(
         page,
         pageSize,
         keyword,
+        searchMode: toProtoSearchMode(options.searchMode),
       }),
     );
     const items = response.productTemplates.map(mapTemplate);

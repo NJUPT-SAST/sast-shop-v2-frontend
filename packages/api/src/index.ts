@@ -188,6 +188,7 @@ export {
   type ProductTemplateMatch,
   type UpdateProductTemplateInput,
   type UpdateProductTemplatePatch,
+  type ProductTemplateSearchMode,
 } from "./services/product-templates";
 export {
   compareUpdatedAt,

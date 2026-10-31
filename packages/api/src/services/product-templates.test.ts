@@ -215,6 +215,111 @@ describe("product template service", () => {
     });
   });
 
+  it("sends title full text mode and a trimmed keyword", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        productTemplates: [],
+        currentPage: 1,
+        totalCount: 0,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await listProductTemplatesPage({
+      ...localOptions,
+      storeId: "6",
+      page: 1,
+      pageSize: 20,
+      keyword: "  香氛洗衣液  ",
+      searchMode: "titleFullText",
+    });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateList",
+      body: {
+        storeId: "6",
+        page: 1,
+        pageSize: 20,
+        keyword: "香氛洗衣液",
+        searchMode: "PRODUCT_TEMPLATE_SEARCH_MODE_TITLE_FULL_TEXT",
+      },
+    });
+  });
+
+  it("omits search mode from JSON when literal search is explicitly selected", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        productTemplates: [],
+        currentPage: 1,
+        totalCount: 0,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await listProductTemplatesPage({
+      ...localOptions,
+      storeId: "6",
+      page: 1,
+      pageSize: 20,
+      keyword: "690-A",
+      searchMode: "literal",
+    });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateList",
+      body: {
+        storeId: "6",
+        page: 1,
+        pageSize: 20,
+        keyword: "690-A",
+      },
+    });
+  });
+
+  it("returns an array while forwarding full text search options to the RPC", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        productTemplates: [
+          {
+            id: "4002",
+            title: "香氛洗衣液",
+            storeId: "6",
+            priceCents: 2690,
+          },
+        ],
+        currentPage: 1,
+        totalCount: 1,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const templates = await listProductTemplates({
+      ...localOptions,
+      storeId: "6",
+      page: 1,
+      pageSize: 20,
+      keyword: "  香氛洗衣液  ",
+      searchMode: "titleFullText",
+    });
+
+    expect(templates).toMatchObject([
+      { id: "4002", title: "香氛洗衣液", storeId: "6", priceCents: 2690 },
+    ]);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateList",
+      body: {
+        storeId: "6",
+        page: 1,
+        pageSize: 20,
+        keyword: "香氛洗衣液",
+        searchMode: "PRODUCT_TEMPLATE_SEARCH_MODE_TITLE_FULL_TEXT",
+      },
+    });
+  });
+
   it("searches across stores using one globally paginated request", async () => {
     const fetchMock = vi.fn(async () =>
       stubJsonResponse({

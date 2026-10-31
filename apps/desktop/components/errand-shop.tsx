@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation"; //提交成功后跳转到订单跑腿页
 import {
   //Remix Icon 图标
   RiAddLine, //加号
   RiArrowLeftLine, //返回箭头
+  RiSearchLine,
   RiShoppingBag3Line, //购物袋
   RiShoppingCartLine, //购物车图标
 } from "@remixicon/react";
@@ -62,6 +63,7 @@ import {
 } from "@workspace/ui/components/input-group";
 import { toast } from "sonner";
 import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
+import { useCachedResource } from "@workspace/ui/hooks/use-cached-resource";
 
 import { ManagedImage } from "@/components/managed-image";
 import { useTransactionAgreement } from "./transaction-agreement-provider";
@@ -98,6 +100,9 @@ export function ErrandShop({
 }) {
   const router = useRouter();
   const { ensureAgreement } = useTransactionAgreement();
+  const [draftKeyword, setDraftKeyword] = useState("");
+  const [submittedKeyword, setSubmittedKeyword] = useState("");
+  const composingRef = useRef(false);
   const loadPage = useCallback(
     (page: number) => {
       if (!store) return Promise.resolve(initialPage);
@@ -107,9 +112,41 @@ export function ErrandShop({
         storeId: store.id,
         page,
         pageSize: initialPage.pageSize,
+        keyword: submittedKeyword,
+        searchMode: "titleFullText",
       });
     },
-    [connectBaseUrl, dataSource, initialPage, store],
+    [connectBaseUrl, dataSource, initialPage, store, submittedKeyword],
+  );
+  const queryIdentity = JSON.stringify([
+    "desktop:shop-product-search",
+    dataSource,
+    connectBaseUrl,
+    store?.id,
+    initialPage.pageSize,
+    "titleFullText",
+    submittedKeyword,
+  ]);
+  const search = useCachedResource({
+    cacheKey: queryIdentity,
+    staleTime: 30_000,
+    refreshKey: initialPage,
+    load: () =>
+      store && submittedKeyword ? loadPage(1) : Promise.resolve(initialPage),
+  });
+  const searchError = Boolean(submittedKeyword && search.error);
+  const searching = Boolean(submittedKeyword) && !search.data && !search.error;
+  const resultPage = submittedKeyword ? search.data : initialPage;
+  const firstPage = useMemo<PageResult<ProductTemplate>>(
+    () =>
+      resultPage ?? {
+        items: [],
+        currentPage: 1,
+        pageSize: initialPage.pageSize,
+        totalCount: 0,
+        hasMore: false,
+      },
+    [initialPage.pageSize, resultPage],
   );
   const {
     items: templates,
@@ -119,10 +156,10 @@ export function ErrandShop({
     totalCount: availableTotalCount,
     loadMore,
   } = useInfinitePage({
-    initialPage,
+    initialPage: firstPage,
     loadPage,
     getKey: getTemplateKey,
-    identity: `${dataSource}:${connectBaseUrl}:${store?.id ?? "none"}`,
+    identity: queryIdentity,
   });
   const submittingRef = useRef(false); //ref存储提交锁，防止用户多次点击提交
   const [items, setItems] = useState<CartItem[]>(editInitialItems ?? []);
@@ -185,6 +222,27 @@ export function ErrandShop({
       );
   const estimatedTotal = serviceFee === null ? null : goodsAmount + serviceFee;
 
+  function handleSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (composingRef.current) return;
+
+    const keyword = draftKeyword.trim();
+    if ([...keyword].length > 200) {
+      toast.error("搜索关键词不能超过 200 个字符");
+      return;
+    }
+
+    if (keyword && keyword === submittedKeyword) {
+      void search.refresh();
+    } else {
+      setSubmittedKeyword(keyword);
+    }
+  }
+
+  function clearSearch() {
+    setDraftKeyword("");
+    setSubmittedKeyword("");
+  }
   if (error) {
     return (
       <LoadFailure
@@ -397,15 +455,68 @@ export function ErrandShop({
       />
 
       <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
-        <section className="min-w-0 space-y-4">
-          <h2 className="text-xl font-semibold">选择商品</h2>
-          {templates.length === 0 && !loadingMore && !hasMore ? (
+        <section className="@container min-w-0 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="shrink-0 text-xl font-semibold">选择商品</h2>
+            <form
+              role="search"
+              aria-label="店铺商品搜索"
+              onSubmit={handleSearch}
+              className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto"
+            >
+              <InputGroup className="min-w-0 flex-1 sm:w-64">
+                <InputGroupAddon>
+                  <RiSearchLine aria-hidden="true" />
+                </InputGroupAddon>
+                <InputGroupInput
+                  type="search"
+                  aria-label="搜索商品名称"
+                  placeholder="搜索商品名称"
+                  value={draftKeyword}
+                  onChange={(event) => setDraftKeyword(event.target.value)}
+                  onCompositionStart={() => {
+                    composingRef.current = true;
+                  }}
+                  onCompositionEnd={() => {
+                    composingRef.current = false;
+                  }}
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === "Enter" &&
+                      (composingRef.current ||
+                        event.nativeEvent.isComposing ||
+                        event.nativeEvent.keyCode === 229)
+                    ) {
+                      event.preventDefault();
+                    }
+                  }}
+                />
+              </InputGroup>
+              <Button type="submit">搜索</Button>
+              {draftKeyword || submittedKeyword ? (
+                <Button type="button" variant="ghost" onClick={clearSearch}>
+                  清空搜索
+                </Button>
+              ) : null}
+            </form>
+          </div>
+          {searchError ? (
+            <LoadFailure
+              title="商品搜索失败"
+              description="商品搜索暂不可用，请稍后重试"
+              onRetry={() => void search.refresh()}
+            />
+          ) : searching ? (
+            <div role="status" aria-label="正在搜索商品">
+              <TemplateLoadingSkeletons />
+            </div>
+          ) : templates.length === 0 && !loadingMore && !hasMore ? (
             <Empty
               icon={<RiShoppingBag3Line className="size-5" />}
-              title="此店铺暂无可选商品"
+              title={submittedKeyword ? "没有匹配的商品" : "此店铺暂无可选商品"}
             />
           ) : templates.length > 0 ? (
-            <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+            <div className="grid min-w-0 gap-4 @2xl:grid-cols-2">
               {templates.map((template) => {
                 const cartItem = cartById.get(template.id);
                 return (
@@ -426,7 +537,7 @@ export function ErrandShop({
                             {template.description}
                           </p>
                         ) : null}
-                        <div className="mt-auto flex items-end justify-between gap-3 pt-4">
+                        <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-4">
                           <span className="font-semibold text-primary">
                             {formatPrice(template.priceCents)}
                           </span>
@@ -460,15 +571,17 @@ export function ErrandShop({
             </div>
           ) : null}
 
-          <InfiniteListStatus
-            hasMore={hasMore}
-            loading={loadingMore}
-            error={loadMoreError}
-            hasItems={availableTotalCount > 0}
-            onLoadMore={() => void loadMore()}
-            loadingFallback={<TemplateLoadingSkeletons />}
-            endMessage={`已经到底，共 ${templates.length} 个可选商品`}
-          />
+          {!searchError && !searching ? (
+            <InfiniteListStatus
+              hasMore={hasMore}
+              loading={loadingMore}
+              error={loadMoreError}
+              hasItems={availableTotalCount > 0}
+              onLoadMore={() => void loadMore()}
+              loadingFallback={<TemplateLoadingSkeletons />}
+              endMessage={`已经到底，共 ${templates.length} 个可选商品`}
+            />
+          ) : null}
         </section>
 
         <aside className="min-w-0">
@@ -641,7 +754,7 @@ export function ErrandShop({
 function TemplateLoadingSkeletons() {
   return (
     <div
-      className="grid min-w-0 gap-4 lg:grid-cols-2"
+      className="grid min-w-0 gap-4 @2xl:grid-cols-2"
       aria-label="正在加载更多可选商品"
     >
       {Array.from({ length: 2 }, (_, index) => (
