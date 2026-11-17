@@ -3,6 +3,8 @@
 import React, { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { toast } from "sonner";
+import * as paymentAppLinks from "./payment-app-links";
 import {
   PaymentDialog,
   type PaymentDialogProps,
@@ -55,6 +57,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -102,6 +105,92 @@ async function selectTab(label: string) {
 }
 
 describe("payment information", () => {
+  it("opens the selected Alipay collection code before saving without submitting payment", async () => {
+    const openAlipay = vi
+      .spyOn(paymentAppLinks, "openAlipayPayment")
+      .mockImplementation(() => {});
+    const onPay = vi.fn();
+    const onCancelPayment = vi.fn();
+    await renderPayment({ onPay, onCancelPayment });
+    expect(container.textContent).not.toContain("打开支付宝付款");
+    await selectTab("支付宝");
+    const open = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "打开支付宝付款",
+    )!;
+
+    expect(open.disabled).toBe(false);
+    await act(async () => open.click());
+
+    expect(openAlipay).toHaveBeenCalledExactlyOnceWith(
+      "https://qr.alipay.com/test",
+    );
+    expect(container.textContent).toContain("已尝试打开支付宝");
+    expect(container.textContent).toContain("保存收款码");
+    expect(container.textContent).toContain("打开支付宝扫一扫");
+    expect(onPay).not.toHaveBeenCalled();
+    expect(onCancelPayment).not.toHaveBeenCalled();
+
+    await renderPayment({
+      qrCodes: { alipay: "https://qr.alipay.com/another-payee" },
+    });
+    expect(container.textContent).not.toContain("已尝试打开支付宝");
+    const nextOpen = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "打开支付宝付款",
+    )!;
+    await act(async () => nextOpen.click());
+    expect(openAlipay).toHaveBeenLastCalledWith(
+      "https://qr.alipay.com/another-payee",
+    );
+  });
+
+  it("keeps QR fallback available when Alipay navigation throws", async () => {
+    vi.spyOn(paymentAppLinks, "openAlipayPayment").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    const showError = vi
+      .spyOn(toast, "error")
+      .mockImplementation(() => "error");
+    const onPay = vi.fn();
+    await renderPayment({ defaultPlatform: "alipay", onPay });
+    const open = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "打开支付宝付款",
+    )!;
+    await act(async () => open.click());
+
+    expect(showError).toHaveBeenCalledWith(
+      "无法打开支付宝，请保存收款码后扫码支付",
+    );
+    expect(container.textContent).not.toContain("已尝试打开支付宝");
+    expect(onPay).not.toHaveBeenCalled();
+    const save = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "保存收款码",
+    )!;
+    expect(save.disabled).toBe(false);
+  });
+
+  it.each([undefined, "alipays://platformapi/startapp?appId=20000067"])(
+    "does not expose direct payment for missing or unsupported QR content: %s",
+    async (content) => {
+      await renderPayment({
+        defaultPlatform: "alipay",
+        qrCodes: { alipay: content },
+      });
+      expect(container.textContent).not.toContain("打开支付宝付款");
+      expect(container.textContent).toContain("保存收款码");
+    },
+  );
+
+  it("prevents opening Alipay while payment confirmation is submitting", async () => {
+    const openAlipay = vi.spyOn(paymentAppLinks, "openAlipayPayment");
+    await renderPayment({ defaultPlatform: "alipay", submitting: true });
+    const open = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "打开支付宝付款",
+    )!;
+    expect(open.disabled).toBe(true);
+    await act(async () => open.click());
+    expect(openAlipay).not.toHaveBeenCalled();
+  });
+
   it("keeps both default payment platforms usable", async () => {
     const onPay = vi.fn();
     await renderPayment({ onPay });
