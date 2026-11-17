@@ -1,3 +1,4 @@
+import { mapLifecycleRound, parseLifecycleRound } from "../lifecycle-round";
 import { createClient } from "@connectrpc/connect";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import {
@@ -25,6 +26,7 @@ export interface PaymentBillUser {
 }
 
 export interface PaymentBill {
+  lifecycleRound?: string;
   id: string;
   billNo: string;
   payer: PaymentBillUser | null;
@@ -44,17 +46,20 @@ export interface PaymentBill {
 }
 
 export interface PayBillInput {
+  lifecycleRound?: string;
   billId: string;
   channel: PaymentQrChannel;
   updatedAt: TimestampInput;
 }
 
 export interface ConfirmBillInput {
+  lifecycleRound?: string;
   billId: string;
   updatedAt: TimestampInput;
 }
 
 export interface SupplementBillSerialNumberInput {
+  lifecycleRound?: string;
   billId: string;
   serialNumber: string;
   updatedAt: TimestampInput;
@@ -157,6 +162,7 @@ export async function supplementBillSerialNumber(
 export function mapPaymentBill(bill: ProtoBill): PaymentBill {
   return {
     id: bill.id.toString(),
+    lifecycleRound: mapLifecycleRound(bill.lifecycleRound),
     billNo: bill.billNo,
     payer: mapUserInfo(bill.payer),
     payee: mapUserInfo(bill.payee),
@@ -178,6 +184,7 @@ export function mapPaymentBill(bill: ProtoBill): PaymentBill {
 function validatePayBillInput(input: PayBillInput) {
   return {
     billId: parseInt64(input.billId, "账单 ID 不正确"),
+    lifecycleRound: parseLifecycleRound(input.lifecycleRound),
     channel: mapPaymentChannelToProto(input.channel),
     updatedAt: parseTimestampInput(input.updatedAt),
   };
@@ -186,6 +193,7 @@ function validatePayBillInput(input: PayBillInput) {
 function validateConfirmBillInput(input: ConfirmBillInput) {
   return {
     billId: parseInt64(input.billId, "账单 ID 不正确"),
+    lifecycleRound: parseLifecycleRound(input.lifecycleRound),
     updatedAt: parseTimestampInput(input.updatedAt),
   };
 }
@@ -205,6 +213,7 @@ function validateSupplementSerialNumberInput(
 
   return {
     billId: parseInt64(input.billId, "账单 ID 不正确"),
+    lifecycleRound: parseLifecycleRound(input.lifecycleRound),
     serialNumber,
     updatedAt: parseTimestampInput(input.updatedAt),
   };

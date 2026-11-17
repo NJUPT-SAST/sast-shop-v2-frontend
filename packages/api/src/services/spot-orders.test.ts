@@ -255,6 +255,7 @@ describe("spot order service", () => {
       await expectConnectRequest(fetchMock, {
         path,
         body: {
+          lifecycleRound: "1",
           spotOrderId: "5001",
           updatedAt: "2026-07-18T02:00:00Z",
         },
@@ -305,7 +306,10 @@ describe("spot order service", () => {
 
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.spot.v1.SpotOrderService/CancelSpotOrder",
-      body: { spotOrderId: "5001" },
+      body: {
+        lifecycleRound: "1",
+        spotOrderId: "5001",
+      },
     });
   });
 
@@ -528,6 +532,7 @@ describe("spot order service", () => {
         totalAmountCents: 2598,
         billId: "91",
         bill: expect.objectContaining({
+          lifecycleRound: "1",
           id: "91",
           billNo: "BILL-91",
           status: "unpaid",

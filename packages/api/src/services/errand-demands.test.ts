@@ -273,6 +273,7 @@ describe("errand demand service", () => {
 
     expect(details).toEqual([
       {
+        lifecycleRound: "1",
         errandDemandId: "9001",
         estimatedUnitPriceCents: 200,
         quantity: 12,
@@ -288,6 +289,7 @@ describe("errand demand service", () => {
         },
         requesters: [
           {
+            demandLifecycleRound: "1",
             requesterId: "1001",
             requesterName: "李同学",
             requesterAvatarUrl: "https://example.test/avatar/li.png",

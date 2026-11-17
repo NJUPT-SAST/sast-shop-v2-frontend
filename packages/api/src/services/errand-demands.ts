@@ -1,9 +1,7 @@
+import { formatProtoTimestamp, parseProtoTimestamp } from "../proto-timestamp";
+import { mapLifecycleRound, parseLifecycleRound } from "../lifecycle-round";
 import { createClient } from "@connectrpc/connect";
-import {
-  timestampDate,
-  timestampFromDate,
-  type Timestamp,
-} from "@bufbuild/protobuf/wkt";
+import { timestampFromDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import type { ProductTemplate as ProtoProductTemplate } from "../gen/sast/sastshopv2/catalog/v1/product_template_pb";
 import type { ErrandDemandByStore as ProtoErrandDemandByStore } from "../gen/sast/sastshopv2/errand/v1/errand_demand_by_store_pb";
 import type { ErrandDemandDetail as ProtoErrandDemandDetail } from "../gen/sast/sastshopv2/errand/v1/errand_demand_detail_pb";
@@ -34,6 +32,7 @@ export interface CreateErrandDemandResult {
 }
 
 export interface UpdateErrandDemandInput {
+  lifecycleRound?: string;
   errandDemandId: string;
   storeId: string;
   deadline: string;
@@ -56,6 +55,7 @@ export interface ErrandDemandStoreSummary {
 }
 
 export interface ErrandDemandRequester {
+  demandLifecycleRound?: string;
   requesterId: string;
   requesterName: string;
   requesterAvatarUrl: string;
@@ -67,6 +67,7 @@ export interface ErrandDemandRequester {
 }
 
 export interface ErrandDemandDetailGroup {
+  lifecycleRound?: string;
   errandDemandId: string;
   productTemplate: ProductTemplate;
   estimatedUnitPriceCents: number;
@@ -110,21 +111,13 @@ export async function updateErrandDemand(
       ErrandDemandService,
       createLocalTransport(options),
     );
-    const updatedAt = parseOptionalTimestamp(
-      input.updatedAt,
-      "更新时间不正确",
-    );
+    const updatedAt = parseOptionalTimestamp(input.updatedAt, "更新时间不正确");
     await requestLocal("updateErrandDemand", () =>
       client.updateErrandDemand({
-        errandDemandId: parseInt64(
-          input.errandDemandId,
-          "跑腿订单 ID 不正确",
-        ),
+        lifecycleRound: parseLifecycleRound(input.lifecycleRound),
+        errandDemandId: parseInt64(input.errandDemandId, "跑腿订单 ID 不正确"),
         storeId: parseInt64(input.storeId, "店铺 ID 不正确"),
-        deadline: parseRequiredTimestamp(
-          input.deadline,
-          "期望送达时间不正确",
-        ),
+        deadline: parseRequiredTimestamp(input.deadline, "期望送达时间不正确"),
         demandItems: input.items.map((item) => {
           const itemUpdatedAt = parseOptionalTimestamp(
             item.updatedAt,
@@ -135,10 +128,7 @@ export async function updateErrandDemand(
               item.productTemplateId,
               "商品模板 ID 不正确",
             ),
-            quantity: parsePositiveInteger(
-              item.quantity,
-              "跑腿需求数量不正确",
-            ),
+            quantity: parsePositiveInteger(item.quantity, "跑腿需求数量不正确"),
             serviceFeePerUnitCents: parseNonNegativeInteger(
               item.serviceFeePerUnitCents,
               "跑腿费不正确",
@@ -157,7 +147,10 @@ export async function updateErrandDemand(
 
 export async function cancelErrandDemand(
   errandDemandId: string,
-  options: ServiceOptions & { updatedAt?: string | null } = {},
+  options: ServiceOptions & {
+    updatedAt?: string | null;
+    lifecycleRound?: string;
+  } = {},
 ): Promise<void> {
   const dataSource = resolveDataSource(options);
 
@@ -172,10 +165,8 @@ export async function cancelErrandDemand(
     );
     await requestLocal("cancelErrandDemand", () =>
       client.cancelErrandDemand({
-        errandDemandId: parseInt64(
-          errandDemandId,
-          "跑腿订单 ID 不正确",
-        ),
+        lifecycleRound: parseLifecycleRound(options.lifecycleRound),
+        errandDemandId: parseInt64(errandDemandId, "跑腿订单 ID 不正确"),
         ...(updatedAt ? { updatedAt } : {}),
       }),
     );
@@ -314,6 +305,7 @@ function mapErrandDemandDetail(
 
   return {
     errandDemandId: detail.errandDemandId.toString(),
+    lifecycleRound: mapLifecycleRound(detail.lifecycleRound),
     productTemplate,
     estimatedUnitPriceCents: detail.estimatedUnitPriceCents,
     quantity: detail.quantity,
@@ -326,13 +318,14 @@ function mapErrandDemandRequester(
 ): ErrandDemandRequester {
   return {
     requesterId: requester.requesterId.toString(),
+    demandLifecycleRound: mapLifecycleRound(requester.demandLifecycleRound),
     requesterName: requester.requesterName,
     requesterAvatarUrl: requester.requesterAvatarUrl,
     quantity: requester.quantity,
     serviceFeePerUnitCents: requester.serviceFeePerUnitCents,
     errandDemandItemId: requester.errandDemandItemId.toString(),
     deadline: formatTimestamp(requester.deadline),
-    updatedAt: formatTimestamp(requester.updatedAt),
+    updatedAt: formatProtoTimestamp(requester.updatedAt),
   };
 }
 
@@ -360,7 +353,7 @@ function formatTimestamp(timestamp: Timestamp | undefined): string | null {
     return null;
   }
 
-  return timestampDate(timestamp).toISOString();
+  return formatProtoTimestamp(timestamp);
 }
 // 解释字符串形式的数字ID
 //校验并转换为符合有符号 64 位整型（int64 signed）规范的 bigint；
@@ -398,6 +391,7 @@ function parseOptionalTimestamp(
 }
 
 function parseTimestamp(value: string, message: string): Timestamp {
+  if (value.trim().endsWith("Z")) return parseProtoTimestamp(value, message);
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {

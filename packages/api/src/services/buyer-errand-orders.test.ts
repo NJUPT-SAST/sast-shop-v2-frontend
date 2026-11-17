@@ -145,6 +145,7 @@ describe("buyer errand order service", () => {
     const order = await getBuyerErrandOrderDetail("9001", localOptions);
 
     expect(order).toEqual({
+      lifecycleRound: "1",
       id: "9001",
       storeId: "3001",
       createdAt: "2026-06-09T08:30:00.000Z",
@@ -417,6 +418,7 @@ describe("buyer errand order service", () => {
 
     expect(orders).toEqual([
       {
+        lifecycleRound: "1",
         id: "9001",
         storeId: "3001",
         createdAt: "2026-06-09T08:30:00.000Z",

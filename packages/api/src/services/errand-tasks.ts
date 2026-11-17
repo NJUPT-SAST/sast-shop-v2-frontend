@@ -1,9 +1,6 @@
+import { mapLifecycleRound, parseLifecycleRound } from "../lifecycle-round";
 import { createClient } from "@connectrpc/connect";
-import {
-  timestampDate,
-  timestampFromDate,
-  type Timestamp,
-} from "@bufbuild/protobuf/wkt";
+import { timestampFromDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import type { ErrandTask as ProtoErrandTask } from "../gen/sast/sastshopv2/errand/v1/errand_task_pb";
 import { ErrandTaskService } from "../gen/sast/sastshopv2/errand/v1/errand_task_service_pb";
 import { ErrandTaskStatus } from "../gen/sast/sastshopv2/errand/v1/errand_task_status_pb";
@@ -38,6 +35,7 @@ export interface CreateErrandTaskInput {
   storeId: string;
   demandItems: Array<{
     errandDemandItemId: string;
+    demandLifecycleRound?: string;
     updatedAt?: string | null;
   }>;
 }
@@ -47,6 +45,7 @@ export interface CreateErrandTaskResult {
 }
 
 export interface ErrandTaskBrief {
+  lifecycleRound?: string;
   id: string;
   storeId: string;
   storeName: string;
@@ -203,6 +202,7 @@ function parseCreateErrandTaskInput(input: CreateErrandTaskInput) {
       );
 
       return {
+        demandLifecycleRound: parseLifecycleRound(item.demandLifecycleRound),
         errandDemandItemId: parseInt64(
           item.errandDemandItemId,
           "跑腿需求商品 ID 不正确",
@@ -221,6 +221,7 @@ function mapErrandTask(
 
   return {
     id: task.taskId.toString(),
+    lifecycleRound: mapLifecycleRound(task.lifecycleRound),
     storeId: task.storeId.toString(),
     storeName: task.storeName,
     status: mapStatusFromProto(task.status),
@@ -428,17 +429,7 @@ function parseOptionalTimestamp(
   value: string | null | undefined,
   message: string,
 ): Timestamp | undefined {
-  if (value == null) {
-    return undefined;
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    throw new ValidationError(message);
-  }
-
-  return timestampFromDate(date);
+  return value == null ? undefined : parseProtoTimestamp(value, message);
 }
 
 function formatTimestamp(timestamp: Timestamp | undefined): string | null {
@@ -446,7 +437,7 @@ function formatTimestamp(timestamp: Timestamp | undefined): string | null {
     return null;
   }
 
-  return timestampDate(timestamp).toISOString();
+  return formatProtoTimestamp(timestamp);
 }
 
 function parseOptionalTimestampString(
@@ -473,17 +464,8 @@ function parseOptionalTimestampString(
 }
 
 function parseTimestampString(value: string, message: string): Timestamp {
-  if (!value) {
-    throw new ValidationError(message);
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    throw new ValidationError(message);
-  }
-
-  return timestampFromDate(date);
+  if (!value) throw new ValidationError(message);
+  return parseOptionalTimestampString(value, message)!;
 }
 
 export interface ShoppingTaskItem {
@@ -501,6 +483,7 @@ export interface ShoppingTaskItem {
 }
 
 export interface ShoppingTaskDetail {
+  lifecycleRound?: string;
   taskId: string;
   storeId: string;
   storeName: string;
@@ -532,6 +515,7 @@ export interface DistributingTaskItem {
 }
 
 export interface DistributingTaskDetail {
+  lifecycleRound?: string;
   taskId: string;
   storeId: string;
   storeName: string;
@@ -561,6 +545,7 @@ export interface CollectingPaymentItem {
 }
 
 export interface CollectingPaymentBill {
+  billLifecycleRound?: string;
   requesterId: string;
   requesterName: string;
   requesterAvatarUrl: string;
@@ -580,12 +565,14 @@ export interface CollectingPaymentBill {
 }
 
 export interface CollectingPaymentDetail {
+  lifecycleRound?: string;
   taskId: string;
   taskUpdatedAt: string | null;
   bills: CollectingPaymentBill[];
 }
 
 export interface SaveShoppingItemInput {
+  lifecycleRound?: string;
   errandTaskId: string;
   errandTaskItemId: string;
   purchasedQuantity: number;
@@ -598,6 +585,7 @@ export interface SaveShoppingItemResult {
 }
 
 export interface SaveDistributingAssignmentInput {
+  lifecycleRound?: string;
   errandTaskItemId: string;
   errandTaskAssignmentId: string;
   distributedQuantity: number;
@@ -609,6 +597,7 @@ export interface SaveDistributingAssignmentResult {
 }
 
 export interface UpdateActualPriceInput {
+  lifecycleRound?: string;
   errandTaskId: string;
   errandTaskItemId: string;
   actualUnitPriceCents: number;
@@ -639,6 +628,7 @@ export async function getShoppingTaskDetail(
 
     return {
       taskId: response.errandTaskId.toString(),
+      lifecycleRound: mapLifecycleRound(response.lifecycleRound),
       storeId: response.storeId.toString(),
       storeName: response.storeName,
       taskUpdatedAt: mapResponseUpdatedAt(response, rawDetail),
@@ -666,6 +656,7 @@ export async function saveShoppingTaskItem(
     );
     const response = await requestLocal("saveShoppingTaskItem", () =>
       client.saveShoppingTaskItem({
+        lifecycleRound: parseLifecycleRound(input.lifecycleRound),
         errandTaskId: parseInt64(input.errandTaskId, "跑腿任务 ID 不正确"),
         errandTaskItemId: parseInt64(
           input.errandTaskItemId,
@@ -696,7 +687,7 @@ export async function saveShoppingTaskItem(
 export async function transitionToPendingDistributing(
   taskId: string,
   _updatedAt?: string | null,
-  options: ServiceOptions = {},
+  options: ServiceOptions & { lifecycleRound?: string } = {},
 ): Promise<void> {
   const errandTaskId = parseInt64(taskId, "跑腿任务 ID 不正确");
   const dataSource = resolveDataSource(options);
@@ -708,6 +699,7 @@ export async function transitionToPendingDistributing(
     );
     await requestLocal("transitionToPendingDistributing", () =>
       client.transitionToPendingDistributing({
+        lifecycleRound: parseLifecycleRound(options.lifecycleRound),
         errandTaskId,
       }),
     );
@@ -751,6 +743,7 @@ export async function getDistributingTaskDetail(
 
     return {
       taskId: response.errandTaskId.toString(),
+      lifecycleRound: mapLifecycleRound(response.lifecycleRound),
       storeId: response.storeId.toString(),
       storeName: response.storeName,
       taskUpdatedAt: finalTaskUpdatedAt,
@@ -793,6 +786,7 @@ export async function updateActualPrice(
     );
     await requestLocal("updateActualPrice", () =>
       client.updateActualPrice({
+        lifecycleRound: parseLifecycleRound(input.lifecycleRound),
         errandTaskId: parseInt64(input.errandTaskId, "跑腿任务 ID 不正确"),
         errandTaskItemId,
         actualUnitPriceCents,
@@ -809,7 +803,7 @@ export async function transitionToDistributing(
   taskId: string,
   packagingFeeCents: number,
   updatedAt?: string | null,
-  options: ServiceOptions = {},
+  options: ServiceOptions & { lifecycleRound?: string } = {},
 ): Promise<void> {
   const errandTaskId = parseInt64(taskId, "跑腿任务 ID 不正确");
   const dataSource = resolveDataSource(options);
@@ -834,6 +828,7 @@ export async function transitionToDistributing(
     );
     await requestLocal("transitionToDistributing", () =>
       client.transitionToDistributing({
+        lifecycleRound: parseLifecycleRound(options.lifecycleRound),
         errandTaskId,
         packagingFeeCents: normalizedPackagingFeeCents,
         updatedAt: parsedUpdatedAt,
@@ -868,6 +863,7 @@ export async function saveDistributingAssignment(
     );
     const response = await requestLocal("saveDistributingAssignment", () =>
       client.saveDistributingTaskAssignment({
+        lifecycleRound: parseLifecycleRound(input.lifecycleRound),
         errandTaskItemId: parseInt64(
           input.errandTaskItemId,
           "任务商品 ID 不正确",
@@ -908,7 +904,7 @@ export async function saveDistributingAssignment(
 export async function transitionToCollectingPayment(
   taskId: string,
   updatedAt?: string | null,
-  options: ServiceOptions = {},
+  options: ServiceOptions & { lifecycleRound?: string } = {},
 ): Promise<void> {
   const errandTaskId = parseInt64(taskId, "跑腿任务 ID 不正确");
   const dataSource = resolveDataSource(options);
@@ -929,6 +925,7 @@ export async function transitionToCollectingPayment(
     );
     await requestLocal("transitionToCollectingPayment", () =>
       client.transitionToCollectingPayment({
+        lifecycleRound: parseLifecycleRound(options.lifecycleRound),
         errandTaskId,
         updatedAt: parsedUpdatedAt,
       }),
@@ -963,6 +960,7 @@ export async function getCollectingPaymentDetail(
 
     return {
       taskId,
+      lifecycleRound: mapLifecycleRound(response.lifecycleRound),
       taskUpdatedAt: mapResponseUpdatedAt(response, rawDetail),
       bills: response.bills.map(mapCollectingPaymentBill),
     };
@@ -974,7 +972,7 @@ export async function getCollectingPaymentDetail(
 export async function transitionToCompleted(
   taskId: string,
   updatedAt?: string | null,
-  options: ServiceOptions = {},
+  options: ServiceOptions & { lifecycleRound?: string } = {},
 ): Promise<void> {
   const errandTaskId = parseInt64(taskId, "跑腿任务 ID 不正确");
   const dataSource = resolveDataSource(options);
@@ -995,6 +993,7 @@ export async function transitionToCompleted(
     );
     await requestLocal("transitionToCompleted", () =>
       client.transitionToCompleted({
+        lifecycleRound: parseLifecycleRound(options.lifecycleRound),
         errandTaskId,
         updatedAt: parsedUpdatedAt,
       }),
@@ -1008,7 +1007,7 @@ export async function transitionToCompleted(
 export async function cancelTask(
   taskId: string,
   updatedAt?: string | null,
-  options: ServiceOptions = {},
+  options: ServiceOptions & { lifecycleRound?: string } = {},
 ): Promise<void> {
   const errandTaskId = parseInt64(taskId, "跑腿任务 ID 不正确");
   const dataSource = resolveDataSource(options);
@@ -1029,6 +1028,7 @@ export async function cancelTask(
     );
     await requestLocal("cancelTask", () =>
       client.cancelTask({
+        lifecycleRound: parseLifecycleRound(options.lifecycleRound),
         errandTaskId,
         updatedAt: parsedUpdatedAt,
       }),
@@ -1192,6 +1192,9 @@ function mapCollectingPaymentBill(
     billId: bill.bill?.id.toString() ?? null,
     billNo: bill.bill?.billNo ?? null,
     billUpdatedAt: formatTimestamp(bill.bill?.updatedAt),
+    billLifecycleRound: bill.bill
+      ? mapLifecycleRound(bill.bill.lifecycleRound)
+      : undefined,
     paymentChannel: mapPaymentChannel(bill.bill?.channel),
     serialNumber: bill.bill?.serialNumber ?? null,
     verifyCode: bill.bill?.verifyCode || null,

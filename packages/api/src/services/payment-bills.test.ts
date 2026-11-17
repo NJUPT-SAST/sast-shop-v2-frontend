@@ -68,6 +68,7 @@ describe("payment bill service", () => {
     const bill = await getBill("12", localOptions);
 
     expect(bill).toEqual({
+      lifecycleRound: "1",
       id: "12",
       billNo: "BILL-12",
       payer: {
@@ -138,6 +139,7 @@ describe("payment bill service", () => {
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.payment.v1.BillService/PayBill",
       body: {
+        lifecycleRound: "1",
         billId: "12",
         channel: "CHANNEL_ALIPAY",
         updatedAt: "1970-01-01T00:00:02Z",
@@ -170,7 +172,11 @@ describe("payment bill service", () => {
     expect(bill).toMatchObject({ id: "9001", status: "completed" });
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.payment.v1.BillService/ConfirmBill",
-      body: { billId: "9001", updatedAt: "2026-07-18T02:00:00Z" },
+      body: {
+        lifecycleRound: "1",
+        billId: "9001",
+        updatedAt: "2026-07-18T02:00:00Z",
+      },
     });
   });
 
