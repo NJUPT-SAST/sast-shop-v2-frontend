@@ -66,6 +66,7 @@ describe("West Pocket facade boundaries", () => {
     );
     expect(result.status).toBe("unpaid");
     expect(await requestBody(fetch)).toEqual({
+      lifecycleRound: "1",
       billId: "20",
       targetStatus: "BILL_STATUS_UNPAID",
       updatedAt: "2026-09-23T12:00:00.123456789Z",
@@ -135,6 +136,7 @@ describe("West Pocket facade boundaries", () => {
       options,
     );
     expect(await requestBody(fetch)).toEqual({
+      lifecycleRound: "1",
       pocketId: pocket.id,
       expectedRevision: pocket.revision,
       requestId: "retry-key",

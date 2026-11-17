@@ -2,12 +2,8 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Script from "next/script";
 import { Toaster } from "@workspace/ui/components/sonner";
-import { AuthBootstrap } from "@/components/auth-bootstrap";
-import { DesktopShell } from "@/components/desktop-shell";
-import { TransactionAgreementProvider } from "@/components/transaction-agreement-provider";
 import { desktopAppConfig } from "@/lib/app-config";
 import { getServerAuthMode } from "@/lib/auth-mode";
-import { resolveFeishuRedirectUri } from "../../../config/feishu-redirect-uri";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -30,25 +26,7 @@ export default function RootLayout({
             strategy="beforeInteractive"
           />
         ) : null}
-        <AuthBootstrap
-          enabled={authRequired}
-          appId={process.env.NEXT_PUBLIC_FEISHU_APP_ID ?? ""}
-          redirectUri={
-            authRequired
-              ? resolveFeishuRedirectUri(
-                  process.env.NEXT_PUBLIC_FEISHU_REDIRECT_URI,
-                  desktopAppConfig.appOrigin,
-                  process.env.NODE_ENV === "production",
-                )
-              : undefined
-          }
-          dataSource={desktopAppConfig.dataSource}
-          connectBaseUrl={desktopAppConfig.connectBaseUrl}
-        >
-          <TransactionAgreementProvider requireUserIdentity={authRequired}>
-            <DesktopShell>{children}</DesktopShell>
-          </TransactionAgreementProvider>
-        </AuthBootstrap>
+        {children}
         <Toaster />
       </body>
     </html>

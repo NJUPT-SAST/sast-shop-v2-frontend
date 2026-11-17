@@ -76,6 +76,7 @@ describe("listErrandTasks", () => {
 
     expect(tasks).toEqual([
       {
+        lifecycleRound: "1",
         id: "7001",
         storeId: "3001",
         storeName: "SAST 小卖部",
@@ -218,6 +219,7 @@ describe("listErrandTasks", () => {
 
     await expect(listErrandTasks(localOptions)).resolves.toEqual([
       {
+        lifecycleRound: "1",
         id: "7002",
         storeId: "3001",
         storeName: "SAST 小卖部",
@@ -387,6 +389,7 @@ describe("captain task detail facades", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(getShoppingTaskDetail("7001", localOptions)).resolves.toEqual({
+      lifecycleRound: "1",
       taskId: "7001",
       storeId: "3001",
       taskUpdatedAt: "2026-07-18T03:00:00.000Z",
@@ -649,10 +652,12 @@ describe("captain task detail facades", () => {
     const detail = await getCollectingPaymentDetail("7004", localOptions);
 
     expect(detail).toEqual({
+      lifecycleRound: "1",
       taskId: "7004",
       taskUpdatedAt: "2026-07-16T08:00:00.000Z",
       bills: [
         {
+          billLifecycleRound: "1",
           requesterId: "1001",
           requesterName: "李同学",
           requesterAvatarUrl: "https://example.test/li.png",
@@ -726,6 +731,7 @@ describe("captain task detail facades", () => {
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/SaveShoppingTaskItem",
       body: {
+        lifecycleRound: "1",
         errandTaskId: "7001",
         errandTaskItemId: "7101",
         purchasedQuantity: 8,
@@ -776,6 +782,7 @@ describe("captain task detail facades", () => {
     await expectConnectRequestAt(fetchMock, 1, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/SaveShoppingTaskItem",
       body: {
+        lifecycleRound: "1",
         errandTaskId: "7001",
         errandTaskItemId: "7101",
         nonPurchaseReason: "缺货",
@@ -802,6 +809,7 @@ describe("captain task detail facades", () => {
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/SaveShoppingTaskItem",
       body: {
+        lifecycleRound: "1",
         errandTaskId: "9",
         errandTaskItemId: "10",
         purchasedQuantity: -1,
@@ -827,6 +835,7 @@ describe("captain task detail facades", () => {
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/UpdateActualPrice",
       body: {
+        lifecycleRound: "1",
         errandTaskId: "7002",
         errandTaskItemId: "7201",
         actualUnitPriceCents: 180,
@@ -883,6 +892,7 @@ describe("captain task detail facades", () => {
     await expectConnectRequestAt(fetchMock, 1, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/UpdateActualPrice",
       body: {
+        lifecycleRound: "1",
         errandTaskId: "7002",
         errandTaskItemId: "7201",
         actualUnitPriceCents: 180,
@@ -933,6 +943,7 @@ describe("captain task detail facades", () => {
     await expectConnectRequestAt(fetchMock, 0, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/SaveShoppingTaskItem",
       body: {
+        lifecycleRound: "1",
         errandTaskId: "7001",
         errandTaskItemId: "7101",
         purchasedQuantity: -1,
@@ -941,6 +952,7 @@ describe("captain task detail facades", () => {
     await expectConnectRequestAt(fetchMock, 1, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/SaveDistributingTaskAssignment",
       body: {
+        lifecycleRound: "1",
         errandTaskItemId: "7101",
         errandTaskAssignmentId: "8101",
         distributedQuantity: -1,
@@ -973,6 +985,7 @@ describe("captain task detail facades", () => {
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/SaveDistributingTaskAssignment",
       body: {
+        lifecycleRound: "1",
         errandTaskItemId: "7101",
         errandTaskAssignmentId: "8101",
         distributedQuantity: 3,
@@ -1048,6 +1061,7 @@ describe("captain task detail facades", () => {
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/TransitionToDistributing",
       body: {
+        lifecycleRound: "1",
         errandTaskId: "7002",
         packagingFeeCents: 300,
         updatedAt: "2026-07-17T08:00:00Z",
@@ -1096,6 +1110,7 @@ describe("captain task detail facades", () => {
     await expectConnectRequestAt(fetchMock, 1, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/TransitionToDistributing",
       body: {
+        lifecycleRound: "1",
         errandTaskId: "7002",
         packagingFeeCents: 300,
         updatedAt: "2026-07-17T08:00:00Z",
@@ -1140,6 +1155,7 @@ describe("captain task detail facades", () => {
     await expectConnectRequest(fetchMock, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/TransitionToCollectingPayment",
       body: {
+        lifecycleRound: "1",
         errandTaskId: "7002",
         updatedAt: "2026-07-17T08:00:00Z",
       },
@@ -1187,6 +1203,7 @@ describe("captain task detail facades", () => {
     await expectConnectRequestAt(fetchMock, 1, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/TransitionToCollectingPayment",
       body: {
+        lifecycleRound: "1",
         errandTaskId: "7002",
         updatedAt: "2026-07-17T08:00:00Z",
       },
@@ -1233,12 +1250,14 @@ describe("captain task detail facades", () => {
     await expectConnectRequestAt(fetchMock, 0, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/TransitionToPendingDistributing",
       body: {
+        lifecycleRound: "1",
         errandTaskId: "7001",
       },
     });
     await expectConnectRequestAt(fetchMock, 1, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/TransitionToCompleted",
       body: {
+        lifecycleRound: "1",
         errandTaskId: "7001",
         updatedAt: "2026-07-17T08:00:00Z",
       },
@@ -1246,6 +1265,7 @@ describe("captain task detail facades", () => {
     await expectConnectRequestAt(fetchMock, 2, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/CancelTask",
       body: {
+        lifecycleRound: "1",
         errandTaskId: "7001",
         updatedAt: "2026-07-17T08:00:00Z",
       },
@@ -1291,12 +1311,14 @@ describe("captain task detail facades", () => {
     await expectConnectRequestAt(fetchMock, 0, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/TransitionToPendingDistributing",
       body: {
+        lifecycleRound: "1",
         errandTaskId: "7001",
       },
     });
     await expectConnectRequestAt(fetchMock, 2, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/TransitionToCompleted",
       body: {
+        lifecycleRound: "1",
         errandTaskId: "7001",
         updatedAt: "2026-07-17T08:00:00Z",
       },
@@ -1304,6 +1326,7 @@ describe("captain task detail facades", () => {
     await expectConnectRequestAt(fetchMock, 4, {
       path: "/sast.sastshopv2.errand.v1.ErrandTaskService/CancelTask",
       body: {
+        lifecycleRound: "1",
         errandTaskId: "7001",
         updatedAt: "2026-07-17T08:00:00Z",
       },

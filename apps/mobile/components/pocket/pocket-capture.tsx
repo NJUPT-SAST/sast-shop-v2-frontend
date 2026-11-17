@@ -10,6 +10,7 @@ import {
   retryPocketJob,
   startPocketRecognition,
   type PocketJob,
+  type PocketDetail,
 } from "@sast-shop/api";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -50,10 +51,39 @@ import {
 
 export function PocketCapture({ pocketId }: { pocketId: string }) {
   const options = usePocketOptions();
-  const [deletingPhoto, setDeletingPhoto] = useState<string | null>(null);
   const detail = usePocketResource(
     useCallback(() => getPocket(pocketId, options), [pocketId, options]),
   );
+  usePocketPolling(detail.refresh, false);
+  const current = detail.data?.pocket.id === pocketId ? detail.data : null;
+  if (!current)
+    return (
+      <div className="flex flex-col gap-4 py-4">
+        <PocketHeading title="选择分摊人" />
+        <PocketError message={detail.error} retry={detail.refresh} />
+        {!detail.error ? <PocketLoading /> : null}
+      </div>
+    );
+  return (
+    <PocketCaptureContent
+      key={`${pocketId}:${current.pocket.lifecycleRound ?? "1"}`}
+      pocketId={pocketId}
+      detail={detail}
+      current={current}
+    />
+  );
+}
+function PocketCaptureContent({
+  pocketId,
+  detail,
+  current,
+}: {
+  pocketId: string;
+  detail: ReturnType<typeof usePocketResource<PocketDetail>>;
+  current: PocketDetail;
+}) {
+  const options = usePocketOptions();
+  const [deletingPhoto, setDeletingPhoto] = useState<string | null>(null);
   const capabilities = usePocketResource(
     useCallback(() => getPocketCapabilities(options), [options]),
   );
@@ -72,18 +102,6 @@ export function PocketCapture({ pocketId }: { pocketId: string }) {
     refreshDetail();
     setMembersOpen(true);
   }, [refreshDetail]);
-  const current = detail.data?.pocket.id === pocketId ? detail.data : null;
-  if (!current)
-    return (
-      <div className="flex min-w-0 flex-1 flex-col gap-4 py-4">
-        <PocketHeading title="选择分摊人" />
-        <PocketError
-          message={detail.error}
-          retry={action.pending ? action.recover : detail.refresh}
-        />
-        {!detail.error ? <PocketLoading /> : null}
-      </div>
-    );
   if (!current.isOwner || current.pocket.status !== "draft")
     return (
       <div className="flex min-w-0 flex-1 flex-col gap-4 py-4">
@@ -137,6 +155,7 @@ export function PocketCapture({ pocketId }: { pocketId: string }) {
             retentionMode: album ? "keepsake" : "temporary",
             captureAuthorizationVersion: caps.photoConsentVersion,
             expectedRevision: current.pocket.revision,
+            lifecycleRound: current.pocket.lifecycleRound,
             requestId,
           },
           options,
@@ -148,6 +167,7 @@ export function PocketCapture({ pocketId }: { pocketId: string }) {
           const recognition = await startPocketRecognition(
             {
               pocketId,
+              lifecycleRound: current.pocket.lifecycleRound,
               photoIds: result.photos
                 .filter(
                   (photo) =>
@@ -320,6 +340,7 @@ export function PocketCapture({ pocketId }: { pocketId: string }) {
                       await startPocketRecognition(
                         {
                           pocketId,
+                          lifecycleRound: current.pocket.lifecycleRound,
                           photoIds: current.photos.map((photo) => photo.id),
                           requestId,
                         },
@@ -337,6 +358,7 @@ export function PocketCapture({ pocketId }: { pocketId: string }) {
       ) : null}
       {deletingPhoto ? (
         <PocketPhotoDeleteDialog
+          lifecycleRound={current.pocket.lifecycleRound}
           pocketId={pocketId}
           photoId={deletingPhoto}
           onClose={() => setDeletingPhoto(null)}
@@ -403,7 +425,14 @@ function RecognitionProgress({
           retry={() =>
             void action.run(`retry:${jobId}`, async (requestId) => {
               result.setData(
-                await retryPocketJob({ jobId, requestId }, options),
+                await retryPocketJob(
+                  {
+                    jobId,
+                    lifecycleRound: result.data?.lifecycleRound,
+                    requestId,
+                  },
+                  options,
+                ),
               );
             })
           }

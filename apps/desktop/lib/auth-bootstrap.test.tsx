@@ -5,7 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthRequiredError } from "@sast-shop/api";
 import { AuthBootstrap } from "../components/auth-bootstrap";
-import Home from "../app/page";
+import Home from "../app/(storefront)/page";
 
 const {
   refresh,

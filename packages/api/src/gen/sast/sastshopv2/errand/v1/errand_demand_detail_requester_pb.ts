@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file sast/sastshopv2/errand/v1/errand_demand_detail_requester.proto.
  */
 export const file_sast_sastshopv2_errand_v1_errand_demand_detail_requester: GenFile = /*@__PURE__*/
-  fileDesc("Cj5zYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF9kZW1hbmRfZGV0YWlsX3JlcXVlc3Rlci5wcm90bxIZc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MSKcAgobRXJyYW5kRGVtYW5kRGV0YWlsUmVxdWVzdGVyEhQKDHJlcXVlc3Rlcl9pZBgBIAEoAxIWCg5yZXF1ZXN0ZXJfbmFtZRgCIAEoCRIcChRyZXF1ZXN0ZXJfYXZhdGFyX3VybBgDIAEoCRIQCghxdWFudGl0eRgEIAEoBRIiChpzZXJ2aWNlX2ZlZV9wZXJfdW5pdF9jZW50cxgFIAEoBRIdChVlcnJhbmRfZGVtYW5kX2l0ZW1faWQYBiABKAMSLAoIZGVhZGxpbmUYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("Cj5zYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF9kZW1hbmRfZGV0YWlsX3JlcXVlc3Rlci5wcm90bxIZc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MSK8AgobRXJyYW5kRGVtYW5kRGV0YWlsUmVxdWVzdGVyEhQKDHJlcXVlc3Rlcl9pZBgBIAEoAxIWCg5yZXF1ZXN0ZXJfbmFtZRgCIAEoCRIcChRyZXF1ZXN0ZXJfYXZhdGFyX3VybBgDIAEoCRIQCghxdWFudGl0eRgEIAEoBRIiChpzZXJ2aWNlX2ZlZV9wZXJfdW5pdF9jZW50cxgFIAEoBRIdChVlcnJhbmRfZGVtYW5kX2l0ZW1faWQYBiABKAMSLAoIZGVhZGxpbmUYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEh4KFmRlbWFuZF9saWZlY3ljbGVfcm91bmQYCSABKANiBnByb3RvMw", [file_google_protobuf_timestamp]);
 
 /**
  * 团长接单弹窗中某个商品下的购买人需求行
@@ -75,6 +75,11 @@ export type ErrandDemandDetailRequester = Message<"sast.sastshopv2.errand.v1.Err
    * @generated from field: google.protobuf.Timestamp updated_at = 8;
    */
   updatedAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: int64 demand_lifecycle_round = 9;
+   */
+  demandLifecycleRound: bigint;
 };
 
 /**

@@ -5,13 +5,14 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { navigation, agreementMount, agreementUnmount } = vi.hoisted(() => ({
-  navigation: { pathname: "/orders" },
+  navigation: { pathname: "/orders", refresh: vi.fn() },
   agreementMount: vi.fn(),
   agreementUnmount: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
   usePathname: () => navigation.pathname,
+  useRouter: () => navigation,
 }));
 vi.mock("next/script", () => ({ default: () => null }));
 vi.mock("@workspace/ui/components/sonner", () => ({ Toaster: () => null }));

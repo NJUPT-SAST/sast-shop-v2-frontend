@@ -1,3 +1,4 @@
+import { mapLifecycleRound, parseLifecycleRound } from "../lifecycle-round";
 import { createClient } from "@connectrpc/connect";
 import {
   timestampDate,
@@ -27,6 +28,7 @@ export type SpotOrderStatusValue =
   "pending_payment" | "paid" | "completed" | "cancelled" | "unknown";
 
 export interface SpotOrder {
+  lifecycleRound?: string;
   id: string;
   orderNo: string;
   store: Store | null;
@@ -59,6 +61,7 @@ export interface CreateSpotOrderInput {
 }
 
 export interface SpotOrderMutationInput {
+  lifecycleRound?: string;
   spotOrderId: string;
   updatedAt?: TimestampInput;
 }
@@ -305,6 +308,7 @@ async function listSpotOrdersByStorePage(
 function mapSpotOrder(order: ProtoSpotOrderBrief): SpotOrder {
   return {
     id: order.id.toString(),
+    lifecycleRound: mapLifecycleRound(order.lifecycleRound),
     orderNo: order.orderNo,
     store: mapStore(order.store),
     productTitle: mapTemplate(order.productSnapshot).title,
@@ -326,6 +330,7 @@ function mapSpotOrder(order: ProtoSpotOrderBrief): SpotOrder {
 function mapSpotOrderDetail(order: ProtoSpotOrderDetail): SpotOrder {
   return {
     id: order.id.toString(),
+    lifecycleRound: mapLifecycleRound(order.lifecycleRound),
     orderNo: order.orderNo,
     store: mapStore(order.store),
     productTitle: mapTemplate(order.productSnapshot).title,
@@ -436,6 +441,7 @@ function validateCreateSpotOrdersInput(inputs: CreateSpotOrderInput[]) {
 function validateSpotOrderMutationInput(input: SpotOrderMutationInput) {
   return {
     spotOrderId: parseInt64(input.spotOrderId, "现货订单 ID 不正确"),
+    lifecycleRound: parseLifecycleRound(input.lifecycleRound),
     updatedAt: parseTimestampInput(input.updatedAt),
   };
 }

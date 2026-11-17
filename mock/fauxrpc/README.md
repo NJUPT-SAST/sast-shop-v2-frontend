@@ -33,3 +33,7 @@ NEXT_PUBLIC_CONNECT_BASE_URL=http://127.0.0.1:6660
 ```
 
 仓库提交 `apps/mobile/.env.example` 与 `apps/desktop/.env.example` 作为模板。本地运行时复制为 `.env.local`，生产环境复制为 `.env`；`.env.local` 与 `.env` 都不提交。
+
+## 管理后台演示
+
+`admin.json` 提供明确标记为演示的管理员上下文、六域概览、用户/现货订单列表详情和整单纠错预览。用于本地 `/admin` 布局和代理联调；不包含写操作成功 stub，也不验证真实飞书授权。后台演示建议给 FauxRPC 加 `--only-stubs`，避免为未覆盖的管理写操作生成随机结果。真实后台仍要求有效会话和服务端管理员身份。

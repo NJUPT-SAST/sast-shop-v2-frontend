@@ -168,7 +168,7 @@ function PaymentChannelDisplay({
   );
 }
 
-export function CollectingPaymentView({
+function CollectingPaymentViewContent({
   dataSource,
   connectBaseUrl,
   detail,
@@ -194,9 +194,9 @@ export function CollectingPaymentView({
     unverifiedTaskVersion !== undefined &&
     compareUpdatedAt(taskVersion, unverifiedTaskVersion) <= 0;
   const billNeedsVerification = (bill: CollectingPaymentBill) => {
-    const baseline = unverifiedBillVersions[bill.requesterId];
+    const baseline = unverifiedBillVersions[collectingBillKey(bill)];
     return (
-      Object.hasOwn(unverifiedBillVersions, bill.requesterId) &&
+      Object.hasOwn(unverifiedBillVersions, collectingBillKey(bill)) &&
       compareUpdatedAt(bill.billUpdatedAt, baseline) <= 0
     );
   };
@@ -217,11 +217,16 @@ export function CollectingPaymentView({
   const [confirmingBillId, setConfirmingBillId] = useState<string | null>(null);
   const billToConfirm =
     dialog.type === "confirm_bill"
-      ? (bills.find((bill) => bill.requesterId === dialog.bill.requesterId) ??
-        null)
+      ? (bills.find(
+          (bill) => collectingBillKey(bill) === collectingBillKey(dialog.bill),
+        ) ?? null)
       : null;
 
-  const serviceOptions = { dataSource, connectBaseUrl };
+  const serviceOptions = {
+    dataSource,
+    connectBaseUrl,
+    lifecycleRound: detail.lifecycleRound,
+  };
 
   const pendingConfirmation = bills.filter(
     (b) => b.paymentStatus === "pending_confirmation",
@@ -238,13 +243,13 @@ export function CollectingPaymentView({
     totalCount > 0 && bills.every((b) => b.paymentStatus === "confirmed");
 
   const updateBill = (
-    requesterId: string,
+    sourceBill: CollectingPaymentBill,
     status: CollectingPaymentBill["paymentStatus"],
     updatedAt: string | null,
   ) => {
     setBills((prev) =>
       prev.map((b) =>
-        b.requesterId === requesterId
+        collectingBillKey(b) === collectingBillKey(sourceBill)
           ? {
               ...b,
               paymentStatus: status,
@@ -285,10 +290,14 @@ export function CollectingPaymentView({
     setConfirmingBillId(bill.requesterId);
     try {
       const updatedBill = await confirmBill(
-        { billId: bill.billId, updatedAt: bill.billUpdatedAt },
+        {
+          billId: bill.billId,
+          lifecycleRound: bill.billLifecycleRound,
+          updatedAt: bill.billUpdatedAt,
+        },
         serviceOptions,
       );
-      updateBill(bill.requesterId, "confirmed", updatedBill.updatedAt);
+      updateBill(bill, "confirmed", updatedBill.updatedAt);
       setDialog({ type: "none" });
       toast.success("已确认到账");
     } catch (error) {
@@ -297,7 +306,7 @@ export function CollectingPaymentView({
       );
       setUnverifiedBillVersions((current) => ({
         ...current,
-        [bill.requesterId]: bill.billUpdatedAt,
+        [collectingBillKey(bill)]: bill.billUpdatedAt,
       }));
       setDialog({ type: "none" });
       router.refresh();
@@ -328,6 +337,16 @@ export function CollectingPaymentView({
     let attemptedVersion = taskVersion;
     try {
       const latestTask = await getErrandTaskBrief(taskId, serviceOptions);
+      if (
+        latestTask &&
+        (latestTask.lifecycleRound ?? "1") !== (detail.lifecycleRound ?? "1")
+      ) {
+        toast.error("任务处理轮次已变化，请刷新并核对后再操作");
+        setDialog({ type: "none" });
+        setSubmitting(false);
+        router.refresh();
+        return;
+      }
       setTaskVersion((current) =>
         latestUpdatedAt(current, latestTask?.updatedAt ?? null),
       );
@@ -377,7 +396,7 @@ export function CollectingPaymentView({
         </div>
         <div className="flex flex-col gap-3">
           {list.map((bill) => {
-            const expandKey = bill.billId ?? bill.requesterId;
+            const expandKey = collectingBillKey(bill);
             const isExpanded = expandedBillKey === expandKey;
             return (
               <div
@@ -386,7 +405,7 @@ export function CollectingPaymentView({
               >
                 <button
                   type="button"
-                  aria-controls={`payment-bill-${expandKey}`}
+                  aria-controls={`payment-bill-${bill.billId ?? bill.requesterId}`}
                   aria-expanded={isExpanded}
                   className="flex w-full items-center gap-3 p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   onClick={() =>
@@ -430,7 +449,7 @@ export function CollectingPaymentView({
 
                 {isExpanded && (
                   <div
-                    id={`payment-bill-${expandKey}`}
+                    id={`payment-bill-${bill.billId ?? bill.requesterId}`}
                     className="border-t px-3 pb-3"
                   >
                     <div className="mt-3 flex flex-col gap-3 tabular-nums">
@@ -759,4 +778,19 @@ export function CollectingPaymentView({
       </ResponsiveDialog>
     </div>
   );
+}
+
+export function CollectingPaymentView(
+  props: Parameters<typeof CollectingPaymentViewContent>[0],
+) {
+  return (
+    <CollectingPaymentViewContent
+      key={`${props.detail.taskId}:${props.detail.lifecycleRound ?? "1"}`}
+      {...props}
+    />
+  );
+}
+
+function collectingBillKey(bill: CollectingPaymentBill) {
+  return `${bill.billId ?? bill.requesterId}:${bill.billLifecycleRound ?? "1"}`;
 }

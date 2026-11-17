@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file sast/sastshopv2/errand/v1/task_demand_item.proto.
  */
 export const file_sast_sastshopv2_errand_v1_task_demand_item: GenFile = /*@__PURE__*/
-  fileDesc("CjBzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL3Rhc2tfZGVtYW5kX2l0ZW0ucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEiXwoOVGFza0RlbWFuZEl0ZW0SHQoVZXJyYW5kX2RlbWFuZF9pdGVtX2lkGAEgASgDEi4KCnVwZGF0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("CjBzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL3Rhc2tfZGVtYW5kX2l0ZW0ucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEifwoOVGFza0RlbWFuZEl0ZW0SHQoVZXJyYW5kX2RlbWFuZF9pdGVtX2lkGAEgASgDEi4KCnVwZGF0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEh4KFmRlbWFuZF9saWZlY3ljbGVfcm91bmQYAyABKANiBnByb3RvMw", [file_google_protobuf_timestamp]);
 
 /**
  * 团长接单时选择的需求行
@@ -33,6 +33,11 @@ export type TaskDemandItem = Message<"sast.sastshopv2.errand.v1.TaskDemandItem">
    * @generated from field: google.protobuf.Timestamp updated_at = 2;
    */
   updatedAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: int64 demand_lifecycle_round = 3;
+   */
+  demandLifecycleRound: bigint;
 };
 
 /**

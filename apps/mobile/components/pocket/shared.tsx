@@ -40,6 +40,19 @@ export function usePocketOptions() {
   return useContext(PocketContext);
 }
 
+function resourceRound(value: unknown): bigint {
+  if (!value || typeof value !== "object") return 0n;
+  const record =
+    "pocket" in value && value.pocket && typeof value.pocket === "object"
+      ? value.pocket
+      : value;
+  return "lifecycleRound" in record &&
+    typeof record.lifecycleRound === "string" &&
+    /^[1-9]\d*$/.test(record.lifecycleRound)
+    ? BigInt(record.lifecycleRound)
+    : 1n;
+}
+
 export function usePocketResource<T>(load: () => Promise<T>) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState("");
@@ -59,7 +72,9 @@ export function usePocketResource<T>(load: () => Promise<T>) {
         try {
           const result = await Promise.resolve().then(load);
           if (!mounted.current || requestEpoch !== epoch.current) return null;
-          setData(result);
+          setData((current) =>
+            resourceRound(result) < resourceRound(current) ? current : result,
+          );
           setError("");
           return result;
         } catch (reason) {
@@ -86,9 +101,12 @@ export function usePocketResource<T>(load: () => Promise<T>) {
     };
   }, [refresh]);
   const replaceData = useCallback((value: T) => {
+    if (!mounted.current) return;
     epoch.current++;
     inFlight.current = null;
-    setData(value);
+    setData((current) =>
+      resourceRound(value) < resourceRound(current) ? current : value,
+    );
     setError("");
   }, []);
   return { data, setData: replaceData, error, refresh, refreshFresh };
@@ -169,15 +187,18 @@ export function usePocketAction(defaults: PocketActionOptions = {}) {
 
 export function usePocketPolling(refresh: () => void, active: boolean) {
   useEffect(() => {
-    if (!active) return;
     const refreshVisible = () => {
       if (document.visibilityState === "visible") void refresh();
     };
-    const interval = window.setInterval(refreshVisible, 2500);
+    const interval = active
+      ? window.setInterval(refreshVisible, 2500)
+      : undefined;
     document.addEventListener("visibilitychange", refreshVisible);
+    window.addEventListener("focus", refreshVisible);
     return () => {
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", refreshVisible);
+      window.removeEventListener("focus", refreshVisible);
     };
   }, [refresh, active]);
 }

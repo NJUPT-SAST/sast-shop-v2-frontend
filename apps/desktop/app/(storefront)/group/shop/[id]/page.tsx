@@ -34,6 +34,7 @@ export default async function GroupShopPage({
   let store: Store | null = null;
   let templatePage: PageResult<ProductTemplate> = emptyTemplatePage(24);
   let error: string | null = null;
+  let editLifecycleRound: string | undefined;
   let editUpdatedAt: string | null = null;
   let editInitialItems: EditItem[] | null = null;
   let editDeadline: string | null = null;
@@ -61,6 +62,7 @@ export default async function GroupShopPage({
         redirect("/orders?type=errand&view=participant");
       }
       editUpdatedAt = detail.updatedAt;
+      editLifecycleRound = detail.lifecycleRound;
       editInitialItems = detail.productItems.map(mapEditItem);
       editDeadline = detail.deadline;
     } catch {
@@ -79,6 +81,8 @@ export default async function GroupShopPage({
       error={error}
       editDemandId={editDemandId}
       editUpdatedAt={editUpdatedAt}
+      editLifecycleRound={editLifecycleRound}
+      key={`${editDemandId ?? "new"}:${editLifecycleRound ?? "1"}`}
       editInitialItems={editInitialItems}
       editDeadline={editDeadline}
     />

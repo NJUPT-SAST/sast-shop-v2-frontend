@@ -78,10 +78,10 @@ export type SpotOrderDetailProps = {
 type VersionedPaymentBill = PaymentBill & { updatedAt: string };
 
 function getLifecycleVersion(order: SpotOrder) {
-  return `${order.id}:${order.status}:${order.bill?.status ?? "none"}:${order.bill?.updatedAt ?? "none"}:${order.completedAt ?? "none"}:${order.cancelledAt ?? "none"}`;
+  return `${order.id}:${order.lifecycleRound ?? "1"}:${order.status}:${order.bill?.status ?? "none"}:${order.bill?.updatedAt ?? "none"}:${order.completedAt ?? "none"}:${order.cancelledAt ?? "none"}`;
 }
 
-export function SpotOrderDetail({
+function SpotOrderDetailContent({
   dataSource,
   connectBaseUrl,
   order,
@@ -130,13 +130,13 @@ export function SpotOrderDetail({
     ? { ...bill, updatedAt: bill.updatedAt }
     : null;
   const paymentBillVersion = versionedBill
-    ? `${versionedBill.id}:${versionedBill.updatedAt}`
+    ? `${versionedBill.id}:${versionedBill.lifecycleRound ?? "1"}:${versionedBill.updatedAt}`
     : null;
   const paymentVersionUnverified =
     paymentBillVersion !== null &&
     paymentBillVersion === unverifiedPaymentBillVersion;
   const supplementBillVersion = versionedBill
-    ? `${versionedBill.id}:${versionedBill.updatedAt}`
+    ? `${versionedBill.id}:${versionedBill.lifecycleRound ?? "1"}:${versionedBill.updatedAt}`
     : null;
   const supplementVersionUnverified =
     supplementBillVersion !== null &&
@@ -212,7 +212,10 @@ export function SpotOrderDetail({
       try {
         if (action === "cancel") {
           const updatedOrder = await cancelSpotOrder(
-            { spotOrderId: orderId },
+            {
+              spotOrderId: orderId,
+              lifecycleRound: resolvedOrder.lifecycleRound,
+            },
             { dataSource, connectBaseUrl },
           );
           lifecycleVersionRef.current = getLifecycleVersion(updatedOrder);
@@ -223,7 +226,10 @@ export function SpotOrderDetail({
           toast.success("订单已取消");
         } else if (action === "complete") {
           const updatedOrder = await completeSpotOrder(
-            { spotOrderId: orderId },
+            {
+              spotOrderId: orderId,
+              lifecycleRound: resolvedOrder.lifecycleRound,
+            },
             { dataSource, connectBaseUrl },
           );
           lifecycleVersionRef.current = getLifecycleVersion(updatedOrder);
@@ -234,7 +240,11 @@ export function SpotOrderDetail({
           toast.success("已确认收货");
         } else if (billToConfirm) {
           const updatedBill = await confirmBill(
-            { billId: billToConfirm.id, updatedAt: billToConfirm.updatedAt },
+            {
+              billId: billToConfirm.id,
+              lifecycleRound: billToConfirm.lifecycleRound,
+              updatedAt: billToConfirm.updatedAt,
+            },
             { dataSource, connectBaseUrl },
           );
           lifecycleVersionRef.current = getLifecycleVersion({
@@ -449,14 +459,24 @@ export function SpotOrderDetail({
           connectBaseUrl={connectBaseUrl}
           onSuccess={(submittedBill) => {
             setUnverifiedPaymentBillVersion(null);
-            setCurrentOrder({ ...resolvedOrder, bill: submittedBill });
+            setCurrentOrder((value) =>
+              reconcileSpotOrderUpdate(value, {
+                ...resolvedOrder,
+                bill: submittedBill,
+              }),
+            );
             setPaymentDrawerOpen(false);
             router.refresh();
           }}
           onBillRefresh={(latestBill) => {
             if (latestBill) {
               setUnverifiedPaymentBillVersion(null);
-              setCurrentOrder({ ...resolvedOrder, bill: latestBill });
+              setCurrentOrder((value) =>
+                reconcileSpotOrderUpdate(value, {
+                  ...resolvedOrder,
+                  bill: latestBill,
+                }),
+              );
             } else {
               setUnverifiedPaymentBillVersion(paymentBillVersion);
             }
@@ -471,18 +491,29 @@ export function SpotOrderDetail({
           onOpenChange={setSupplementOpen}
           billId={versionedBill.id}
           billUpdatedAt={versionedBill.updatedAt}
+          lifecycleRound={versionedBill.lifecycleRound}
           dataSource={dataSource}
           connectBaseUrl={connectBaseUrl}
           onSuccess={(updatedBill) => {
             setUnverifiedSupplementBillVersion(null);
-            setCurrentOrder({ ...resolvedOrder, bill: updatedBill });
+            setCurrentOrder((value) =>
+              reconcileSpotOrderUpdate(value, {
+                ...resolvedOrder,
+                bill: updatedBill,
+              }),
+            );
             setSupplementOpen(false);
             router.refresh();
           }}
           onBillRefresh={(latestBill) => {
             if (latestBill) {
               setUnverifiedSupplementBillVersion(null);
-              setCurrentOrder({ ...resolvedOrder, bill: latestBill });
+              setCurrentOrder((value) =>
+                reconcileSpotOrderUpdate(value, {
+                  ...resolvedOrder,
+                  bill: latestBill,
+                }),
+              );
             } else {
               setUnverifiedSupplementBillVersion(supplementBillVersion);
             }
@@ -853,5 +884,16 @@ function LifecycleConfirmDialog({
         </ResponsiveDialogFooter>
       </ResponsiveDialogContent>
     </ResponsiveDialog>
+  );
+}
+
+export function SpotOrderDetail(
+  props: Parameters<typeof SpotOrderDetailContent>[0],
+) {
+  return (
+    <SpotOrderDetailContent
+      key={`${props.order.id}:${props.order.lifecycleRound ?? "1"}`}
+      {...props}
+    />
   );
 }

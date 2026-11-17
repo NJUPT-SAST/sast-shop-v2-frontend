@@ -57,7 +57,7 @@ function formatDeadline(deadline?: string | null): string {
   return `${d.getMonth() + 1}月${d.getDate()}日 ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-export function ShoppingTaskView({
+function ShoppingTaskViewContent({
   dataSource,
   connectBaseUrl,
   detail,
@@ -125,7 +125,11 @@ export function ShoppingTaskView({
     }
     setTaskVersion((current) => latestUpdatedAt(current, incomingVersion));
   }, [detail.taskItems, detail.taskUpdatedAt, taskUpdatedAt, taskVersion]);
-  const serviceOptions = { dataSource, connectBaseUrl };
+  const serviceOptions = {
+    dataSource,
+    connectBaseUrl,
+    lifecycleRound: detail.lifecycleRound,
+  };
   const processedCount = items.filter(
     (item) => item.purchasedQuantity !== null,
   ).length;
@@ -162,6 +166,7 @@ export function ShoppingTaskView({
         {
           errandTaskId: detail.taskId,
           errandTaskItemId: item.id,
+          lifecycleRound: detail.lifecycleRound,
           purchasedQuantity,
           nonPurchaseReason:
             purchasedQuantity === 0 ? nonPurchaseReason?.trim() || null : null,
@@ -190,6 +195,12 @@ export function ShoppingTaskView({
           detail.taskId,
           serviceOptions,
         );
+        if (
+          (refreshed.lifecycleRound ?? "1") !== (detail.lifecycleRound ?? "1")
+        ) {
+          router.refresh();
+          return;
+        }
         const refreshedItem = refreshed.taskItems.find(
           (candidate) => candidate.id === item.id,
         );
@@ -675,5 +686,16 @@ function ConfirmationDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+export function ShoppingTaskView(
+  props: Parameters<typeof ShoppingTaskViewContent>[0],
+) {
+  return (
+    <ShoppingTaskViewContent
+      key={`${props.detail.taskId}:${props.detail.lifecycleRound ?? "1"}`}
+      {...props}
+    />
   );
 }

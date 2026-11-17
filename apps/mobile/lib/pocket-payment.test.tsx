@@ -352,6 +352,10 @@ describe("West Pocket payment state regression", () => {
 
   it("submits the exact bill version through the shared payment dialog", async () => {
     const element = await mount();
+    state.refresh.mockImplementation(async () => {
+      state.data = payment("collecting", "submitted");
+      return state.data;
+    });
     await act(async () => button(element, "去付款").click());
     const dialog = element.querySelector<HTMLElement>('[role="dialog"]')!;
     const submit = button(dialog, "我已支付 · ¥33.33");
@@ -365,11 +369,7 @@ describe("West Pocket payment state regression", () => {
       },
       {},
     );
-    expect(state.setData).toHaveBeenCalledWith(
-      expect.objectContaining({
-        bill: expect.objectContaining({ status: "submitted" }),
-      }),
-    );
+    expect(state.setData).not.toHaveBeenCalled();
     expect(state.refresh).toHaveBeenCalledOnce();
     await mount();
     expect(element.textContent).toContain("已提交支付确认");
@@ -397,6 +397,8 @@ describe("West Pocket payment state regression", () => {
     next.qrContent = "wxp://another-published-snapshot";
     state.data = next;
     await mount("99");
+    expect(element.querySelector('[data-testid="payment-qr"]')).toBeNull();
+    await act(async () => button(element, "去付款").click());
     expect(
       element
         .querySelector('[data-testid="payment-qr"]')
@@ -436,4 +438,32 @@ describe("West Pocket payment state regression", () => {
     expect(element.querySelector('[role="dialog"]')).not.toBeNull();
     expect(button(element, "去付款").disabled).toBe(true);
   });
+});
+
+it("requires review of legacy and stale payment links before exposing a reopened round's QR", () => {
+  state.data = payment();
+  state.data.pocket.lifecycleRound = "2";
+  state.data.bill!.lifecycleRound = "2";
+  for (const paymentRound of [undefined, "1"]) {
+    const html = renderToStaticMarkup(
+      <PocketPaymentSection
+        pocketId="12"
+        lifecycleRound="2"
+        initiallyOpen
+        paymentRound={paymentRound}
+      />,
+    );
+    expect(html).toContain("已核对，查看本轮账单");
+    expect(html).not.toContain('data-testid="payment-qr"');
+    expect(html).not.toContain("我已支付");
+  }
+  const current = renderToStaticMarkup(
+    <PocketPaymentSection
+      pocketId="12"
+      lifecycleRound="2"
+      initiallyOpen
+      paymentRound="2"
+    />,
+  );
+  expect(current).toContain('data-testid="payment-qr"');
 });

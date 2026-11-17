@@ -6,5 +6,8 @@ export async function GET(
   { params }: { params: Promise<{ filename: string }> },
 ) {
   const { filename } = await params;
-  return proxyProductImage(filename, getServerConnectBaseUrl());
+  return proxyProductImage(
+    filename,
+    process.env.PRODUCT_IMAGE_BASE_URL ?? getServerConnectBaseUrl(),
+  );
 }

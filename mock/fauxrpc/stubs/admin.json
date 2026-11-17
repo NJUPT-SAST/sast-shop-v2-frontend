@@ -1,0 +1,455 @@
+{
+  "stubs": [
+    {
+      "id": "admin-demo-context",
+      "target": "sast.sastshopv2.admin.v1.UserAdminService/GetContext",
+      "content": {
+        "userId": "10001",
+        "displayName": "演示管理员",
+        "role": "superadmin",
+        "status": "active",
+        "authVersion": "1",
+        "capabilities": [
+          "users.read",
+          "users.moderate",
+          "users.manage_roles",
+          "catalog.manage",
+          "spot.manage",
+          "errand.manage",
+          "payment.manage",
+          "westpocket.manage",
+          "corrections.execute",
+          "audit.read"
+        ]
+      }
+    },
+    {
+      "id": "admin-demo-user-stats",
+      "target": "sast.sastshopv2.admin.v1.UserAdminService/GetStats",
+      "content": {
+        "metrics": [
+          {
+            "key": "users",
+            "label": "用户总数",
+            "value": "1280",
+            "isMoney": false
+          },
+          {
+            "key": "banned",
+            "label": "已封禁",
+            "value": "3",
+            "isMoney": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "admin-demo-user-audit",
+      "target": "sast.sastshopv2.admin.v1.UserAdminService/ListAudit",
+      "content": {
+        "entries": [],
+        "totalCount": "0"
+      }
+    },
+    {
+      "id": "admin-demo-user-corrections",
+      "target": "sast.sastshopv2.admin.v1.UserAdminService/ListCorrections",
+      "content": {
+        "corrections": [],
+        "totalCount": "0"
+      }
+    },
+    {
+      "id": "admin-demo-catalog-stats",
+      "target": "sast.sastshopv2.admin.v1.CatalogAdminService/GetStats",
+      "content": {
+        "metrics": [
+          {
+            "key": "stores",
+            "label": "店铺",
+            "value": "18",
+            "isMoney": false
+          },
+          {
+            "key": "products",
+            "label": "商品模板",
+            "value": "126",
+            "isMoney": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "admin-demo-catalog-audit",
+      "target": "sast.sastshopv2.admin.v1.CatalogAdminService/ListAudit",
+      "content": {
+        "entries": [],
+        "totalCount": "0"
+      }
+    },
+    {
+      "id": "admin-demo-catalog-corrections",
+      "target": "sast.sastshopv2.admin.v1.CatalogAdminService/ListCorrections",
+      "content": {
+        "corrections": [],
+        "totalCount": "0"
+      }
+    },
+    {
+      "id": "admin-demo-spot-stats",
+      "target": "sast.sastshopv2.admin.v1.SpotAdminService/GetStats",
+      "content": {
+        "metrics": [
+          {
+            "key": "orders",
+            "label": "现货订单",
+            "value": "392",
+            "isMoney": false
+          },
+          {
+            "key": "pending",
+            "label": "待处理订单",
+            "value": "16",
+            "isMoney": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "admin-demo-spot-audit",
+      "target": "sast.sastshopv2.admin.v1.SpotAdminService/ListAudit",
+      "content": {
+        "entries": [],
+        "totalCount": "0"
+      }
+    },
+    {
+      "id": "admin-demo-spot-corrections",
+      "target": "sast.sastshopv2.admin.v1.SpotAdminService/ListCorrections",
+      "content": {
+        "corrections": [],
+        "totalCount": "0"
+      }
+    },
+    {
+      "id": "admin-demo-errand-stats",
+      "target": "sast.sastshopv2.admin.v1.ErrandAdminService/GetStats",
+      "content": {
+        "metrics": [
+          {
+            "key": "tasks",
+            "label": "采购任务",
+            "value": "42",
+            "isMoney": false
+          },
+          {
+            "key": "demands",
+            "label": "待接需求",
+            "value": "13",
+            "isMoney": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "admin-demo-errand-audit",
+      "target": "sast.sastshopv2.admin.v1.ErrandAdminService/ListAudit",
+      "content": {
+        "entries": [],
+        "totalCount": "0"
+      }
+    },
+    {
+      "id": "admin-demo-errand-corrections",
+      "target": "sast.sastshopv2.admin.v1.ErrandAdminService/ListCorrections",
+      "content": {
+        "corrections": [],
+        "totalCount": "0"
+      }
+    },
+    {
+      "id": "admin-demo-payment-stats",
+      "target": "sast.sastshopv2.admin.v1.PaymentAdminService/GetStats",
+      "content": {
+        "metrics": [
+          {
+            "key": "pending",
+            "label": "待核实账单",
+            "value": "8",
+            "isMoney": false
+          },
+          {
+            "key": "confirmed",
+            "label": "有效确认收款",
+            "value": "218600",
+            "isMoney": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "admin-demo-payment-audit",
+      "target": "sast.sastshopv2.admin.v1.PaymentAdminService/ListAudit",
+      "content": {
+        "entries": [],
+        "totalCount": "0"
+      }
+    },
+    {
+      "id": "admin-demo-payment-corrections",
+      "target": "sast.sastshopv2.admin.v1.PaymentAdminService/ListCorrections",
+      "content": {
+        "corrections": [],
+        "totalCount": "0"
+      }
+    },
+    {
+      "id": "admin-demo-pocket-stats",
+      "target": "sast.sastshopv2.admin.v1.WestPocketAdminService/GetStats",
+      "content": {
+        "metrics": [
+          {
+            "key": "pockets",
+            "label": "活动",
+            "value": "24",
+            "isMoney": false
+          },
+          {
+            "key": "failed_jobs",
+            "label": "待处理异常",
+            "value": "2",
+            "isMoney": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "admin-demo-pocket-audit",
+      "target": "sast.sastshopv2.admin.v1.WestPocketAdminService/ListAudit",
+      "content": {
+        "entries": [],
+        "totalCount": "0"
+      }
+    },
+    {
+      "id": "admin-demo-pocket-corrections",
+      "target": "sast.sastshopv2.admin.v1.WestPocketAdminService/ListCorrections",
+      "content": {
+        "corrections": [],
+        "totalCount": "0"
+      }
+    },
+    {
+      "id": "admin-demo-user-list",
+      "target": "sast.sastshopv2.admin.v1.UserAdminService/ListRecords",
+      "content": {
+        "records": [
+          {
+            "resource": "RESOURCE_KIND_USER",
+            "id": "10002",
+            "title": "演示用户",
+            "status": "active",
+            "ownerId": "10002",
+            "createdAt": "2026-11-01T02:00:00Z",
+            "updatedAt": "2026-11-11T02:00:00.123456Z",
+            "lifecycleRound": "1",
+            "fields": [
+              {
+                "key": "role",
+                "label": "角色",
+                "value": "user"
+              },
+              {
+                "key": "status",
+                "label": "账号状态",
+                "value": "active"
+              }
+            ],
+            "allowedActions": [
+              "ban",
+              "grant_admin",
+              "grant_superadmin"
+            ]
+          }
+        ],
+        "page": 1,
+        "pageSize": 20,
+        "totalCount": "1"
+      }
+    },
+    {
+      "id": "admin-demo-user-detail",
+      "target": "sast.sastshopv2.admin.v1.UserAdminService/GetRecord",
+      "content": {
+        "record": {
+          "resource": "RESOURCE_KIND_USER",
+          "id": "10002",
+          "title": "演示用户",
+          "status": "active",
+          "ownerId": "10002",
+          "createdAt": "2026-11-01T02:00:00Z",
+          "updatedAt": "2026-11-11T02:00:00.123456Z",
+          "lifecycleRound": "1",
+          "fields": [
+            {
+              "key": "role",
+              "label": "角色",
+              "value": "user"
+            },
+            {
+              "key": "status",
+              "label": "账号状态",
+              "value": "active"
+            }
+          ],
+          "allowedActions": [
+            "ban",
+            "grant_admin",
+            "grant_superadmin"
+          ]
+        }
+      }
+    },
+    {
+      "id": "admin-demo-order-list",
+      "target": "sast.sastshopv2.admin.v1.SpotAdminService/ListRecords",
+      "content": {
+        "records": [
+          {
+            "resource": "RESOURCE_KIND_SPOT_ORDER",
+            "id": "92001",
+            "title": "演示订单 · 社团活动物资",
+            "status": "completed",
+            "ownerId": "10002",
+            "amountCents": "10000",
+            "createdAt": "2026-11-01T02:00:00Z",
+            "updatedAt": "2026-11-11T02:00:00.123456Z",
+            "lifecycleRound": "1",
+            "fields": [
+              {
+                "key": "order_no",
+                "label": "订单编号",
+                "value": "SO-DEMO-92001"
+              },
+              {
+                "key": "quantity",
+                "label": "商品数量",
+                "value": "10"
+              },
+              {
+                "key": "seller_id",
+                "label": "卖方",
+                "value": "10003"
+              }
+            ],
+            "allowedActions": [
+              "cancel",
+              "reverse_completion"
+            ]
+          }
+        ],
+        "page": 1,
+        "pageSize": 20,
+        "totalCount": "1"
+      }
+    },
+    {
+      "id": "admin-demo-order-detail",
+      "target": "sast.sastshopv2.admin.v1.SpotAdminService/GetRecord",
+      "content": {
+        "record": {
+          "resource": "RESOURCE_KIND_SPOT_ORDER",
+          "id": "92001",
+          "title": "演示订单 · 社团活动物资",
+          "status": "completed",
+          "ownerId": "10002",
+          "amountCents": "10000",
+          "createdAt": "2026-11-01T02:00:00Z",
+          "updatedAt": "2026-11-11T02:00:00.123456Z",
+          "lifecycleRound": "1",
+          "fields": [
+            {
+              "key": "order_no",
+              "label": "订单编号",
+              "value": "SO-DEMO-92001"
+            },
+            {
+              "key": "quantity",
+              "label": "商品数量",
+              "value": "10"
+            },
+            {
+              "key": "seller_id",
+              "label": "卖方",
+              "value": "10003"
+            }
+          ],
+          "allowedActions": [
+            "cancel",
+            "reverse_completion"
+          ]
+        }
+      }
+    },
+    {
+      "id": "admin-demo-order-preview",
+      "target": "sast.sastshopv2.admin.v1.SpotAdminService/PreviewCorrection",
+      "content": {
+        "previewId": "DEMO-PREVIEW-92001",
+        "digest": "demo-only-preview-digest",
+        "expiresAt": "2030-01-01T00:00:00Z",
+        "record": {
+          "resource": "RESOURCE_KIND_SPOT_ORDER",
+          "id": "92001",
+          "title": "演示订单 · 社团活动物资",
+          "status": "completed",
+          "ownerId": "10002",
+          "amountCents": "10000",
+          "createdAt": "2026-11-01T02:00:00Z",
+          "updatedAt": "2026-11-11T02:00:00.123456Z",
+          "lifecycleRound": "1",
+          "fields": [
+            {
+              "key": "order_no",
+              "label": "订单编号",
+              "value": "SO-DEMO-92001"
+            },
+            {
+              "key": "quantity",
+              "label": "商品数量",
+              "value": "10"
+            },
+            {
+              "key": "seller_id",
+              "label": "卖方",
+              "value": "10003"
+            }
+          ],
+          "allowedActions": [
+            "cancel",
+            "reverse_completion"
+          ]
+        },
+        "impacts": [
+          {
+            "resource": "RESOURCE_KIND_SPOT_ORDER",
+            "resourceId": "92001",
+            "description": "原编号整单纠错",
+            "before": "已完成，第 1 轮",
+            "after": "待处理，第 2 轮"
+          },
+          {
+            "resource": "RESOURCE_KIND_BILL",
+            "resourceId": "93001",
+            "description": "关联账单保留历史",
+            "before": "已确认收款 ¥100.00",
+            "after": "依核实款项处理建立新轮次"
+          }
+        ],
+        "warnings": [
+          "演示预览：不会执行真实转账，请核实完整交易和款项记录"
+        ]
+      }
+    }
+  ]
+}

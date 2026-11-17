@@ -100,6 +100,7 @@ type RenderableOrder = {
   href: string | null;
   modifyHref: string | null;
   cancelDemandId: string | null;
+  lifecycleRound?: string;
   isExpired: boolean;
 };
 
@@ -149,6 +150,7 @@ export function OrdersView({
     () => rememberView(DEFAULT_REMEMBERED_ORDER_VIEWS, initialFilters),
   );
   const [cancelDemandId, setCancelDemandId] = useState<string | null>(null);
+  const cancelRound = useRef<string>("1");
   const [cancelling, setCancelling] = useState(false);
   const [lockedCancelDemandId, setLockedCancelDemandId] = useState<
     string | null
@@ -384,6 +386,7 @@ export function OrdersView({
   async function confirmCancelDemand() {
     if (!cancelDemandId || cancellingRef.current || cancelLockActive) return;
     const demandId = cancelDemandId;
+    const lifecycleRound = cancelRound.current;
     if (!(await ensureAgreement(() => setCancelDemandId(null)))) return;
     if (cancellingRef.current) return;
     cancellingRef.current = true;
@@ -394,7 +397,10 @@ export function OrdersView({
         dataSource,
         connectBaseUrl,
       });
-      if (detail.status !== "open") {
+      if (
+        detail.status !== "open" ||
+        (detail.lifecycleRound ?? "1") !== lifecycleRound
+      ) {
         setCancelDemandId(null);
         router.refresh();
         toast.error("需求状态已变化，正在刷新订单");
@@ -405,6 +411,7 @@ export function OrdersView({
         dataSource,
         connectBaseUrl,
         updatedAt: detail.updatedAt ?? undefined,
+        lifecycleRound,
       });
       toast.success("跑腿需求已撤回");
       setLockedCancelDemandId(demandId);
@@ -613,7 +620,10 @@ export function OrdersView({
               onCancelDemand={
                 order.cancelDemandId &&
                 order.cancelDemandId !== lockedCancelDemandId
-                  ? () => setCancelDemandId(order.cancelDemandId!)
+                  ? () => {
+                      cancelRound.current = order.lifecycleRound ?? "1";
+                      setCancelDemandId(order.cancelDemandId!);
+                    }
                   : undefined
               }
             />
@@ -907,6 +917,7 @@ function mapBuyerErrandOrder(order: BuyerErrandOrder): RenderableOrder {
         ? `/group/shop/${editStoreId}?editDemandId=${id}`
         : null,
     cancelDemandId: id && order.status === "open" ? id : null,
+    lifecycleRound: order.lifecycleRound,
     isExpired: false,
   };
 }

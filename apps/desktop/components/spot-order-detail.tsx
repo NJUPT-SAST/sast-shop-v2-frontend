@@ -69,7 +69,7 @@ import { useTransactionAgreement } from "./transaction-agreement-provider";
 
 type ConfirmationAction = "cancel" | "complete" | "confirm" | null;
 
-export function SpotOrderDetail({
+function SpotOrderDetailContent({
   dataSource,
   connectBaseUrl,
   order,
@@ -101,8 +101,10 @@ export function SpotOrderDetail({
   const pendingRef = useRef(false);
   const resolvedOrder = reconcileSpotOrderUpdate(currentOrder, order);
   const bill = resolvedOrder.bill;
-  const billVersion = bill?.updatedAt ? `${bill.id}:${bill.updatedAt}` : null;
-  const lifecycleVersion = `${resolvedOrder.id}:${resolvedOrder.status}:${bill?.status ?? "none"}:${bill?.updatedAt ?? "none"}:${resolvedOrder.completedAt ?? "none"}:${resolvedOrder.cancelledAt ?? "none"}`;
+  const billVersion = bill?.updatedAt
+    ? `${bill.id}:${bill.lifecycleRound ?? "1"}:${bill.updatedAt}`
+    : null;
+  const lifecycleVersion = `${resolvedOrder.id}:${resolvedOrder.lifecycleRound ?? "1"}:${resolvedOrder.status}:${bill?.status ?? "none"}:${bill?.updatedAt ?? "none"}:${resolvedOrder.completedAt ?? "none"}:${resolvedOrder.cancelledAt ?? "none"}`;
   const lifecycleUnverified = lifecycleVersion === unverifiedLifecycleVersion;
   const paymentUnverified =
     billVersion !== null && billVersion === unverifiedPaymentVersion;
@@ -129,7 +131,10 @@ export function SpotOrderDetail({
       if (action === "cancel") {
         setCurrentOrder(
           await cancelSpotOrder(
-            { spotOrderId: orderId },
+            {
+              spotOrderId: orderId,
+              lifecycleRound: resolvedOrder.lifecycleRound,
+            },
             { dataSource, connectBaseUrl },
           ),
         );
@@ -137,7 +142,10 @@ export function SpotOrderDetail({
       } else if (action === "complete") {
         setCurrentOrder(
           await completeSpotOrder(
-            { spotOrderId: orderId },
+            {
+              spotOrderId: orderId,
+              lifecycleRound: resolvedOrder.lifecycleRound,
+            },
             { dataSource, connectBaseUrl },
           ),
         );
@@ -152,8 +160,9 @@ export function SpotOrderDetail({
           currentBill = await payBill(
             {
               billId: billToConfirm.id,
+              lifecycleRound: billToConfirm.lifecycleRound,
               channel: defaultChannel,
-              updatedAt: billToConfirm.updatedAt
+              updatedAt: billToConfirm.updatedAt,
             },
             { dataSource, connectBaseUrl },
           );
@@ -165,10 +174,19 @@ export function SpotOrderDetail({
         }
 
         const updatedBill = await confirmBill(
-          { billId: currentBill.id, updatedAt: currentBill.updatedAt },
+          {
+            billId: currentBill.id,
+            lifecycleRound: currentBill.lifecycleRound,
+            updatedAt: currentBill.updatedAt,
+          },
           { dataSource, connectBaseUrl },
         );
-        setCurrentOrder((value) => ({ ...value, bill: updatedBill }));
+        setCurrentOrder((value) =>
+          reconcileSpotOrderUpdate(value, {
+            ...resolvedOrder,
+            bill: updatedBill,
+          }),
+        );
         toast.success("已确认收款");
       }
       setConfirmation(null);
@@ -228,12 +246,18 @@ export function SpotOrderDetail({
       const updatedBill = await supplementBillSerialNumber(
         {
           billId: billToSupplement.id,
+          lifecycleRound: billToSupplement.lifecycleRound,
           serialNumber: submittedSerialNumber,
           updatedAt: billVersion,
         },
         { dataSource, connectBaseUrl },
       );
-      setCurrentOrder((value) => ({ ...value, bill: updatedBill }));
+      setCurrentOrder((value) =>
+        reconcileSpotOrderUpdate(value, {
+          ...resolvedOrder,
+          bill: updatedBill,
+        }),
+      );
       setUnverifiedSupplementVersion(null);
       setSupplementOpen(false);
       toast.success("支付流水号已补充");
@@ -244,7 +268,12 @@ export function SpotOrderDetail({
           dataSource,
           connectBaseUrl,
         });
-        setCurrentOrder((value) => ({ ...value, bill: latestBill }));
+        setCurrentOrder((value) =>
+          reconcileSpotOrderUpdate(value, {
+            ...resolvedOrder,
+            bill: latestBill,
+          }),
+        );
         setSupplementOpen(false);
         if (latestBill.serialNumber === submittedSerialNumber) {
           setUnverifiedSupplementVersion(null);
@@ -257,7 +286,9 @@ export function SpotOrderDetail({
           );
         }
       } catch {
-        setUnverifiedSupplementVersion(`${billToSupplement.id}:${billVersion}`);
+        setUnverifiedSupplementVersion(
+          `${billToSupplement.id}:${billToSupplement.lifecycleRound ?? "1"}:${billVersion}`,
+        );
         setSupplementOpen(false);
         toast.error("无法确认流水号提交结果，正在刷新订单，请核对后再操作");
       }
@@ -560,13 +591,23 @@ export function SpotOrderDetail({
         connectBaseUrl={connectBaseUrl}
         onPaid={(updatedBill) => {
           setUnverifiedPaymentVersion(null);
-          setCurrentOrder((value) => ({ ...value, bill: updatedBill }));
+          setCurrentOrder((value) =>
+            reconcileSpotOrderUpdate(value, {
+              ...resolvedOrder,
+              bill: updatedBill,
+            }),
+          );
           router.refresh();
         }}
         onBillRefresh={(latestBill) => {
           if (latestBill) {
             setUnverifiedPaymentVersion(null);
-            setCurrentOrder((value) => ({ ...value, bill: latestBill }));
+            setCurrentOrder((value) =>
+              reconcileSpotOrderUpdate(value, {
+                ...resolvedOrder,
+                bill: latestBill,
+              }),
+            );
           } else if (billVersion) {
             setUnverifiedPaymentVersion(billVersion);
           }
@@ -692,7 +733,7 @@ function PaymentDialog({
   const payeeName = bill?.payee?.name?.trim() || "未提供姓名";
   const qrKey =
     bill?.payee?.id && bill.updatedAt
-      ? `${bill.payee.id}:${bill.updatedAt}:${reloadCount}`
+      ? `${bill.id}:${bill.lifecycleRound ?? "1"}:${bill.payee.id}:${bill.updatedAt}:${reloadCount}`
       : null;
   const currentCodes =
     qrResult?.key === qrKey && !qrResult.error ? qrResult.codes : {};
@@ -742,6 +783,7 @@ function PaymentDialog({
       const updated = await payBill(
         {
           billId: billToPay.id,
+          lifecycleRound: billToPay.lifecycleRound,
           channel: paymentChannel,
           updatedAt: billVersion,
         },
@@ -918,4 +960,15 @@ function formatDate(value: string) {
 function isValidTimestamp(value: string | null): value is string {
   if (!value) return false;
   return !Number.isNaN(Date.parse(value));
+}
+
+export function SpotOrderDetail(
+  props: Parameters<typeof SpotOrderDetailContent>[0],
+) {
+  return (
+    <SpotOrderDetailContent
+      key={`${props.order.id}:${props.order.lifecycleRound ?? "1"}`}
+      {...props}
+    />
+  );
 }

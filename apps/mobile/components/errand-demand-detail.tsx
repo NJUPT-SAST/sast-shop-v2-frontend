@@ -60,7 +60,7 @@ type ErrandDemandDetailProps = {
   details: ErrandDemandDetailGroup[];
 };
 
-export function ErrandDemandDetail({
+function ErrandDemandDetailContent({
   dataSource,
   connectBaseUrl,
   storeId,
@@ -81,6 +81,7 @@ export function ErrandDemandDetail({
         estimatedUnitPriceCents: group.estimatedUnitPriceCents,
         requesters: group.requesters.map((requester) => ({
           errandDemandItemId: requester.errandDemandItemId,
+          demandLifecycleRound: requester.demandLifecycleRound,
           quantity: requester.quantity,
           serviceFeePerUnitCents: requester.serviceFeePerUnitCents,
           updatedAt: requester.updatedAt,
@@ -103,6 +104,7 @@ export function ErrandDemandDetail({
             ? [
                 {
                   errandDemandItemId: requester.errandDemandItemId,
+                  demandLifecycleRound: requester.demandLifecycleRound,
                   updatedAt: requester.updatedAt,
                 },
               ]
@@ -521,4 +523,21 @@ function formatDeadline(deadline: string | null): string {
     minute: "2-digit",
     timeZone: "Asia/Shanghai",
   }).format(date);
+}
+
+export function ErrandDemandDetail(
+  props: Parameters<typeof ErrandDemandDetailContent>[0],
+) {
+  const rounds = props.details
+    .flatMap((group) =>
+      group.requesters.map(
+        (requester) =>
+          `${requester.errandDemandItemId}:${requester.demandLifecycleRound ?? "1"}`,
+      ),
+    )
+    .sort()
+    .join(",");
+  return (
+    <ErrandDemandDetailContent key={`${props.storeId}:${rounds}`} {...props} />
+  );
 }

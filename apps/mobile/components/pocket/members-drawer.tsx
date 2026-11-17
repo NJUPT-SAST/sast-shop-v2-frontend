@@ -202,6 +202,7 @@ export function PocketMembersDrawer({
         const response = await resolvePocketFace(
           {
             pocketId: current.id,
+            lifecycleRound: current.lifecycleRound,
             expectedRevision: current.revision,
             faceMatchId: face.id,
             userId: user?.id,
@@ -233,6 +234,7 @@ export function PocketMembersDrawer({
         const response = await replacePocketMembers(
           {
             pocketId: current.id,
+            lifecycleRound: current.lifecycleRound,
             expectedRevision: current.revision,
             members,
             requestId,
@@ -539,6 +541,7 @@ export function PocketMembersDrawer({
                       await publishPocket(
                         {
                           pocketId: current.id,
+                          lifecycleRound: current.lifecycleRound,
                           expectedRevision: preview.revision,
                           requestId,
                         },

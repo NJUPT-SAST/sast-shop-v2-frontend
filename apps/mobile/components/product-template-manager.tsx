@@ -959,6 +959,7 @@ function TemplateItem({
           src={template.mainImageUrl}
           alt={template.title}
           className="size-10 shrink-0 rounded-lg"
+          sizes="40px"
         />
         <ItemContent className="min-w-0 gap-1.5">
           <div className="flex min-w-0 items-start justify-between gap-2">

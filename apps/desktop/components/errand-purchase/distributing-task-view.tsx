@@ -77,7 +77,7 @@ import { useTransactionAgreement } from "../transaction-agreement-provider";
 type Confirmation = "start" | "finish" | "cancel" | null;
 const moneyPattern = /^\d*(?:\.\d{0,2})?$/;
 
-export function DistributingTaskView({
+function DistributingTaskViewContent({
   dataSource,
   connectBaseUrl,
   detail,
@@ -206,7 +206,11 @@ export function DistributingTaskView({
     pendingKeys.size > 0 ||
     taskNeedsVerification ||
     mutationNeedsVerification;
-  const serviceOptions = { dataSource, connectBaseUrl };
+  const serviceOptions = {
+    dataSource,
+    connectBaseUrl,
+    lifecycleRound: detail.lifecycleRound,
+  };
   const requesters = useMemo(
     () => items.flatMap((item) => item.requesters),
     [items],
@@ -311,6 +315,7 @@ export function DistributingTaskView({
         {
           errandTaskId: detail.taskId,
           errandTaskItemId: currentItem.errandTaskItemId,
+          lifecycleRound: detail.lifecycleRound,
           actualUnitPriceCents: cents,
           itemUpdatedAt: currentItem.itemUpdatedAt,
         },
@@ -420,6 +425,7 @@ export function DistributingTaskView({
       const saved = await saveDistributingAssignment(
         {
           errandTaskItemId: currentItem.errandTaskItemId,
+          lifecycleRound: detail.lifecycleRound,
           errandTaskAssignmentId: currentRequester.errandTaskAssignmentId,
           distributedQuantity: quantity,
           assignmentUpdatedAt: currentRequester.assignmentUpdatedAt,
@@ -1051,4 +1057,15 @@ function formatYuan(cents: number): string {
 
 function parseCents(value: string): number | null {
   return parseYuanToCents(value);
+}
+
+export function DistributingTaskView(
+  props: Parameters<typeof DistributingTaskViewContent>[0],
+) {
+  return (
+    <DistributingTaskViewContent
+      key={`${props.detail.taskId}:${props.detail.lifecycleRound ?? "1"}`}
+      {...props}
+    />
+  );
 }

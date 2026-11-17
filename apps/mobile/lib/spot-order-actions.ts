@@ -70,6 +70,10 @@ export function reconcileSpotOrderUpdate(
   incoming: SpotOrder,
 ): SpotOrder {
   if (current.id !== incoming.id) return incoming;
+  const currentRound = BigInt(current.lifecycleRound ?? "1");
+  const incomingRound = BigInt(incoming.lifecycleRound ?? "1");
+  if (incomingRound !== currentRound)
+    return incomingRound > currentRound ? incoming : current;
 
   const currentRank = ORDER_STATUS_RANK[current.status];
   const incomingRank = ORDER_STATUS_RANK[incoming.status];

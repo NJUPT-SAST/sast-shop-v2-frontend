@@ -66,9 +66,10 @@ export async function GET(request: NextRequest) {
   try {
     config = getFeishuOAuthConfig();
     const configuredRedirectUri = new URL(config.redirectUri);
-    const callbackUrl = `${request.nextUrl.origin}${request.nextUrl.pathname}`;
-    const expectedCallbackUrl = `${configuredRedirectUri.origin}${configuredRedirectUri.pathname}`;
-    if (callbackUrl !== expectedCallbackUrl) {
+    if (
+      request.headers.get("host") !== configuredRedirectUri.host ||
+      request.nextUrl.pathname !== configuredRedirectUri.pathname
+    ) {
       throw new Error("Mismatched OAuth callback URL");
     }
   } catch {
@@ -88,7 +89,7 @@ export async function GET(request: NextRequest) {
         redirectUri: config.redirectUri,
       });
     const response = NextResponse.redirect(
-      new URL(parsedState.returnTo, request.nextUrl.origin),
+      new URL(parsedState.returnTo, new URL(config.redirectUri).origin),
     );
     setDesktopAuthSessionCookies(response, session, sessionUserCookie);
     return clearStateCookie(response);

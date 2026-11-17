@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getFeishuLoginReturnTo } from "../../../config/feishu-redirect-uri";
+import { getFeishuLoginReturnTo } from "../../../../config/feishu-redirect-uri";
 
 export default function Home() {
   const router = useRouter();

@@ -44,6 +44,7 @@ export function SupplementSerialNumberDialog({
   onOpenChange,
   billId,
   billUpdatedAt,
+  lifecycleRound,
   dataSource,
   connectBaseUrl,
   onSuccess,
@@ -53,6 +54,7 @@ export function SupplementSerialNumberDialog({
   onOpenChange: (open: boolean) => void;
   billId: string;
   billUpdatedAt: string;
+  lifecycleRound?: string;
   dataSource: DataSource;
   connectBaseUrl: string;
   onSuccess: (bill: PaymentBill) => void;
@@ -65,7 +67,7 @@ export function SupplementSerialNumberDialog({
     string | null
   >(null);
   const submittingRef = useRef(false);
-  const billVersion = `${billId}:${billUpdatedAt}`;
+  const billVersion = `${billId}:${lifecycleRound ?? "1"}:${billUpdatedAt}`;
   const unverified = unverifiedBillVersion === billVersion;
 
   async function handleSubmit() {
@@ -88,7 +90,12 @@ export function SupplementSerialNumberDialog({
 
     try {
       const updatedBill = await supplementBillSerialNumber(
-        { billId, serialNumber: trimmed, updatedAt: billUpdatedAt },
+        {
+          billId,
+          lifecycleRound,
+          serialNumber: trimmed,
+          updatedAt: billUpdatedAt,
+        },
         { dataSource, connectBaseUrl },
       );
       toast.success("流水号已补充");
@@ -195,13 +202,13 @@ export function PaymentSection({
   const [qrCodes, setQrCodes] = useState<
     Partial<Record<PaymentPlatform, string>>
   >({});
-  const [qrPayeeId, setQrPayeeId] = useState<string | null>(null);
+  const [qrVersion, setQrVersion] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
   const [unverifiedPaymentVersion, setUnverifiedPaymentVersion] = useState<
     string | null
   >(null);
   const payeeId = bill.payee.id;
-  const paymentVersion = `${bill.id}:${bill.updatedAt}`;
+  const paymentVersion = `${bill.id}:${bill.lifecycleRound ?? "1"}:${bill.updatedAt}`;
   const paymentVersionUnverified = unverifiedPaymentVersion === paymentVersion;
   const loadCounterRef = useRef(0);
 
@@ -227,11 +234,11 @@ export function PaymentSection({
       }
 
       setQrCodes(qrMap);
-      setQrPayeeId(payeeId);
+      setQrVersion(`${payeeId}:${paymentVersion}`);
       setDialogStatus("ready");
     } catch (error) {
       if (generation !== loadCounterRef.current) return;
-      setQrPayeeId(payeeId);
+      setQrVersion(`${payeeId}:${paymentVersion}`);
       setErrorMessage(
         error instanceof Error ? error.message : "获取收款码失败，请稍后重试",
       );
@@ -251,7 +258,7 @@ export function PaymentSection({
       loadCounterRef.current += 1;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, dataSource, connectBaseUrl, payeeId]);
+  }, [open, dataSource, connectBaseUrl, payeeId, paymentVersion]);
 
   const defaultPlatform: PaymentPlatform = bill.channel ?? "wechat";
 
@@ -259,7 +266,7 @@ export function PaymentSection({
     if (!nextOpen) {
       loadCounterRef.current += 1;
       setQrCodes({});
-      setQrPayeeId(null);
+      setQrVersion(null);
       setDialogStatus("loading");
     }
 
@@ -279,7 +286,12 @@ export function PaymentSection({
 
     try {
       const submittedBill = await payBill(
-        { billId: bill.id, channel: platform, updatedAt: bill.updatedAt },
+        {
+          billId: bill.id,
+          lifecycleRound: bill.lifecycleRound,
+          channel: platform,
+          updatedAt: bill.updatedAt,
+        },
         { dataSource, connectBaseUrl },
       );
       setUnverifiedPaymentVersion(null);
@@ -331,12 +343,12 @@ export function PaymentSection({
       payeeName={bill.payee.name}
       payeeAvatarUrl={bill.payee.avatarUrl}
       verifyCode={bill.verifyCode}
-      qrCodes={qrPayeeId === payeeId ? qrCodes : {}}
+      qrCodes={qrVersion === `${payeeId}:${paymentVersion}` ? qrCodes : {}}
       defaultPlatform={defaultPlatform}
       status={
         paymentVersionUnverified
           ? "error"
-          : qrPayeeId === payeeId
+          : qrVersion === `${payeeId}:${paymentVersion}`
             ? dialogStatus
             : "loading"
       }

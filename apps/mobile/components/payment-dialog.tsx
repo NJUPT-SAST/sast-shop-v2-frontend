@@ -40,7 +40,11 @@ import {
 import { cn } from "@workspace/ui/lib/utils";
 import { toast } from "sonner";
 
-import { openPaymentScanner } from "@/lib/payment-app-links";
+import {
+  getAlipayPaymentUrl,
+  openAlipayPayment,
+  openPaymentScanner,
+} from "@/lib/payment-app-links";
 import type { PaymentPlatform } from "@/lib/payment-preferences";
 import { PaymentQrCode } from "./payment-qr-code";
 
@@ -139,6 +143,9 @@ function PaymentDialogBody({
   const [attemptedPlatforms, setAttemptedPlatforms] = useState<
     Partial<Record<PaymentPlatform, boolean>>
   >({});
+  const [attemptedAlipayContent, setAttemptedAlipayContent] = useState<
+    string | null
+  >(null);
   const [transitionDirection, setTransitionDirection] = useState<
     "previous" | "next"
   >("next");
@@ -149,6 +156,24 @@ function PaymentDialogBody({
   const qrCodeContent = qrCodes[platform];
   const hasQrCode =
     allowedPlatforms.includes(platform) && Boolean(qrCodeContent);
+
+  function openAlipay() {
+    if (
+      platform !== "alipay" ||
+      !hasQrCode ||
+      !qrCodeContent ||
+      submitting ||
+      status !== "ready"
+    )
+      return;
+
+    try {
+      openAlipayPayment(qrCodeContent);
+      setAttemptedAlipayContent(qrCodeContent);
+    } catch {
+      toast.error("无法打开支付宝，请保存收款码后扫码支付");
+    }
+  }
 
   function openScanner() {
     if (!qrCodeContent) {
@@ -334,6 +359,12 @@ function PaymentDialogBody({
                 const panelScannerAttempted = Boolean(
                   attemptedPlatforms[value],
                 );
+                const canOpenAlipay =
+                  value === "alipay" &&
+                  Boolean(
+                    panelQrCodeContent &&
+                    getAlipayPaymentUrl(panelQrCodeContent),
+                  );
 
                 return (
                   <TabsContent
@@ -382,6 +413,23 @@ function PaymentDialogBody({
                       <Separator />
 
                       <div className="grid gap-2">
+                        {canOpenAlipay ? (
+                          <>
+                            <Button
+                              type="button"
+                              disabled={submitting}
+                              onClick={openAlipay}
+                            >
+                              <RiAlipayLine data-icon="inline-start" />
+                              打开支付宝付款
+                            </Button>
+                            <p className="text-center text-xs text-muted-foreground">
+                              {attemptedAlipayContent === panelQrCodeContent
+                                ? "已尝试打开支付宝，未跳转可保存收款码后扫码"
+                                : "跳转后核对收款人，并填写金额和付款标识码"}
+                            </p>
+                          </>
+                        ) : null}
                         <Button
                           type="button"
                           variant="outline"

@@ -17,13 +17,15 @@ import {
   usePocketResource,
 } from "./shared";
 
-export function PocketPaymentSection({
+function PocketPaymentContent({
   pocketId,
   initiallyOpen = false,
+  lifecycleRound,
   onChanged,
 }: {
   pocketId: string;
   initiallyOpen?: boolean;
+  lifecycleRound?: string;
   onChanged?: () => void;
 }) {
   const activePocketId = useRef<string | null>(null);
@@ -35,7 +37,10 @@ export function PocketPaymentSection({
   }, [pocketId]);
   const options = usePocketOptions();
   const result = usePocketResource(
-    useCallback(() => getPocketPayment(pocketId, options), [pocketId, options]),
+    useCallback(
+      () => getPocketPayment(pocketId, { ...options, lifecycleRound }),
+      [pocketId, options, lifecycleRound],
+    ),
   );
   const action = usePocketAction({
     transaction: true,
@@ -48,7 +53,11 @@ export function PocketPaymentSection({
   });
   const [open, setOpen] = useState(initiallyOpen);
   // A route change or failed refresh must not expose a previous payable snapshot.
-  const payment = result.data?.pocket.id === pocketId ? result.data : null;
+  const payment =
+    result.data?.pocket.id === pocketId &&
+    (result.data.pocket.lifecycleRound ?? "1") === (lifecycleRound ?? "1")
+      ? result.data
+      : null;
   const bill = payment?.bill;
   const cancelled = Boolean(
     payment && ["cancelled", "cancelling"].includes(payment.pocket.status),
@@ -135,7 +144,7 @@ export function PocketPaymentSection({
         </MobileFixedFooter>
       ) : null}
       <PaymentDialog
-        key={`${pocketId}:${bill?.id ?? "loading"}:${bill?.updatedAt ?? ""}`}
+        key={`${pocketId}:${lifecycleRound ?? "1"}:${bill?.id ?? "loading"}:${bill?.updatedAt ?? ""}`}
         open={open}
         onOpenChange={changeOpen}
         amountCents={bill?.amountCents ?? 0}
@@ -155,25 +164,66 @@ export function PocketPaymentSection({
           if (platform !== "wechat" || !canPay || !bill?.updatedAt || !payment)
             return;
           const updatedAt = bill.updatedAt;
-          await action.run(`pay:${bill.id}:${updatedAt}`, async () => {
-            if (activePocketId.current !== pocketId) return;
-            const updatedBill = await payBill(
-              {
-                billId: bill.id,
-                updatedAt,
-                channel: "wechat",
-              },
-              options,
-            );
-            if (activePocketId.current !== pocketId) return;
-            result.setData({ ...payment, bill: updatedBill });
-            const latest = await result.refreshFresh();
-            if (latest && activePocketId.current === pocketId) onChanged?.();
-          });
+          await action.run(
+            `pay:${bill.id}:${bill.lifecycleRound ?? "1"}:${updatedAt}`,
+            async () => {
+              if (activePocketId.current !== pocketId) return;
+              await payBill(
+                {
+                  billId: bill.id,
+                  lifecycleRound: bill.lifecycleRound,
+                  updatedAt,
+                  channel: "wechat",
+                },
+                options,
+              );
+              if (activePocketId.current !== pocketId) return;
+              const latest = await result.refreshFresh();
+              if (latest && activePocketId.current === pocketId) onChanged?.();
+            },
+          );
         }}
         onCancelPayment={() => changeOpen(false)}
         onRetry={action.pending ? action.recover : result.refresh}
       />
     </section>
+  );
+}
+
+export function PocketPaymentSection(
+  props: Parameters<typeof PocketPaymentContent>[0] & { paymentRound?: string },
+) {
+  const currentRound = props.lifecycleRound ?? "1";
+  const [reviewedRound, setReviewedRound] = useState<string | null>(null);
+  const staleLink =
+    props.initiallyOpen &&
+    (props.paymentRound
+      ? props.paymentRound !== currentRound
+      : BigInt(currentRound) > 1n);
+  if (staleLink && reviewedRound !== currentRound) {
+    return (
+      <Alert>
+        <AlertDescription className="flex flex-col gap-3">
+          <p>
+            此付款入口未对应当前处理轮次。活动已重新处理，现在是第{" "}
+            {currentRound}{" "}
+            轮。请先核对上方活动、金额及之前的转账记录，再查看本轮账单；请勿重复付款。
+          </p>
+          <Button
+            variant="outline"
+            size="touch"
+            onClick={() => setReviewedRound(currentRound)}
+          >
+            已核对，查看本轮账单
+          </Button>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  return (
+    <PocketPaymentContent
+      key={`${props.pocketId}:${currentRound}`}
+      {...props}
+    />
   );
 }

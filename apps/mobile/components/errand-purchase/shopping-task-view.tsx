@@ -72,7 +72,7 @@ function isPurchased(item: ShoppingTaskItem): boolean {
   return item.purchasedQuantity !== null;
 }
 
-export function ShoppingTaskView({
+function ShoppingTaskViewContent({
   dataSource,
   connectBaseUrl,
   detail,
@@ -136,7 +136,11 @@ export function ShoppingTaskView({
   const [submitting, setSubmitting] = useState(false);
   const [pendingItemId, setPendingItemId] = useState<string | null>(null);
 
-  const serviceOptions = { dataSource, connectBaseUrl };
+  const serviceOptions = {
+    dataSource,
+    connectBaseUrl,
+    lifecycleRound: detail.lifecycleRound,
+  };
 
   const unprocessed = items.filter((i) => !isPurchased(i));
   const processed = items.filter((i) => isPurchased(i));
@@ -176,6 +180,7 @@ export function ShoppingTaskView({
         {
           errandTaskId: detail.taskId,
           errandTaskItemId: item.id,
+          lifecycleRound: detail.lifecycleRound,
           purchasedQuantity,
           nonPurchaseReason: nonPurchaseReason ?? null,
           itemUpdatedAt: item.updatedAt,
@@ -195,6 +200,12 @@ export function ShoppingTaskView({
             detail.taskId,
             serviceOptions,
           );
+          if (
+            (refreshed.lifecycleRound ?? "1") !== (detail.lifecycleRound ?? "1")
+          ) {
+            router.refresh();
+            return;
+          }
           if (compareUpdatedAt(refreshed.taskUpdatedAt, taskVersion) >= 0) {
             setItems((current) =>
               mergeShoppingTaskItems(
@@ -576,5 +587,16 @@ function ShoppingItemCard({
         />
       </button>
     </Item>
+  );
+}
+
+export function ShoppingTaskView(
+  props: Parameters<typeof ShoppingTaskViewContent>[0],
+) {
+  return (
+    <ShoppingTaskViewContent
+      key={`${props.detail.taskId}:${props.detail.lifecycleRound ?? "1"}`}
+      {...props}
+    />
   );
 }

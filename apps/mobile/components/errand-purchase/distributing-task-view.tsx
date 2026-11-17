@@ -96,7 +96,7 @@ function formatYuan(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
-export function DistributingTaskView({
+function DistributingTaskViewContent({
   dataSource,
   connectBaseUrl,
   detail,
@@ -141,7 +141,11 @@ export function DistributingTaskView({
   const [savingPrice, setSavingPrice] = useState(false);
   const [assigningIds, setAssigningIds] = useState<Set<string>>(new Set());
 
-  const serviceOptions = { dataSource, connectBaseUrl };
+  const serviceOptions = {
+    dataSource,
+    connectBaseUrl,
+    lifecycleRound: detail.lifecycleRound,
+  };
 
   const purchasedItems = items.filter(
     (i) => i.purchasedQuantity != null && i.purchasedQuantity > 0,
@@ -227,6 +231,7 @@ export function DistributingTaskView({
       const saved = await saveDistributingAssignment(
         {
           errandTaskItemId: item.errandTaskItemId,
+          lifecycleRound: detail.lifecycleRound,
           errandTaskAssignmentId: requester.errandTaskAssignmentId,
           distributedQuantity,
           assignmentUpdatedAt: requester.assignmentUpdatedAt,
@@ -284,6 +289,7 @@ export function DistributingTaskView({
       const saved = await saveDistributingAssignment(
         {
           errandTaskItemId: item.errandTaskItemId,
+          lifecycleRound: detail.lifecycleRound,
           errandTaskAssignmentId: requester.errandTaskAssignmentId,
           distributedQuantity: -1,
           assignmentUpdatedAt: requester.assignmentUpdatedAt,
@@ -343,6 +349,7 @@ export function DistributingTaskView({
         {
           errandTaskId: detail.taskId,
           errandTaskItemId: dialog.item.errandTaskItemId,
+          lifecycleRound: detail.lifecycleRound,
           actualUnitPriceCents: cents,
           itemUpdatedAt: dialog.item.itemUpdatedAt,
         },
@@ -1170,5 +1177,16 @@ function RequesterRow({
         </div>
       ) : null}
     </div>
+  );
+}
+
+export function DistributingTaskView(
+  props: Parameters<typeof DistributingTaskViewContent>[0],
+) {
+  return (
+    <DistributingTaskViewContent
+      key={`${props.detail.taskId}:${props.detail.lifecycleRound ?? "1"}`}
+      {...props}
+    />
   );
 }

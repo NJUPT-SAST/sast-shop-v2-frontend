@@ -4,7 +4,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { clearResourceCache } from "@workspace/ui/lib/resource-cache";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import GroupPage from "../app/group/page";
+import GroupPage from "../app/(storefront)/group/page";
 
 const { listErrandTasks, listStores } = vi.hoisted(() => ({
   listErrandTasks: vi.fn(),

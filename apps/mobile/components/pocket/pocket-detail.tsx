@@ -78,15 +78,13 @@ export function PocketDetailPage({
   pocketId,
   refreshKey,
   initialPaymentOpen = false,
+  paymentRound,
 }: {
   pocketId: string;
   refreshKey?: string;
   initialPaymentOpen?: boolean;
+  paymentRound?: string;
 }) {
-  const activePocketId = useRef(pocketId);
-  useEffect(() => {
-    activePocketId.current = pocketId;
-  }, [pocketId]);
   const options = usePocketOptions();
   const result = usePocketResource(
     useCallback(() => getPocket(pocketId, options), [pocketId, options]),
@@ -98,6 +96,55 @@ export function PocketDetailPage({
     previousRefreshKey.current = refreshKey;
     void refresh();
   }, [refreshKey, refresh]);
+  const detail = result.data?.pocket.id === pocketId ? result.data : null;
+  usePocketPolling(
+    result.refresh,
+    Boolean(
+      detail &&
+      ["publishing", "collecting", "cancelling"].includes(detail.pocket.status),
+    ),
+  );
+  if (!detail)
+    return (
+      <div className="flex min-w-0 flex-col gap-3 py-3">
+        <PocketHeading title="Pocket" />
+        <PocketError message={result.error} retry={result.refresh} />
+        {!result.error ? <PocketLoading /> : null}
+      </div>
+    );
+  return (
+    <PocketDetailContent
+      key={`${pocketId}:${detail.pocket.lifecycleRound ?? "1"}`}
+      pocketId={pocketId}
+      detail={detail}
+      result={result}
+      initialPaymentOpen={initialPaymentOpen}
+      paymentRound={paymentRound}
+    />
+  );
+}
+
+function PocketDetailContent({
+  pocketId,
+  detail,
+  result,
+  initialPaymentOpen,
+  paymentRound,
+}: {
+  pocketId: string;
+  detail: PocketDetail;
+  result: ReturnType<typeof usePocketResource<PocketDetail>>;
+  initialPaymentOpen: boolean;
+  paymentRound?: string;
+}) {
+  const options = usePocketOptions();
+  const activePocketId = useRef<string | null>(pocketId);
+  useEffect(() => {
+    activePocketId.current = pocketId;
+    return () => {
+      activePocketId.current = null;
+    };
+  }, [pocketId]);
   const action = usePocketAction({
     transaction: true,
     reconcile: async () => Boolean(await result.refreshFresh()),
@@ -119,25 +166,6 @@ export function PocketDetailPage({
   );
   const draftBlocked = draftState.pocketId === pocketId && draftState.blocked;
   const draftSaving = draftState.pocketId === pocketId && draftState.saving;
-  const detail = result.data?.pocket.id === pocketId ? result.data : null;
-  usePocketPolling(
-    result.refresh,
-    Boolean(
-      detail &&
-      ["publishing", "collecting", "cancelling"].includes(detail.pocket.status),
-    ),
-  );
-  if (!detail)
-    return (
-      <div className="flex min-w-0 flex-col gap-3 py-3">
-        <PocketHeading title="Pocket" />
-        <PocketError
-          message={result.error}
-          retry={action.pending ? action.recover : result.refresh}
-        />
-        {!result.error ? <PocketLoading /> : null}
-      </div>
-    );
   const { pocket, isOwner, members, jobs, notifications } = detail;
   const draft = pocket.status === "draft";
   const showPayment =
@@ -302,9 +330,11 @@ export function PocketDetailPage({
       ) : null}
       {showPayment ? (
         <PocketPaymentSection
-          key={`${pocketId}:${initialPaymentOpen}`}
+          key={`${pocketId}:${pocket.lifecycleRound ?? "1"}:${initialPaymentOpen}`}
           pocketId={pocketId}
           initiallyOpen={initialPaymentOpen}
+          lifecycleRound={pocket.lifecycleRound}
+          paymentRound={paymentRound}
           onChanged={result.refresh}
         />
       ) : (
@@ -368,7 +398,14 @@ export function PocketDetailPage({
             busy={action.busy}
             retry={() =>
               void action.run(`retry:${job.id}`, async (requestId) => {
-                await retryPocketJob({ jobId: job.id, requestId }, options);
+                await retryPocketJob(
+                  {
+                    jobId: job.id,
+                    lifecycleRound: job.lifecycleRound,
+                    requestId,
+                  },
+                  options,
+                );
                 result.refresh();
               })
             }
@@ -398,6 +435,7 @@ export function PocketDetailPage({
                 await remindPocketMembers(
                   {
                     pocketId,
+                    lifecycleRound: pocket.lifecycleRound,
                     memberIds: unpaid.map((member) => member.id),
                     requestId,
                   },
@@ -414,6 +452,7 @@ export function PocketDetailPage({
       {!draft && pocket.status !== "cancelled" ? (
         <PocketAlbum
           pocketId={pocketId}
+          lifecycleRound={pocket.lifecycleRound}
           isOwner={isOwner}
           ownerParticipates={members.some((member) => member.isOwner)}
           initiallyAccepted={
@@ -511,6 +550,7 @@ export function PocketDetailPage({
                       {
                         pocketId,
                         expectedRevision: pocket.revision,
+                        lifecycleRound: pocket.lifecycleRound,
                         reason: cancelReason,
                         requestId,
                       },
@@ -615,6 +655,7 @@ function DraftPocketForm({
           {
             pocketId: pocket.id,
             expectedRevision: pocket.revision,
+            lifecycleRound: pocket.lifecycleRound,
             requestId,
             ...(field === "title"
               ? { title: value as string }
@@ -949,7 +990,11 @@ function ConfirmPocketPayment({
                 async () => {
                   if (!bill?.updatedAt || result.error) return;
                   await (returning ? rejectPocketPayment : confirmBill)(
-                    { billId: bill.id, updatedAt: bill.updatedAt },
+                    {
+                      billId: bill.id,
+                      lifecycleRound: bill.lifecycleRound,
+                      updatedAt: bill.updatedAt,
+                    },
                     options,
                   );
                   onConfirmed();

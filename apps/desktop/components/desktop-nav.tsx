@@ -4,6 +4,7 @@ import type { ComponentType } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { RiAddLine } from "@remixicon/react";
+import { AdminEntry } from "./admin/admin-entry";
 import { Button } from "@workspace/ui/components/button";
 import { SastShopMark } from "@workspace/ui/components/sast-shop-mark";
 import {
@@ -59,6 +60,7 @@ export function DesktopNav() {
         );
       })}
       <div className="mt-auto pt-6">
+        <AdminEntry />
         <Button
           className="min-h-11 w-full px-2 lg:justify-start lg:px-3"
           asChild

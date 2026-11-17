@@ -6,7 +6,10 @@ export default async function PocketPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ payment?: string | string[] }>;
+  searchParams: Promise<{
+    payment?: string | string[];
+    round?: string | string[];
+  }>;
 }) {
   const { id } = await params;
   if (!/^[1-9]\d{0,18}$/.test(id)) notFound();
@@ -17,6 +20,7 @@ export default async function PocketPage({
       pocketId={id}
       refreshKey={randomUUID()}
       initialPaymentOpen={query.payment === "1"}
+      paymentRound={typeof query.round === "string" ? query.round : undefined}
     />
   );
 }

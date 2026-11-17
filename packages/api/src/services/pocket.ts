@@ -1,3 +1,4 @@
+import { mapLifecycleRound, parseLifecycleRound } from "../lifecycle-round";
 import { createClient } from "@connectrpc/connect";
 import type { ServiceOptions } from "../data-source";
 import { resolveDataSource } from "../data-source";
@@ -26,6 +27,7 @@ export interface PocketUser {
   avatarUrl: string;
 }
 export interface WestPocket {
+  lifecycleRound?: string;
   id: string;
   ownerId: string;
   title: string;
@@ -69,6 +71,7 @@ export interface PocketPhoto {
   latestRecognitionJobId: string | null;
 }
 export interface PocketJob {
+  lifecycleRound?: string;
   id: string;
   kind: string;
   status: string;
@@ -141,6 +144,7 @@ export interface PocketMemberSelection {
   faceMatchId?: string | null;
 }
 export interface PocketMutation {
+  lifecycleRound?: string;
   pocketId: string;
   expectedRevision: string;
   requestId: string;
@@ -187,6 +191,7 @@ function requestPocket<T>(
 function mutation(input: PocketMutation) {
   return {
     pocketId: id(input.pocketId),
+    lifecycleRound: parseLifecycleRound(input.lifecycleRound),
     expectedRevision: id(input.expectedRevision),
     requestId: input.requestId,
   };
@@ -210,6 +215,7 @@ function user(value: UserInfo | undefined, fallbackId = ""): PocketUser {
 function pocket(value: ProtoPocket): WestPocket {
   return {
     id: value.id.toString(),
+    lifecycleRound: mapLifecycleRound(value.lifecycleRound),
     ownerId: value.ownerId.toString(),
     title: value.title,
     totalCents: value.totalCents,
@@ -259,6 +265,7 @@ function photo(value: ProtoPhoto): PocketPhoto {
 function job(value: ProtoJob): PocketJob {
   return {
     id: value.id.toString(),
+    lifecycleRound: mapLifecycleRound(value.lifecycleRound),
     kind: value.kind,
     status: value.status,
     totalItems: value.totalItems,
@@ -400,25 +407,37 @@ export async function addPocketPhotos(
   };
 }
 export async function deletePocketPhoto(
-  input: { pocketId: string; photoId: string; requestId: string },
+  input: {
+    lifecycleRound?: string;
+    pocketId: string;
+    photoId: string;
+    requestId: string;
+  },
   options: ServiceOptions = {},
 ) {
   await requestPocket("deletePocketPhoto", () =>
     clients(options).pocket.deletePocketPhoto({
       ...input,
       pocketId: id(input.pocketId),
+      lifecycleRound: parseLifecycleRound(input.lifecycleRound),
       photoId: id(input.photoId),
     }),
   );
 }
 export async function startPocketRecognition(
-  input: { pocketId: string; photoIds: string[]; requestId: string },
+  input: {
+    lifecycleRound?: string;
+    pocketId: string;
+    photoIds: string[];
+    requestId: string;
+  },
   options: ServiceOptions = {},
 ): Promise<PocketJob> {
   const response = await requestPocket("startPocketRecognition", () =>
     clients(options).pocket.startRecognition({
       ...input,
       pocketId: id(input.pocketId),
+      lifecycleRound: parseLifecycleRound(input.lifecycleRound),
       photoIds: input.photoIds.map(id),
     }),
   );
@@ -434,11 +453,15 @@ export async function getPocketJob(
   return job(required(response.job, "getPocketJob"));
 }
 export async function retryPocketJob(
-  input: { jobId: string; requestId: string },
+  input: { lifecycleRound?: string; jobId: string; requestId: string },
   options: ServiceOptions = {},
 ): Promise<PocketJob> {
   const response = await requestPocket("retryPocketJob", () =>
-    clients(options).pocket.retryJob({ ...input, jobId: id(input.jobId) }),
+    clients(options).pocket.retryJob({
+      ...input,
+      jobId: id(input.jobId),
+      lifecycleRound: parseLifecycleRound(input.lifecycleRound),
+    }),
   );
   return job(required(response.job, "retryPocketJob"));
 }
@@ -547,10 +570,13 @@ export async function publishPocket(
 }
 export async function getPocketPayment(
   pocketId: string,
-  options: ServiceOptions = {},
+  options: ServiceOptions & { lifecycleRound?: string } = {},
 ): Promise<PocketPayment> {
   const response = await requestPocket("getPocketPayment", () =>
-    clients(options).pocket.getMyPayment({ pocketId: id(pocketId) }),
+    clients(options).pocket.getMyPayment({
+      pocketId: id(pocketId),
+      lifecycleRound: parseLifecycleRound(options.lifecycleRound),
+    }),
   );
   return {
     pocket: pocket(required(response.pocket, "getPocketPayment")),
@@ -577,12 +603,13 @@ export async function cancelPocket(
 }
 
 export async function rejectPocketPayment(
-  input: { billId: string; updatedAt: string },
+  input: { lifecycleRound?: string; billId: string; updatedAt: string },
   options: ServiceOptions = {},
 ): Promise<PaymentBill> {
   const response = await requestPocket("rejectPocketPayment", () =>
     clients(options).bill.transitionBill({
       billId: id(input.billId),
+      lifecycleRound: parseLifecycleRound(input.lifecycleRound),
       targetStatus: BillStatus.UNPAID,
       updatedAt: parseProtoTimestamp(input.updatedAt, "账单更新时间不正确"),
     }),
@@ -590,26 +617,38 @@ export async function rejectPocketPayment(
   return mapPaymentBill(required(response.bill, "rejectPocketPayment"));
 }
 export async function remindPocketMembers(
-  input: { pocketId: string; memberIds: string[]; requestId: string },
+  input: {
+    lifecycleRound?: string;
+    pocketId: string;
+    memberIds: string[];
+    requestId: string;
+  },
   options: ServiceOptions = {},
 ) {
   const response = await requestPocket("remindPocketMembers", () =>
     clients(options).pocket.remindMembers({
       ...input,
       pocketId: id(input.pocketId),
+      lifecycleRound: parseLifecycleRound(input.lifecycleRound),
       memberIds: input.memberIds.map(id),
     }),
   );
   return response.notifications.map(notification);
 }
 export async function setPocketAlbumAccess(
-  input: { pocketId: string; accepted: boolean; requestId: string },
+  input: {
+    lifecycleRound?: string;
+    pocketId: string;
+    accepted: boolean;
+    requestId: string;
+  },
   options: ServiceOptions = {},
 ) {
   await requestPocket("setPocketAlbumAccess", () =>
     clients(options).pocket.setAlbumAccess({
       ...input,
       pocketId: id(input.pocketId),
+      lifecycleRound: parseLifecycleRound(input.lifecycleRound),
     }),
   );
 }

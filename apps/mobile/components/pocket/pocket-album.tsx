@@ -26,10 +26,12 @@ import { PocketError, usePocketAction, usePocketOptions } from "./shared";
 export function PocketAlbum({
   pocketId,
   isOwner,
+  lifecycleRound,
   ownerParticipates,
   initiallyAccepted,
 }: {
   pocketId: string;
+  lifecycleRound?: string;
   isOwner: boolean;
   ownerParticipates: boolean;
   initiallyAccepted: boolean;
@@ -133,7 +135,7 @@ export function PocketAlbum({
               void action.run(`album:${pocketId}:accept`, async (requestId) => {
                 setRetryPage(null);
                 await setPocketAlbumAccess(
-                  { pocketId, accepted: true, requestId },
+                  { pocketId, lifecycleRound, accepted: true, requestId },
                   options,
                 );
                 if (activePocketId.current !== pocketId) return;
@@ -239,7 +241,7 @@ export function PocketAlbum({
               void action.run(`album:${pocketId}:revoke`, async (requestId) => {
                 setRetryPage(null);
                 await setPocketAlbumAccess(
-                  { pocketId, accepted: false, requestId },
+                  { pocketId, lifecycleRound, accepted: false, requestId },
                   options,
                 );
                 if (activePocketId.current !== pocketId) return;

@@ -505,6 +505,7 @@ export function SpotMarketplace({
       const paidBill = await payBill(
         {
           billId: bill.id,
+          lifecycleRound: bill.lifecycleRound,
           channel: platform,
           updatedAt: bill.updatedAt,
         },

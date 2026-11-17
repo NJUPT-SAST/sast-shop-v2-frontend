@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file sast/sastshopv2/errand/v1/errand_demand_detail.proto.
  */
 export const file_sast_sastshopv2_errand_v1_errand_demand_detail: GenFile = /*@__PURE__*/
-  fileDesc("CjRzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF9kZW1hbmRfZGV0YWlsLnByb3RvEhlzYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxIvcBChJFcnJhbmREZW1hbmREZXRhaWwSGAoQZXJyYW5kX2RlbWFuZF9pZBgBIAEoAxJFChBwcm9kdWN0X3RlbXBsYXRlGAIgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlEiIKGmVzdGltYXRlZF91bml0X3ByaWNlX2NlbnRzGAMgASgFEhAKCHF1YW50aXR5GAQgASgFEkoKCnJlcXVlc3RlcnMYBSADKAsyNi5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZERlbWFuZERldGFpbFJlcXVlc3RlcmIGcHJvdG8z", [file_sast_sastshopv2_catalog_v1_product_template, file_sast_sastshopv2_errand_v1_errand_demand_detail_requester]);
+  fileDesc("CjRzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF9kZW1hbmRfZGV0YWlsLnByb3RvEhlzYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxIpACChJFcnJhbmREZW1hbmREZXRhaWwSGAoQZXJyYW5kX2RlbWFuZF9pZBgBIAEoAxJFChBwcm9kdWN0X3RlbXBsYXRlGAIgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlEiIKGmVzdGltYXRlZF91bml0X3ByaWNlX2NlbnRzGAMgASgFEhAKCHF1YW50aXR5GAQgASgFEkoKCnJlcXVlc3RlcnMYBSADKAsyNi5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZERlbWFuZERldGFpbFJlcXVlc3RlchIXCg9saWZlY3ljbGVfcm91bmQYBiABKANiBnByb3RvMw", [file_sast_sastshopv2_catalog_v1_product_template, file_sast_sastshopv2_errand_v1_errand_demand_detail_requester]);
 
 /**
  * 团长接单弹窗中的商品聚合详情，商品描述实时读取 catalog 商品模板
@@ -56,6 +56,11 @@ export type ErrandDemandDetail = Message<"sast.sastshopv2.errand.v1.ErrandDemand
    * @generated from field: repeated sast.sastshopv2.errand.v1.ErrandDemandDetailRequester requesters = 5;
    */
   requesters: ErrandDemandDetailRequester[];
+
+  /**
+   * @generated from field: int64 lifecycle_round = 6;
+   */
+  lifecycleRound: bigint;
 };
 
 /**

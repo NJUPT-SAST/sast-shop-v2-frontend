@@ -107,6 +107,10 @@ export function reconcileBuyerErrandOrderUpdate(
   incoming: BuyerErrandOrderDetail,
 ): BuyerErrandOrderDetail {
   if (current.id !== incoming.id) return incoming;
+  const currentRound = BigInt(current.lifecycleRound ?? "1");
+  const incomingRound = BigInt(incoming.lifecycleRound ?? "1");
+  if (incomingRound !== currentRound)
+    return incomingRound > currentRound ? incoming : current;
   const currentRank = statusRank[current.status];
   const incomingRank = statusRank[incoming.status];
   if (incomingRank > currentRank) return incoming;

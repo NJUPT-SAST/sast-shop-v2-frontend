@@ -207,3 +207,20 @@ function createProductItem({
     demandItemId: "9001",
   };
 }
+
+it("accepts an administrator reopened demand without letting the old terminal snapshot win", () => {
+  const previous = {
+    id: "1",
+    lifecycleRound: "2",
+    status: "completed" as const,
+    bill: null,
+  };
+  const reopened = {
+    id: "1",
+    lifecycleRound: "3",
+    status: "shopping" as const,
+    bill: null,
+  };
+  expect(reconcileBuyerErrandOrderUpdate(previous, reopened)).toBe(reopened);
+  expect(reconcileBuyerErrandOrderUpdate(reopened, previous)).toBe(reopened);
+});
