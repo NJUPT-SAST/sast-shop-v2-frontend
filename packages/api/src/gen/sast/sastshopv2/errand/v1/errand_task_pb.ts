@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file sast/sastshopv2/errand/v1/errand_task.proto.
  */
 export const file_sast_sastshopv2_errand_v1_errand_task: GenFile = /*@__PURE__*/
-  fileDesc("CitzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF90YXNrLnByb3RvEhlzYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxIuoBCgpFcnJhbmRUYXNrEg8KB3Rhc2tfaWQYASABKAMSEAoIc3RvcmVfaWQYAiABKAMSEgoKc3RvcmVfbmFtZRgDIAEoCRI7CgZzdGF0dXMYBCABKA4yKy5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZFRhc2tTdGF0dXMSOAoFaXRlbXMYBSADKAsyKS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZFRhc2tJdGVtEi4KCmNyZWF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wYgZwcm90bzM", [file_google_protobuf_timestamp, file_sast_sastshopv2_errand_v1_errand_task_item, file_sast_sastshopv2_errand_v1_errand_task_status]);
+  fileDesc("CitzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2VycmFuZF90YXNrLnByb3RvEhlzYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxIoMCCgpFcnJhbmRUYXNrEg8KB3Rhc2tfaWQYASABKAMSEAoIc3RvcmVfaWQYAiABKAMSEgoKc3RvcmVfbmFtZRgDIAEoCRI7CgZzdGF0dXMYBCABKA4yKy5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZFRhc2tTdGF0dXMSOAoFaXRlbXMYBSADKAsyKS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLkVycmFuZFRhc2tJdGVtEi4KCmNyZWF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhcKD2xpZmVjeWNsZV9yb3VuZBgHIAEoA2IGcHJvdG8z", [file_google_protobuf_timestamp, file_sast_sastshopv2_errand_v1_errand_task_item, file_sast_sastshopv2_errand_v1_errand_task_status]);
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.ErrandTask
@@ -51,6 +51,11 @@ export type ErrandTask = Message<"sast.sastshopv2.errand.v1.ErrandTask"> & {
    * @generated from field: google.protobuf.Timestamp created_at = 6;
    */
   createdAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: int64 lifecycle_round = 7;
+   */
+  lifecycleRound: bigint;
 };
 
 /**

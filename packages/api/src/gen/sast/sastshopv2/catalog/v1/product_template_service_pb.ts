@@ -40,7 +40,7 @@ export type GetProductTemplateListRequest = Message<"sast.sastshopv2.catalog.v1.
   pageSize: number;
 
   /**
-   * 大小写无关的字面子串，匹配商品名称、规格或条码；去除首尾空白后最多 200 个字符。
+   * 普通文本关键词；去除首尾空白后最多 200 个字符，搜索语义由 search_mode 决定。
    *
    * @generated from field: string keyword = 4;
    */
@@ -309,14 +309,14 @@ export const DeleteProductTemplateResponseSchema: GenMessage<DeleteProductTempla
  */
 export enum ProductTemplateSearchMode {
   /**
-   * 未指定时沿用原行为：名称、描述、条码子串搜索。
+   * 默认匹配名称、描述和条码的子串。
    *
    * @generated from enum value: PRODUCT_TEMPLATE_SEARCH_MODE_UNSPECIFIED = 0;
    */
   UNSPECIFIED = 0,
 
   /**
-   * 仅对商品名称做全文检索（zhparser 分词 + GIN 索引）。
+   * 对商品名称进行中文全文检索。
    *
    * @generated from enum value: PRODUCT_TEMPLATE_SEARCH_MODE_TITLE_FULL_TEXT = 1;
    */

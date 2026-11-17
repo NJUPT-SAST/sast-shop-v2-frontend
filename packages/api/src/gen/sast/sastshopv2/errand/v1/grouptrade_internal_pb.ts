@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file sast/sastshopv2/errand/v1/grouptrade_internal.proto.
  */
 export const file_sast_sastshopv2_errand_v1_grouptrade_internal: GenFile = /*@__PURE__*/
-  fileDesc("CjNzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2dyb3VwdHJhZGVfaW50ZXJuYWwucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEiVQoZT25QYXltZW50Q29uZmlybWVkUmVxdWVzdBITCgtzb3VyY2VfdHlwZRgBIAEoCRIRCglzb3VyY2VfaWQYAiABKAMSEAoIcGF5ZXJfaWQYAyABKAMiHAoaT25QYXltZW50Q29uZmlybWVkUmVzcG9uc2UiRwodT25BbGxQYXltZW50c0NvbmZpcm1lZFJlcXVlc3QSEwoLc291cmNlX3R5cGUYASABKAkSEQoJc291cmNlX2lkGAIgASgDIiAKHk9uQWxsUGF5bWVudHNDb25maXJtZWRSZXNwb25zZTKvAgoZR3JvdXBUcmFkZUludGVybmFsU2VydmljZRKBAQoST25QYXltZW50Q29uZmlybWVkEjQuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5PblBheW1lbnRDb25maXJtZWRSZXF1ZXN0GjUuc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5PblBheW1lbnRDb25maXJtZWRSZXNwb25zZRKNAQoWT25BbGxQYXltZW50c0NvbmZpcm1lZBI4LnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuT25BbGxQYXltZW50c0NvbmZpcm1lZFJlcXVlc3QaOS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLk9uQWxsUGF5bWVudHNDb25maXJtZWRSZXNwb25zZWIGcHJvdG8z");
+  fileDesc("CjNzYXN0L3Nhc3RzaG9wdjIvZXJyYW5kL3YxL2dyb3VwdHJhZGVfaW50ZXJuYWwucHJvdG8SGXNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEibgoZT25QYXltZW50Q29uZmlybWVkUmVxdWVzdBITCgtzb3VyY2VfdHlwZRgBIAEoCRIRCglzb3VyY2VfaWQYAiABKAMSEAoIcGF5ZXJfaWQYAyABKAMSFwoPbGlmZWN5Y2xlX3JvdW5kGAQgASgDIhwKGk9uUGF5bWVudENvbmZpcm1lZFJlc3BvbnNlImAKHU9uQWxsUGF5bWVudHNDb25maXJtZWRSZXF1ZXN0EhMKC3NvdXJjZV90eXBlGAEgASgJEhEKCXNvdXJjZV9pZBgCIAEoAxIXCg9saWZlY3ljbGVfcm91bmQYAyABKAMiIAoeT25BbGxQYXltZW50c0NvbmZpcm1lZFJlc3BvbnNlMq8CChlHcm91cFRyYWRlSW50ZXJuYWxTZXJ2aWNlEoEBChJPblBheW1lbnRDb25maXJtZWQSNC5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLk9uUGF5bWVudENvbmZpcm1lZFJlcXVlc3QaNS5zYXN0LnNhc3RzaG9wdjIuZXJyYW5kLnYxLk9uUGF5bWVudENvbmZpcm1lZFJlc3BvbnNlEo0BChZPbkFsbFBheW1lbnRzQ29uZmlybWVkEjguc2FzdC5zYXN0c2hvcHYyLmVycmFuZC52MS5PbkFsbFBheW1lbnRzQ29uZmlybWVkUmVxdWVzdBo5LnNhc3Quc2FzdHNob3B2Mi5lcnJhbmQudjEuT25BbGxQYXltZW50c0NvbmZpcm1lZFJlc3BvbnNlYgZwcm90bzM");
 
 /**
  * @generated from message sast.sastshopv2.errand.v1.OnPaymentConfirmedRequest
@@ -30,6 +30,11 @@ export type OnPaymentConfirmedRequest = Message<"sast.sastshopv2.errand.v1.OnPay
    * @generated from field: int64 payer_id = 3;
    */
   payerId: bigint;
+
+  /**
+   * @generated from field: int64 lifecycle_round = 4;
+   */
+  lifecycleRound: bigint;
 };
 
 /**
@@ -65,6 +70,11 @@ export type OnAllPaymentsConfirmedRequest = Message<"sast.sastshopv2.errand.v1.O
    * @generated from field: int64 source_id = 2;
    */
   sourceId: bigint;
+
+  /**
+   * @generated from field: int64 lifecycle_round = 3;
+   */
+  lifecycleRound: bigint;
 };
 
 /**
