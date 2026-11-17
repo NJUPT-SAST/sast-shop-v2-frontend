@@ -53,7 +53,7 @@ import { toast } from "sonner";
 
 import { useTransactionAgreement } from "../transaction-agreement-provider";
 
-export function CollectingPaymentView({
+function CollectingPaymentViewContent({
   dataSource,
   connectBaseUrl,
   detail,
@@ -86,9 +86,9 @@ export function CollectingPaymentView({
     unverifiedTaskVersion !== undefined &&
     compareUpdatedAt(taskVersion, unverifiedTaskVersion) <= 0;
   const billNeedsVerification = (bill: CollectingPaymentBill) => {
-    const baseline = unverifiedBillVersions[bill.requesterId];
+    const baseline = unverifiedBillVersions[collectingBillKey(bill)];
     return (
-      Object.hasOwn(unverifiedBillVersions, bill.requesterId) &&
+      Object.hasOwn(unverifiedBillVersions, collectingBillKey(bill)) &&
       compareUpdatedAt(bill.billUpdatedAt, baseline) <= 0
     );
   };
@@ -107,8 +107,9 @@ export function CollectingPaymentView({
   const [billToConfirm, setBillToConfirm] =
     useState<CollectingPaymentBill | null>(null);
   const currentBillToConfirm = billToConfirm
-    ? (bills.find((bill) => bill.requesterId === billToConfirm.requesterId) ??
-      null)
+    ? (bills.find(
+        (bill) => collectingBillKey(bill) === collectingBillKey(billToConfirm),
+      ) ?? null)
     : null;
   const [completeOpen, setCompleteOpen] = useState(false);
   const [completing, setCompleting] = useState(false);
@@ -127,7 +128,11 @@ export function CollectingPaymentView({
     (total, bill) => total + bill.totalAmountCents,
     0,
   );
-  const serviceOptions = { dataSource, connectBaseUrl };
+  const serviceOptions = {
+    dataSource,
+    connectBaseUrl,
+    lifecycleRound: detail.lifecycleRound,
+  };
   const abnormalBills = bills.filter(
     (bill) =>
       bill.paymentStatus === "closed" || bill.paymentStatus === "unknown",
@@ -180,12 +185,16 @@ export function CollectingPaymentView({
     setConfirmingId(bill.requesterId);
     try {
       const updatedBill = await confirmBill(
-        { billId: bill.billId, updatedAt: bill.billUpdatedAt },
+        {
+          billId: bill.billId,
+          lifecycleRound: bill.billLifecycleRound,
+          updatedAt: bill.billUpdatedAt,
+        },
         serviceOptions,
       );
       setBills((current) =>
         current.map((candidate) =>
-          candidate.requesterId === bill.requesterId
+          collectingBillKey(candidate) === collectingBillKey(bill)
             ? {
                 ...candidate,
                 paymentStatus: "confirmed",
@@ -207,7 +216,7 @@ export function CollectingPaymentView({
       );
       setUnverifiedBillVersions((current) => ({
         ...current,
-        [bill.requesterId]: bill.billUpdatedAt,
+        [collectingBillKey(bill)]: bill.billUpdatedAt,
       }));
       setBillToConfirm(null);
       router.refresh();
@@ -234,6 +243,14 @@ export function CollectingPaymentView({
     let attemptedVersion = taskVersion;
     try {
       const latestTask = await getErrandTaskBrief(taskId, serviceOptions);
+      if (
+        latestTask &&
+        (latestTask.lifecycleRound ?? "1") !== (detail.lifecycleRound ?? "1")
+      ) {
+        toast.error("任务处理轮次已变化，请刷新并核对后再操作");
+        router.refresh();
+        return;
+      }
       setTaskVersion((current) =>
         latestUpdatedAt(current, latestTask?.updatedAt ?? null),
       );
@@ -330,7 +347,7 @@ export function CollectingPaymentView({
           {group.bills.length ? (
             <div className="grid min-w-0 gap-4 xl:grid-cols-2">
               {group.bills.map((bill) => {
-                const billKey = bill.billId ?? bill.requesterId;
+                const billKey = collectingBillKey(bill);
                 return (
                   <BillCard
                     key={billKey}
@@ -735,4 +752,19 @@ function Metric({
       </p>
     </div>
   );
+}
+
+export function CollectingPaymentView(
+  props: Parameters<typeof CollectingPaymentViewContent>[0],
+) {
+  return (
+    <CollectingPaymentViewContent
+      key={`${props.detail.taskId}:${props.detail.lifecycleRound ?? "1"}`}
+      {...props}
+    />
+  );
+}
+
+function collectingBillKey(bill: CollectingPaymentBill) {
+  return `${bill.billId ?? bill.requesterId}:${bill.billLifecycleRound ?? "1"}`;
 }

@@ -85,6 +85,7 @@ export function ErrandShop({
   error,
   editDemandId,
   editUpdatedAt,
+  editLifecycleRound,
   editInitialItems,
   editDeadline,
 }: {
@@ -95,6 +96,7 @@ export function ErrandShop({
   error: string | null;
   editDemandId?: string | null;
   editUpdatedAt?: string | null;
+  editLifecycleRound?: string;
   editInitialItems?: CartItem[] | null;
   editDeadline?: string | null;
 }) {
@@ -360,6 +362,7 @@ export function ErrandShop({
         await updateErrandDemand(
           {
             errandDemandId: editDemandId,
+            lifecycleRound: editLifecycleRound,
             storeId,
             deadline: deadline.toISOString(),
             items: demandItems,

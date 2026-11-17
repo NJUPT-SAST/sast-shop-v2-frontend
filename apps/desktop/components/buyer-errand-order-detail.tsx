@@ -73,7 +73,7 @@ import { ManagedImage } from "./managed-image";
 import { LarkContactButton } from "./lark-contact-button";
 import { useTransactionAgreement } from "./transaction-agreement-provider";
 
-export function BuyerErrandOrderDetailView({
+function BuyerErrandOrderDetailViewContent({
   order,
   dataSource,
   connectBaseUrl,
@@ -93,7 +93,9 @@ export function BuyerErrandOrderDetailView({
     useState<string | null>(null);
   const resolvedOrder = reconcileBuyerErrandOrderUpdate(currentOrder, order);
   const bill = resolvedOrder.bill;
-  const billVersion = bill?.updatedAt ? `${bill.id}:${bill.updatedAt}` : null;
+  const billVersion = bill?.updatedAt
+    ? `${bill.id}:${bill.lifecycleRound ?? "1"}:${bill.updatedAt}`
+    : null;
   const paymentUnverified =
     billVersion !== null && billVersion === unverifiedPaymentVersion;
   const supplementUnverified =
@@ -107,7 +109,12 @@ export function BuyerErrandOrderDetailView({
   );
 
   function updateBill(updatedBill: PaymentBill) {
-    setCurrentOrder({ ...resolvedOrder, bill: updatedBill });
+    setCurrentOrder((value) =>
+      reconcileBuyerErrandOrderUpdate(value, {
+        ...resolvedOrder,
+        bill: updatedBill,
+      }),
+    );
     router.refresh();
   }
 
@@ -609,7 +616,7 @@ function PaymentDialog({
   const payeeName = bill.payee?.name?.trim() || "未提供姓名";
   const qrKey =
     bill.payee?.id && bill.updatedAt
-      ? `${bill.payee.id}:${bill.updatedAt}:${reloadCount}`
+      ? `${bill.id}:${bill.lifecycleRound ?? "1"}:${bill.payee.id}:${bill.updatedAt}:${reloadCount}`
       : null;
   const currentCodes =
     qrResult?.key === qrKey && !qrResult.error ? qrResult.codes : {};
@@ -659,6 +666,7 @@ function PaymentDialog({
       const updated = await payBill(
         {
           billId: billToPay.id,
+          lifecycleRound: billToPay.lifecycleRound,
           channel: paymentChannel,
           updatedAt: billVersion,
         },
@@ -849,6 +857,7 @@ function SupplementDialog({
       const updated = await supplementBillSerialNumber(
         {
           billId: billToSupplement.id,
+          lifecycleRound: billToSupplement.lifecycleRound,
           serialNumber: submittedSerialNumber,
           updatedAt: billVersion,
         },
@@ -936,4 +945,15 @@ function formatTimelineDateTime(value: string): string {
     minute: "2-digit",
     hour12: false,
   }).format(new Date(value));
+}
+
+export function BuyerErrandOrderDetailView(
+  props: Parameters<typeof BuyerErrandOrderDetailViewContent>[0],
+) {
+  return (
+    <BuyerErrandOrderDetailViewContent
+      key={`${props.order.id}:${props.order.lifecycleRound ?? "1"}`}
+      {...props}
+    />
+  );
 }
