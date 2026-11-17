@@ -20,3 +20,4 @@ export {
 } from "./connect-proxy-abort";
 export { hasTrustedRequestOrigin } from "./request-origin";
 export { isPublicConnectPath } from "./public-connect-path";
+export { isAdminConnectPath } from "./admin-connect-path";
