@@ -322,6 +322,8 @@ export function ErrandShop({
           src={displayedStore.logoUrl}
           alt={displayedStore.name}
           className="size-14 shrink-0 rounded-lg"
+          sizes="56px"
+           progressive={false}
         />
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg font-semibold leading-7">
@@ -396,6 +398,8 @@ export function ErrandShop({
                       src={template.mainImageUrl}
                       alt={template.title}
                       className="size-20 rounded-lg"
+                      sizes="80px"
+                      progressive={false}
                     />
                   </button>
 

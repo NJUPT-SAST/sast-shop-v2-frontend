@@ -61,7 +61,7 @@ import {
   SupplementSerialNumberDialog,
 } from "./payment-flow";
 
-export function BuyerErrandOrderDetailView({
+function BuyerErrandOrderDetailViewContent({
   order,
   dataSource,
   connectBaseUrl,
@@ -87,13 +87,13 @@ export function BuyerErrandOrderDetailView({
   );
   const payableBill = isPayablePaymentBill(bill) ? bill : null;
   const paymentBillVersion = bill?.updatedAt
-    ? `${bill.id}:${bill.updatedAt}`
+    ? `${bill.id}:${bill.lifecycleRound ?? "1"}:${bill.updatedAt}`
     : null;
   const paymentVersionUnverified =
     paymentBillVersion !== null &&
     paymentBillVersion === unverifiedPaymentBillVersion;
   const supplementBillVersion = bill?.updatedAt
-    ? `${bill.id}:${bill.updatedAt}`
+    ? `${bill.id}:${bill.lifecycleRound ?? "1"}:${bill.updatedAt}`
     : null;
   const supplementVersionUnverified =
     supplementBillVersion !== null &&
@@ -116,7 +116,12 @@ export function BuyerErrandOrderDetailView({
     (paymentState === "payable" && payableBill && !paymentVersionUnverified);
 
   function updateBill(updatedBill: PaymentBill) {
-    setCurrentOrder({ ...resolvedOrder, bill: updatedBill });
+    setCurrentOrder((value) =>
+      reconcileBuyerErrandOrderUpdate(value, {
+        ...resolvedOrder,
+        bill: updatedBill,
+      }),
+    );
     router.refresh();
   }
 
@@ -245,6 +250,7 @@ export function BuyerErrandOrderDetailView({
           onOpenChange={setSupplementOpen}
           billId={bill.id}
           billUpdatedAt={bill.updatedAt}
+          lifecycleRound={bill.lifecycleRound}
           dataSource={dataSource}
           connectBaseUrl={connectBaseUrl}
           onSuccess={(updatedBill) => {
@@ -548,4 +554,15 @@ function formatDateTime(value: string): string {
 
 function getAvatarFallback(name: string): string {
   return name.trim().slice(0, 1) || "团";
+}
+
+export function BuyerErrandOrderDetailView(
+  props: Parameters<typeof BuyerErrandOrderDetailViewContent>[0],
+) {
+  return (
+    <BuyerErrandOrderDetailViewContent
+      key={`${props.order.id}:${props.order.lifecycleRound ?? "1"}`}
+      {...props}
+    />
+  );
 }

@@ -643,11 +643,15 @@ describe("new spot order payment recovery", () => {
     });
     await act(async () => vi.advanceTimersByTimeAsync(250));
     await act(async () => enterViewport([{ isIntersecting: true }]));
+    expect(listSpotGoods).toHaveBeenLastCalledWith(
+      expect.objectContaining({ keyword: "矿泉水", page: 2 }),
+    );
+    expect(container.querySelector('[aria-label="矿泉水"]')).not.toBeNull();
     await act(async () => {
       setValue.call(input, "苹果");
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
-    expect(container.textContent).not.toContain("矿泉水");
+    expect(container.querySelector('[aria-label="矿泉水"]')).toBeNull();
     await act(async () =>
       resolveOldPage({
         ...initialPage,
@@ -661,10 +665,13 @@ describe("new spot order payment recovery", () => {
         currentPage: 2,
       }),
     );
-    expect(container.textContent).not.toContain("旧页");
+    expect(container.querySelector('[aria-label="旧页"]')).toBeNull();
     await act(async () => vi.advanceTimersByTimeAsync(250));
-    expect(container.textContent).toContain("苹果");
-    expect(container.textContent).not.toContain("旧页");
+    expect(listSpotGoods).toHaveBeenLastCalledWith(
+      expect.objectContaining({ keyword: "苹果", page: 1 }),
+    );
+    expect(container.querySelector('[aria-label="苹果"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="旧页"]')).toBeNull();
   });
 
   it("retries a failed search without replacing its keyword", async () => {

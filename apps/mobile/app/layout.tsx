@@ -1,3 +1,4 @@
+import { TransactionForegroundRefresh } from "@/components/transaction-foreground-refresh";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Script from "next/script";
@@ -23,6 +24,7 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   const authRequired = getServerAuthMode() === "required";
+
   return (
     <html lang="zh-CN" className="h-full antialiased">
       <head>
@@ -74,6 +76,7 @@ export default function RootLayout({
               authRequired={authRequired}
             >
               <TransactionAgreementProvider requireUserIdentity={authRequired}>
+                <TransactionForegroundRefresh />
                 {children}
               </TransactionAgreementProvider>
             </MobileShell>

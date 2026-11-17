@@ -218,3 +218,13 @@ function makeBill(overrides: Partial<PaymentBill> = {}): PaymentBill {
     ...overrides,
   };
 }
+
+it("accepts a reopened round and rejects delayed terminal data from its previous round", () => {
+  const previous = makeOrder({ lifecycleRound: "1", status: "completed" });
+  const reopened = makeOrder({
+    lifecycleRound: "2",
+    status: "pending_payment",
+  });
+  expect(reconcileSpotOrderUpdate(previous, reopened)).toBe(reopened);
+  expect(reconcileSpotOrderUpdate(reopened, previous)).toBe(reopened);
+});
