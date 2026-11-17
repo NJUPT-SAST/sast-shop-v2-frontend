@@ -2,10 +2,16 @@
 
 import { waitForDrawerHistoryCleanup } from "@workspace/ui/lib/drawer-history";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMobileRouter as useRouter } from "@/components/mobile-navigation-feedback";
 import Link from "@/components/mobile-link";
-import { RiAddLine, RiMapPinLine, RiShoppingCartLine } from "@remixicon/react";
+import {
+  RiAddLine,
+  RiCloseLine,
+  RiMapPinLine,
+  RiSearchLine,
+  RiShoppingCartLine,
+} from "@remixicon/react";
 import {
   createErrandDemand,
   listProductTemplatesPage,
@@ -20,12 +26,14 @@ import { Button } from "@workspace/ui/components/button";
 import { Card } from "@workspace/ui/components/card";
 import { Empty } from "@workspace/ui/components/empty";
 import { InfiniteListStatus } from "@/components/infinite-list-status";
+import { LoadFailure } from "@/components/load-failure";
 import { Input } from "@workspace/ui/components/input";
 import { QuantityStepper } from "@workspace/ui/components/quantity-stepper";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import {
   InputGroup,
   InputGroupAddon,
+  InputGroupButton,
   InputGroupInput,
   InputGroupText,
 } from "@workspace/ui/components/input-group";
@@ -39,6 +47,7 @@ import {
 } from "@workspace/ui/components/responsive-dialog";
 import { toast } from "sonner";
 import { useInfinitePage } from "@workspace/ui/hooks/use-infinite-page";
+import { useCachedResource } from "@workspace/ui/hooks/use-cached-resource";
 
 import { BrandIllustration } from "@/components/brand-illustration";
 import {
@@ -76,8 +85,19 @@ export function ErrandShop({
   store,
   initialPage,
 }: ErrandShopProps) {
+  const [query, setQuery] = useState("");
+  const [keyword, setKeyword] = useState("");
+  const [composing, setComposing] = useState(false);
+  const normalizedQuery = query.trim();
+  const activeKeyword = normalizedQuery ? keyword : "";
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const { ensureAgreement } = useTransactionAgreement();
+  useEffect(() => {
+    if (composing) return;
+    const timeout = window.setTimeout(() => setKeyword(normalizedQuery), 250);
+    return () => window.clearTimeout(timeout);
+  }, [composing, normalizedQuery]);
   const loadPage = useCallback(
     (page: number) =>
       listProductTemplatesPage({
@@ -86,8 +106,45 @@ export function ErrandShop({
         storeId: store.id,
         page,
         pageSize: initialPage.pageSize,
+        keyword: activeKeyword,
+        searchMode: "titleFullText",
       }),
-    [connectBaseUrl, dataSource, initialPage.pageSize, store.id],
+    [activeKeyword, connectBaseUrl, dataSource, initialPage.pageSize, store.id],
+  );
+  const queryIdentity = JSON.stringify([
+    "mobile:shop-product-search",
+    dataSource,
+    connectBaseUrl,
+    store.id,
+    initialPage.pageSize,
+    "titleFullText",
+    activeKeyword,
+  ]);
+  const search = useCachedResource({
+    cacheKey: queryIdentity,
+    staleTime: 30_000,
+    refreshKey: initialPage,
+    load: () => (activeKeyword ? loadPage(1) : Promise.resolve(initialPage)),
+  });
+  const searching =
+    Boolean(normalizedQuery) &&
+    (composing ||
+      normalizedQuery !== keyword ||
+      (!search.data && !search.error));
+  const searchError = Boolean(normalizedQuery && !searching && search.error);
+  const resultPage = normalizedQuery ? search.data : initialPage;
+  const firstPage = useMemo<PageResult<ProductTemplate>>(
+    () =>
+      !searching && !searchError && resultPage
+        ? resultPage
+        : {
+            items: [],
+            currentPage: 1,
+            pageSize: initialPage.pageSize,
+            totalCount: 0,
+            hasMore: false,
+          },
+    [initialPage.pageSize, resultPage, searching, searchError],
   );
   const {
     items: templates,
@@ -97,10 +154,10 @@ export function ErrandShop({
     totalCount: availableTotalCount,
     loadMore,
   } = useInfinitePage({
-    initialPage,
+    initialPage: firstPage,
     loadPage,
     getKey: getTemplateKey,
-    identity: `${dataSource}:${connectBaseUrl}:${store.id}`,
+    identity: JSON.stringify([queryIdentity, normalizedQuery, composing]),
   });
   const submittingRef = useRef(false);
   const [items, setItems] = useState<ErrandCartItem[]>([]);
@@ -323,7 +380,7 @@ export function ErrandShop({
           alt={displayedStore.name}
           className="size-14 shrink-0 rounded-lg"
           sizes="56px"
-           progressive={false}
+          progressive={false}
         />
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg font-semibold leading-7">
@@ -360,17 +417,82 @@ export function ErrandShop({
       <section className="flex flex-1 flex-col gap-3">
         <h2 className="text-base font-semibold">选择商品</h2>
 
-        {templates.length === 0 && !loadingMore && !hasMore ? (
+        <InputGroup>
+          <InputGroupAddon>
+            <RiSearchLine aria-hidden="true" />
+          </InputGroupAddon>
+          <InputGroupInput
+            ref={searchInputRef}
+            aria-label="搜索店铺商品"
+            placeholder="搜索商品名称"
+            maxLength={200}
+            autoComplete="off"
+            enterKeyHint="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onCompositionStart={() => setComposing(true)}
+            onCompositionEnd={(event) => {
+              setQuery(event.currentTarget.value);
+              setComposing(false);
+            }}
+          />
+          {query ? (
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                size="icon-touch"
+                aria-label="清空搜索"
+                onClick={() => {
+                  setQuery("");
+                  setKeyword("");
+                  setComposing(false);
+                  searchInputRef.current?.focus();
+                }}
+              >
+                <RiCloseLine aria-hidden="true" />
+              </InputGroupButton>
+            </InputGroupAddon>
+          ) : null}
+        </InputGroup>
+
+        {searchError ? (
+          <LoadFailure
+            title="商品搜索失败"
+            description="请稍后重试"
+            onRetry={() => void search.refresh()}
+          />
+        ) : searching ? (
+          <TemplateLoadingSkeletons />
+        ) : templates.length === 0 && !loadingMore && !hasMore ? (
           <Empty
             className="flex-1"
-            illustration={<BrandIllustration name="template" size={96} />}
-            title="此店铺暂无可用商品模板"
+            illustration={
+              <BrandIllustration
+                name={normalizedQuery ? "search-empty" : "template"}
+                size={96}
+              />
+            }
+            title={
+              normalizedQuery ? "没有匹配的商品" : "此店铺暂无可用商品模板"
+            }
             action={
-              <Button asChild size="touch" variant="outline">
-                <Link href="/group" replace>
-                  返回团购
-                </Link>
-              </Button>
+              normalizedQuery ? (
+                <Button
+                  size="touch"
+                  variant="outline"
+                  onClick={() => {
+                    setQuery("");
+                    setKeyword("");
+                  }}
+                >
+                  查看全部商品
+                </Button>
+              ) : (
+                <Button asChild size="touch" variant="outline">
+                  <Link href="/group" replace>
+                    返回团购
+                  </Link>
+                </Button>
+              )
             }
           />
         ) : templates.length > 0 ? (
@@ -454,16 +576,22 @@ export function ErrandShop({
           </div>
         ) : null}
 
-        <InfiniteListStatus
-          hasMore={hasMore}
-          loading={loadingMore}
-          error={loadMoreError}
-          hasItems={availableTotalCount > 0}
-          onLoadMore={() => void loadMore()}
-          loadingFallback={<TemplateLoadingSkeletons />}
-          endMessage={`已经到底，共 ${templates.length} 个可选商品`}
-          endMessageClassName="pt-6"
-        />
+        {!searching && !searchError ? (
+          <InfiniteListStatus
+            hasMore={hasMore}
+            loading={loadingMore}
+            error={loadMoreError}
+            hasItems={availableTotalCount > 0}
+            onLoadMore={() => void loadMore()}
+            loadingFallback={<TemplateLoadingSkeletons />}
+            endMessage={
+              normalizedQuery
+                ? `已经到底，共 ${templates.length} 个匹配商品`
+                : `已经到底，共 ${templates.length} 个可选商品`
+            }
+            endMessageClassName="pt-6"
+          />
+        ) : null}
       </section>
 
       {templates.length > 0 || totalCount > 0 ? (
