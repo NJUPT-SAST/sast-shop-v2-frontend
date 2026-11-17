@@ -16,10 +16,12 @@ import { PocketError, usePocketAction, usePocketOptions } from "./shared";
 export function PocketPhotoDeleteDialog({
   pocketId,
   photoId,
+  lifecycleRound,
   onClose,
   onDeleted,
 }: {
   pocketId: string;
+  lifecycleRound?: string;
   photoId: string;
   onClose: () => void;
   onDeleted: () => void;
@@ -79,7 +81,7 @@ export function PocketPhotoDeleteDialog({
             onClick={() => {
               void action.run(`delete:${photoId}`, async (requestId) => {
                 await deletePocketPhoto(
-                  { pocketId, photoId, requestId },
+                  { pocketId, photoId, lifecycleRound, requestId },
                   options,
                 );
                 onDeleted();
