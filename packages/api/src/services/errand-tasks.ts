@@ -1,6 +1,7 @@
 import { mapLifecycleRound, parseLifecycleRound } from "../lifecycle-round";
+import { fromJson } from "@bufbuild/protobuf";
 import { createClient } from "@connectrpc/connect";
-import { timestampFromDate, type Timestamp } from "@bufbuild/protobuf/wkt";
+import { TimestampSchema, type Timestamp } from "@bufbuild/protobuf/wkt";
 import type { ErrandTask as ProtoErrandTask } from "../gen/sast/sastshopv2/errand/v1/errand_task_pb";
 import { ErrandTaskService } from "../gen/sast/sastshopv2/errand/v1/errand_task_service_pb";
 import { ErrandTaskStatus } from "../gen/sast/sastshopv2/errand/v1/errand_task_status_pb";
@@ -317,13 +318,11 @@ function getRawTimestampString(
     return null;
   }
 
-  const date = new Date(rawValue);
-
-  if (Number.isNaN(date.getTime())) {
+  try {
+    return formatTimestamp(parseTimestampString(rawValue, "更新时间不正确"));
+  } catch {
     return null;
   }
-
-  return date.toISOString();
 }
 
 function mapResponseUpdatedAt(
@@ -451,16 +450,14 @@ function parseOptionalTimestampString(
   try {
     return parseProtoTimestamp(value, message);
   } catch {
-    // Keep accepting timezone offsets while preserving precision for UTC versions.
+    // ProtoJSON also accepts timezone offsets without truncating fractional seconds.
   }
 
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
+  try {
+    return fromJson(TimestampSchema, value);
+  } catch {
     throw new ValidationError(message);
   }
-
-  return timestampFromDate(date);
 }
 
 function parseTimestampString(value: string, message: string): Timestamp {
@@ -686,13 +683,22 @@ export async function saveShoppingTaskItem(
 
 export async function transitionToPendingDistributing(
   taskId: string,
-  _updatedAt?: string | null,
+  updatedAt?: string | null,
   options: ServiceOptions & { lifecycleRound?: string } = {},
 ): Promise<void> {
   const errandTaskId = parseInt64(taskId, "跑腿任务 ID 不正确");
   const dataSource = resolveDataSource(options);
 
   if (dataSource === "mock" || dataSource === "local") {
+    const resolvedUpdatedAt = await resolveErrandTaskUpdatedAt(
+      errandTaskId.toString(),
+      updatedAt,
+      options,
+    );
+    const parsedUpdatedAt = parseTimestampString(
+      resolvedUpdatedAt ?? "",
+      "更新时间不正确",
+    );
     const client = createClient(
       ErrandTaskService,
       createLocalTransport(options),
@@ -701,6 +707,7 @@ export async function transitionToPendingDistributing(
       client.transitionToPendingDistributing({
         lifecycleRound: parseLifecycleRound(options.lifecycleRound),
         errandTaskId,
+        updatedAt: parsedUpdatedAt,
       }),
     );
     return;
