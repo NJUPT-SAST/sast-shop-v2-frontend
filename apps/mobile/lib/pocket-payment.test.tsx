@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PocketPayment } from "@sast-shop/api";
 import { PocketPaymentSection } from "../components/pocket/pocket-payment";
+import * as paymentAppLinks from "./payment-app-links";
 
 const state = vi.hoisted(() => ({
   data: null as PocketPayment | null,
@@ -131,6 +132,7 @@ function payment(
     },
     payee: { id: "1", name: "同学甲", avatarUrl: "" },
     qrContent: "wxp://published-snapshot",
+    alipayQrContent: "",
     isOwner: false,
   };
 }
@@ -176,6 +178,7 @@ afterEach(async () => {
   container?.remove();
   root = null;
   container = null;
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -374,6 +377,47 @@ describe("West Pocket payment state regression", () => {
     await mount();
     expect(element.textContent).toContain("已提交支付确认");
     expect(element.querySelector('[data-testid="payment-qr"]')).toBeNull();
+  });
+
+  it("opens the published Alipay code and records payment only on confirmation", async () => {
+    const alipayQrContent = "https://qr.alipay.com/fkx-pocket-snapshot";
+    state.data = { ...payment(), alipayQrContent };
+    state.data.bill!.lifecycleRound = "2";
+    const openAlipay = vi
+      .spyOn(paymentAppLinks, "openAlipayPayment")
+      .mockImplementation(() => {});
+    const element = await mount();
+    await act(async () => button(element, "去付款").click());
+    const dialog = element.querySelector<HTMLElement>('[role="dialog"]')!;
+    const alipayTab = dialog.querySelector('[role="tab"]:last-child')!;
+    expect(alipayTab.textContent).toBe("支付宝");
+    await act(async () => {
+      alipayTab.dispatchEvent(
+        new MouseEvent("mousedown", { bubbles: true, button: 0 }),
+      );
+      alipayTab.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, key: "Enter" }),
+      );
+    });
+    expect(
+      dialog
+        .querySelector('[data-channel="alipay"]')
+        ?.getAttribute("data-content"),
+    ).toBe(alipayQrContent);
+    await act(async () => button(dialog, "打开支付宝付款").click());
+    expect(openAlipay).toHaveBeenCalledExactlyOnceWith(alipayQrContent);
+    expect(state.payBill).not.toHaveBeenCalled();
+    await act(async () => button(dialog, "我已支付 · ¥33.33").click());
+    expect(state.payBill).toHaveBeenCalledExactlyOnceWith(
+      {
+        billId: "20",
+        lifecycleRound: "2",
+        channel: "alipay",
+        updatedAt: "2026-09-23T12:00:00.123456789Z",
+      },
+      {},
+    );
+    expect(state.listPaymentQrCodes).not.toHaveBeenCalled();
   });
 
   it("removes an already-open stale QR when a new activity replaces the route", async () => {

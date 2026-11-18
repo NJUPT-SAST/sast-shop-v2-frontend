@@ -81,6 +81,10 @@ function PocketPaymentContent({
     bill.updatedAt &&
     payment.qrContent,
   );
+  const qrCodes =
+    canPay && payment
+      ? { wechat: payment.qrContent, alipay: payment.alipayQrContent }
+      : {};
   const unavailableMessage =
     result.error ||
     action.error ||
@@ -153,16 +157,15 @@ function PocketPaymentContent({
           payment?.payee?.avatarUrl ?? bill?.payee?.avatarUrl ?? null
         }
         verifyCode={bill?.verifyCode ?? ""}
-        qrCodes={canPay ? { wechat: payment!.qrContent } : {}}
+        qrCodes={qrCodes}
         defaultPlatform="wechat"
-        allowedPlatforms={["wechat"]}
+        allowedPlatforms={qrCodes.alipay ? ["wechat", "alipay"] : ["wechat"]}
         dismissible={!action.busy}
         status={dialogStatus}
         errorMessage={unavailableMessage}
         submitting={action.busy}
         onPay={async (platform) => {
-          if (platform !== "wechat" || !canPay || !bill?.updatedAt || !payment)
-            return;
+          if (!canPay || !qrCodes[platform] || !bill?.updatedAt) return;
           const updatedAt = bill.updatedAt;
           await action.run(
             `pay:${bill.id}:${bill.lifecycleRound ?? "1"}:${updatedAt}`,
@@ -173,7 +176,7 @@ function PocketPaymentContent({
                   billId: bill.id,
                   lifecycleRound: bill.lifecycleRound,
                   updatedAt,
-                  channel: "wechat",
+                  channel: platform,
                 },
                 options,
               );

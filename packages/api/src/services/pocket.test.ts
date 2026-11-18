@@ -170,6 +170,7 @@ describe("West Pocket facade boundaries", () => {
     const fetch = stub({
       pocket: { ...pocket, status: "collecting" },
       qrContent: "wxp://snapshot",
+      alipayQrContent: "https://qr.alipay.com/fkx-pocket-snapshot",
       bill: {
         id: "50",
         amountCents: 3333,
@@ -179,9 +180,25 @@ describe("West Pocket facade boundaries", () => {
     });
     const payment = await getPocketPayment(pocket.id, options);
     expect(payment.qrContent).toBe("wxp://snapshot");
+    expect(payment.alipayQrContent).toBe(
+      "https://qr.alipay.com/fkx-pocket-snapshot",
+    );
     expect(payment.bill?.updatedAt).toBe("2026-09-23T01:02:03.123456789Z");
     expect(fetch).toHaveBeenCalledOnce();
   });
+  it.each([undefined, "wxp://wrong-channel"])(
+    "omits an unavailable Alipay snapshot (%s) while keeping WeChat",
+    async (alipayQrContent) => {
+      stub({
+        pocket: { ...pocket, status: "collecting" },
+        qrContent: "wxp://snapshot",
+        alipayQrContent,
+      });
+      const payment = await getPocketPayment(pocket.id, options);
+      expect(payment.qrContent).toBe("wxp://snapshot");
+      expect(payment.alipayQrContent).toBe("");
+    },
+  );
   it("does not report cloud deletion complete when revoke is merely queued", async () => {
     stub({
       faceProfile: { id: "1", status: "revoking", revision: "3" },
