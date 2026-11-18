@@ -1,5 +1,6 @@
 import { mapLifecycleRound, parseLifecycleRound } from "../lifecycle-round";
 import { createClient } from "@connectrpc/connect";
+import { validatePaymentQrContent } from "@sast-shop/domain";
 import type { ServiceOptions } from "../data-source";
 import { resolveDataSource } from "../data-source";
 import { FeatureUnavailableError, ValidationError } from "../errors";
@@ -154,6 +155,7 @@ export interface PocketPayment {
   bill: PaymentBill | null;
   payee: PocketUser | null;
   qrContent: string;
+  alipayQrContent: string;
   isOwner: boolean;
 }
 
@@ -578,11 +580,13 @@ export async function getPocketPayment(
       lifecycleRound: parseLifecycleRound(options.lifecycleRound),
     }),
   );
+  const alipay = validatePaymentQrContent("alipay", response.alipayQrContent);
   return {
     pocket: pocket(required(response.pocket, "getPocketPayment")),
     bill: response.bill ? mapPaymentBill(response.bill) : null,
     payee: response.payee ? user(response.payee) : null,
     qrContent: response.qrContent,
+    alipayQrContent: alipay.ok ? alipay.content : "",
     isOwner: response.isOwner,
   };
 }

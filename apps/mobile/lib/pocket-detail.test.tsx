@@ -207,6 +207,7 @@ beforeEach(() => {
       bill: { ...bill },
       payee: owner,
       qrContent: "wxp://published-snapshot",
+      alipayQrContent: "",
       isOwner: false,
     }));
   rpc.ensureAgreement.mockReset().mockResolvedValue(true);
@@ -692,6 +693,7 @@ describe("Pocket payment drawers", () => {
       bill: { ...bill },
       payee: owner,
       qrContent: "wxp://published-snapshot",
+      alipayQrContent: "",
       isOwner: false,
     }));
     await click("重新加载", dialog());
