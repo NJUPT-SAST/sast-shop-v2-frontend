@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent,
+} from "react";
 import { useMobileRouter as useRouter } from "@/components/mobile-navigation-feedback";
 import { RiSearchLine } from "@remixicon/react";
 import {
@@ -45,6 +52,7 @@ import {
 } from "@workspace/ui/components/drawer";
 import { pocketError, pocketMoney } from "@/lib/pocket";
 import { reconcilePocketSelections } from "@/lib/pocket-selection";
+import { useMobileKeyboard } from "@/hooks/use-mobile-keyboard";
 import { ManagedImage } from "../managed-image";
 import {
   PocketConsent,
@@ -54,6 +62,9 @@ import {
   usePocketOptions,
   usePocketResource,
 } from "./shared";
+
+const DRAWER_DEFAULT_HEIGHT = "clamp(72dvh, 460px, 80dvh)";
+const DRAWER_DRAG_THRESHOLD = 32;
 
 export function PocketMembersDrawer({
   detail,
@@ -66,6 +77,11 @@ export function PocketMembersDrawer({
 }) {
   const options = usePocketOptions();
   const router = useRouter();
+  const keyboardOpen = useMobileKeyboard();
+  const [expanded, setExpanded] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const drawerDrag = useRef<{ pointerId: number; startY: number } | null>(null);
+  const suppressHandleClick = useRef(false);
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
@@ -253,6 +269,45 @@ export function PocketMembersDrawer({
     );
   }
 
+  function startDrawerDrag(event: PointerEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    if (!event.isPrimary || event.button !== 0) return;
+    drawerDrag.current = {
+      pointerId: event.pointerId,
+      startY: event.clientY,
+    };
+    suppressHandleClick.current = false;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function moveDrawerDrag(event: PointerEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    const drag = drawerDrag.current;
+    if (drag?.pointerId !== event.pointerId) return;
+    const offset = drag.startY - event.clientY;
+    if (Math.abs(offset) >= DRAWER_DRAG_THRESHOLD) {
+      suppressHandleClick.current = true;
+    }
+    setDragOffset(offset);
+  }
+
+  function finishDrawerDrag(event: PointerEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    const drag = drawerDrag.current;
+    if (drag?.pointerId !== event.pointerId) return;
+    drawerDrag.current = null;
+    setDragOffset(0);
+    if (event.type !== "pointerup") return;
+    const offset = drag.startY - event.clientY;
+    if (offset >= DRAWER_DRAG_THRESHOLD) {
+      suppressHandleClick.current = true;
+      setExpanded(true);
+    } else if (offset <= -DRAWER_DRAG_THRESHOLD) {
+      suppressHandleClick.current = true;
+      setExpanded(false);
+    }
+  }
+
   return (
     <Drawer
       open
@@ -261,7 +316,40 @@ export function PocketMembersDrawer({
       }}
       dismissible={!action.busy}
     >
-      <DrawerContent className="max-h-[88dvh] overflow-clip sm:mx-auto sm:max-w-lg">
+      <DrawerContent
+        className={`max-h-[94dvh] overflow-clip sm:mx-auto sm:max-w-lg ${
+          keyboardOpen
+            ? "h-[var(--pocket-drawer-height)]"
+            : "h-[var(--pocket-drawer-height)]!"
+        }`}
+        style={
+          {
+            "--pocket-drawer-height": `clamp(${DRAWER_DEFAULT_HEIGHT}, calc(${expanded ? "94dvh" : DRAWER_DEFAULT_HEIGHT} + ${dragOffset}px), 94dvh)`,
+          } as CSSProperties
+        }
+        handle={
+          <button
+            type="button"
+            aria-label={expanded ? "收起分摊弹窗" : "展开分摊弹窗"}
+            aria-expanded={expanded}
+            data-vaul-no-drag
+            className="mx-auto flex h-11 w-32 shrink-0 cursor-ns-resize touch-none select-none items-center justify-center rounded-lg focus-visible:outline-2 focus-visible:outline-ring"
+            onPointerDown={startDrawerDrag}
+            onPointerMove={moveDrawerDrag}
+            onPointerUp={finishDrawerDrag}
+            onPointerCancel={finishDrawerDrag}
+            onLostPointerCapture={finishDrawerDrag}
+            onClick={(event) => {
+              if (event.detail === 0 || !suppressHandleClick.current) {
+                setExpanded((value) => !value);
+              }
+              suppressHandleClick.current = false;
+            }}
+          >
+            <span className="pointer-events-none h-1.5 w-[100px] rounded-full bg-muted dark:bg-muted-foreground/60" />
+          </button>
+        }
+      >
         <DrawerHeader className="shrink-0">
           <DrawerTitle>{preview ? "核对分摊金额" : "选择分摊人"}</DrawerTitle>
           <DrawerDescription
@@ -367,13 +455,6 @@ export function PocketMembersDrawer({
                   />
                 ))}
               </div>
-              <PocketConsent
-                checked={confirmed}
-                onChange={setConfirmed}
-                disabled={action.busy}
-              >
-                已核对名单和金额，发起后不可修改
-              </PocketConsent>
             </div>
           ) : (
             <>
@@ -512,51 +593,56 @@ export function PocketMembersDrawer({
             </>
           )}
         </div>
-        <DrawerFooter
-          className={
-            preview
-              ? "border-t"
-              : "flex-col items-stretch gap-3 border-t [&>[data-slot=button]]:flex-none"
-          }
-        >
+        <DrawerFooter className="flex-col items-stretch gap-3 border-t">
           {preview ? (
             <>
-              <Button
-                variant="outline"
-                size="touch"
+              <PocketConsent
+                checked={confirmed}
+                onChange={setConfirmed}
                 disabled={action.busy}
-                onClick={() => setPreview(null)}
               >
-                调整名单
-              </Button>
-              <Button
-                size="touch"
-                disabled={
-                  action.busy || !confirmed || current.status !== "draft"
-                }
-                onClick={() =>
-                  void action.run(
-                    `publish:${preview.revision}`,
-                    async (requestId) => {
-                      await publishPocket(
-                        {
-                          pocketId: current.id,
-                          lifecycleRound: current.lifecycleRound,
-                          expectedRevision: preview.revision,
-                          requestId,
-                        },
-                        options,
-                      );
-                      if (!mounted.current) return;
-                      onChanged();
-                      onClose();
-                      router.replace(`/pocket/${current.id}`);
-                    },
-                  )
-                }
-              >
-                {action.busy ? <Spinner /> : null}发起收款
-              </Button>
+                已核对名单和金额，发起后不可修改
+              </PocketConsent>
+              <div className="flex items-stretch gap-2">
+                <Button
+                  variant="outline"
+                  size="touch"
+                  className="min-w-0 flex-1"
+                  disabled={action.busy}
+                  onClick={() => setPreview(null)}
+                >
+                  调整名单
+                </Button>
+                <Button
+                  size="touch"
+                  className="min-w-0 flex-1"
+                  disabled={
+                    action.busy || !confirmed || current.status !== "draft"
+                  }
+                  onClick={() =>
+                    void action.run(
+                      `publish:${preview.revision}`,
+                      async (requestId) => {
+                        await publishPocket(
+                          {
+                            pocketId: current.id,
+                            lifecycleRound: current.lifecycleRound,
+                            expectedRevision: preview.revision,
+                            requestId,
+                          },
+                          options,
+                        );
+                        if (!mounted.current) return;
+                        onChanged();
+                        onClose();
+                        router.replace(`/pocket/${current.id}`);
+                      },
+                    )
+                  }
+                >
+                  {action.busy ? <Spinner /> : null}发起收款
+                </Button>
+              </div>
             </>
           ) : (
             <>

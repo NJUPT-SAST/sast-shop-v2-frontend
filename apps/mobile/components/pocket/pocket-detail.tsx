@@ -186,9 +186,23 @@ function PocketDetailContent({
     isOwner &&
     ["draft", "publishing", "collecting"].includes(pocket.status) &&
     !hasPayment;
-  const failedMessages = notifications.filter((item) =>
-    ["failed", "pending", "retrying"].includes(item.status),
-  );
+  const paymentNotifications = new Map<string, boolean | undefined>();
+  for (const notification of notifications) {
+    if (
+      notification.kind === "payment" &&
+      notification.recipientUserId !== pocket.ownerId
+    ) {
+      paymentNotifications.set(
+        notification.recipientUserId,
+        notification.isRead,
+      );
+    }
+  }
+  const readStatuses = [...paymentNotifications.values()];
+  const unreadCount = readStatuses.filter((read) => read === false).length;
+  const unknownReadCount = readStatuses.filter(
+    (read) => read === undefined,
+  ).length;
   return (
     <div className="flex min-w-0 flex-col gap-3 py-3">
       <div className="flex items-start justify-between gap-3">
@@ -411,14 +425,12 @@ function PocketDetailContent({
             }
           />
         ))}
-      {isOwner && notifications.length > 0 ? (
+      {isOwner && readStatuses.length > 0 ? (
         <Alert>
           <AlertDescription className="leading-6">
-            飞书通知已送达
-            {
-              notifications.filter((item) => item.status === "sent").length
-            } / {notifications.length} 条
-            {failedMessages.length ? "，其余待重试" : ""}
+            {unknownReadCount === readStatuses.length
+              ? `飞书通知已读状态待确认（${unknownReadCount} 人）`
+              : `飞书通知未读 ${unreadCount} 人${unknownReadCount ? `，${unknownReadCount} 人状态待确认` : ""}`}
           </AlertDescription>
         </Alert>
       ) : null}
