@@ -1006,7 +1006,7 @@ function mapErrandTaskBrief(task: ErrandTaskBrief): RenderableOrder {
     status: task.status,
     amount: null,
     summary: `${task.itemCount} 种商品`,
-    imageUrls: [],
+    imageUrls: task.items.map((item) => item.productImageUrl).filter(Boolean),
     unitPriceCents: null,
     quantity: null,
     itemCount: task.itemCount,
