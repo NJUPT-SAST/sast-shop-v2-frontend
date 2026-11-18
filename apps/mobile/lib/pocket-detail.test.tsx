@@ -275,6 +275,59 @@ async function advance(ms: number) {
   await act(async () => vi.advanceTimersByTimeAsync(ms));
 }
 
+it("counts unread payment notifications by recipient and keeps unknown reads separate", async () => {
+  detail.notifications = [
+    {
+      id: "1",
+      recipientUserId: "1",
+      kind: "summary",
+      status: "sent",
+      errorCode: "",
+    },
+    {
+      id: "2",
+      recipientUserId: "2",
+      kind: "payment",
+      status: "sent",
+      errorCode: "",
+      isRead: false,
+    },
+    {
+      id: "3",
+      recipientUserId: "2",
+      kind: "payment_qr",
+      status: "sent",
+      errorCode: "",
+    },
+    {
+      id: "4",
+      recipientUserId: "2",
+      kind: "reminder",
+      status: "sent",
+      errorCode: "",
+    },
+    {
+      id: "5",
+      recipientUserId: "3",
+      kind: "payment",
+      status: "sent",
+      errorCode: "",
+      isRead: true,
+    },
+    {
+      id: "6",
+      recipientUserId: "4",
+      kind: "payment",
+      status: "sent",
+      errorCode: "",
+    },
+  ];
+
+  await act(async () => root.render(<PocketDetailPage pocketId="12" />));
+
+  expect(container.textContent).toContain("飞书通知未读 1 人，1 人状态待确认");
+});
+
 describe("Pocket draft editing", () => {
   it("refreshes after a page refresh without replacing an unsaved amount", async () => {
     await mountDraft();

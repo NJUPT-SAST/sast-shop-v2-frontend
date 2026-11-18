@@ -111,6 +111,7 @@ export interface PocketNotification {
   kind: string;
   status: string;
   errorCode: string;
+  isRead?: boolean;
 }
 export interface PocketDetail {
   pocket: WestPocket;
@@ -318,6 +319,7 @@ function notification(value: ProtoNotification): PocketNotification {
     kind: value.kind,
     status: value.status,
     errorCode: value.errorCode,
+    ...(value.isRead === undefined ? {} : { isRead: value.isRead }),
   };
 }
 
