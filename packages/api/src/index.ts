@@ -1,4 +1,13 @@
 export {
+  createProductCategory,
+  deleteProductCategory,
+  listProductCategories,
+  type CreateProductCategoryInput,
+  type DeleteProductCategoryInput,
+  type ProductCategory,
+  type ProductCategoryList,
+} from "./services/product-categories";
+export {
   resolveDataSource,
   type DataSource,
   type ServiceOptions,
@@ -189,6 +198,7 @@ export {
   type UpdateProductTemplateInput,
   type UpdateProductTemplatePatch,
   type ProductTemplateSearchMode,
+  type ProductTemplateCategoryFilterMode,
 } from "./services/product-templates";
 export {
   compareUpdatedAt,

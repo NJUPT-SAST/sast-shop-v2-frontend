@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file sast/sastshopv2/catalog/v1/product_template.proto.
  */
 export const file_sast_sastshopv2_catalog_v1_product_template: GenFile = /*@__PURE__*/
-  fileDesc("CjFzYXN0L3Nhc3RzaG9wdjIvY2F0YWxvZy92MS9wcm9kdWN0X3RlbXBsYXRlLnByb3RvEhpzYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MSLBAQoPUHJvZHVjdFRlbXBsYXRlEgoKAmlkGAEgASgDEg0KBXRpdGxlGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEhMKC3ByaWNlX2NlbnRzGAQgASgFEhAKCHN0b3JlX2lkGAUgASgDEhYKDm1haW5faW1hZ2VfdXJsGAYgASgJEg8KB2JhcmNvZGUYByABKAkSLgoKdXBkYXRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBiBnByb3RvMw", [file_google_protobuf_timestamp]);
+  fileDesc("CjFzYXN0L3Nhc3RzaG9wdjIvY2F0YWxvZy92MS9wcm9kdWN0X3RlbXBsYXRlLnByb3RvEhpzYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MSLrAQoPUHJvZHVjdFRlbXBsYXRlEgoKAmlkGAEgASgDEg0KBXRpdGxlGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEhMKC3ByaWNlX2NlbnRzGAQgASgFEhAKCHN0b3JlX2lkGAUgASgDEhYKDm1haW5faW1hZ2VfdXJsGAYgASgJEg8KB2JhcmNvZGUYByABKAkSLgoKdXBkYXRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASGAoLY2F0ZWdvcnlfaWQYCSABKANIAIgBAUIOCgxfY2F0ZWdvcnlfaWRiBnByb3RvMw", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.ProductTemplate
@@ -57,6 +57,11 @@ export type ProductTemplate = Message<"sast.sastshopv2.catalog.v1.ProductTemplat
    * @generated from field: google.protobuf.Timestamp updated_at = 8;
    */
   updatedAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: optional int64 category_id = 9;
+   */
+  categoryId?: bigint | undefined;
 };
 
 /**

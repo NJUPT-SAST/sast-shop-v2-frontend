@@ -7,13 +7,15 @@ import { clearResourceCache } from "@workspace/ui/lib/resource-cache";
 import { SpotMarketplace } from "../components/spot-marketplace";
 import { ProductTemplateManager } from "../components/product-template-manager";
 
-const { listSpotGoods, listProductTemplatesPage } = vi.hoisted(() => ({
+const { listSpotGoods, listProductTemplatesPage, listProductCategories } = vi.hoisted(() => ({
   listSpotGoods: vi.fn(),
   listProductTemplatesPage: vi.fn(),
+  listProductCategories: vi.fn(),
 }));
 vi.mock("@sast-shop/api", () => ({
   listSpotGoods,
   listProductTemplatesPage,
+  listProductCategories,
   createSpotOrders: vi.fn(),
   getSpotGoods: vi.fn(),
   createProductTemplate: vi.fn(),
@@ -113,6 +115,18 @@ beforeEach(() => {
   clearResourceCache();
   listSpotGoods.mockReset();
   listProductTemplatesPage.mockReset();
+  listProductCategories.mockReset().mockResolvedValue({
+    categories: [
+      {
+        id: "2001",
+        storeId: "3001",
+        parentId: null,
+        name: "杂货",
+        sortOrder: 0,
+      },
+    ],
+    hasUncategorizedProducts: false,
+  });
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);

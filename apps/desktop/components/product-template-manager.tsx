@@ -21,13 +21,17 @@ import {
 import { toast } from "sonner";
 import {
   createProductTemplate,
+  createProductCategory,
+  deleteProductCategory,
   deleteProductTemplate,
   getProductTemplate,
   listProductTemplatesPage,
+  listProductCategories,
   updateProductTemplate,
   ValidationError,
   type DataSource,
   type ProductTemplate,
+  type ProductCategory,
   type PageResult,
   type ServiceOptions,
   type Store,
@@ -66,6 +70,7 @@ import {
   SelectGroup,
   SelectItem,
   SelectTrigger,
+  SelectValue,
 } from "@workspace/ui/components/select";
 import { Spinner } from "@workspace/ui/components/spinner";
 import { Skeleton } from "@workspace/ui/components/skeleton";
@@ -83,6 +88,7 @@ import {
 
 type TemplateDraft = {
   storeId: string;
+  categoryId: string;
   barcode: string;
   title: string;
   description: string;
@@ -141,6 +147,42 @@ export function ProductTemplateManager({
     const timeout = window.setTimeout(() => setDebouncedKeyword(query), 250);
     return () => window.clearTimeout(timeout);
   }, [query]);
+  const [listSelection, setListSelection] = useState<{
+    storeId: string;
+    value: string;
+  } | null>(null);
+  const listFilter =
+    listSelection?.storeId === selectedStoreId
+      ? (listSelection?.value ?? "all")
+      : "all";
+  const filterOptions = useMemo(() => {
+    if (listFilter === "all") return {};
+    if (listFilter === "uncategorized")
+      return { categoryFilterMode: "uncategorized" as const };
+    return { categoryFilterMode: "category" as const, categoryId: listFilter };
+  }, [listFilter]);
+  const listCategories = useCachedResource({
+    cacheKey: JSON.stringify([
+      "desktop:template-list-categories",
+      dataSource,
+      connectBaseUrl,
+      selectedStoreId,
+    ]),
+    staleTime: 30_000,
+    load: () =>
+      selectedStoreId
+        ? listProductCategories(selectedStoreId, serviceOptions)
+        : Promise.resolve({ categories: [], hasUncategorizedProducts: false }),
+  });
+  const listCategoryOptions = listCategories.data?.categories ?? [];
+  const listCategoryLabel = (category: ProductCategory) =>
+    category.parentId
+      ? (listCategoryOptions.find((parent) => parent.id === category.parentId)
+          ?.name ?? "") +
+        " / " +
+        category.name
+      : category.name;
+  const hasListQuery = Boolean(debouncedKeyword || listFilter !== "all");
   const search = useCachedResource({
     cacheKey: JSON.stringify([
       "desktop:template-search",
@@ -149,15 +191,17 @@ export function ProductTemplateManager({
       selectedStoreId,
       initialPage.pageSize,
       debouncedKeyword,
+      listFilter,
     ]),
     staleTime: 30_000,
     refreshKey: initialPage,
     load: () =>
-      debouncedKeyword && selectedStoreId
+      hasListQuery && selectedStoreId
         ? listProductTemplatesPage({
             dataSource,
             connectBaseUrl,
             storeId: selectedStoreId,
+            ...filterOptions,
             page: 1,
             pageSize: initialPage.pageSize,
             keyword: debouncedKeyword,
@@ -165,9 +209,10 @@ export function ProductTemplateManager({
         : Promise.resolve(initialPage),
   });
   const searching =
-    query !== debouncedKeyword || Boolean(query && !search.data);
+    query !== debouncedKeyword ||
+    (hasListQuery && !search.data && !search.error);
   const searchError =
-    query === debouncedKeyword && query && search.error
+    query === debouncedKeyword && hasListQuery && search.error
       ? "搜索暂不可用，请稍后重试"
       : null;
   const firstPage = useMemo(
@@ -180,10 +225,10 @@ export function ProductTemplateManager({
             totalCount: 0,
             hasMore: false,
           }
-        : query
+        : hasListQuery
           ? (search.data ?? initialPage)
           : initialPage,
-    [initialPage, query, search.data, searching],
+    [initialPage, hasListQuery, search.data, searching],
   );
   const loadPage = useCallback(
     (page: number) => {
@@ -192,6 +237,7 @@ export function ProductTemplateManager({
         dataSource,
         connectBaseUrl,
         storeId: selectedStoreId,
+        ...filterOptions,
         page,
         pageSize: initialPage.pageSize,
         keyword: debouncedKeyword,
@@ -203,6 +249,7 @@ export function ProductTemplateManager({
       initialPage,
       selectedStoreId,
       debouncedKeyword,
+      filterOptions,
     ],
   );
   const {
@@ -222,6 +269,7 @@ export function ProductTemplateManager({
       connectBaseUrl,
       selectedStoreId,
       query,
+      listFilter,
     ]),
   });
   const [editing, setEditing] = useState<ProductTemplate | null>(null);
@@ -240,6 +288,13 @@ export function ProductTemplateManager({
   const [draft, setDraft] = useState<TemplateDraft>(() =>
     createDraft(selectedStoreId, prefillBarcode),
   );
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [categoryRootId, setCategoryRootId] = useState("");
+  const [categoryCreateParentId, setCategoryCreateParentId] = useState<
+    string | null | undefined
+  >(undefined);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [categoryBusy, setCategoryBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -247,6 +302,38 @@ export function ProductTemplateManager({
     prefillBarcode,
     startCreating,
   );
+  useEffect(() => {
+    if (!dialogOpen || !draft.storeId) return;
+    let active = true;
+    void listProductCategories(draft.storeId, serviceOptions)
+      .then((result) => {
+        if (!active) return;
+        setCategories(result.categories);
+        const saved = result.categories.find(
+          (item) => item.id === editing?.categoryId,
+        );
+        const roots = result.categories.filter(
+          (item) => item.parentId === null,
+        );
+        const first = roots.length === 1 ? roots[0] : undefined;
+        setCategoryRootId(saved?.parentId ?? saved?.id ?? first?.id ?? "");
+        if (
+          !editing &&
+          first &&
+          !result.categories.some((item) => item.parentId === first.id)
+        ) {
+          setDraft((current) =>
+            current.categoryId ? current : { ...current, categoryId: first.id },
+          );
+        }
+      })
+      .catch(() => {
+        if (active) toast.error("分类加载失败，请稍后重试");
+      });
+    return () => {
+      active = false;
+    };
+  }, [dialogOpen, draft.storeId, editing, serviceOptions]);
 
   const loadTemplate = useCallback(
     async (id: string) => {
@@ -263,6 +350,7 @@ export function ProductTemplateManager({
         setEditing(template);
         setDraft({
           storeId: template.storeId,
+          categoryId: template.categoryId ?? "",
           barcode: template.barcode,
           title: template.title,
           description: template.description,
@@ -382,6 +470,7 @@ export function ProductTemplateManager({
     try {
       const payload = {
         storeId: draft.storeId,
+        categoryId: draft.categoryId,
         barcode: draft.barcode.trim(),
         title: draft.title.trim(),
         description: draft.description.trim(),
@@ -395,6 +484,9 @@ export function ProductTemplateManager({
               updatedAt: requireUpdatedAt(editing),
               patch: {
                 barcode: payload.barcode,
+                ...(payload.categoryId !== editing.categoryId
+                  ? { categoryId: payload.categoryId }
+                  : {}),
                 title: payload.title,
                 description: payload.description,
                 priceCents: payload.priceCents,
@@ -407,7 +499,7 @@ export function ProductTemplateManager({
 
       if (!mounted.current || generation !== editGeneration.current) return;
       if (!editing) rememberTemplateStoreId(saved.storeId);
-      if (query) void search.refresh();
+      if (hasListQuery) void search.refresh();
       else if (saved.storeId === selectedStoreId)
         setTemplates((current) => upsertTemplate(current, saved));
       else
@@ -521,6 +613,31 @@ export function ProductTemplateManager({
                         </SelectItem>
                       ))}
                     </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="template-list-category-filter">
+                  分类筛选
+                </FieldLabel>
+                <Select
+                  value={listFilter}
+                  onValueChange={(value) => {
+                    if (selectedStoreId && value)
+                      setListSelection({ storeId: selectedStoreId, value });
+                  }}
+                >
+                  <SelectTrigger id="template-list-category-filter">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全部分类</SelectItem>
+                    <SelectItem value="uncategorized">未分类</SelectItem>
+                    {listCategoryOptions.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {listCategoryLabel(category)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </Field>
@@ -728,13 +845,259 @@ export function ProductTemplateManager({
               <fieldset disabled={submitting || uploading} className="min-w-0">
                 <FieldGroup className="grid gap-5 sm:grid-cols-2">
                   <Field>
+                    <FieldLabel htmlFor="template-form-category-root">
+                      商品分类
+                    </FieldLabel>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Select
+                        value={categoryRootId}
+                        onValueChange={(rootId) => {
+                          if (
+                            !categories.some(
+                              (item) =>
+                                item.id === rootId && item.parentId === null,
+                            )
+                          )
+                            return;
+                          setCategoryRootId(rootId);
+                          const children = categories.filter(
+                            (category) => category.parentId === rootId,
+                          );
+                          setDraft((current) => ({
+                            ...current,
+                            categoryId: children.length ? "" : rootId,
+                          }));
+                        }}
+                      >
+                        <SelectTrigger id="template-form-category-root">
+                          <span className="truncate">
+                            {categories.find(
+                              (category) => category.id === categoryRootId,
+                            )?.name ?? "选择一级分类"}
+                          </span>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            {categories
+                              .filter((category) => category.parentId === null)
+                              .map((category) => (
+                                <SelectItem
+                                  key={category.id}
+                                  value={category.id}
+                                >
+                                  {category.name}
+                                </SelectItem>
+                              ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={
+                          categories.find(
+                            (category) => category.id === draft.categoryId,
+                          )?.parentId
+                            ? draft.categoryId
+                            : ""
+                        }
+                        disabled={
+                          !categories.some(
+                            (category) => category.parentId === categoryRootId,
+                          )
+                        }
+                        onValueChange={(categoryId) => {
+                          if (
+                            !categories.some(
+                              (item) =>
+                                item.id === categoryId &&
+                                item.parentId === categoryRootId,
+                            )
+                          )
+                            return;
+                          setDraft((current) => ({ ...current, categoryId }));
+                        }}
+                      >
+                        <SelectTrigger aria-label="二级分类">
+                          <span className="truncate">
+                            {categories.find(
+                              (category) => category.id === draft.categoryId,
+                            )?.name ?? "选择二级分类"}
+                          </span>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            {categories
+                              .filter(
+                                (category) =>
+                                  category.parentId === categoryRootId,
+                              )
+                              .map((category) => (
+                                <SelectItem
+                                  key={category.id}
+                                  value={category.id}
+                                >
+                                  {category.name}
+                                </SelectItem>
+                              ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {formError && !draft.categoryId ? (
+                      <p role="alert" className="text-sm text-destructive">
+                        请选择商品分类
+                      </p>
+                    ) : null}
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setNewCategoryName("");
+                          setCategoryCreateParentId(null);
+                        }}
+                      >
+                        新增一级分类
+                      </Button>
+                      {categoryRootId ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setNewCategoryName("");
+                            setCategoryCreateParentId(categoryRootId);
+                          }}
+                        >
+                          新增二级分类
+                        </Button>
+                      ) : null}
+                      {draft.categoryId &&
+                      !categories.some(
+                        (category) => category.parentId === draft.categoryId,
+                      ) ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          disabled={categoryBusy}
+                          onClick={async () => {
+                            if (!draft.storeId || !draft.categoryId) return;
+                            setCategoryBusy(true);
+                            try {
+                              await deleteProductCategory(
+                                {
+                                  storeId: draft.storeId,
+                                  categoryId: draft.categoryId,
+                                },
+                                serviceOptions,
+                              );
+                              const result = await listProductCategories(
+                                draft.storeId,
+                                serviceOptions,
+                              );
+                              setCategories(result.categories);
+                              if (
+                                selectedStoreId === draft.storeId &&
+                                listFilter === draft.categoryId
+                              ) {
+                                setListSelection(null);
+                              }
+                              void listCategories.refresh();
+                              setCategoryRootId("");
+                              setDraft((current) => ({
+                                ...current,
+                                categoryId: "",
+                              }));
+                            } catch (caught) {
+                              setFormError(readErrorMessage(caught));
+                            } finally {
+                              setCategoryBusy(false);
+                            }
+                          }}
+                        >
+                          删除所选分类
+                        </Button>
+                      ) : null}
+                    </div>
+                    {categoryCreateParentId !== undefined ? (
+                      <div className="flex gap-2">
+                        <Input
+                          aria-label="新分类名称"
+                          value={newCategoryName}
+                          onChange={(event) =>
+                            setNewCategoryName(event.target.value)
+                          }
+                          placeholder={
+                            categoryCreateParentId
+                              ? "二级分类名称"
+                              : "一级分类名称"
+                          }
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={categoryBusy}
+                          onClick={async () => {
+                            if (!draft.storeId || categoryBusy) return;
+                            setCategoryBusy(true);
+                            try {
+                              const category = await createProductCategory(
+                                {
+                                  storeId: draft.storeId,
+                                  name: newCategoryName,
+                                  ...(categoryCreateParentId
+                                    ? { parentId: categoryCreateParentId }
+                                    : {}),
+                                },
+                                serviceOptions,
+                              );
+                              setCategories((current) => [
+                                ...current,
+                                category,
+                              ]);
+                              void listCategories.refresh();
+                              setCategoryRootId(
+                                category.parentId ?? category.id,
+                              );
+                              setDraft((current) => ({
+                                ...current,
+                                categoryId: category.id,
+                              }));
+                              setCategoryCreateParentId(undefined);
+                            } catch (caught) {
+                              setFormError(readErrorMessage(caught));
+                            } finally {
+                              setCategoryBusy(false);
+                            }
+                          }}
+                        >
+                          创建
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setCategoryCreateParentId(undefined)}
+                        >
+                          取消
+                        </Button>
+                      </div>
+                    ) : null}
+                  </Field>
+                  <Field>
                     <FieldLabel htmlFor="template-form-store">店铺</FieldLabel>
                     <Select
                       value={draft.storeId}
                       disabled={Boolean(editing) || submitting || uploading}
                       onValueChange={(storeId) => {
                         rememberTemplateStoreId(storeId);
-                        setDraft((current) => ({ ...current, storeId }));
+                        setDraft((current) => ({
+                          ...current,
+                          storeId,
+                          categoryId: "",
+                        }));
+                        setCategoryRootId("");
                       }}
                     >
                       <SelectTrigger id="template-form-store">
@@ -989,6 +1352,7 @@ function getTemplateKey(template: ProductTemplate) {
 function createDraft(storeId: string | null, barcode: string): TemplateDraft {
   return {
     storeId: storeId ?? "",
+    categoryId: "",
     barcode,
     title: "",
     description: "",
@@ -1001,6 +1365,7 @@ function validateDraft(
   draft: TemplateDraft,
 ): { ok: true; priceCents: number } | { ok: false; message: string } {
   if (!draft.storeId) return { ok: false, message: "请选择店铺" };
+  if (!draft.categoryId) return { ok: false, message: "请选择商品分类" };
   if (!/^\d{1,64}$/.test(draft.barcode.trim())) {
     return { ok: false, message: "商品条码应为 1 至 64 位数字" };
   }
