@@ -18,6 +18,7 @@ import {
   type DataSource,
   type PageResult,
   type ProductTemplate,
+  type ProductCategory,
   type ServiceOptions,
   type Store,
 } from "@sast-shop/api";
@@ -68,6 +69,9 @@ type ErrandShopProps = {
   connectBaseUrl: string;
   store: Store;
   initialPage: PageResult<ProductTemplate>;
+  categories?: ProductCategory[];
+  initialCategoryId?: string | null;
+  hasUncategorizedProducts?: boolean;
 };
 
 type ErrandCartItem = {
@@ -84,7 +88,28 @@ export function ErrandShop({
   connectBaseUrl,
   store,
   initialPage,
+  categories = [],
+  initialCategoryId = null,
+  hasUncategorizedProducts = false,
 }: ErrandShopProps) {
+  const initialFilter = initialCategoryId ?? "uncategorized";
+  const [requestedCategoryId, setSelectedCategoryId] = useState<string | null>(
+    null,
+  );
+  const selectedCategoryId =
+    requestedCategoryId &&
+    (categories.some((category) => category.id === requestedCategoryId) ||
+      (requestedCategoryId === "uncategorized" && hasUncategorizedProducts))
+      ? requestedCategoryId
+      : initialFilter;
+  const selectedCategory = categories.find(
+    (category) => category.id === selectedCategoryId,
+  );
+  const selectedRootId = selectedCategory?.parentId ?? selectedCategory?.id;
+  const roots = categories.filter((category) => category.parentId === null);
+  const children = categories.filter(
+    (category) => category.parentId === selectedRootId,
+  );
   const [query, setQuery] = useState("");
   const [keyword, setKeyword] = useState("");
   const [composing, setComposing] = useState(false);
@@ -108,8 +133,20 @@ export function ErrandShop({
         pageSize: initialPage.pageSize,
         keyword: activeKeyword,
         searchMode: "titleFullText",
+        categoryFilterMode:
+          selectedCategoryId === "uncategorized" ? "uncategorized" : "category",
+        ...(selectedCategoryId === "uncategorized"
+          ? {}
+          : { categoryId: selectedCategoryId }),
       }),
-    [activeKeyword, connectBaseUrl, dataSource, initialPage.pageSize, store.id],
+    [
+      activeKeyword,
+      connectBaseUrl,
+      dataSource,
+      initialPage.pageSize,
+      selectedCategoryId,
+      store.id,
+    ],
   );
   const queryIdentity = JSON.stringify([
     "mobile:shop-product-search",
@@ -119,20 +156,26 @@ export function ErrandShop({
     initialPage.pageSize,
     "titleFullText",
     activeKeyword,
+    selectedCategoryId,
   ]);
+  const hasCustomFilter = Boolean(
+    normalizedQuery || selectedCategoryId !== initialFilter,
+  );
   const search = useCachedResource({
     cacheKey: queryIdentity,
     staleTime: 30_000,
     refreshKey: initialPage,
-    load: () => (activeKeyword ? loadPage(1) : Promise.resolve(initialPage)),
+    load: () =>
+      activeKeyword || selectedCategoryId !== initialFilter
+        ? loadPage(1)
+        : Promise.resolve(initialPage),
   });
+  const searchPending =
+    Boolean(normalizedQuery) && (composing || normalizedQuery !== keyword);
   const searching =
-    Boolean(normalizedQuery) &&
-    (composing ||
-      normalizedQuery !== keyword ||
-      (!search.data && !search.error));
-  const searchError = Boolean(normalizedQuery && !searching && search.error);
-  const resultPage = normalizedQuery ? search.data : initialPage;
+    searchPending || (hasCustomFilter && !search.data && !search.error);
+  const searchError = hasCustomFilter && !searching && Boolean(search.error);
+  const resultPage = hasCustomFilter ? search.data : initialPage;
   const firstPage = useMemo<PageResult<ProductTemplate>>(
     () =>
       !searching && !searchError && resultPage
@@ -417,6 +460,66 @@ export function ErrandShop({
       <section className="flex flex-1 flex-col gap-3">
         <h2 className="text-base font-semibold">选择商品</h2>
 
+        <div
+          className="flex flex-wrap gap-2"
+          role="group"
+          aria-label="一级商品分类"
+        >
+          {roots.map((root) => (
+            <Button
+              key={root.id}
+              type="button"
+              size="sm"
+              aria-pressed={selectedRootId === root.id}
+              variant={selectedRootId === root.id ? "default" : "outline"}
+              onClick={() => {
+                if (selectedRootId === root.id) return;
+                const firstChild = categories.find(
+                  (category) => category.parentId === root.id,
+                );
+                setSelectedCategoryId(firstChild?.id ?? root.id);
+              }}
+            >
+              {root.name}
+            </Button>
+          ))}
+          {hasUncategorizedProducts ? (
+            <Button
+              type="button"
+              size="sm"
+              aria-pressed={selectedCategoryId === "uncategorized"}
+              variant={
+                selectedCategoryId === "uncategorized" ? "default" : "outline"
+              }
+              onClick={() => setSelectedCategoryId("uncategorized")}
+            >
+              未分类
+            </Button>
+          ) : null}
+        </div>
+        {children.length > 0 ? (
+          <div
+            className="flex flex-wrap gap-2"
+            role="group"
+            aria-label="二级商品分类"
+          >
+            {children.map((child) => (
+              <Button
+                key={child.id}
+                type="button"
+                size="sm"
+                aria-pressed={selectedCategoryId === child.id}
+                variant={
+                  selectedCategoryId === child.id ? "secondary" : "ghost"
+                }
+                onClick={() => setSelectedCategoryId(child.id)}
+              >
+                {child.name}
+              </Button>
+            ))}
+          </div>
+        ) : null}
+
         <InputGroup>
           <InputGroupAddon>
             <RiSearchLine aria-hidden="true" />
@@ -456,7 +559,7 @@ export function ErrandShop({
 
         {searchError ? (
           <LoadFailure
-            title="商品搜索失败"
+            title={normalizedQuery ? "商品搜索失败" : "分类商品加载失败"}
             description="请稍后重试"
             onRetry={() => void search.refresh()}
           />

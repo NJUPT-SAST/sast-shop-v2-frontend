@@ -175,6 +175,124 @@ stubs:
           'theme_color': req.theme_color
         }
       }
+  - id: catalog-list-product-categories-3001
+    target: sast.sastshopv2.catalog.v1.ProductTemplateService/ListProductCategories
+    active_if: req.store_id == 3001
+    priority: 200
+    content:
+      categories:
+        - id: "7001"
+          storeId: "3001"
+          name: 饮料
+          sortOrder: 0
+        - id: "7002"
+          storeId: "3001"
+          parentId: "7001"
+          name: 瓶装饮品
+          sortOrder: 0
+        - id: "7003"
+          storeId: "3001"
+          name: 零食
+          sortOrder: 1
+      hasUncategorizedProducts: true
+
+  - id: catalog-list-product-categories-3002
+    target: sast.sastshopv2.catalog.v1.ProductTemplateService/ListProductCategories
+    active_if: req.store_id == 3002
+    priority: 200
+    content:
+      categories:
+        - id: "7101"
+          storeId: "3002"
+          name: 饮料
+          sortOrder: 0
+        - id: "7102"
+          storeId: "3002"
+          parentId: "7101"
+          name: 瓶装饮品
+          sortOrder: 0
+      hasUncategorizedProducts: false
+
+  - id: catalog-create-product-category
+    target: sast.sastshopv2.catalog.v1.ProductTemplateService/CreateProductCategory
+    cel_content: |
+      {
+        'category': has(req.parent_id) ? {
+          'id': 7999,
+          'store_id': req.store_id,
+          'parent_id': req.parent_id,
+          'name': req.name,
+          'sort_order': 1
+        } : {
+          'id': 7999,
+          'store_id': req.store_id,
+          'name': req.name,
+          'sort_order': 1
+        }
+      }
+
+  - id: catalog-delete-product-category
+    target: sast.sastshopv2.catalog.v1.ProductTemplateService/DeleteProductCategory
+    content: {}
+
+  - id: catalog-get-product-template-list-category-water
+    target: sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateList
+    active_if: req.store_id == 3001 && req.category_filter_mode == 2 && req.category_id in [7001, 7002] && req.page == 1
+    priority: 200
+    content:
+      productTemplates:
+        - id: "4001"
+          title: 农夫山泉矿泉水
+          description: 550ml 瓶装水，适合活动采购
+          priceCents: 200
+          storeId: "3001"
+          categoryId: "7002"
+          mainImageUrl: https://images.unsplash.com/photo-1564419320461-6870880221ad?auto=format&fit=crop&w=640&q=80
+          barcode: "690000000001"
+          updatedAt: "2026-06-09T00:00:00Z"
+      currentPage: 1
+      totalCount: 1
+
+  - id: catalog-get-product-template-list-uncategorized
+    target: sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateList
+    active_if: req.store_id == 3001 && req.category_filter_mode == 3 && req.page == 1
+    priority: 200
+    content:
+      productTemplates:
+        - id: "4009"
+          title: 蓝牙演示翻页笔
+          description: 适合分享会、答辩和公开课借用采购
+          priceCents: 3900
+          storeId: "3001"
+          mainImageUrl: https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?auto=format&fit=crop&w=640&q=80
+          barcode: "690000000009"
+          updatedAt: "2026-06-09T00:00:00Z"
+      currentPage: 1
+      totalCount: 1
+
+  - id: catalog-get-product-template-list-category-campus-water
+    target: sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateList
+    active_if: req.store_id == 3002 && req.category_filter_mode == 2 && req.category_id in [7101, 7102] && req.page == 1
+    priority: 200
+    content:
+      productTemplates:
+        - id: "4010"
+          title: 农夫山泉矿泉水
+          description: 550ml 瓶装水
+          priceCents: 250
+          storeId: "3002"
+          categoryId: "7102"
+          barcode: "690000000001"
+          updatedAt: "2026-07-18T03:00:00Z"
+      currentPage: 1
+      totalCount: 1
+
+  - id: catalog-get-product-template-list-empty-category
+    target: sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateList
+    active_if: req.category_filter_mode in [2, 3]
+    priority: 150
+    cel_content: "{'product_templates': [], 'current_page': req.page, 'total_count': 0}"
+
   - id: catalog-get-product-template-list
     target: sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateList
     active_if: req.store_id == 3001
@@ -394,6 +512,7 @@ stubs:
           'description': req.description,
           'price_cents': req.price_cents,
           'store_id': req.store_id,
+          'category_id': req.category_id,
           'main_image_url': req.main_image_url,
           'barcode': req.barcode,
           'updated_at': now
@@ -409,7 +528,8 @@ stubs:
           'title': req.product_template.title,
           'description': req.product_template.description,
           'price_cents': req.product_template.price_cents,
-          'store_id': req.product_template.store_id,
+          'store_id': req.product_template.store_id != 0 ? req.product_template.store_id : (req.product_template.id == 4010 ? 3002 : 3001),
+          'category_id': has(req.product_template.category_id) ? req.product_template.category_id : (req.product_template.id == 4010 ? 7102 : 7002),
           'main_image_url': req.product_template.main_image_url,
           'barcode': req.product_template.barcode,
           'updated_at': now

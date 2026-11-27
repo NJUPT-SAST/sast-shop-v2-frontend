@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation"; //提交成功后跳转到订单跑腿页
 import {
@@ -18,6 +25,7 @@ import {
   type DataSource, // 多环境区分表示，内部接口通用参数
   type PageResult, // 分页接口标准返回结构
   type ProductTemplate,
+  type ProductCategory,
   type Store,
 } from "@sast-shop/api";
 import {
@@ -82,6 +90,9 @@ export function ErrandShop({
   connectBaseUrl,
   store,
   initialPage,
+  categories = [],
+  initialCategoryId = null,
+  hasUncategorizedProducts = false,
   error,
   editDemandId,
   editUpdatedAt,
@@ -93,6 +104,9 @@ export function ErrandShop({
   connectBaseUrl?: string;
   store: Store | null;
   initialPage: PageResult<ProductTemplate>;
+  categories?: ProductCategory[];
+  initialCategoryId?: string | null;
+  hasUncategorizedProducts?: boolean;
   error: string | null;
   editDemandId?: string | null;
   editUpdatedAt?: string | null;
@@ -100,6 +114,26 @@ export function ErrandShop({
   editInitialItems?: CartItem[] | null;
   editDeadline?: string | null;
 }) {
+  const initialFilter = initialCategoryId ?? "uncategorized";
+  const [requestedCategoryId, setSelectedCategoryId] = useState<string | null>(
+    null,
+  );
+  const selectedCategoryId =
+    requestedCategoryId &&
+    (categories.some((category) => category.id === requestedCategoryId) ||
+      (requestedCategoryId === "uncategorized" && hasUncategorizedProducts))
+      ? requestedCategoryId
+      : initialFilter;
+  const selectedCategory = categories.find(
+    (category) => category.id === selectedCategoryId,
+  );
+  const selectedRootId = selectedCategory?.parentId ?? selectedCategory?.id;
+  const roots = categories.filter((category) => category.parentId === null);
+  const children = categories.filter(
+    (category) => category.parentId === selectedRootId,
+  );
+  const categoryName =
+    selectedCategory?.name ?? (hasUncategorizedProducts ? "未分类" : undefined);
   const router = useRouter();
   const { ensureAgreement } = useTransactionAgreement();
   const [draftKeyword, setDraftKeyword] = useState("");
@@ -116,9 +150,21 @@ export function ErrandShop({
         pageSize: initialPage.pageSize,
         keyword: submittedKeyword,
         searchMode: "titleFullText",
+        categoryFilterMode:
+          selectedCategoryId === "uncategorized" ? "uncategorized" : "category",
+        ...(selectedCategoryId === "uncategorized"
+          ? {}
+          : { categoryId: selectedCategoryId }),
       });
     },
-    [connectBaseUrl, dataSource, initialPage, store, submittedKeyword],
+    [
+      connectBaseUrl,
+      dataSource,
+      initialPage,
+      selectedCategoryId,
+      store,
+      submittedKeyword,
+    ],
   );
   const queryIdentity = JSON.stringify([
     "desktop:shop-product-search",
@@ -128,17 +174,21 @@ export function ErrandShop({
     initialPage.pageSize,
     "titleFullText",
     submittedKeyword,
+    selectedCategoryId,
   ]);
+  const hasCustomFilter = Boolean(
+    submittedKeyword || selectedCategoryId !== initialFilter,
+  );
   const search = useCachedResource({
     cacheKey: queryIdentity,
     staleTime: 30_000,
     refreshKey: initialPage,
     load: () =>
-      store && submittedKeyword ? loadPage(1) : Promise.resolve(initialPage),
+      store && hasCustomFilter ? loadPage(1) : Promise.resolve(initialPage),
   });
-  const searchError = Boolean(submittedKeyword && search.error);
-  const searching = Boolean(submittedKeyword) && !search.data && !search.error;
-  const resultPage = submittedKeyword ? search.data : initialPage;
+  const searchError = hasCustomFilter && Boolean(search.error);
+  const searching = hasCustomFilter && !search.data && !search.error;
+  const resultPage = hasCustomFilter ? search.data : initialPage;
   const firstPage = useMemo<PageResult<ProductTemplate>>(
     () =>
       resultPage ?? {
@@ -182,6 +232,7 @@ export function ErrandShop({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [needsVerification, setNeedsVerification] = useState(false);
+  const submissionSucceededRef = useRef(false);
   const [storeEditOpen, setStoreEditOpen] = useState(false);
   const [savedStore, setSavedStore] = useState<Store | null>(null);
 
@@ -189,6 +240,16 @@ export function ErrandShop({
     () => new Map(items.map((item) => [item.template.id, item])),
     [items],
   );
+  useEffect(() => {
+    if (items.length === 0 && editDemandId == null) return;
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (submissionSucceededRef.current) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [editDemandId, items.length]);
   const normalizedItems = useMemo(
     () =>
       items.map((item) => ({
@@ -383,6 +444,8 @@ export function ErrandShop({
         toast.success("跑腿需求已发起");
       }
       setConfirmOpen(false);
+      submissionSucceededRef.current = true;
+      setItems([]);
       router.push("/orders?type=errand&view=participant");
     } catch (error) {
       setNeedsVerification(true);
@@ -409,7 +472,7 @@ export function ErrandShop({
           </Button>
         </div>
       ) : null}
-      <section className="flex min-w-0 flex-wrap items-start justify-between gap-4">
+      <section className="sticky top-0 z-10 flex min-w-0 flex-wrap items-start justify-between gap-4 border-b bg-background py-3">
         <div className="flex min-w-0 items-start gap-4">
           <ManagedImage
             src={displayedStore.logoUrl}
@@ -437,7 +500,19 @@ export function ErrandShop({
             <EditActionLabel>编辑店铺</EditActionLabel>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/group">
+            <Link
+              href="/group"
+              onClick={(event) => {
+                if (
+                  (items.length > 0 || editDemandId != null) &&
+                  !window.confirm(
+                    "离开此页会丢失尚未提交的需求内容，确定离开吗？",
+                  )
+                ) {
+                  event.preventDefault();
+                }
+              }}
+            >
               <RiArrowLeftLine data-icon="inline-start" />
               返回团购工作台
             </Link>
@@ -457,10 +532,60 @@ export function ErrandShop({
         }}
       />
 
-      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+      <div className="grid min-w-0 gap-6 sm:grid-cols-[10rem_minmax(0,1fr)] lg:grid-cols-[10rem_minmax(0,1fr)_21rem] xl:grid-cols-[11rem_minmax(0,1fr)_22rem]">
+        <nav
+          aria-label="一级商品分类"
+          className="min-w-0 self-start rounded-xl border bg-card p-3 sm:sticky sm:top-24 sm:max-h-[calc(100dvh-7rem)] sm:overflow-y-auto"
+        >
+          <h2 className="mb-2 px-2 text-sm font-semibold">商品分类</h2>
+          <div className="flex flex-wrap gap-1 sm:flex-col">
+            {roots.map((category) => (
+              <Button
+                key={category.id}
+                type="button"
+                size="sm"
+                aria-pressed={selectedRootId === category.id}
+                variant={selectedRootId === category.id ? "secondary" : "ghost"}
+                className="h-auto min-h-9 justify-start whitespace-normal text-left"
+                onClick={() => {
+                  if (selectedRootId === category.id) return;
+                  const firstChild = categories.find(
+                    (child) => child.parentId === category.id,
+                  );
+                  setSelectedCategoryId(firstChild?.id ?? category.id);
+                }}
+              >
+                {category.name}
+              </Button>
+            ))}
+            {hasUncategorizedProducts ? (
+              <Button
+                type="button"
+                size="sm"
+                aria-pressed={selectedCategoryId === "uncategorized"}
+                variant={
+                  selectedCategoryId === "uncategorized" ? "secondary" : "ghost"
+                }
+                className="justify-start"
+                onClick={() => setSelectedCategoryId("uncategorized")}
+              >
+                未分类
+              </Button>
+            ) : null}
+            {roots.length === 0 && !hasUncategorizedProducts ? (
+              <Button asChild size="sm" variant="outline">
+                <Link href={`/group/templates?store=${storeId}&create=1`}>
+                  创建分类
+                </Link>
+              </Button>
+            ) : null}
+          </div>
+        </nav>
         <section className="@container min-w-0 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="shrink-0 text-xl font-semibold">选择商品</h2>
+            <h2 className="min-w-0 wrap-break-word text-xl font-semibold">
+              {categoryName ?? "选择商品"}
+            </h2>
             <form
               role="search"
               aria-label="店铺商品搜索"
@@ -503,14 +628,41 @@ export function ErrandShop({
               ) : null}
             </form>
           </div>
+          {children.length > 0 ? (
+            <div
+              className="flex flex-wrap gap-2"
+              role="group"
+              aria-label="二级商品分类"
+            >
+              {children.map((child) => (
+                <Button
+                  key={child.id}
+                  type="button"
+                  size="sm"
+                  aria-pressed={selectedCategoryId === child.id}
+                  variant={
+                    selectedCategoryId === child.id ? "secondary" : "ghost"
+                  }
+                  onClick={() => setSelectedCategoryId(child.id)}
+                >
+                  {child.name}
+                </Button>
+              ))}
+            </div>
+          ) : null}
           {searchError ? (
             <LoadFailure
-              title="商品搜索失败"
-              description="商品搜索暂不可用，请稍后重试"
+              title={submittedKeyword ? "商品搜索失败" : "分类商品加载失败"}
+              description="请稍后重试"
               onRetry={() => void search.refresh()}
             />
           ) : searching ? (
-            <div role="status" aria-label="正在搜索商品">
+            <div
+              role="status"
+              aria-label={
+                submittedKeyword ? "正在搜索商品" : "正在加载分类商品"
+              }
+            >
               <TemplateLoadingSkeletons />
             </div>
           ) : templates.length === 0 && !loadingMore && !hasMore ? (
@@ -587,7 +739,10 @@ export function ErrandShop({
           ) : null}
         </section>
 
-        <aside className="min-w-0">
+        <aside
+          aria-label="跑腿清单"
+          className="min-w-0 sm:col-start-2 lg:col-start-3 lg:row-start-1"
+        >
           <Card className="sticky top-24 max-h-[calc(100dvh-7rem)] min-w-0 overflow-hidden">
             <CardHeader className="border-b">
               <CardTitle className="flex items-center gap-2">
@@ -603,7 +758,7 @@ export function ErrandShop({
             <CardContent className="app-scrollbar max-h-[calc(100dvh-18rem)] space-y-4 overflow-y-auto p-4">
               {items.length === 0 ? (
                 <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                  从左侧选择需要代购的商品。
+                  请选择需要代购的商品。
                 </p>
               ) : (
                 <div className="grid gap-4">

@@ -2,6 +2,7 @@ import { createClient } from "@connectrpc/connect";
 
 import type { ProductTemplate as ProtoProductTemplate } from "../gen/sast/sastshopv2/catalog/v1/product_template_pb";
 import {
+  ProductTemplateCategoryFilterMode as ProtoProductTemplateCategoryFilterMode,
   ProductTemplateSearchMode as ProtoProductTemplateSearchMode,
   ProductTemplateService,
 } from "../gen/sast/sastshopv2/catalog/v1/product_template_service_pb";
@@ -25,6 +26,8 @@ const MAX_BARCODE_LENGTH = 64;
 const MAX_IMAGE_URL_LENGTH = 2048;
 
 export type ProductTemplateSearchMode = "literal" | "titleFullText";
+export type ProductTemplateCategoryFilterMode =
+  "unfiltered" | "category" | "uncategorized";
 
 export interface ProductTemplate {
   id: string;
@@ -35,6 +38,7 @@ export interface ProductTemplate {
   mainImageUrl: string;
   barcode: string;
   updatedAt: string | null;
+  categoryId?: string | null;
 }
 
 export interface ProductTemplateMatch {
@@ -49,6 +53,7 @@ export interface CreateProductTemplateInput {
   priceCents: number;
   mainImageUrl: string;
   barcode: string;
+  categoryId: string;
 }
 
 export interface UpdateProductTemplatePatch {
@@ -58,6 +63,7 @@ export interface UpdateProductTemplatePatch {
   priceCents?: number;
   mainImageUrl?: string;
   barcode?: string;
+  categoryId?: string;
 }
 
 export interface UpdateProductTemplateInput {
@@ -109,6 +115,8 @@ export async function listProductTemplates(
     pageSize?: number;
     keyword?: string;
     searchMode?: ProductTemplateSearchMode;
+    categoryFilterMode?: ProductTemplateCategoryFilterMode;
+    categoryId?: string;
   } = {},
 ): Promise<ProductTemplate[]> {
   const result = await listProductTemplatesPage(options);
@@ -139,6 +147,8 @@ export async function listProductTemplatesPage(
     pageSize?: number;
     keyword?: string;
     searchMode?: ProductTemplateSearchMode;
+    categoryFilterMode?: ProductTemplateCategoryFilterMode;
+    categoryId?: string;
   } = {},
 ): Promise<PageResult<ProductTemplate>> {
   const dataSource = resolveDataSource(options);
@@ -157,6 +167,28 @@ export async function listProductTemplatesPage(
     if ([...keyword].length > 200) {
       throw new ValidationError("搜索关键词不能超过 200 个字符");
     }
+    const categoryFilterMode = options.categoryFilterMode;
+    const categoryId =
+      options.categoryId === undefined
+        ? undefined
+        : parseInt64(options.categoryId, "分类 ID 不正确");
+    if (
+      (categoryFilterMode === "category" && categoryId === undefined) ||
+      (categoryId !== undefined && categoryFilterMode !== "category") ||
+      (categoryFilterMode !== undefined &&
+        !["unfiltered", "category", "uncategorized"].includes(
+          categoryFilterMode,
+        ))
+    ) {
+      throw new ValidationError("商品分类筛选条件不正确");
+    }
+    if (
+      (categoryFilterMode === "category" ||
+        categoryFilterMode === "uncategorized") &&
+      parsedStoreId === 0n
+    ) {
+      throw new ValidationError("商品分类筛选必须指定店铺");
+    }
     const client = createClient(
       ProductTemplateService,
       createLocalTransport(options),
@@ -168,6 +200,17 @@ export async function listProductTemplatesPage(
         pageSize,
         keyword,
         searchMode: toProtoSearchMode(options.searchMode),
+        ...(categoryFilterMode === undefined
+          ? {}
+          : {
+              categoryFilterMode: {
+                unfiltered: ProtoProductTemplateCategoryFilterMode.UNFILTERED,
+                category: ProtoProductTemplateCategoryFilterMode.CATEGORY,
+                uncategorized:
+                  ProtoProductTemplateCategoryFilterMode.UNCATEGORIZED,
+              }[categoryFilterMode],
+            }),
+        ...(categoryId === undefined ? {} : { categoryId }),
       }),
     );
     const items = response.productTemplates.map(mapTemplate);
@@ -312,6 +355,7 @@ function validateCreateProductTemplateInput(input: CreateProductTemplateInput) {
     priceCents: normalizePrice(input.priceCents),
     mainImageUrl: normalizeImageUrl(input.mainImageUrl),
     barcode: normalizeBarcode(input.barcode),
+    categoryId: parseInt64(input.categoryId, "商品分类 ID 不正确"),
   };
 }
 
@@ -335,6 +379,7 @@ function validateUpdateProductTemplateInput(input: UpdateProductTemplateInput) {
     "priceCents",
     "mainImageUrl",
     "barcode",
+    "categoryId",
   ];
 
   if (keys.some((key) => !allowedKeys.includes(key))) {
@@ -365,6 +410,10 @@ function validateUpdateProductTemplateInput(input: UpdateProductTemplateInput) {
     input.patch.barcode === undefined
       ? undefined
       : normalizeBarcode(input.patch.barcode);
+  const categoryId =
+    input.patch.categoryId === undefined
+      ? undefined
+      : parseInt64(input.patch.categoryId, "商品分类 ID 不正确");
 
   const pathByKey: Record<keyof UpdateProductTemplatePatch, string> = {
     storeId: "store_id",
@@ -373,6 +422,7 @@ function validateUpdateProductTemplateInput(input: UpdateProductTemplateInput) {
     priceCents: "price_cents",
     mainImageUrl: "main_image_url",
     barcode: "barcode",
+    categoryId: "category_id",
   };
 
   return {
@@ -385,6 +435,7 @@ function validateUpdateProductTemplateInput(input: UpdateProductTemplateInput) {
       ...(priceCents === undefined ? {} : { priceCents }),
       ...(mainImageUrl === undefined ? {} : { mainImageUrl }),
       ...(barcode === undefined ? {} : { barcode }),
+      ...(categoryId === undefined ? {} : { categoryId }),
     },
     updateMask: {
       paths: keys.map((key) => pathByKey[key]),
@@ -402,6 +453,9 @@ function mapTemplate(template: ProtoProductTemplate): ProductTemplate {
     mainImageUrl: template.mainImageUrl,
     barcode: template.barcode,
     updatedAt: formatProtoTimestamp(template.updatedAt),
+    ...(template.categoryId === undefined
+      ? {}
+      : { categoryId: template.categoryId.toString() }),
   };
 }
 

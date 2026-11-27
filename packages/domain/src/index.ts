@@ -45,6 +45,10 @@ export {
 export { resolveFeedbackFormUrl } from "./navigation/feedback-form-url";
 export { getQuantityMismatchLabel } from "./errand/quantity-mismatch";
 export {
+  getDefaultProductCategoryId,
+  type ProductCategorySelectionItem,
+} from "./catalog/product-category-selection";
+export {
   hasMoreSpotGoods,
   type SpotGoodsPageMeta,
 } from "./marketplace/spot-goods-pagination";

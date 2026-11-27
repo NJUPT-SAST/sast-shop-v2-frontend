@@ -5,6 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getProductTemplate,
+  listProductCategories,
   updateProductTemplate,
   type ProductTemplate,
 } from "@sast-shop/api";
@@ -16,6 +17,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock("@sast-shop/api", async (original) => ({
   ...(await original<typeof import("@sast-shop/api")>()),
   createProductTemplate: vi.fn(),
+  listProductCategories: vi.fn(),
   getProductTemplate: vi.fn(),
   updateProductTemplate: vi.fn(),
 }));
@@ -33,6 +35,7 @@ const template: ProductTemplate = {
   mainImageUrl: "https://example.com/water.jpg",
   priceCents: 200,
   updatedAt: "2026-07-18T03:00:00.123456789Z",
+  categoryId: "2001",
 };
 const stores = [
   { id: "3001", name: "一号店", address: "校内", logoUrl: "", themeColor: "" },
@@ -50,6 +53,18 @@ beforeEach(() => {
     setItem: (key: string, value: string) => values.set(key, value),
   });
   vi.mocked(getProductTemplate).mockResolvedValue(template);
+  vi.mocked(listProductCategories).mockResolvedValue({
+    categories: [
+      {
+        id: "2001",
+        storeId: "3001",
+        parentId: null,
+        name: "杂货",
+        sortOrder: 0,
+      },
+    ],
+    hasUncategorizedProducts: false,
+  });
   vi.mocked(updateProductTemplate).mockResolvedValue(template);
   container = document.createElement("div");
   document.body.append(container);

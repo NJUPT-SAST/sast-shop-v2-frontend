@@ -33,6 +33,7 @@ const createInput: CreateProductTemplateInput = {
   priceCents: 200,
   mainImageUrl: "  https://example.test/water.png  ",
   barcode: "0690000000001",
+  categoryId: "2001",
 };
 
 describe("product template service", () => {
@@ -213,6 +214,58 @@ describe("product template service", () => {
       path: "/sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateList",
       body: { storeId: "3001", page: 1, pageSize: 20 },
     });
+  });
+
+  it("filters a store template page by an explicit category", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        productTemplates: [
+          { id: "4001", title: "矿泉水", storeId: "3001", categoryId: "2001" },
+        ],
+        currentPage: 1,
+        totalCount: 1,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await listProductTemplatesPage({
+      ...localOptions,
+      storeId: "3001",
+      categoryFilterMode: "category",
+      categoryId: "2001",
+    });
+
+    expect(page.items[0]?.categoryId).toBe("2001");
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.catalog.v1.ProductTemplateService/GetProductTemplateList",
+      body: {
+        storeId: "3001",
+        page: 1,
+        pageSize: 50,
+        categoryFilterMode: "PRODUCT_TEMPLATE_CATEGORY_FILTER_MODE_CATEGORY",
+        categoryId: "2001",
+      },
+    });
+  });
+
+  it("requires a store and category id for category filtering", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      listProductTemplatesPage({
+        ...localOptions,
+        categoryFilterMode: "category",
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      listProductTemplatesPage({
+        ...localOptions,
+        storeId: "3001",
+        categoryFilterMode: "category",
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("sends title full text mode and a trimmed keyword", async () => {
@@ -416,6 +469,7 @@ describe("product template service", () => {
         priceCents: 200,
         mainImageUrl: "https://example.test/water.png",
         barcode: "0690000000001",
+        categoryId: "2001",
       },
     });
   });
@@ -658,6 +712,43 @@ describe("product template service", () => {
           updatedAt: "2026-07-18T01:00:00Z",
         },
         updateMask: "title,priceCents",
+      },
+    });
+  });
+
+  it("updates the category through the category_id field mask", async () => {
+    const fetchMock = vi.fn(async () =>
+      stubJsonResponse({
+        productTemplate: {
+          id: "4001",
+          title: "矿泉水",
+          storeId: "3001",
+          categoryId: "2002",
+          updatedAt: "2026-07-18T02:00:00Z",
+        },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      updateProductTemplate(
+        {
+          id: "4001",
+          updatedAt: "2026-07-18T01:00:00Z",
+          patch: { categoryId: "2002" },
+        },
+        localOptions,
+      ),
+    ).resolves.toMatchObject({ categoryId: "2002" });
+    await expectConnectRequest(fetchMock, {
+      path: "/sast.sastshopv2.catalog.v1.ProductTemplateService/UpdateProductTemplate",
+      body: {
+        productTemplate: {
+          id: "4001",
+          updatedAt: "2026-07-18T01:00:00Z",
+          categoryId: "2002",
+        },
+        updateMask: "categoryId",
       },
     });
   });

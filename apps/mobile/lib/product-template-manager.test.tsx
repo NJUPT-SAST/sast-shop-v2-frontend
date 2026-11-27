@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   withLarkPageJsapi,
   createProductTemplate,
+  listProductCategories,
   getProductTemplate,
   deleteProductTemplate,
   LarkClientError,
@@ -58,6 +59,9 @@ vi.mock("@sast-shop/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@sast-shop/api")>()),
   withLarkPageJsapi: vi.fn(),
   createProductTemplate: vi.fn(),
+  createProductCategory: vi.fn(),
+  deleteProductCategory: vi.fn(),
+  listProductCategories: vi.fn(),
   getProductTemplate: vi.fn(),
   deleteProductTemplate: vi.fn(),
   listProductTemplatesPage: vi.fn(),
@@ -109,6 +113,7 @@ const template: ProductTemplate = {
   storeId: "3001",
   mainImageUrl: "",
   barcode: "690000000001",
+  categoryId: "2001",
   updatedAt: "2026-07-18T02:00:00Z",
 };
 
@@ -130,6 +135,20 @@ beforeEach(() => {
     setItem: (key: string, value: string) => values.set(key, value),
   });
   vi.mocked(listProductTemplatesPage).mockReset();
+  vi.mocked(listProductCategories)
+    .mockReset()
+    .mockResolvedValue({
+      categories: [
+        {
+          id: "2001",
+          storeId: "3001",
+          parentId: null,
+          name: "饮料",
+          sortOrder: 0,
+        },
+      ],
+      hasUncategorizedProducts: false,
+    });
   vi.mocked(getProductTemplate).mockReset().mockResolvedValue(template);
   vi.stubGlobal("React", React);
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
@@ -224,6 +243,9 @@ async function renderManager(
         onRetry={listState.onRetry}
       />,
     );
+  });
+  await act(async () => {
+    await Promise.resolve();
   });
 }
 
@@ -831,6 +853,12 @@ describe("product template drawer failures", () => {
     await enterTemplateTitle("梨");
     await act(async () => submitTemplate());
     expect(updateProductTemplate).toHaveBeenCalledTimes(1);
+    expect(
+      vi.mocked(updateProductTemplate).mock.calls[0]![0].patch,
+    ).not.toHaveProperty("storeId");
+    expect(
+      vi.mocked(updateProductTemplate).mock.calls[0]![0].patch,
+    ).not.toHaveProperty("categoryId");
     expect(listProductTemplatesPage).toHaveBeenCalledTimes(2);
     expect(listProductTemplatesPage).toHaveBeenLastCalledWith(
       expect.objectContaining({ keyword: "苹果", page: 1, storeId: "3001" }),

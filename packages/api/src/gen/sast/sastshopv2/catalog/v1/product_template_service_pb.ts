@@ -6,6 +6,8 @@ import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobu
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { FieldMask } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
+import type { ProductCategory } from "./product_category_pb";
+import { file_sast_sastshopv2_catalog_v1_product_category } from "./product_category_pb";
 import type { ProductTemplate } from "./product_template_pb";
 import { file_sast_sastshopv2_catalog_v1_product_template } from "./product_template_pb";
 import type { Store } from "./store_pb";
@@ -16,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file sast/sastshopv2/catalog/v1/product_template_service.proto.
  */
 export const file_sast_sastshopv2_catalog_v1_product_template_service: GenFile = /*@__PURE__*/
-  fileDesc("CjlzYXN0L3Nhc3RzaG9wdjIvY2F0YWxvZy92MS9wcm9kdWN0X3RlbXBsYXRlX3NlcnZpY2UucHJvdG8SGnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxIq8BCh1HZXRQcm9kdWN0VGVtcGxhdGVMaXN0UmVxdWVzdBIQCghzdG9yZV9pZBgBIAEoAxIMCgRwYWdlGAIgASgFEhEKCXBhZ2Vfc2l6ZRgDIAEoBRIPCgdrZXl3b3JkGAQgASgJEkoKC3NlYXJjaF9tb2RlGAUgASgOMjUuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlU2VhcmNoTW9kZSKTAQoeR2V0UHJvZHVjdFRlbXBsYXRlTGlzdFJlc3BvbnNlEkYKEXByb2R1Y3RfdGVtcGxhdGVzGAEgAygLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlEhQKDGN1cnJlbnRfcGFnZRgCIAEoBRITCgt0b3RhbF9jb3VudBgDIAEoBSJOCi9Qcm9kdWN0VGVtcGxhdGVTZXJ2aWNlR2V0UHJvZHVjdFRlbXBsYXRlUmVxdWVzdBIbChNwcm9kdWN0X3RlbXBsYXRlX2lkGAEgASgDInkKMFByb2R1Y3RUZW1wbGF0ZVNlcnZpY2VHZXRQcm9kdWN0VGVtcGxhdGVSZXNwb25zZRJFChBwcm9kdWN0X3RlbXBsYXRlGAEgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlIpIBChxDcmVhdGVQcm9kdWN0VGVtcGxhdGVSZXF1ZXN0EhAKCHN0b3JlX2lkGAEgASgDEg0KBXRpdGxlGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEhMKC3ByaWNlX2NlbnRzGAQgASgFEhYKDm1haW5faW1hZ2VfdXJsGAUgASgJEg8KB2JhcmNvZGUYBiABKAkiZgodQ3JlYXRlUHJvZHVjdFRlbXBsYXRlUmVzcG9uc2USRQoQcHJvZHVjdF90ZW1wbGF0ZRgBIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZSKWAQocVXBkYXRlUHJvZHVjdFRlbXBsYXRlUmVxdWVzdBJFChBwcm9kdWN0X3RlbXBsYXRlGAEgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlEi8KC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFzayJmCh1VcGRhdGVQcm9kdWN0VGVtcGxhdGVSZXNwb25zZRJFChBwcm9kdWN0X3RlbXBsYXRlGAEgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlIjUKIkdldFByb2R1Y3RUZW1wbGF0ZUJ5QmFyY29kZVJlcXVlc3QSDwoHYmFyY29kZRgCIAEoCSL7AQojR2V0UHJvZHVjdFRlbXBsYXRlQnlCYXJjb2RlUmVzcG9uc2USUwoFaXRlbXMYASADKAsyRC5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRQcm9kdWN0VGVtcGxhdGVCeUJhcmNvZGVSZXNwb25zZS5JdGVtGn8KBEl0ZW0SRQoQcHJvZHVjdF90ZW1wbGF0ZRgBIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZRIwCgVzdG9yZRgCIAEoCzIhLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlN0b3JlIjsKHERlbGV0ZVByb2R1Y3RUZW1wbGF0ZVJlcXVlc3QSGwoTcHJvZHVjdF90ZW1wbGF0ZV9pZBgBIAEoAyIfCh1EZWxldGVQcm9kdWN0VGVtcGxhdGVSZXNwb25zZSp7ChlQcm9kdWN0VGVtcGxhdGVTZWFyY2hNb2RlEiwKKFBST0RVQ1RfVEVNUExBVEVfU0VBUkNIX01PREVfVU5TUEVDSUZJRUQQABIwCixQUk9EVUNUX1RFTVBMQVRFX1NFQVJDSF9NT0RFX1RJVExFX0ZVTExfVEVYVBABMqoHChZQcm9kdWN0VGVtcGxhdGVTZXJ2aWNlEo8BChZHZXRQcm9kdWN0VGVtcGxhdGVMaXN0Ejkuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuR2V0UHJvZHVjdFRlbXBsYXRlTGlzdFJlcXVlc3QaOi5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRQcm9kdWN0VGVtcGxhdGVMaXN0UmVzcG9uc2USrwEKEkdldFByb2R1Y3RUZW1wbGF0ZRJLLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZVNlcnZpY2VHZXRQcm9kdWN0VGVtcGxhdGVSZXF1ZXN0Gkwuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlU2VydmljZUdldFByb2R1Y3RUZW1wbGF0ZVJlc3BvbnNlEowBChVDcmVhdGVQcm9kdWN0VGVtcGxhdGUSOC5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5DcmVhdGVQcm9kdWN0VGVtcGxhdGVSZXF1ZXN0Gjkuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuQ3JlYXRlUHJvZHVjdFRlbXBsYXRlUmVzcG9uc2USjAEKFVVwZGF0ZVByb2R1Y3RUZW1wbGF0ZRI4LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlVwZGF0ZVByb2R1Y3RUZW1wbGF0ZVJlcXVlc3QaOS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5VcGRhdGVQcm9kdWN0VGVtcGxhdGVSZXNwb25zZRKeAQobR2V0UHJvZHVjdFRlbXBsYXRlQnlCYXJjb2RlEj4uc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuR2V0UHJvZHVjdFRlbXBsYXRlQnlCYXJjb2RlUmVxdWVzdBo/LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkdldFByb2R1Y3RUZW1wbGF0ZUJ5QmFyY29kZVJlc3BvbnNlEowBChVEZWxldGVQcm9kdWN0VGVtcGxhdGUSOC5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5EZWxldGVQcm9kdWN0VGVtcGxhdGVSZXF1ZXN0Gjkuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuRGVsZXRlUHJvZHVjdFRlbXBsYXRlUmVzcG9uc2ViBnByb3RvMw", [file_google_protobuf_field_mask, file_sast_sastshopv2_catalog_v1_product_template, file_sast_sastshopv2_catalog_v1_store]);
+  fileDesc("CjlzYXN0L3Nhc3RzaG9wdjIvY2F0YWxvZy92MS9wcm9kdWN0X3RlbXBsYXRlX3NlcnZpY2UucHJvdG8SGnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxIqECCh1HZXRQcm9kdWN0VGVtcGxhdGVMaXN0UmVxdWVzdBIQCghzdG9yZV9pZBgBIAEoAxIMCgRwYWdlGAIgASgFEhEKCXBhZ2Vfc2l6ZRgDIAEoBRIPCgdrZXl3b3JkGAQgASgJEkoKC3NlYXJjaF9tb2RlGAUgASgOMjUuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlU2VhcmNoTW9kZRJbChRjYXRlZ29yeV9maWx0ZXJfbW9kZRgGIAEoDjI9LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZUNhdGVnb3J5RmlsdGVyTW9kZRITCgtjYXRlZ29yeV9pZBgHIAEoAyKTAQoeR2V0UHJvZHVjdFRlbXBsYXRlTGlzdFJlc3BvbnNlEkYKEXByb2R1Y3RfdGVtcGxhdGVzGAEgAygLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlEhQKDGN1cnJlbnRfcGFnZRgCIAEoBRITCgt0b3RhbF9jb3VudBgDIAEoBSJOCi9Qcm9kdWN0VGVtcGxhdGVTZXJ2aWNlR2V0UHJvZHVjdFRlbXBsYXRlUmVxdWVzdBIbChNwcm9kdWN0X3RlbXBsYXRlX2lkGAEgASgDInkKMFByb2R1Y3RUZW1wbGF0ZVNlcnZpY2VHZXRQcm9kdWN0VGVtcGxhdGVSZXNwb25zZRJFChBwcm9kdWN0X3RlbXBsYXRlGAEgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlIqcBChxDcmVhdGVQcm9kdWN0VGVtcGxhdGVSZXF1ZXN0EhAKCHN0b3JlX2lkGAEgASgDEg0KBXRpdGxlGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEhMKC3ByaWNlX2NlbnRzGAQgASgFEhYKDm1haW5faW1hZ2VfdXJsGAUgASgJEg8KB2JhcmNvZGUYBiABKAkSEwoLY2F0ZWdvcnlfaWQYByABKAMiZgodQ3JlYXRlUHJvZHVjdFRlbXBsYXRlUmVzcG9uc2USRQoQcHJvZHVjdF90ZW1wbGF0ZRgBIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZSKWAQocVXBkYXRlUHJvZHVjdFRlbXBsYXRlUmVxdWVzdBJFChBwcm9kdWN0X3RlbXBsYXRlGAEgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlEi8KC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFzayJmCh1VcGRhdGVQcm9kdWN0VGVtcGxhdGVSZXNwb25zZRJFChBwcm9kdWN0X3RlbXBsYXRlGAEgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlIjUKIkdldFByb2R1Y3RUZW1wbGF0ZUJ5QmFyY29kZVJlcXVlc3QSDwoHYmFyY29kZRgCIAEoCSL7AQojR2V0UHJvZHVjdFRlbXBsYXRlQnlCYXJjb2RlUmVzcG9uc2USUwoFaXRlbXMYASADKAsyRC5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRQcm9kdWN0VGVtcGxhdGVCeUJhcmNvZGVSZXNwb25zZS5JdGVtGn8KBEl0ZW0SRQoQcHJvZHVjdF90ZW1wbGF0ZRgBIAEoCzIrLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlByb2R1Y3RUZW1wbGF0ZRIwCgVzdG9yZRgCIAEoCzIhLnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlN0b3JlIjsKHERlbGV0ZVByb2R1Y3RUZW1wbGF0ZVJlcXVlc3QSGwoTcHJvZHVjdF90ZW1wbGF0ZV9pZBgBIAEoAyIfCh1EZWxldGVQcm9kdWN0VGVtcGxhdGVSZXNwb25zZSIwChxMaXN0UHJvZHVjdENhdGVnb3JpZXNSZXF1ZXN0EhAKCHN0b3JlX2lkGAEgASgDIoQBCh1MaXN0UHJvZHVjdENhdGVnb3JpZXNSZXNwb25zZRI/CgpjYXRlZ29yaWVzGAEgAygLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdENhdGVnb3J5EiIKGmhhc191bmNhdGVnb3JpemVkX3Byb2R1Y3RzGAIgASgIImQKHENyZWF0ZVByb2R1Y3RDYXRlZ29yeVJlcXVlc3QSEAoIc3RvcmVfaWQYASABKAMSFgoJcGFyZW50X2lkGAIgASgDSACIAQESDAoEbmFtZRgDIAEoCUIMCgpfcGFyZW50X2lkIl4KHUNyZWF0ZVByb2R1Y3RDYXRlZ29yeVJlc3BvbnNlEj0KCGNhdGVnb3J5GAEgASgLMisuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdENhdGVnb3J5IkUKHERlbGV0ZVByb2R1Y3RDYXRlZ29yeVJlcXVlc3QSEAoIc3RvcmVfaWQYASABKAMSEwoLY2F0ZWdvcnlfaWQYAiABKAMiHwodRGVsZXRlUHJvZHVjdENhdGVnb3J5UmVzcG9uc2UqewoZUHJvZHVjdFRlbXBsYXRlU2VhcmNoTW9kZRIsCihQUk9EVUNUX1RFTVBMQVRFX1NFQVJDSF9NT0RFX1VOU1BFQ0lGSUVEEAASMAosUFJPRFVDVF9URU1QTEFURV9TRUFSQ0hfTU9ERV9USVRMRV9GVUxMX1RFWFQQASr9AQohUHJvZHVjdFRlbXBsYXRlQ2F0ZWdvcnlGaWx0ZXJNb2RlEjUKMVBST0RVQ1RfVEVNUExBVEVfQ0FURUdPUllfRklMVEVSX01PREVfVU5TUEVDSUZJRUQQABI0CjBQUk9EVUNUX1RFTVBMQVRFX0NBVEVHT1JZX0ZJTFRFUl9NT0RFX1VORklMVEVSRUQQARIyCi5QUk9EVUNUX1RFTVBMQVRFX0NBVEVHT1JZX0ZJTFRFUl9NT0RFX0NBVEVHT1JZEAISNwozUFJPRFVDVF9URU1QTEFURV9DQVRFR09SWV9GSUxURVJfTU9ERV9VTkNBVEVHT1JJWkVEEAMy1woKFlByb2R1Y3RUZW1wbGF0ZVNlcnZpY2USjAEKFUxpc3RQcm9kdWN0Q2F0ZWdvcmllcxI4LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkxpc3RQcm9kdWN0Q2F0ZWdvcmllc1JlcXVlc3QaOS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5MaXN0UHJvZHVjdENhdGVnb3JpZXNSZXNwb25zZRKMAQoVQ3JlYXRlUHJvZHVjdENhdGVnb3J5Ejguc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuQ3JlYXRlUHJvZHVjdENhdGVnb3J5UmVxdWVzdBo5LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkNyZWF0ZVByb2R1Y3RDYXRlZ29yeVJlc3BvbnNlEowBChVEZWxldGVQcm9kdWN0Q2F0ZWdvcnkSOC5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5EZWxldGVQcm9kdWN0Q2F0ZWdvcnlSZXF1ZXN0Gjkuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuRGVsZXRlUHJvZHVjdENhdGVnb3J5UmVzcG9uc2USjwEKFkdldFByb2R1Y3RUZW1wbGF0ZUxpc3QSOS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRQcm9kdWN0VGVtcGxhdGVMaXN0UmVxdWVzdBo6LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkdldFByb2R1Y3RUZW1wbGF0ZUxpc3RSZXNwb25zZRKvAQoSR2V0UHJvZHVjdFRlbXBsYXRlEksuc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuUHJvZHVjdFRlbXBsYXRlU2VydmljZUdldFByb2R1Y3RUZW1wbGF0ZVJlcXVlc3QaTC5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5Qcm9kdWN0VGVtcGxhdGVTZXJ2aWNlR2V0UHJvZHVjdFRlbXBsYXRlUmVzcG9uc2USjAEKFUNyZWF0ZVByb2R1Y3RUZW1wbGF0ZRI4LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkNyZWF0ZVByb2R1Y3RUZW1wbGF0ZVJlcXVlc3QaOS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5DcmVhdGVQcm9kdWN0VGVtcGxhdGVSZXNwb25zZRKMAQoVVXBkYXRlUHJvZHVjdFRlbXBsYXRlEjguc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuVXBkYXRlUHJvZHVjdFRlbXBsYXRlUmVxdWVzdBo5LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLlVwZGF0ZVByb2R1Y3RUZW1wbGF0ZVJlc3BvbnNlEp4BChtHZXRQcm9kdWN0VGVtcGxhdGVCeUJhcmNvZGUSPi5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5HZXRQcm9kdWN0VGVtcGxhdGVCeUJhcmNvZGVSZXF1ZXN0Gj8uc2FzdC5zYXN0c2hvcHYyLmNhdGFsb2cudjEuR2V0UHJvZHVjdFRlbXBsYXRlQnlCYXJjb2RlUmVzcG9uc2USjAEKFURlbGV0ZVByb2R1Y3RUZW1wbGF0ZRI4LnNhc3Quc2FzdHNob3B2Mi5jYXRhbG9nLnYxLkRlbGV0ZVByb2R1Y3RUZW1wbGF0ZVJlcXVlc3QaOS5zYXN0LnNhc3RzaG9wdjIuY2F0YWxvZy52MS5EZWxldGVQcm9kdWN0VGVtcGxhdGVSZXNwb25zZWIGcHJvdG8z", [file_google_protobuf_field_mask, file_sast_sastshopv2_catalog_v1_product_category, file_sast_sastshopv2_catalog_v1_product_template, file_sast_sastshopv2_catalog_v1_store]);
 
 /**
  * @generated from message sast.sastshopv2.catalog.v1.GetProductTemplateListRequest
@@ -50,6 +52,16 @@ export type GetProductTemplateListRequest = Message<"sast.sastshopv2.catalog.v1.
    * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplateSearchMode search_mode = 5;
    */
   searchMode: ProductTemplateSearchMode;
+
+  /**
+   * @generated from field: sast.sastshopv2.catalog.v1.ProductTemplateCategoryFilterMode category_filter_mode = 6;
+   */
+  categoryFilterMode: ProductTemplateCategoryFilterMode;
+
+  /**
+   * @generated from field: int64 category_id = 7;
+   */
+  categoryId: bigint;
 };
 
 /**
@@ -153,6 +165,11 @@ export type CreateProductTemplateRequest = Message<"sast.sastshopv2.catalog.v1.C
    * @generated from field: string barcode = 6;
    */
   barcode: string;
+
+  /**
+   * @generated from field: int64 category_id = 7;
+   */
+  categoryId: bigint;
 };
 
 /**
@@ -305,6 +322,124 @@ export const DeleteProductTemplateResponseSchema: GenMessage<DeleteProductTempla
   messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 11);
 
 /**
+ * @generated from message sast.sastshopv2.catalog.v1.ListProductCategoriesRequest
+ */
+export type ListProductCategoriesRequest = Message<"sast.sastshopv2.catalog.v1.ListProductCategoriesRequest"> & {
+  /**
+   * @generated from field: int64 store_id = 1;
+   */
+  storeId: bigint;
+};
+
+/**
+ * Describes the message sast.sastshopv2.catalog.v1.ListProductCategoriesRequest.
+ * Use `create(ListProductCategoriesRequestSchema)` to create a new message.
+ */
+export const ListProductCategoriesRequestSchema: GenMessage<ListProductCategoriesRequest> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 12);
+
+/**
+ * @generated from message sast.sastshopv2.catalog.v1.ListProductCategoriesResponse
+ */
+export type ListProductCategoriesResponse = Message<"sast.sastshopv2.catalog.v1.ListProductCategoriesResponse"> & {
+  /**
+   * @generated from field: repeated sast.sastshopv2.catalog.v1.ProductCategory categories = 1;
+   */
+  categories: ProductCategory[];
+
+  /**
+   * @generated from field: bool has_uncategorized_products = 2;
+   */
+  hasUncategorizedProducts: boolean;
+};
+
+/**
+ * Describes the message sast.sastshopv2.catalog.v1.ListProductCategoriesResponse.
+ * Use `create(ListProductCategoriesResponseSchema)` to create a new message.
+ */
+export const ListProductCategoriesResponseSchema: GenMessage<ListProductCategoriesResponse> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 13);
+
+/**
+ * @generated from message sast.sastshopv2.catalog.v1.CreateProductCategoryRequest
+ */
+export type CreateProductCategoryRequest = Message<"sast.sastshopv2.catalog.v1.CreateProductCategoryRequest"> & {
+  /**
+   * @generated from field: int64 store_id = 1;
+   */
+  storeId: bigint;
+
+  /**
+   * @generated from field: optional int64 parent_id = 2;
+   */
+  parentId?: bigint | undefined;
+
+  /**
+   * @generated from field: string name = 3;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message sast.sastshopv2.catalog.v1.CreateProductCategoryRequest.
+ * Use `create(CreateProductCategoryRequestSchema)` to create a new message.
+ */
+export const CreateProductCategoryRequestSchema: GenMessage<CreateProductCategoryRequest> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 14);
+
+/**
+ * @generated from message sast.sastshopv2.catalog.v1.CreateProductCategoryResponse
+ */
+export type CreateProductCategoryResponse = Message<"sast.sastshopv2.catalog.v1.CreateProductCategoryResponse"> & {
+  /**
+   * @generated from field: sast.sastshopv2.catalog.v1.ProductCategory category = 1;
+   */
+  category?: ProductCategory | undefined;
+};
+
+/**
+ * Describes the message sast.sastshopv2.catalog.v1.CreateProductCategoryResponse.
+ * Use `create(CreateProductCategoryResponseSchema)` to create a new message.
+ */
+export const CreateProductCategoryResponseSchema: GenMessage<CreateProductCategoryResponse> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 15);
+
+/**
+ * @generated from message sast.sastshopv2.catalog.v1.DeleteProductCategoryRequest
+ */
+export type DeleteProductCategoryRequest = Message<"sast.sastshopv2.catalog.v1.DeleteProductCategoryRequest"> & {
+  /**
+   * @generated from field: int64 store_id = 1;
+   */
+  storeId: bigint;
+
+  /**
+   * @generated from field: int64 category_id = 2;
+   */
+  categoryId: bigint;
+};
+
+/**
+ * Describes the message sast.sastshopv2.catalog.v1.DeleteProductCategoryRequest.
+ * Use `create(DeleteProductCategoryRequestSchema)` to create a new message.
+ */
+export const DeleteProductCategoryRequestSchema: GenMessage<DeleteProductCategoryRequest> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 16);
+
+/**
+ * @generated from message sast.sastshopv2.catalog.v1.DeleteProductCategoryResponse
+ */
+export type DeleteProductCategoryResponse = Message<"sast.sastshopv2.catalog.v1.DeleteProductCategoryResponse"> & {
+};
+
+/**
+ * Describes the message sast.sastshopv2.catalog.v1.DeleteProductCategoryResponse.
+ * Use `create(DeleteProductCategoryResponseSchema)` to create a new message.
+ */
+export const DeleteProductCategoryResponseSchema: GenMessage<DeleteProductCategoryResponse> = /*@__PURE__*/
+  messageDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 17);
+
+/**
  * @generated from enum sast.sastshopv2.catalog.v1.ProductTemplateSearchMode
  */
 export enum ProductTemplateSearchMode {
@@ -330,9 +465,64 @@ export const ProductTemplateSearchModeSchema: GenEnum<ProductTemplateSearchMode>
   enumDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 0);
 
 /**
+ * @generated from enum sast.sastshopv2.catalog.v1.ProductTemplateCategoryFilterMode
+ */
+export enum ProductTemplateCategoryFilterMode {
+  /**
+   * @generated from enum value: PRODUCT_TEMPLATE_CATEGORY_FILTER_MODE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: PRODUCT_TEMPLATE_CATEGORY_FILTER_MODE_UNFILTERED = 1;
+   */
+  UNFILTERED = 1,
+
+  /**
+   * @generated from enum value: PRODUCT_TEMPLATE_CATEGORY_FILTER_MODE_CATEGORY = 2;
+   */
+  CATEGORY = 2,
+
+  /**
+   * @generated from enum value: PRODUCT_TEMPLATE_CATEGORY_FILTER_MODE_UNCATEGORIZED = 3;
+   */
+  UNCATEGORIZED = 3,
+}
+
+/**
+ * Describes the enum sast.sastshopv2.catalog.v1.ProductTemplateCategoryFilterMode.
+ */
+export const ProductTemplateCategoryFilterModeSchema: GenEnum<ProductTemplateCategoryFilterMode> = /*@__PURE__*/
+  enumDesc(file_sast_sastshopv2_catalog_v1_product_template_service, 1);
+
+/**
  * @generated from service sast.sastshopv2.catalog.v1.ProductTemplateService
  */
 export const ProductTemplateService: GenService<{
+  /**
+   * @generated from rpc sast.sastshopv2.catalog.v1.ProductTemplateService.ListProductCategories
+   */
+  listProductCategories: {
+    methodKind: "unary";
+    input: typeof ListProductCategoriesRequestSchema;
+    output: typeof ListProductCategoriesResponseSchema;
+  },
+  /**
+   * @generated from rpc sast.sastshopv2.catalog.v1.ProductTemplateService.CreateProductCategory
+   */
+  createProductCategory: {
+    methodKind: "unary";
+    input: typeof CreateProductCategoryRequestSchema;
+    output: typeof CreateProductCategoryResponseSchema;
+  },
+  /**
+   * @generated from rpc sast.sastshopv2.catalog.v1.ProductTemplateService.DeleteProductCategory
+   */
+  deleteProductCategory: {
+    methodKind: "unary";
+    input: typeof DeleteProductCategoryRequestSchema;
+    output: typeof DeleteProductCategoryResponseSchema;
+  },
   /**
    * 店铺详情-跑腿-获取商品模板列表
    *

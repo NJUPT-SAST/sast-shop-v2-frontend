@@ -1,4 +1,9 @@
-import { listProductTemplatesPage, listStores } from "@sast-shop/api";
+import {
+  listProductCategories,
+  listProductTemplatesPage,
+  listStores,
+} from "@sast-shop/api";
+import { getDefaultProductCategoryId } from "@sast-shop/domain";
 import { notFound } from "next/navigation";
 
 import { ErrandShop } from "@/components/errand-shop";
@@ -19,19 +24,34 @@ export default async function GroupShopPage({ params }: GroupShopPageProps) {
   const stores = await listStores(options);
   const store = stores.find((candidate) => candidate.id === id);
   if (!store) notFound();
-  const templatePage = await listProductTemplatesPage({
-    ...options,
-    storeId: id,
-    page: 1,
-    pageSize: 20,
-  });
+  const categoryList = await listProductCategories(id, options);
+  const initialCategoryId = getDefaultProductCategoryId(
+    categoryList.categories,
+  );
+  const pageSize = 20;
+  const templatePage =
+    initialCategoryId || categoryList.hasUncategorizedProducts
+      ? await listProductTemplatesPage({
+          ...options,
+          storeId: id,
+          page: 1,
+          pageSize,
+          ...(initialCategoryId
+            ? { categoryFilterMode: "category", categoryId: initialCategoryId }
+            : { categoryFilterMode: "uncategorized" }),
+        })
+      : { items: [], currentPage: 1, pageSize, totalCount: 0, hasMore: false };
 
   return (
     <ErrandShop
+      key={id}
       dataSource={mobileAppConfig.dataSource}
       connectBaseUrl={mobileAppConfig.connectBaseUrl}
       store={store}
       initialPage={templatePage}
+      categories={categoryList.categories}
+      initialCategoryId={initialCategoryId}
+      hasUncategorizedProducts={categoryList.hasUncategorizedProducts}
     />
   );
 }

@@ -1,5 +1,6 @@
 import {
   getBuyerErrandOrderDetail,
+  listProductCategories,
   listProductTemplatesPage,
   listStores,
   type BuyerErrandOrderProductItem,
@@ -10,6 +11,7 @@ import {
 import { notFound, redirect } from "next/navigation";
 
 import { ErrandShop } from "@/components/errand-shop";
+import { getDefaultProductCategoryId } from "@sast-shop/domain";
 import { desktopAppConfig } from "@/lib/app-config";
 import { parsePositiveInt64RouteId } from "@/lib/route-id";
 import { getServerServiceOptions } from "@/lib/server-service-options";
@@ -32,6 +34,11 @@ export default async function GroupShopPage({
 
   const options = await getServerServiceOptions();
   let store: Store | null = null;
+  let categories: Awaited<
+    ReturnType<typeof listProductCategories>
+  >["categories"] = [];
+  let hasUncategorizedProducts = false;
+  let initialCategoryId: string | null = null;
   let templatePage: PageResult<ProductTemplate> = emptyTemplatePage(24);
   let error: string | null = null;
   let editLifecycleRound: string | undefined;
@@ -40,17 +47,25 @@ export default async function GroupShopPage({
   let editDeadline: string | null = null;
 
   try {
-    const [stores, productTemplates] = await Promise.all([
-      listStores(options),
-      listProductTemplatesPage({
-        ...options,
-        storeId: id,
-        page: 1,
-        pageSize: 24,
-      }),
-    ]);
+    const stores = await listStores(options);
     store = stores.find((item) => item.id === id) ?? null;
-    templatePage = productTemplates;
+    if (store) {
+      const categoryList = await listProductCategories(id, options);
+      categories = categoryList.categories;
+      hasUncategorizedProducts = categoryList.hasUncategorizedProducts;
+      initialCategoryId = getDefaultProductCategoryId(categories);
+      if (initialCategoryId || hasUncategorizedProducts) {
+        templatePage = await listProductTemplatesPage({
+          ...options,
+          storeId: id,
+          page: 1,
+          pageSize: 24,
+          ...(initialCategoryId
+            ? { categoryFilterMode: "category", categoryId: initialCategoryId }
+            : { categoryFilterMode: "uncategorized" }),
+        });
+      }
+    }
   } catch {
     error = "店铺商品暂不可用，请稍后再试。";
   }
@@ -78,11 +93,14 @@ export default async function GroupShopPage({
       connectBaseUrl={desktopAppConfig.connectBaseUrl}
       store={store}
       initialPage={templatePage}
+      categories={categories}
+      initialCategoryId={initialCategoryId}
+      hasUncategorizedProducts={hasUncategorizedProducts}
       error={error}
       editDemandId={editDemandId}
       editUpdatedAt={editUpdatedAt}
       editLifecycleRound={editLifecycleRound}
-      key={`${editDemandId ?? "new"}:${editLifecycleRound ?? "1"}`}
+      key={`${id}:${editDemandId ?? "new"}:${editLifecycleRound ?? "1"}`}
       editInitialItems={editInitialItems}
       editDeadline={editDeadline}
     />

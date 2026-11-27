@@ -4,6 +4,7 @@ import React, { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PageResult, ProductTemplate, Store } from "@sast-shop/api";
+import type { ProductCategory } from "@sast-shop/api";
 import { clearResourceCache } from "@workspace/ui/lib/resource-cache";
 import { ErrandShop } from "../components/errand-shop";
 
@@ -110,6 +111,12 @@ function deferred<T>() {
 let root: Root;
 let container: HTMLDivElement;
 let initialPage: PageResult<ProductTemplate>;
+const categories: ProductCategory[] = [
+  { id: "10", storeId: store.id, parentId: null, name: "饮料", sortOrder: 0 },
+  { id: "11", storeId: store.id, parentId: "10", name: "瓶装水", sortOrder: 0 },
+  { id: "20", storeId: store.id, parentId: null, name: "零食", sortOrder: 1 },
+  { id: "21", storeId: store.id, parentId: "20", name: "饼干", sortOrder: 0 },
+];
 
 beforeEach(() => {
   vi.stubGlobal("React", React);
@@ -145,6 +152,9 @@ async function render() {
         connectBaseUrl="/api/connect"
         store={store}
         initialPage={initialPage}
+        categories={categories}
+        initialCategoryId="11"
+        hasUncategorizedProducts
       />,
     ),
   );
@@ -183,6 +193,35 @@ async function click(label: string) {
 }
 
 describe("mobile shop title full text search", () => {
+  it("clears the root and child when selecting uncategorized products", async () => {
+    listProductTemplatesPage.mockResolvedValue(page("2", "历史商品"));
+    await render();
+    await click("未分类");
+
+    expect(container.textContent).not.toContain("瓶装水");
+    expect(container.textContent).toContain("历史商品");
+    expect(listProductTemplatesPage).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 1, categoryFilterMode: "uncategorized" }),
+    );
+  });
+
+  it("changes the root category and resets the visible child selection", async () => {
+    listProductTemplatesPage.mockResolvedValue(page("2", "饼干", 1, 1));
+    await render();
+
+    expect(container.textContent).toContain("瓶装水");
+    expect(container.textContent).not.toContain("饼干");
+    await click("零食");
+
+    expect(container.textContent).toContain("饼干");
+    await act(async () => Promise.resolve());
+    expect(listProductTemplatesPage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        categoryFilterMode: "category",
+        categoryId: "21",
+      }),
+    );
+  });
   it("debounces input, replaces the first page, and keeps pagination bound to the search", async () => {
     const first = deferred<PageResult<ProductTemplate>>();
     listProductTemplatesPage
@@ -202,6 +241,8 @@ describe("mobile shop title full text search", () => {
       storeId: "6",
       keyword: "香氛洗衣液",
       searchMode: "titleFullText",
+      categoryFilterMode: "category",
+      categoryId: "11",
       page: 1,
       pageSize: 1,
     });

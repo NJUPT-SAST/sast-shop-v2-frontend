@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createProductTemplate,
   getProductTemplate,
+  listProductCategories,
   updateProductTemplate,
   type ProductTemplate,
 } from "@sast-shop/api";
@@ -19,6 +20,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock("@sast-shop/api", async (original) => ({
   ...(await original<typeof import("@sast-shop/api")>()),
   createProductTemplate: vi.fn(),
+  listProductCategories: vi.fn(),
   getProductTemplate: vi.fn(),
   updateProductTemplate: vi.fn(),
 }));
@@ -33,6 +35,7 @@ const template: ProductTemplate = {
   title: "最新矿泉水",
   description: "550ml",
   barcode: "690000000001",
+  categoryId: "2001",
   mainImageUrl: "https://example.com/water.jpg",
   priceCents: 200,
   updatedAt: "2026-07-18T03:00:00.123456789Z",
@@ -53,6 +56,18 @@ beforeEach(() => {
     setItem: (key: string, value: string) => values.set(key, value),
   });
   vi.mocked(getProductTemplate).mockResolvedValue(template);
+  vi.mocked(listProductCategories).mockResolvedValue({
+    categories: [
+      {
+        id: "2001",
+        storeId: "3001",
+        parentId: null,
+        name: "饮料",
+        sortOrder: 0,
+      },
+    ],
+    hasUncategorizedProducts: false,
+  });
   vi.mocked(updateProductTemplate).mockResolvedValue(template);
   container = document.createElement("div");
   document.body.append(container);
@@ -93,6 +108,9 @@ async function render(
       strict ? <React.StrictMode>{manager}</React.StrictMode> : manager,
     ),
   );
+  await act(async () => {
+    await Promise.resolve();
+  });
 }
 function button(name: string) {
   const found = Array.from(document.body.querySelectorAll("button")).find(
@@ -174,6 +192,9 @@ describe("desktop template editing", () => {
     expect(
       vi.mocked(updateProductTemplate).mock.calls[0]![0].patch,
     ).not.toHaveProperty("storeId");
+    expect(
+      vi.mocked(updateProductTemplate).mock.calls[0]![0].patch,
+    ).not.toHaveProperty("categoryId");
   });
   it("shows skeleton then a local retry when detail fails", async () => {
     const loading = deferred<ProductTemplate>();
@@ -230,20 +251,44 @@ describe("desktop template editing", () => {
   });
   it("uses remembered store on new template and navigates without mixing stores into current list", async () => {
     window.localStorage.setItem(TEMPLATE_STORE_STORAGE_KEY, "3002");
+    vi.mocked(listProductCategories).mockImplementation(async (storeId) => ({
+      categories: [
+        {
+          id: storeId === "3002" ? "2002" : "2001",
+          storeId,
+          parentId: null,
+          name: "饮料",
+          sortOrder: 0,
+        },
+      ],
+      hasUncategorizedProducts: false,
+    }));
     vi.mocked(createProductTemplate).mockResolvedValue({
       ...template,
       storeId: "3002",
+      categoryId: "2002",
     });
     await render();
     await click("新建模板");
     expect(
       document.body.querySelector("#template-form-store")?.textContent,
     ).toContain("二号店");
+    await vi.waitFor(async () => {
+      await act(async () => {});
+      expect(listProductCategories).toHaveBeenCalledWith(
+        "3002",
+        expect.anything(),
+      );
+      expect(
+        document.body.querySelector("#template-form-category-root")
+          ?.textContent,
+      ).toContain("饮料");
+    });
     await fill("template-form-barcode", template.barcode);
     await fill("template-form-title", "矿泉水");
     await click("保存");
     expect(createProductTemplate).toHaveBeenCalledWith(
-      expect.objectContaining({ storeId: "3002" }),
+      expect.objectContaining({ storeId: "3002", categoryId: "2002" }),
       expect.anything(),
     );
     expect(router.replace).toHaveBeenCalledWith("/group/templates?store=3002");

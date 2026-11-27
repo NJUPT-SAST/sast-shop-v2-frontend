@@ -20,20 +20,24 @@ import {
   RiSearchLine,
   RiStore2Line,
 } from "@remixicon/react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 import {
   withLarkPageJsapi,
   createProductTemplate,
+  createProductCategory,
+  deleteProductCategory,
   getProductTemplate,
   deleteProductTemplate,
   isLarkScanCancelledError,
   listProductTemplatesPage,
+  listProductCategories,
   scanLarkBarcode,
   updateProductTemplate,
   type DataSource,
   type ProductTemplate,
+  type ProductCategory,
   type PageResult,
   type ServiceOptions,
   type Store,
@@ -80,6 +84,7 @@ import {
   SelectGroup,
   SelectItem,
   SelectTrigger,
+  SelectValue,
 } from "@workspace/ui/components/select";
 import { Spinner } from "@workspace/ui/components/spinner";
 import { Skeleton } from "@workspace/ui/components/skeleton";
@@ -103,6 +108,7 @@ import {
 
 const templateSchema = z.object({
   storeId: z.string().min(1, "请选择店铺"),
+  categoryId: z.string(),
   barcode: z
     .string()
     .trim()
@@ -171,12 +177,55 @@ export function ProductTemplateManager({
     [dataSource, connectBaseUrl],
   );
   const [query, setQuery] = useState("");
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [categoryRootId, setCategoryRootId] = useState("");
+  const [categoryCreateParentId, setCategoryCreateParentId] = useState<
+    string | null | undefined
+  >(undefined);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [categoryBusy, setCategoryBusy] = useState(false);
   const [keyword, setKeyword] = useState("");
   const normalizedQuery = query.trim();
   useEffect(() => {
     const timeout = window.setTimeout(() => setKeyword(query.trim()), 250);
     return () => window.clearTimeout(timeout);
   }, [query]);
+  const [listSelection, setListSelection] = useState<{
+    storeId: string;
+    value: string;
+  } | null>(null);
+  const listFilter =
+    listSelection?.storeId === selectedStoreId
+      ? (listSelection?.value ?? "all")
+      : "all";
+  const filterOptions = useMemo(() => {
+    if (listFilter === "all") return {};
+    if (listFilter === "uncategorized")
+      return { categoryFilterMode: "uncategorized" as const };
+    return { categoryFilterMode: "category" as const, categoryId: listFilter };
+  }, [listFilter]);
+  const listCategories = useCachedResource({
+    cacheKey: JSON.stringify([
+      "mobile:template-list-categories",
+      dataSource,
+      connectBaseUrl,
+      selectedStoreId,
+    ]),
+    staleTime: 30_000,
+    load: () =>
+      selectedStoreId
+        ? listProductCategories(selectedStoreId, serviceOptions)
+        : Promise.resolve({ categories: [], hasUncategorizedProducts: false }),
+  });
+  const listCategoryOptions = listCategories.data?.categories ?? [];
+  const listCategoryLabel = (category: ProductCategory) =>
+    category.parentId
+      ? (listCategoryOptions.find((parent) => parent.id === category.parentId)
+          ?.name ?? "") +
+        " / " +
+        category.name
+      : category.name;
+  const hasListQuery = Boolean(keyword || listFilter !== "all");
   const search = useCachedResource({
     cacheKey: JSON.stringify([
       "mobile:templates:search",
@@ -185,15 +234,17 @@ export function ProductTemplateManager({
       selectedStoreId,
       initialPage.pageSize,
       keyword,
+      listFilter,
     ]),
     staleTime: 60_000,
     refreshKey: initialPage,
     load: () =>
-      keyword && selectedStoreId
+      hasListQuery && selectedStoreId
         ? listProductTemplatesPage({
             dataSource,
             connectBaseUrl,
             storeId: selectedStoreId,
+            ...filterOptions,
             keyword,
             page: 1,
             pageSize: initialPage.pageSize,
@@ -202,12 +253,12 @@ export function ProductTemplateManager({
   });
   const searching =
     normalizedQuery !== keyword ||
-    Boolean(keyword && selectedStoreId && !search.data && !search.error);
-  const listLoading = searching || (!keyword && templatesLoading);
+    Boolean(hasListQuery && selectedStoreId && !search.data && !search.error);
+  const listLoading = searching || (!hasListQuery && templatesLoading);
   const pageError =
     normalizedQuery !== keyword
       ? null
-      : keyword
+      : hasListQuery
         ? search.error
           ? "商品模板暂不可用，请稍后再试"
           : null
@@ -215,7 +266,7 @@ export function ProductTemplateManager({
   const page =
     normalizedQuery !== keyword
       ? undefined
-      : keyword && selectedStoreId
+      : hasListQuery && selectedStoreId
         ? search.data
         : initialPage;
   const firstPage = useMemo(
@@ -236,12 +287,20 @@ export function ProductTemplateManager({
         dataSource,
         connectBaseUrl,
         storeId: selectedStoreId,
+        ...filterOptions,
         keyword,
         page,
         pageSize: initialPage.pageSize,
       });
     },
-    [connectBaseUrl, dataSource, initialPage, selectedStoreId, keyword],
+    [
+      connectBaseUrl,
+      dataSource,
+      initialPage,
+      selectedStoreId,
+      keyword,
+      filterOptions,
+    ],
   );
   const {
     items: templates,
@@ -260,6 +319,7 @@ export function ProductTemplateManager({
       connectBaseUrl,
       selectedStoreId,
       normalizedQuery,
+      listFilter,
       keyword,
     ]),
   });
@@ -296,6 +356,50 @@ export function ProductTemplateManager({
     resolver: zodResolver(templateSchema),
     defaultValues: createDefaultValues(selectedStoreId, prefillBarcode),
   });
+  const activeStoreId = useWatch({ control: form.control, name: "storeId" });
+  useEffect(() => {
+    let active = true;
+    if (!activeStoreId) {
+      return () => {
+        active = false;
+      };
+    }
+    void listProductCategories(activeStoreId, serviceOptions)
+      .then((result) => {
+        if (!active) return;
+        setCategories(result.categories);
+        const selected = form.getValues("categoryId");
+        const selectedCategory = result.categories.find(
+          (category) => category.id === selected,
+        );
+        const firstRoot = result.categories.find(
+          (category) => category.parentId === null,
+        );
+        const rootId =
+          selectedCategory?.parentId ??
+          selectedCategory?.id ??
+          (result.categories.filter((item) => item.parentId === null).length ===
+          1
+            ? firstRoot?.id
+            : undefined) ??
+          "";
+        setCategoryRootId(rootId);
+        if (!editingTemplate && !selected) {
+          const children = result.categories.filter(
+            (category) => category.parentId === rootId,
+          );
+          form.setValue("categoryId", children.length ? "" : rootId, {
+            shouldValidate: true,
+          });
+        }
+      })
+      .catch(() => {
+        if (active) toast.error("分类加载失败，请稍后重试");
+      });
+    return () => {
+      active = false;
+    };
+  }, [activeStoreId, editingTemplate, form, serviceOptions]);
   const handleImageUploadingChange = useCallback((uploading: boolean) => {
     imageUploadCountRef.current = Math.max(
       0,
@@ -323,6 +427,7 @@ export function ProductTemplateManager({
         setEditingTemplate(template);
         form.reset({
           storeId: template.storeId,
+          categoryId: template.categoryId ?? "",
           barcode: template.barcode,
           title: template.title,
           description: template.description,
@@ -372,14 +477,25 @@ export function ProductTemplateManager({
     setSaveError(null);
     setDeleteError(null);
     setEditingTemplate(null);
+    const createStoreId = resolveTemplateStoreId({
+      stores,
+      requestedStoreId,
+      fallbackStoreId: selectedStoreId,
+    });
+    const roots = categories.filter(
+      (category) =>
+        category.storeId === createStoreId && category.parentId === null,
+    );
+    const firstRoot = roots.length === 1 ? roots[0] : undefined;
+    const firstRootChildren = categories.filter(
+      (category) => category.parentId === firstRoot?.id,
+    );
+    setCategoryRootId(firstRoot?.id ?? "");
     form.reset(
       createDefaultValues(
-        resolveTemplateStoreId({
-          stores,
-          requestedStoreId,
-          fallbackStoreId: selectedStoreId,
-        }),
+        createStoreId,
         prefillBarcode,
+        firstRootChildren.length ? "" : (firstRoot?.id ?? ""),
       ),
     );
     setDrawerOpen(true);
@@ -392,6 +508,7 @@ export function ProductTemplateManager({
     setEditingTemplate(template);
     form.reset({
       storeId: template.storeId,
+      categoryId: template.categoryId ?? "",
       barcode: template.barcode,
       title: template.title,
       description: template.description,
@@ -461,14 +578,33 @@ export function ProductTemplateManager({
     )
       return;
 
+    const categoryId =
+      values.categoryId ||
+      (() => {
+        const roots = categories.filter(
+          (category) =>
+            category.storeId === values.storeId && category.parentId === null,
+        );
+        if (roots.length !== 1) return "";
+        return categories.some((category) => category.parentId === roots[0]?.id)
+          ? ""
+          : (roots[0]?.id ?? "");
+      })();
+    if (!categoryId) {
+      form.setError("categoryId", {
+        type: "manual",
+        message: "请选择商品分类",
+      });
+      return;
+    }
+
     submittingRef.current = true;
     setSubmitting(true);
     setSaveError(null);
     const generation = editRequestGeneration.current;
 
     try {
-      const payload = {
-        storeId: values.storeId,
+      const fields = {
         barcode: values.barcode,
         title: values.title,
         description: values.description,
@@ -476,13 +612,25 @@ export function ProductTemplateManager({
         mainImageUrl: values.mainImageUrl,
       };
       const saved = editingTemplate
-        ? await updateExistingTemplate(editingTemplate, payload, serviceOptions)
-        : await createProductTemplate(payload, serviceOptions);
+        ? await updateExistingTemplate(
+            editingTemplate,
+            {
+              ...fields,
+              ...(categoryId !== editingTemplate.categoryId
+                ? { categoryId }
+                : {}),
+            },
+            serviceOptions,
+          )
+        : await createProductTemplate(
+            { ...fields, storeId: values.storeId, categoryId },
+            serviceOptions,
+          );
       if (!mountedRef.current || generation !== editRequestGeneration.current)
         return;
       if (!editingTemplate) rememberTemplateStoreId(saved.storeId);
 
-      if (keyword) {
+      if (hasListQuery) {
         void search.refresh();
       } else if (saved.storeId === selectedStoreId) {
         setTemplates((current) => upsertTemplate(current, saved));
@@ -603,6 +751,31 @@ export function ProductTemplateManager({
           </Field>
 
           <Field>
+            <FieldLabel htmlFor="template-list-category-filter">
+              分类筛选
+            </FieldLabel>
+            <Select
+              value={listFilter}
+              onValueChange={(value) => {
+                if (selectedStoreId && value)
+                  setListSelection({ storeId: selectedStoreId, value });
+              }}
+            >
+              <SelectTrigger id="template-list-category-filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部分类</SelectItem>
+                <SelectItem value="uncategorized">未分类</SelectItem>
+                {listCategoryOptions.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {listCategoryLabel(category)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field>
             <FieldLabel htmlFor="template-search">搜索模板</FieldLabel>
             <InputGroup>
               <InputGroupAddon>
@@ -627,7 +800,7 @@ export function ProductTemplateManager({
           title="商品模板加载失败"
           description={pageError}
           onRetry={() =>
-            keyword
+            hasListQuery
               ? void search.refresh()
               : onRetry
                 ? onRetry()
@@ -794,13 +967,124 @@ export function ProductTemplateManager({
                 <TemplateFields
                   form={form}
                   stores={stores}
+                  categories={categories}
+                  categoryRootId={categoryRootId}
+                  onCategoryRootChange={(rootId) => {
+                    setCategoryRootId(rootId);
+                    const children = categories.filter(
+                      (category) => category.parentId === rootId,
+                    );
+                    form.setValue("categoryId", children.length ? "" : rootId, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    });
+                  }}
+                  onCreateRootCategory={() => {
+                    setNewCategoryName("");
+                    setCategoryCreateParentId(null);
+                  }}
+                  onCreateChildCategory={() => {
+                    setNewCategoryName("");
+                    setCategoryCreateParentId(categoryRootId);
+                  }}
+                  onCreateCategory={async () => {
+                    if (!activeStoreId || categoryBusy) return;
+                    setCategoryBusy(true);
+                    try {
+                      const category = await createProductCategory(
+                        {
+                          storeId: activeStoreId,
+                          name: newCategoryName,
+                          ...(categoryCreateParentId
+                            ? { parentId: categoryCreateParentId }
+                            : {}),
+                        },
+                        serviceOptions,
+                      );
+                      setCategories((current) => [...current, category]);
+                      void listCategories.refresh();
+                      setCategoryRootId(category.parentId ?? category.id);
+                      form.setValue("categoryId", category.id, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      });
+                      setCategoryCreateParentId(undefined);
+                    } catch (caught) {
+                      toast.error(
+                        caught instanceof Error
+                          ? caught.message
+                          : "分类创建失败",
+                      );
+                    } finally {
+                      setCategoryBusy(false);
+                    }
+                  }}
+                  categoryCreateOpen={categoryCreateParentId !== undefined}
+                  categoryCreateParentId={categoryCreateParentId}
+                  newCategoryName={newCategoryName}
+                  onNewCategoryNameChange={setNewCategoryName}
+                  onCancelCategoryCreate={() =>
+                    setCategoryCreateParentId(undefined)
+                  }
+                  onDeleteCategory={async () => {
+                    const categoryId = form.getValues("categoryId");
+                    if (
+                      !activeStoreId ||
+                      !categoryId ||
+                      categoryBusy ||
+                      categories.some(
+                        (category) => category.parentId === categoryId,
+                      )
+                    )
+                      return;
+                    setCategoryBusy(true);
+                    try {
+                      await deleteProductCategory(
+                        { storeId: activeStoreId, categoryId },
+                        serviceOptions,
+                      );
+                      const next = await listProductCategories(
+                        activeStoreId,
+                        serviceOptions,
+                      );
+                      setCategories(next.categories);
+                      if (
+                        selectedStoreId === activeStoreId &&
+                        listFilter === categoryId
+                      ) {
+                        setListSelection(null);
+                      }
+                      void listCategories.refresh();
+                      setCategoryRootId("");
+                      form.setValue("categoryId", "", {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      });
+                    } catch (caught) {
+                      toast.error(
+                        caught instanceof Error
+                          ? caught.message
+                          : "分类删除失败",
+                      );
+                    } finally {
+                      setCategoryBusy(false);
+                    }
+                  }}
+                  categoryBusy={categoryBusy}
                   lockStore={Boolean(editingTemplate)}
                   scanEnabled={showFeishuEntry}
                   submitting={submitting}
                   scanningBarcode={scanningBarcode}
                   onScanBarcode={() => void scanTemplateBarcode()}
                   onImageUploadingChange={handleImageUploadingChange}
-                  onStoreChange={rememberTemplateStoreId}
+                  onStoreChange={(storeId) => {
+                    rememberTemplateStoreId(storeId);
+                    setCategoryRootId("");
+                    form.setValue("categoryId", "", {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    });
+                  }}
                 />
               </form>
 
@@ -993,6 +1277,19 @@ function TemplateItem({
 function TemplateFields({
   form,
   stores,
+  categories,
+  categoryRootId,
+  onCategoryRootChange,
+  onCreateRootCategory,
+  onCreateChildCategory,
+  onCreateCategory,
+  categoryCreateOpen,
+  categoryCreateParentId,
+  newCategoryName,
+  onNewCategoryNameChange,
+  onCancelCategoryCreate,
+  onDeleteCategory,
+  categoryBusy,
   lockStore,
   scanEnabled,
   submitting,
@@ -1003,6 +1300,19 @@ function TemplateFields({
 }: {
   form: ReturnType<typeof useForm<TemplateFormValues>>;
   stores: Store[];
+  categories: ProductCategory[];
+  categoryRootId: string;
+  onCategoryRootChange: (id: string) => void;
+  onCreateRootCategory: () => void;
+  onCreateChildCategory: () => void;
+  onCreateCategory: () => void;
+  categoryCreateOpen: boolean;
+  categoryCreateParentId: string | null | undefined;
+  newCategoryName: string;
+  onNewCategoryNameChange: (name: string) => void;
+  onCancelCategoryCreate: () => void;
+  onDeleteCategory: () => void;
+  categoryBusy: boolean;
   lockStore: boolean;
   scanEnabled: boolean;
   submitting: boolean;
@@ -1063,6 +1373,147 @@ function TemplateFields({
             />
           </Field>
         )}
+      />
+
+      <Controller
+        name="categoryId"
+        control={form.control}
+        render={({ field, fieldState }) => {
+          const roots = categories.filter(
+            (category) => category.parentId === null,
+          );
+          const children = categories.filter(
+            (category) => category.parentId === categoryRootId,
+          );
+          const selected = categories.find(
+            (category) => category.id === field.value,
+          );
+          return (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel>商品分类</FieldLabel>
+              <div className="grid grid-cols-2 gap-2">
+                <Select
+                  value={categoryRootId}
+                  onValueChange={(id) => {
+                    if (roots.some((category) => category.id === id))
+                      onCategoryRootChange(id);
+                  }}
+                >
+                  <SelectTrigger aria-label="一级分类">
+                    <span className="truncate">
+                      {roots.find((category) => category.id === categoryRootId)
+                        ?.name ?? "选择一级分类"}
+                    </span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {roots.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={selected?.parentId ? field.value : ""}
+                  disabled={!children.length}
+                  onValueChange={(id) => {
+                    if (children.some((category) => category.id === id))
+                      field.onChange(id);
+                  }}
+                >
+                  <SelectTrigger aria-label="二级分类">
+                    <span className="truncate">
+                      {children.find((category) => category.id === field.value)
+                        ?.name ??
+                        (children.length ? "选择二级分类" : "无二级分类")}
+                    </span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {children.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+              <FieldError errors={[fieldState.error]} />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={categoryBusy}
+                  onClick={onCreateRootCategory}
+                >
+                  新增一级分类
+                </Button>
+                {categoryRootId ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={categoryBusy}
+                    onClick={onCreateChildCategory}
+                  >
+                    新增二级分类
+                  </Button>
+                ) : null}
+                {field.value &&
+                !categories.some(
+                  (category) => category.parentId === field.value,
+                ) ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={categoryBusy}
+                    onClick={onDeleteCategory}
+                  >
+                    删除所选分类
+                  </Button>
+                ) : null}
+              </div>
+              {categoryCreateOpen ? (
+                <div className="flex gap-2">
+                  <Input
+                    aria-label="新分类名称"
+                    value={newCategoryName}
+                    onChange={(event) =>
+                      onNewCategoryNameChange(event.target.value)
+                    }
+                    placeholder={
+                      categoryCreateParentId ? "二级分类名称" : "一级分类名称"
+                    }
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={categoryBusy}
+                    onClick={onCreateCategory}
+                  >
+                    创建
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={onCancelCategoryCreate}
+                  >
+                    取消
+                  </Button>
+                </div>
+              ) : null}
+              {categories.length === 0 ? (
+                <FieldDescription>请先创建商品分类</FieldDescription>
+              ) : null}
+            </Field>
+          );
+        }}
       />
 
       <Controller
@@ -1326,9 +1777,11 @@ function ProductImageField({
 function createDefaultValues(
   storeId: string | null,
   barcode: string,
+  categoryId = "",
 ): TemplateFormValues {
   return {
     storeId: storeId ?? "",
+    categoryId,
     barcode,
     title: "",
     description: "",
@@ -1340,6 +1793,7 @@ function createDefaultValues(
 async function updateExistingTemplate(
   template: ProductTemplate,
   patch: {
+    categoryId?: string;
     barcode: string;
     title: string;
     description: string;
