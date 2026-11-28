@@ -147,8 +147,8 @@ class MemoryStorage implements Storage {
 let root: Root;
 let container: HTMLDivElement;
 let storage: MemoryStorage;
-let transaction: ReturnType<typeof vi.fn>;
-let beforePrompt: ReturnType<typeof vi.fn>;
+let transaction: ReturnType<typeof vi.fn<() => void>>;
+let beforePrompt: ReturnType<typeof vi.fn<() => void>>;
 let outcomes: boolean[];
 
 function Consumer() {
@@ -227,8 +227,8 @@ beforeEach(() => {
   pathname.current = "/shop";
   toastError.mockReset();
   toastInfo.mockReset();
-  transaction = vi.fn();
-  beforePrompt = vi.fn();
+  transaction = vi.fn<() => void>();
+  beforePrompt = vi.fn<() => void>();
   outcomes = [];
   container = document.createElement("div");
   document.body.append(container);
