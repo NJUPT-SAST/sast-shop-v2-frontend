@@ -47,8 +47,15 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Agent files
+# AI & Agent local files (track AGENTS.md, CLAUDE.md, and skills-lock.json)
 .agents/
+.claude/
+.codex/
+.cursor/
+.gemini/
+.impeccable/
 .superpowers/
 .worktrees/
-skills-lock.json
+AGENTS.local.md
+CLAUDE.local.md
+GEMINI.local.md
