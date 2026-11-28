@@ -46,7 +46,7 @@ it("keeps an unsent execution identifier through reload and isolates users, doma
 it("never returns a new execution identifier unless intent was persisted, and does not mint repeated IDs", async () => {
   const helper = await import("./admin-execution-intent");
   const uuid = vi.spyOn(crypto, "randomUUID");
-  vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+  vi.spyOn(Object.getPrototypeOf(window.sessionStorage), "setItem").mockImplementation(() => {
     throw new DOMException("Storage blocked");
   });
   expect(() =>

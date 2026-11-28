@@ -6,8 +6,8 @@ SAST Shop 是面向飞书网页应用的在线商城前端 monorepo，包含移�
 
 ```text
 apps/
-  mobile/        移动端 Next.js 应用（默认端口 3001）
-  desktop/       桌面端 Next.js 应用（默认端口 3002）
+  mobile/        移动端 Next.js 应用（默认端口 3001；现货、团购、商品分类、Pocket AA）
+  desktop/       桌面端 Next.js 应用（默认端口 3002；商城工作台与 /admin 管理后台）
 packages/
   api/           API facade、飞书客户端适配与 Protobuf-ES 生成物（src/gen/）
   domain/        领域模型、金额、订单、支付等纯函数

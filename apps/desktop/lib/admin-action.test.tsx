@@ -222,7 +222,7 @@ it("does not execute or regenerate a request when browser intent storage is unav
   await render();
   await submit();
   const storage = vi
-    .spyOn(Storage.prototype, "setItem")
+    .spyOn(Object.getPrototypeOf(window.sessionStorage), "setItem")
     .mockImplementation(() => {
       throw new DOMException("Storage blocked");
     });
